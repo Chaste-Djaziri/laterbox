@@ -432,11 +432,92 @@ fun ItemDetailScreen(
                     }
                 }
 
-                // Media Preview / Hero Image Card
+                // Attachments & Files Card (Component 2: right after Return Schedule Banner, matching iOS)
+                val attachments = remember(item.attachments) { runCatching { JSONArray(item.attachments) }.getOrNull() }
+                attachments?.takeIf { it.length() > 0 }?.let { files ->
+                    Surface(
+                        color = Color.White,
+                        shape = RoundedCornerShape(16.dp),
+                        border = BorderStroke(1.dp, Color.Black.copy(alpha = 0.06f)),
+                        shadowElevation = 2.dp,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Icon(Icons.Default.AttachFile, contentDescription = null, tint = LaterboxTextSecondary, modifier = Modifier.size(14.dp))
+                                Text("ATTACHMENTS & FILES (${files.length()})", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = LaterboxTextSecondary, letterSpacing = 0.6.sp)
+                            }
+                            for (index in 0 until files.length()) {
+                                val attachment = files.optJSONObject(index) ?: continue
+                                val name = attachment.optString("name").ifBlank { "Attachment ${index + 1}" }
+                                val mime = attachment.optString("mime", "application/octet-stream")
+                                val file = trustedAttachment(attachment.optString("path"), File(context.filesDir, "captures"))
+                                Row(
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(10.dp))
+                                        .background(Color(0xFFFAFAF8))
+                                        .padding(10.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                ) {
+                                    Icon(Icons.Default.Description, contentDescription = null, tint = Color(0xFF171711), modifier = Modifier.size(24.dp))
+                                    Column(Modifier.weight(1f)) {
+                                        Text(name, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = LaterboxTextPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                        Text(mime.uppercase(), fontSize = 10.sp, fontWeight = FontWeight.Bold, color = LaterboxTextSecondary)
+                                    }
+                                    if (file != null) {
+                                        TextButton(onClick = {
+                                            runCatching {
+                                                FileProvider.getUriForFile(context, context.packageName + ".files", file)
+                                            }.onSuccess { uri ->
+                                                open(Intent(Intent.ACTION_VIEW).setDataAndType(uri, mime).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION))
+                                            }.onFailure { error = "Unable to open attachment." }
+                                        }) {
+                                            Text("Open", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Media Preview / Hero Image Card (Component 3: matching iOS)
                 val source = item.url
                 val kind = directMediaKind(source)
                 val embed = hostedMediaPreview(source)
-                val previewImg = metadata?.previewImageUrl?.takeIf { it.isNotBlank() }
+
+                // Locate first local image attachment if present
+                val localImageFile = remember(item.attachments) {
+                    val arr = runCatching { JSONArray(item.attachments) }.getOrNull()
+                    if (arr != null) {
+                        var found: File? = null
+                        for (idx in 0 until arr.length()) {
+                            val att = arr.optJSONObject(idx) ?: continue
+                            val mime = att.optString("mime", "").lowercase()
+                            val name = att.optString("name", "").lowercase()
+                            val isImg = mime.startsWith("image/") || name.endsWith(".jpg") || name.endsWith(".jpeg") || name.endsWith(".png") || name.endsWith(".webp") || name.endsWith(".gif")
+                            if (isImg) {
+                                val p = att.optString("path")
+                                val f = File(p)
+                                if (f.isFile) {
+                                    found = f
+                                    break
+                                }
+                                val alt = File(context.filesDir, "captures/${f.name}")
+                                if (alt.isFile) {
+                                    found = alt
+                                    break
+                                }
+                            }
+                        }
+                        found
+                    } else null
+                }
+
+                val remotePreviewImg = metadata?.previewImageUrl?.takeIf { it.isNotBlank() }
+                val effectivePreview = localImageFile ?: remotePreviewImg
 
                 if (source != null && (kind != null || embed != null)) {
                     Surface(
@@ -449,14 +530,29 @@ fun ItemDetailScreen(
                         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             when {
                                 embed != null -> HostedItemPreview(embed)
-                                kind == "image" -> ItemImagePreview(source, item.title.orEmpty())
+                                kind == "image" -> ItemImagePreview(
+                                    source = localImageFile ?: source,
+                                    label = item.title.orEmpty(),
+                                    fallbackSource = if (localImageFile != null) source else remotePreviewImg,
+                                    onClick = {
+                                        if (localImageFile != null) {
+                                            runCatching {
+                                                FileProvider.getUriForFile(context, context.packageName + ".files", localImageFile)
+                                            }.onSuccess { uri ->
+                                                open(Intent(Intent.ACTION_VIEW).setDataAndType(uri, "image/*").addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION))
+                                            }
+                                        } else {
+                                            open(Intent(Intent.ACTION_VIEW, Uri.parse(source)))
+                                        }
+                                    }
+                                )
                                 kind == "video" -> ItemVideoPreview(source)
                                 kind == "audio" -> ItemAudioPreview(source)
                                 kind == "pdf" -> RemoteItemPdfPreview(source)
                             }
                         }
                     }
-                } else if (previewImg != null) {
+                } else if (effectivePreview != null) {
                     Surface(
                         color = Color.White,
                         shape = RoundedCornerShape(16.dp),
@@ -464,7 +560,22 @@ fun ItemDetailScreen(
                         shadowElevation = 2.dp,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        ItemImagePreview(previewImg, item.title.orEmpty())
+                        ItemImagePreview(
+                            source = effectivePreview,
+                            label = item.title.orEmpty(),
+                            fallbackSource = if (effectivePreview == localImageFile) remotePreviewImg else localImageFile,
+                            onClick = {
+                                if (localImageFile != null) {
+                                    runCatching {
+                                        FileProvider.getUriForFile(context, context.packageName + ".files", localImageFile)
+                                    }.onSuccess { uri ->
+                                        open(Intent(Intent.ACTION_VIEW).setDataAndType(uri, "image/*").addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION))
+                                    }
+                                } else if (!source.isNullOrBlank()) {
+                                    open(Intent(Intent.ACTION_VIEW, Uri.parse(source)))
+                                }
+                            }
+                        )
                     }
                 }
 
@@ -743,56 +854,6 @@ fun ItemDetailScreen(
                     }
                 }
 
-                // Attachments Card (if any)
-                val attachments = remember(item.attachments) { runCatching { JSONArray(item.attachments) }.getOrNull() }
-                attachments?.takeIf { it.length() > 0 }?.let { files ->
-                    Surface(
-                        color = Color.White,
-                        shape = RoundedCornerShape(16.dp),
-                        border = BorderStroke(1.dp, Color.Black.copy(alpha = 0.06f)),
-                        shadowElevation = 2.dp,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                Icon(Icons.Default.AttachFile, contentDescription = null, tint = LaterboxTextSecondary, modifier = Modifier.size(14.dp))
-                                Text("ATTACHMENTS & FILES (${files.length()})", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = LaterboxTextSecondary, letterSpacing = 0.6.sp)
-                            }
-                            for (index in 0 until files.length()) {
-                                val attachment = files.optJSONObject(index) ?: continue
-                                val name = attachment.optString("name").ifBlank { "Attachment ${index + 1}" }
-                                val mime = attachment.optString("mime", "application/octet-stream")
-                                val file = trustedAttachment(attachment.optString("path"), File(context.filesDir, "captures"))
-                                Row(
-                                    Modifier
-                                        .fillMaxWidth()
-                                        .clip(RoundedCornerShape(10.dp))
-                                        .background(Color(0xFFFAFAF8))
-                                        .padding(10.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                                ) {
-                                    Icon(Icons.Default.Description, contentDescription = null, tint = Color(0xFF171711), modifier = Modifier.size(24.dp))
-                                    Column(Modifier.weight(1f)) {
-                                        Text(name, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = LaterboxTextPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                        Text(mime.uppercase(), fontSize = 10.sp, fontWeight = FontWeight.Bold, color = LaterboxTextSecondary)
-                                    }
-                                    if (file != null) {
-                                        TextButton(onClick = {
-                                            runCatching {
-                                                FileProvider.getUriForFile(context, context.packageName + ".files", file)
-                                            }.onSuccess { uri ->
-                                                open(Intent(Intent.ACTION_VIEW).setDataAndType(uri, mime).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION))
-                                            }.onFailure { error = "Unable to open attachment." }
-                                        }) {
-                                            Text("Open", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
 
                 // AI Summary Card (if present)
                 if (item.summary.isNotBlank()) {
