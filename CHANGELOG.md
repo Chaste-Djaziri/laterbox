@@ -20,6 +20,8 @@ All notable user-facing changes to LaterBox will be documented in this file.
 
 ## [Unreleased]
 
+- **[Android / Cloud Sync] Add separate Push and Pull changes in Settings and Inbox bottom bar matching iOS, and automatically fetch and sync changes to cloud when Pro is active.**
+
 - **[iOS / Shortcuts & Control Center] Trigger the system top popup prompt asking what to save directly from Shortcuts and Control Center without opening the app.**
 
 - **[Web / iOS / Security] Account deletion now removes all account data and Cloudflare attachments, with a dedicated iOS Security page for destructive account controls.**
