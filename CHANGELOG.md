@@ -20,6 +20,8 @@ All notable user-facing changes to LaterBox will be documented in this file.
 
 ## [Unreleased]
 
+- **[iOS / Inbox] Use the blue syncing loader during pull-to-refresh and keep transient reload failures from showing the generic sync alert.**
+
 - **[Android / Account] Improve Account Details layout and add a clear Google-branded connection button for existing email users.**
 
 - **[Android / iOS / Settings] Use short, friendly one-line names for settings links across mobile platforms.**
