@@ -49,6 +49,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -64,6 +65,8 @@ import com.example.laterbox.theme.LaterboxDarkSurface
 import com.example.laterbox.theme.LaterboxEmerald
 import com.example.laterbox.theme.LaterboxTextPrimary
 import com.example.laterbox.theme.LaterboxTextSecondary
+import com.example.laterbox.services.GoogleAuthService
+import android.app.Activity
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.providers.builtin.OTP
 import kotlinx.coroutines.launch
@@ -259,6 +262,8 @@ fun AuthSheet(
     var isLoading by remember { mutableStateOf(false) }
     var statusMessage by remember { mutableStateOf<String?>(null) }
     var isError by remember { mutableStateOf(false) }
+    var isSignup by remember { mutableStateOf(false) }
+    val activity = LocalContext.current as? Activity
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -297,8 +302,12 @@ fun AuthSheet(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    TextButton(onClick = { isSignup = false; codeSent = false; statusMessage = null }) { Text("Log in", fontWeight = if (!isSignup) FontWeight.Bold else FontWeight.Normal) }
+                    TextButton(onClick = { isSignup = true; codeSent = false; statusMessage = null }) { Text("Sign up", fontWeight = if (isSignup) FontWeight.Bold else FontWeight.Normal) }
+                }
                 Text(
-                    text = if (codeSent) "Verify Email Code" else "Sign in to Laterbox",
+                    text = if (codeSent) "Verify Email Code" else if (isSignup) "Create your Laterbox account" else "Sign in to Laterbox",
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
                     color = LaterboxTextPrimary
@@ -306,8 +315,8 @@ fun AuthSheet(
                 Text(
                     text = if (codeSent)
                         "Enter the 6-digit verification code sent to $email."
-                    else
-                        "Enter your email to receive a passwordless sign-in code.",
+                    else if (isSignup) "Create a new account securely with Google."
+                    else "Use email OTP or Google to sign in.",
                     fontSize = 13.sp,
                     color = LaterboxTextSecondary,
                     textAlign = TextAlign.Center
@@ -315,6 +324,28 @@ fun AuthSheet(
             }
 
             if (!codeSent) {
+                Button(
+                    onClick = {
+                        val currentActivity = activity ?: return@Button
+                        isLoading = true
+                        scope.launch {
+                            try {
+                                GoogleAuthService.signIn(currentActivity)
+                                onAuthenticated(); onDismiss()
+                            } catch (error: Exception) {
+                                statusMessage = error.message ?: "Google sign-in was cancelled or unavailable."
+                                isError = true
+                            } finally { isLoading = false }
+                        }
+                    },
+                    enabled = !isLoading && activity != null,
+                    modifier = Modifier.fillMaxWidth().height(52.dp),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = LaterboxTextPrimary)
+                ) { Text(if (isSignup) "Create account with Google" else "Continue with Google", fontWeight = FontWeight.Bold) }
+            }
+
+            if (!codeSent && !isSignup) {
                 OutlinedTextField(
                     value = email,
                     onValueChange = { email = it },
@@ -356,7 +387,7 @@ fun AuthSheet(
                 )
             }
 
-            Button(
+            if (!isSignup) Button(
                 onClick = {
                     if (!codeSent) {
                         if (email.isNotBlank()) {
