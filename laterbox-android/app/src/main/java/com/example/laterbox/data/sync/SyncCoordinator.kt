@@ -1,0 +1,497 @@
+package com.example.laterbox.data.sync
+
+import android.content.Context
+import androidx.room.withTransaction
+import com.example.laterbox.data.api.LaterBoxApiService
+import com.example.laterbox.data.local.*
+import com.example.laterbox.services.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import org.json.JSONArray
+import org.json.JSONObject
+import java.net.URI
+import java.time.Instant
+
+enum class CloudSyncState(val label: String) {
+    SYNCED("Synced"),
+    SYNCING("Syncing"),
+    OFFLINE("Offline"),
+    ERROR("Error")
+}
+
+object SyncCoordinator {
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val syncMutex = Mutex()
+
+    private val _syncState = MutableStateFlow(CloudSyncState.SYNCED)
+    val syncState: StateFlow<CloudSyncState> = _syncState.asStateFlow()
+
+    private val _isPulling = MutableStateFlow(false)
+    val isPulling: StateFlow<Boolean> = _isPulling.asStateFlow()
+
+    private val _isPushing = MutableStateFlow(false)
+    val isPushing: StateFlow<Boolean> = _isPushing.asStateFlow()
+
+    private val _isSyncing = MutableStateFlow(false)
+    val isSyncing: StateFlow<Boolean> = _isSyncing.asStateFlow()
+
+    private val _isCheckingRemoteChanges = MutableStateFlow(false)
+    val isCheckingRemoteChanges: StateFlow<Boolean> = _isCheckingRemoteChanges.asStateFlow()
+
+    private val _pendingPullCount = MutableStateFlow(0)
+    val pendingPullCount: StateFlow<Int> = _pendingPullCount.asStateFlow()
+
+    private val _pendingPushCount = MutableStateFlow(0)
+    val pendingPushCount: StateFlow<Int> = _pendingPushCount.asStateFlow()
+
+    private val _lastSyncedAt = MutableStateFlow<Instant?>(null)
+    val lastSyncedAt: StateFlow<Instant?> = _lastSyncedAt.asStateFlow()
+
+    private val _lastSyncErrorMessage = MutableStateFlow<String?>(null)
+    val lastSyncErrorMessage: StateFlow<String?> = _lastSyncErrorMessage.asStateFlow()
+
+    fun normalizeUrl(url: String?): String? {
+        if (url.isNullOrBlank()) return null
+        var raw = url.trim()
+        if (raw == "http://" || raw == "https://") return null
+        if (!raw.contains("://")) {
+            raw = "https://$raw"
+        }
+        return try {
+            val uri = URI(raw)
+            var host = (uri.host ?: "").lowercase()
+            if (host.startsWith("www.")) {
+                host = host.removePrefix("www.")
+            }
+            var path = uri.path ?: ""
+            while (path.endsWith("/") && path.length > 1) {
+                path = path.dropLast(1)
+            }
+            if (path == "/") path = ""
+            val query = uri.query
+            val filteredQuery = if (!query.isNullOrBlank()) {
+                val ignored = setOf("utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content", "ref", "fbclid", "gclid")
+                query.split("&")
+                    .mapNotNull { param ->
+                        val parts = param.split("=", limit = 2)
+                        val key = parts[0].lowercase()
+                        if (key in ignored) null else param
+                    }
+                    .sorted()
+                    .joinToString("&")
+            } else ""
+            if (filteredQuery.isNotBlank()) "$host$path?$filteredQuery" else "$host$path"
+        } catch (_: Exception) {
+            val lower = raw.lowercase()
+            if (lower.endsWith("/")) lower.dropLast(1) else lower
+        }
+    }
+
+    suspend fun updateLocalPendingPushCount(context: Context): Int {
+        return try {
+            val uid = AccountService.state.value.userId
+            val database = AppDatabase.getDatabase(context)
+            val pendingItems = database.itemDao().getItemsNeedingSync()
+                .count { it.userId == null || it.userId == uid }
+            val pendingCollections = database.collectionDao().getAllCollections()
+                .count { it.syncStatus != "synced" && (it.userId == null || it.userId == uid) }
+            val total = pendingItems + pendingCollections
+            _pendingPushCount.value = total
+            total
+        } catch (_: Exception) {
+            _pendingPushCount.value
+        }
+    }
+
+    fun refreshPendingCounts(context: Context) {
+        scope.launch {
+            updateLocalPendingPushCount(context)
+            checkRemoteChanges(context)
+        }
+    }
+
+    suspend fun checkRemoteChanges(context: Context): Int {
+        val account = AccountService.state.value
+        if (!account.pro || account.userId == null) {
+            _pendingPullCount.value = 0
+            return 0
+        }
+        if (_isCheckingRemoteChanges.value) return _pendingPullCount.value
+        _isCheckingRemoteChanges.value = true
+        try {
+            val uid = account.userId
+            val base = LaterBoxApiService.supabaseUrl + "/rest/v1/"
+            val jsonText = NativeApi.call(base + "items?user_id=eq.$uid&select=id,url,updated_at,deleted_at")
+            val remoteList = JSONArray(jsonText)
+            val database = AppDatabase.getDatabase(context)
+            val localItems = database.itemDao().getAllItems()
+            val localById = localItems.associateBy { it.id.lowercase() }
+            val localByUrl = localItems.filter { !it.url.isNullOrBlank() }
+                .associateBy { normalizeUrl(it.url) }
+
+            val countedKeys = mutableSetOf<String>()
+            var count = 0
+            for (i in 0 until remoteList.length()) {
+                val remote = remoteList.getJSONObject(i)
+                val remoteId = remote.optString("id").lowercase()
+                val remoteUrl = normalizeUrl(if (remote.isNull("url")) null else remote.optString("url"))
+                val localMatch = localById[remoteId] ?: (if (remoteUrl != null) localByUrl[remoteUrl] else null)
+                val key = localMatch?.let { "local:${it.id.lowercase()}" }
+                    ?: remoteUrl?.let { "url:$it" }
+                    ?: "remote:$remoteId"
+                if (!countedKeys.add(key)) continue
+
+                val remoteDeleted = !remote.isNull("deleted_at")
+                if (localMatch == null) {
+                    if (!remoteDeleted) {
+                        count++
+                    }
+                    continue
+                }
+                val remoteDateStr = remote.optString("updated_at")
+                val remoteDate = runCatching { Instant.parse(remoteDateStr) }.getOrDefault(Instant.MIN)
+                val localDate = runCatching { Instant.parse(localMatch.updatedAt) }.getOrDefault(Instant.MIN)
+                if (remoteDate.isAfter(localDate)) {
+                    count++
+                } else if (remoteDate == localDate) {
+                    val localDeleted = localMatch.status == "deleted" || localMatch.deletedAt != null
+                    if (remoteDeleted && !localDeleted) {
+                        count++
+                    }
+                }
+            }
+            _pendingPullCount.value = count
+            updateLocalPendingPushCount(context)
+            return count
+        } catch (_: Exception) {
+            return _pendingPullCount.value
+        } finally {
+            _isCheckingRemoteChanges.value = false
+        }
+    }
+
+    suspend fun pullChanges(context: Context) {
+        val account = AccountService.state.value
+        if (!account.pro || account.userId == null) {
+            _syncState.value = CloudSyncState.OFFLINE
+            return
+        }
+        if (_isPulling.value || _isSyncing.value) return
+        syncMutex.withLock {
+            _isPulling.value = true
+            _syncState.value = CloudSyncState.SYNCING
+            try {
+                performPull(context, account.userId)
+                _syncState.value = CloudSyncState.SYNCED
+                _lastSyncedAt.value = Instant.now()
+                _lastSyncErrorMessage.value = null
+                _pendingPullCount.value = 0
+                updateLocalPendingPushCount(context)
+            } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                throw cancelled
+            } catch (e: Exception) {
+                _syncState.value = CloudSyncState.ERROR
+                _lastSyncErrorMessage.value = e.message ?: "Failed to pull changes from cloud"
+            } finally {
+                _isPulling.value = false
+            }
+        }
+    }
+
+    suspend fun pushChanges(context: Context) {
+        val account = AccountService.state.value
+        if (!account.pro || account.userId == null) {
+            _syncState.value = CloudSyncState.OFFLINE
+            return
+        }
+        if (_isPushing.value || _isSyncing.value) return
+        syncMutex.withLock {
+            _isPushing.value = true
+            _syncState.value = CloudSyncState.SYNCING
+            try {
+                performPush(context, account.userId)
+                _syncState.value = CloudSyncState.SYNCED
+                _lastSyncedAt.value = Instant.now()
+                _lastSyncErrorMessage.value = null
+                updateLocalPendingPushCount(context)
+            } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                throw cancelled
+            } catch (e: Exception) {
+                _syncState.value = CloudSyncState.ERROR
+                _lastSyncErrorMessage.value = e.message ?: "Failed to push changes to cloud"
+            } finally {
+                _isPushing.value = false
+            }
+        }
+    }
+
+    suspend fun pullAndPushChanges(context: Context) {
+        AccountService.refresh()
+        val account = AccountService.state.value
+        if (!account.pro || account.userId == null) {
+            _syncState.value = CloudSyncState.OFFLINE
+            _lastSyncErrorMessage.value = null
+            return
+        }
+        if (_isSyncing.value || _isPulling.value || _isPushing.value) return
+        syncMutex.withLock {
+            _isSyncing.value = true
+            _syncState.value = CloudSyncState.SYNCING
+            try {
+                performPull(context, account.userId)
+                performPush(context, account.userId)
+                _syncState.value = CloudSyncState.SYNCED
+                _lastSyncedAt.value = Instant.now()
+                _lastSyncErrorMessage.value = null
+                _pendingPullCount.value = 0
+                updateLocalPendingPushCount(context)
+            } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                throw cancelled
+            } catch (e: Exception) {
+                _syncState.value = CloudSyncState.ERROR
+                _lastSyncErrorMessage.value = e.message ?: "Sync failed. Please retry."
+            } finally {
+                _isSyncing.value = false
+            }
+        }
+    }
+
+    private suspend fun performPull(context: Context, uid: String) {
+        val database = AppDatabase.getDatabase(context)
+        val dao = database.itemDao()
+        val base = LaterBoxApiService.supabaseUrl + "/rest/v1/"
+
+        // 1. Pull Collections
+        var collectionOffset = 0
+        while (true) {
+            val rows = JSONArray(NativeApi.call(base + "collections?user_id=eq.$uid&order=id.asc&limit=100&offset=$collectionOffset"))
+            for (index in 0 until rows.length()) {
+                val row = rows.getJSONObject(index)
+                val id = row.getString("id")
+                val stamp = row.getString("updated_at")
+                val existing = database.collectionDao().getCollectionById(id)
+                val remoteDate = runCatching { Instant.parse(stamp) }.getOrDefault(Instant.MIN)
+                val existingDate = existing?.let { runCatching { Instant.parse(it.updatedAt) }.getOrDefault(Instant.MIN) }
+                if (existing == null || existingDate == null || existingDate.isBefore(remoteDate)) {
+                    database.collectionDao().insertCollection(
+                        CollectionEntity(
+                            id = id,
+                            userId = uid,
+                            name = row.getString("name"),
+                            createdAt = row.getString("created_at"),
+                            updatedAt = stamp,
+                            syncStatus = "synced",
+                            deletedAt = if (row.isNull("deleted_at")) null else row.getString("deleted_at")
+                        )
+                    )
+                }
+            }
+            if (rows.length() < 100) break
+            collectionOffset += rows.length()
+        }
+
+        // 2. Pull Items
+        var offset = 0
+        while (true) {
+            val rows = JSONArray(
+                NativeApi.call(
+                    base + "items?user_id=eq.$uid&select=*,item_metadata(*),item_notes(*),collection_items(collection_id,deleted_at)&order=id.asc&limit=100&offset=$offset"
+                )
+            )
+            database.withTransaction {
+                for (index in 0 until rows.length()) {
+                    val row = rows.getJSONObject(index)
+                    val id = row.getString("id")
+                    val local = dao.getItemById(id)
+                    val updated = row.getString("updated_at")
+
+                    val remoteDate = runCatching { Instant.parse(updated) }.getOrDefault(Instant.MIN)
+                    val localDate = local?.let { runCatching { Instant.parse(it.updatedAt) }.getOrDefault(Instant.MIN) }
+                    if (local != null && localDate != null) {
+                        val remoteDeleted = !row.isNull("deleted_at")
+                        val localDeleted = local.status == "deleted" || local.deletedAt != null
+                        if (remoteDate.isBefore(localDate)) {
+                            continue
+                        }
+                        if (remoteDate == localDate && !(remoteDeleted && !localDeleted)) {
+                            continue
+                        }
+                    }
+
+                    fun objectValue(key: String): JSONObject? = row.optJSONObject(key) ?: row.optJSONArray(key)?.optJSONObject(0)
+                    val metadata = objectValue("item_metadata")
+                    val classification = metadata?.optJSONObject("structured_data")
+                        ?: metadata?.optString("structured_data")?.let { runCatching { JSONObject(it) }.getOrNull() }
+                    fun nullable(key: String) = if (row.isNull(key)) null else row.optString(key).ifBlank { null }
+
+                    val item = ItemEntity(
+                        id = id,
+                        userId = uid,
+                        url = nullable("url"),
+                        title = nullable("title"),
+                        textContent = nullable("text_content"),
+                        type = row.optString("type", "note"),
+                        favorite = row.optBoolean("favorite"),
+                        status = row.optString("status", "inbox"),
+                        returnAt = nullable("return_at"),
+                        createdAt = row.getString("created_at"),
+                        updatedAt = updated,
+                        syncStatus = "synced",
+                        deletedAt = nullable("deleted_at"),
+                        tags = classification?.optJSONArray("tags")?.let { tags ->
+                            (0 until tags.length()).joinToString(", ") { tags.getString(it) }
+                        }.orEmpty(),
+                        category = classification?.optString("category").orEmpty(),
+                        summary = classification?.optString("summary").orEmpty(),
+                        formattedContent = classification?.optString("formattedContent").orEmpty(),
+                        notes = objectValue("item_notes")?.takeIf { it.isNull("deleted_at") }?.optString("content").orEmpty(),
+                        collectionId = row.optJSONArray("collection_items")?.let { memberships ->
+                            (0 until memberships.length())
+                                .map { memberships.getJSONObject(it) }
+                                .firstOrNull { it.isNull("deleted_at") }
+                                ?.optString("collection_id")
+                        },
+                        attachments = local?.attachments ?: "[]"
+                    )
+
+                    metadata?.let {
+                        database.itemMetadataDao().insertMetadata(
+                            ItemMetadataEntity(
+                                itemId = id,
+                                userId = uid,
+                                domain = it.optString("domain"),
+                                siteName = it.optString("site_name"),
+                                title = it.optString("title"),
+                                description = it.optString("description"),
+                                faviconUrl = it.optString("favicon_url"),
+                                previewImageUrl = it.optString("preview_image_url"),
+                                status = it.optString("status", "enriched"),
+                                structuredData = classification?.toString(),
+                                createdAt = item.createdAt,
+                                updatedAt = updated
+                            )
+                        )
+                    }
+
+                    dao.insertItem(item)
+                    ReturnsService.schedule(context, item)
+                }
+            }
+            if (rows.length() < 100) break
+            offset += rows.length()
+        }
+
+        // 3. Download synced attachments
+        for (item in dao.getAllItems().filter { it.userId == uid && it.deletedAt == null && it.syncStatus == "synced" }) {
+            val files = CloudFileService.download(context, item, uid)
+            dao.replaceAttachmentsIfUnchanged(item.id, item.updatedAt, files)
+        }
+    }
+
+    private suspend fun performPush(context: Context, uid: String) {
+        val database = AppDatabase.getDatabase(context)
+        val dao = database.itemDao()
+        val base = LaterBoxApiService.supabaseUrl + "/rest/v1/"
+
+        suspend fun post(table: String, body: JSONObject) {
+            NativeApi.call(base + table, "POST", body)
+        }
+
+        // 1. Push Collections
+        for (collection in database.collectionDao().getAllCollections().filter { it.syncStatus != "synced" && (it.userId == null || it.userId == uid) }) {
+            post(
+                "collections?on_conflict=id",
+                JSONObject()
+                    .put("id", collection.id)
+                    .put("user_id", uid)
+                    .put("name", collection.name)
+                    .put("created_at", collection.createdAt)
+                    .put("updated_at", collection.updatedAt)
+                    .put("deleted_at", collection.deletedAt ?: JSONObject.NULL)
+            )
+            database.collectionDao().markSynced(collection.id, collection.updatedAt, uid)
+        }
+
+        // 2. Push Items
+        for (item in dao.getItemsNeedingSync().filter { it.userId == null || it.userId == uid }) {
+            val body = JSONObject()
+                .put("id", item.id)
+                .put("user_id", uid)
+                .put("title", item.title)
+                .put("url", item.url ?: JSONObject.NULL)
+                .put("text_content", item.textContent ?: JSONObject.NULL)
+                .put("type", item.type)
+                .put("favorite", item.favorite)
+                .put("status", item.status)
+                .put("return_at", item.returnAt ?: JSONObject.NULL)
+                .put("created_at", item.createdAt)
+                .put("updated_at", item.updatedAt)
+                .put("deleted_at", item.deletedAt ?: JSONObject.NULL)
+            post("items?on_conflict=id", body)
+
+            val oldMetadata = JSONArray(NativeApi.call(base + "item_metadata?item_id=eq.${item.id}&select=structured_data")).optJSONObject(0)
+            val previous = oldMetadata?.optJSONObject("structured_data")
+                ?: oldMetadata?.optString("structured_data")?.let { runCatching { JSONObject(it) }.getOrNull() }
+                ?: JSONObject()
+            previous.put("tags", JSONArray(item.tags.split(",").map { it.trim() }.filter { it.isNotBlank() }))
+                .put("category", item.category)
+                .put("summary", item.summary)
+                .put("formattedContent", item.formattedContent)
+            post(
+                "item_metadata?on_conflict=item_id",
+                JSONObject()
+                    .put("item_id", item.id)
+                    .put("user_id", uid)
+                    .put("status", "enriched")
+                    .put("structured_data", previous)
+                    .put("updated_at", item.updatedAt)
+            )
+            post(
+                "item_notes?on_conflict=item_id",
+                JSONObject()
+                    .put("item_id", item.id)
+                    .put("user_id", uid)
+                    .put("content", item.notes)
+                    .put("updated_at", item.updatedAt)
+                    .put("deleted_at", if (item.notes.isBlank()) item.updatedAt else JSONObject.NULL)
+            )
+
+            val memberships = JSONArray(NativeApi.call(base + "collection_items?item_id=eq.${item.id}&user_id=eq.$uid&select=collection_id"))
+            for (index in 0 until memberships.length()) {
+                val id = memberships.getJSONObject(index).getString("collection_id")
+                if (id != item.collectionId) {
+                    NativeApi.call(
+                        base + "collection_items?collection_id=eq.$id&item_id=eq.${item.id}&user_id=eq.$uid",
+                        "PATCH",
+                        JSONObject().put("deleted_at", item.updatedAt).put("updated_at", item.updatedAt)
+                    )
+                }
+            }
+
+            item.collectionId?.let { id ->
+                database.collectionDao().getCollectionById(id)?.takeIf { it.deletedAt == null }?.let {
+                    post(
+                        "collection_items?on_conflict=collection_id,item_id",
+                        JSONObject()
+                            .put("collection_id", id)
+                            .put("item_id", item.id)
+                            .put("user_id", uid)
+                            .put("created_at", item.createdAt)
+                            .put("updated_at", item.updatedAt)
+                            .put("deleted_at", JSONObject.NULL)
+                    )
+                }
+            }
+
+            CloudFileService.upload(context, item, uid)
+            dao.markSyncedIfUnchanged(item.id, item.updatedAt, Instant.now().toString(), uid)
+        }
+    }
+}
