@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[Releases]** Show the latest changes as readable text in each GitHub Release description.
+
 - **[iOS / Releases]** Check that the App Store signing profile includes Sign in with Apple before archiving.
 
 - **[iOS / Testing]** Match the subscription UI test to the current Plans navigation.
