@@ -21,6 +21,24 @@ ASSETS = {
 }
 
 
+def current_changelog_entries(changelog: Path, previous: Path) -> str:
+    def current_section(text: str) -> str:
+        # The opening section records changes for managed releases; historical
+        # changelog content begins at the next top-level heading.
+        lines = text.splitlines()
+        end = next((index for index, line in enumerate(lines[1:], 1)
+                    if line.startswith("# ")), len(lines))
+        return "\n".join(lines[1:end]).strip()
+
+    current = current_section(changelog.read_text())
+    previous_changelog = previous / "LaterBox-CHANGELOG.md"
+    if previous_changelog.is_file():
+        old = current_section(previous_changelog.read_text())
+        if old and old in current:
+            current = current.split(old, 1)[0].strip()
+    return current or "No new changelog entries for this release."
+
+
 def digest(path: Path) -> str:
     hasher = hashlib.sha256()
     with path.open("rb") as stream:
@@ -65,10 +83,9 @@ def assemble(current: Path, previous: Path, output: Path, commit: str, changelog
 
     shutil.copyfile(changelog, output / "LaterBox-CHANGELOG.md")
     (output / "release-manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
-    notes = changelog.read_text().strip()
+    notes = current_changelog_entries(changelog, previous)
     (output.parent / "release-body.md").write_text(
-        "## Changes\n\n" + notes[:12000] +
-        ("\n\n[Download the full changelog from this release's assets.]" if len(notes) > 12000 else "") +
+        "## What's changed\n\n" + notes +
         "\n\nArtifact source commits and checksums are in `release-manifest.json`.\n"
     )
 
