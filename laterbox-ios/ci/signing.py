@@ -103,6 +103,12 @@ def validate(profile, bundle, now=None):
     if TEAM not in profile["TeamIdentifier"]: raise ValueError("Wrong signing team for " + bundle)
     if entitlements.get("application-identifier") != TEAM + "." + bundle: raise ValueError("Profile bundle identifier mismatch for " + bundle)
     if GROUP not in entitlements.get("com.apple.security.application-groups", []): raise ValueError("Profile lacks LaterBox App Group for " + bundle)
+    if bundle == TARGETS["main"] and "Default" not in entitlements.get("com.apple.developer.applesignin", []):
+        raise ValueError(
+            "App Store profile for pro.micorp.laterbox lacks Sign in with Apple. "
+            "Regenerate its distribution profile after enabling the capability on the App ID, "
+            "then replace the APPLE_PROVISIONING_PROFILE_BASE64 GitHub Actions secret."
+        )
     if entitlements.get("get-task-allow") or profile.get("ProvisionedDevices") or profile.get("ProvisionsAllDevices"):
         raise ValueError("An App Store distribution profile is required for " + bundle)
     return profile["Name"]
