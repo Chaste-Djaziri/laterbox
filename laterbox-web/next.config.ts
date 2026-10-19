@@ -6,9 +6,6 @@ const nextConfig: NextConfig = {
       'node-fetch': './src/lib/billing/apple-fetch.cjs',
     },
   },
-  env: {
-    GITHUB_TOKEN: process.env.GITHUB_TOKEN || process.env.NEXT_PUBLIC_GITHUB_TOKEN || '',
-  },
 };
 
 export default function config(phase: string): NextConfig {
