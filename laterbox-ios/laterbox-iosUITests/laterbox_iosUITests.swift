@@ -40,7 +40,7 @@ final class laterbox_iosUITests: XCTestCase {
         XCTAssertTrue(app.buttons["Profile menu"].waitForExistence(timeout: 15))
         app.buttons["Profile menu"].tap()
         app.buttons["Settings"].firstMatch.tap()
-        let subscriptions = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "Subscription & Plans")).firstMatch
+        let subscriptions = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Plans")).firstMatch
         XCTAssertTrue(subscriptions.waitForExistence(timeout: 5))
         subscriptions.tap()
         let upgrade = app.buttons["Upgrade to LaterBox Pro"]
