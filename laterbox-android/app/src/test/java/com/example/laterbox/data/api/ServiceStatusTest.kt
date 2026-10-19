@@ -49,49 +49,6 @@ class ServiceStatusTest {
     }
 
     @Test
-    fun testParseBetterStackDirectMonitors() {
-        val directJson = """
-            {
-                "data": [
-                    {
-                        "id": "1001",
-                        "type": "monitor",
-                        "attributes": {
-                            "pronounceable_name": "API Gateway",
-                            "status": "up",
-                            "paused": false,
-                            "last_checked_at": "2026-10-18T19:00:00.000Z",
-                            "check_frequency": 60
-                        }
-                    },
-                    {
-                        "id": "1002",
-                        "type": "monitor",
-                        "attributes": {
-                            "pronounceable_name": "Sync Engine",
-                            "status": "down",
-                            "paused": false,
-                            "last_checked_at": "2026-10-18T19:00:00.000Z",
-                            "check_frequency": 60
-                        }
-                    }
-                ]
-            }
-        """.trimIndent()
-
-        val snapshot = LaterBoxApiService.parseBetterStackDirectMonitors(directJson)
-        assertEquals("outage", snapshot.status)
-        assertEquals("Some services are unavailable", snapshot.label)
-        assertEquals(2, snapshot.monitors.size)
-        assertEquals("API Gateway", snapshot.monitors[0].name)
-        assertEquals("up", snapshot.monitors[0].status)
-        assertEquals("Operational", snapshot.monitors[0].label)
-        assertEquals("Sync Engine", snapshot.monitors[1].name)
-        assertEquals("down", snapshot.monitors[1].status)
-        assertEquals("Service disruption", snapshot.monitors[1].label)
-    }
-
-    @Test
     fun testParseServiceUptimeHistory() {
         val historyJson = """
             {

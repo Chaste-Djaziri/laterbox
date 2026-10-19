@@ -74,7 +74,6 @@ object LaterBoxApiService {
     var webBaseUrl: String = if (BuildConfig.WEB_BASE_URL.isNotEmpty()) BuildConfig.WEB_BASE_URL else "https://laterbox.dev"
     val supabaseUrl: String = if (BuildConfig.SUPABASE_URL.isNotEmpty()) BuildConfig.SUPABASE_URL else "https://ltjisrgldssqskcylcbj.supabase.co"
     val supabaseAnonKey: String = if (BuildConfig.SUPABASE_KEY.isNotEmpty()) BuildConfig.SUPABASE_KEY else "sb_publishable_Rc4e_ik2LE4SR0UrfX-OEQ_5Mu_lw9p"
-    val betterstackToken: String = BuildConfig.BETTERSTACK_UPTIME_TOKEN
 
     /**
      * Integrates with Next.js web /api/system-status
@@ -224,7 +223,7 @@ object LaterBoxApiService {
 
     /**
      * Fetches detailed Service Status matching iOS ServiceStatusSnapshot.
-     * Uses Supabase system-status edge function with direct BetterStack API fallback.
+     * Uses the server-side Supabase system-status endpoint.
      */
     suspend fun fetchServiceStatusDetails(): ServiceStatusSnapshot = withContext(Dispatchers.IO) {
         // First try the system-status endpoint (uses BETTERSTACK_UPTIME_TOKEN on server)
@@ -243,27 +242,7 @@ object LaterBoxApiService {
                 return@withContext parseServiceStatusSnapshot(responseText)
             }
         } catch (_: Exception) {
-            // Fall back to direct BetterStack API if available
-        }
-
-        // Direct BetterStack API fallback if token is available
-        if (betterstackToken.isNotBlank()) {
-            try {
-                val url = URL("https://uptime.betterstack.com/api/v2/monitors")
-                val conn = (url.openConnection() as HttpURLConnection).apply {
-                    requestMethod = "GET"
-                    connectTimeout = 10000
-                    readTimeout = 15000
-                    setRequestProperty("Authorization", "Bearer $betterstackToken")
-                    setRequestProperty("Accept", "application/json")
-                }
-                if (conn.responseCode in 200..299) {
-                    val responseText = conn.inputStream.bufferedReader().use { it.readText() }
-                    return@withContext parseBetterStackDirectMonitors(responseText)
-                }
-            } catch (_: Exception) {
-                // Fall through to error
-            }
+            // The server endpoint is the only trusted path for this credential.
         }
 
         throw IllegalStateException("Service status is temporarily unavailable")
@@ -316,48 +295,6 @@ object LaterBoxApiService {
         }
         val totalMonitors = json.optInt("totalMonitors", monitors.size)
         return ServiceStatusSnapshot(status, label, monitors, totalMonitors, timestamp, statusPageUrl)
-    }
-
-    fun parseBetterStackDirectMonitors(jsonStr: String): ServiceStatusSnapshot {
-        val json = JSONObject(jsonStr)
-        val dataArray = json.optJSONArray("data") ?: org.json.JSONArray()
-        val monitors = mutableListOf<ServiceMonitorStatus>()
-        for (i in 0 until dataArray.length()) {
-            val item = dataArray.getJSONObject(i)
-            val id = item.optString("id", i.toString())
-            val attrs = item.optJSONObject("attributes") ?: JSONObject()
-            val isPaused = attrs.optBoolean("paused", false)
-            val rawStatus = attrs.optString("status", "up")
-            val status = if (isPaused) "paused" else rawStatus
-            val name = attrs.optString("pronounceable_name").takeIf { it.isNotBlank() } ?: "Monitor ${i + 1}"
-            val label = when (status) {
-                "up" -> "Operational"
-                "down" -> "Service disruption"
-                "degraded" -> "Degraded performance"
-                "validating" -> "Recovering"
-                "maintenance" -> "Maintenance"
-                "paused" -> "Paused"
-                else -> "Operational"
-            }
-            val lastCheckedAt = if (attrs.isNull("last_checked_at")) null else attrs.optString("last_checked_at")
-            val checkFrequency = if (attrs.isNull("check_frequency")) null else attrs.optInt("check_frequency")
-            monitors.add(ServiceMonitorStatus(id, name, status, label, lastCheckedAt, checkFrequency))
-        }
-        val active = monitors.filter { it.status != "paused" }
-        val overallStatus = when {
-            active.any { it.status == "down" } -> "outage"
-            active.any { it.status == "degraded" || it.status == "validating" } -> "degraded"
-            active.any { it.status == "maintenance" } -> "maintenance"
-            active.isNotEmpty() && active.all { it.status == "up" } -> "operational"
-            else -> "operational"
-        }
-        val overallLabel = when (overallStatus) {
-            "outage" -> "Some services are unavailable"
-            "degraded" -> "Some services are recovering"
-            "maintenance" -> "Scheduled maintenance"
-            else -> "All systems operational"
-        }
-        return ServiceStatusSnapshot(overallStatus, overallLabel, monitors, monitors.size, java.time.Instant.now().toString(), "https://status.laterbox.dev")
     }
 
     fun parseServiceUptimeHistory(jsonStr: String): ServiceUptimeHistory {
