@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[Android / Releases]** Keep Google Play build numbers increasing across release workflows.
+
 - **[Security / Android]** Remove the Better Stack bearer token and direct monitor API fallback from Android builds; load status through the server endpoint.
 
 - **[Security / Web]** Remove the hardcoded Paddle client-side token fallback and require deployment configuration.
