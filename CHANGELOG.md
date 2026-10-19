@@ -4,6 +4,8 @@
 
 - **[Security / Web]** Remove the hardcoded Paddle client-side token fallback and require deployment configuration.
 
+- **[Security / Web]** Keep GitHub API credentials out of Next.js client bundles.
+
 - **[Web / Account]** Connect Apple and Google sign-in identities from Settings while keeping the existing LaterBox account.
 
 - **[Web / Authentication]** Add Sign in with Apple to Login and Signup alongside existing Google options.
