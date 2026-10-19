@@ -61,6 +61,21 @@ class AssembleReleaseTests(unittest.TestCase):
         self.assertEqual({item["source_commit"] for item in manifest["assets"].values()}, {"first"})
         self.assertIn("Documentation updated", (self.root / "release-body.md").read_text())
 
+    def test_release_body_contains_only_new_entries_as_readable_text(self):
+        self.add_all_current()
+        self.changelog.write_text("# Current changes\n\n- Old fix\n\n# Changelog\n\nHistorical notes\n")
+        assemble(self.current, self.previous, self.previous / "assets", "first", self.changelog)
+        self.current = self.root / "next"
+        self.current.mkdir()
+        self.changelog.write_text("# Current changes\n\n- New fix\n\n- Old fix\n\n# Changelog\n\nHistorical notes\n")
+        assemble(self.current, self.previous / "assets", self.output, "second", self.changelog)
+        body = (self.root / "release-body.md").read_text()
+        self.assertIn("- New fix", body)
+        self.assertNotIn("- Old fix", body)
+        self.assertNotIn("Historical notes", body)
+        self.assertNotIn("Download the full changelog", body)
+        self.assertIn("- Old fix", (self.output / "LaterBox-CHANGELOG.md").read_text())
+
     def test_changed_asset_without_required_previous_asset_fails(self):
         self.add_all_current()
         assemble(self.current, self.previous, self.previous / "assets", "first", self.changelog)
