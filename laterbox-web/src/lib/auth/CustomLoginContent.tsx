@@ -8,7 +8,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import type { AuthContextType } from '@/lib/store/AuthContext';
 import { useAuth } from '@/lib/store/AuthContext';
 import type { AuthError } from '@supabase/supabase-js';
-import { Loader2, AlertCircle, CheckCircle2, Eye, EyeOff } from 'lucide-react';
+import { Loader2, AlertCircle, CheckCircle2, Eye, EyeOff, Apple } from 'lucide-react';
 
 export type EmailStartResult = { error: AuthError | null; nextStep?: 'email' | 'signup' | 'password' };
 
@@ -240,6 +240,13 @@ export function CustomLoginContent({ actions, extra, initialMode = 'login' }: { 
     setLoading(false);
   };
 
+  const handleApple = async () => {
+    setLoading(true); setError(null);
+    const result = await signInWithOAuth('apple');
+    if (result.error) setError(result.error.message);
+    setLoading(false);
+  };
+
   // If already authenticated, show redirecting state while transition completes
   if (!authLoading && user && !awaitingName) {
     return (
@@ -425,7 +432,7 @@ export function CustomLoginContent({ actions, extra, initialMode = 'login' }: { 
 
         <h1 className="text-3xl font-black tracking-tight mb-2">{authMode === 'login' ? 'Welcome back' : 'Create your account'}</h1>
         <p className="text-[15px] text-[#6b6961] font-normal tracking-normal mb-8">
-          {authMode === 'login' ? 'Use email OTP or Google to sign in.' : 'Create a new LaterBox account securely with Google.'}
+          {authMode === 'login' ? 'Use email, Google, or Apple to sign in.' : 'Create a LaterBox account with Google or Apple.'}
         </p>
 
         <form onSubmit={(e) => void handleEmailSubmit(e)} className="w-full space-y-3.5">
@@ -438,6 +445,10 @@ export function CustomLoginContent({ actions, extra, initialMode = 'login' }: { 
 
           <button type="button" disabled={loading || authLoading || Boolean(isAuthenticated)} onClick={() => void handleGoogle()} className="w-full h-14 rounded-[18px] border border-[#e5e1d7] bg-white text-[15px] font-bold disabled:opacity-60">
             <span className="inline-flex items-center justify-center gap-3"><GoogleLogo />{authMode === 'signup' ? 'Create account with Google' : 'Continue with Google'}</span>
+          </button>
+
+          <button type="button" disabled={loading || authLoading || Boolean(isAuthenticated)} onClick={() => void handleApple()} className="w-full h-14 rounded-[18px] bg-[#181816] text-white text-[15px] font-bold disabled:opacity-60 cursor-pointer">
+            <span className="inline-flex items-center justify-center gap-3"><Apple className="size-5" aria-hidden="true" />{authMode === 'signup' ? 'Create account with Apple' : 'Continue with Apple'}</span>
           </button>
 
           {/* Continue without account */}
