@@ -1,5 +1,9 @@
 # Free extension and local library
 
+- **[Security / Android]** Remove the Better Stack bearer token and direct monitor API fallback from Android builds; load status through the server endpoint.
+
+- **[Security / Web]** Remove the hardcoded Paddle client-side token fallback and require deployment configuration.
+
 - **[Web / Account]** Connect Apple and Google sign-in identities from Settings while keeping the existing LaterBox account.
 
 - **[Web / Authentication]** Add Sign in with Apple to Login and Signup alongside existing Google options.
