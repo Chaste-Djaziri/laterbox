@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[iOS / Testing]** Match the subscription UI test to the current Plans navigation.
+
 - **[Android / Releases]** Keep Google Play build numbers increasing across release workflows.
 
 - **[Security / Android]** Remove the Better Stack bearer token and direct monitor API fallback from Android builds; load status through the server endpoint.
