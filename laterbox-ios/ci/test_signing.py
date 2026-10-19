@@ -22,12 +22,12 @@ class SigningProfileTests(unittest.TestCase):
 
     def test_main_app_requires_apple_sign_in(self):
         with self.assertRaisesRegex(ValueError, "APPLE_PROVISIONING_PROFILE_BASE64"):
-            validate(self.profile(TARGETS["main"]))
-        self.assertEqual(validate(self.profile(TARGETS["main"], apple_sign_in=True)), "LaterBox App Store")
+            validate(self.profile(TARGETS["main"]), TARGETS["main"])
+        self.assertEqual(validate(self.profile(TARGETS["main"], apple_sign_in=True), TARGETS["main"]), "LaterBox App Store")
 
     def test_extensions_do_not_require_apple_sign_in(self):
         for bundle in (TARGETS["share"], TARGETS["widgets"]):
-            self.assertEqual(validate(self.profile(bundle)), "LaterBox App Store")
+            self.assertEqual(validate(self.profile(bundle), bundle), "LaterBox App Store")
 
 
 if __name__ == "__main__":
