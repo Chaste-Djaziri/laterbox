@@ -7,6 +7,7 @@ import { useAuth } from '@/lib/store/AuthContext';
 import { useItems } from '@/lib/store/ItemContext';
 import { useBilling } from '@/lib/store/BillingContext';
 import { AppleSubscriptionDetails } from '@/components/billing/AppleSubscriptionDetails';
+import { ConnectedSignIns } from '@/components/account/ConnectedSignIns';
 import { presentEntitlement } from '@/lib/billing/types';
 import { CloudSyncIndicator } from '@/components/ui/CloudSyncIndicator';
 import {
@@ -511,6 +512,8 @@ export default function SettingsPage() {
                   </button>
                 </div>
               </div>
+
+              <ConnectedSignIns userId={user.id} />
 
               {/* Password Update Form */}
               {showPasswordForm && (
