@@ -7,12 +7,14 @@ iOS uses GitHub's `xcode-27` runner (a macOS build host, not a macOS product rel
 Existing repository secrets used:
 
 - `APPLE_CERTIFICATE_BASE64`, `APPLE_CERTIFICATE_PASSWORD`: Apple Distribution P12 and password.
-- `APPLE_PROVISIONING_PROFILE_BASE64`, `APPLE_SHARE_EXTENSION_PROVISIONING_PROFILE_BASE64`: current App Store profiles for the app and extension, including the App Group.
+- `APPLE_PROVISIONING_PROFILE_BASE64`, `APPLE_SHARE_EXTENSION_PROVISIONING_PROFILE_BASE64`: current App Store profiles for the app and extension, including the App Group. The main app profile must also include Sign in with Apple.
 - `APPLE_TEAM_ID`: `LS42X27YFY`.
 - `APP_STORE_CONNECT_API_KEY_BASE64`, `APP_STORE_CONNECT_KEY_ID`, `APP_STORE_CONNECT_ISSUER_ID`: App Store Connect API key authorized to read builds and upload to the existing app.
 - `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`: unchanged Cloudflare deployment credentials.
 
 Secrets are never logged. Missing, expired, development or mismatched profiles stop release before archive. Temporary keychains, API keys and installed profiles are removed in an always-run cleanup step. Simulator PR tests use no Apple secrets.
+
+After enabling Sign in with Apple for `pro.micorp.laterbox`, regenerate the **App Store distribution provisioning profile** for that App ID in Apple Developer > Certificates, Identifiers & Profiles > Profiles. Download the replacement `.mobileprovision` and update the repository's `APPLE_PROVISIONING_PROFILE_BASE64` Actions secret with its base64 content (`base64 < profile.mobileprovision | tr -d '\n'` on macOS). The previous profile does not gain new entitlements automatically. Keep the share-extension and widgets profiles unchanged unless their capabilities change. CI checks the entitlement before starting the archive.
 
 Release metadata comes from root `version.json`. If App Store versions are already at or above the repository version, CI selects the next patch above them. The build number exceeds both repository and all existing App Store Connect build numbers. These overrides are ephemeral and identical on app and extension; no CI version commits are made. Web CI skips its legacy cross-platform prebuild bumper.
 
