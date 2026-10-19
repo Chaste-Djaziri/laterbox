@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 
 const GITHUB_REPO = 'Chaste-Djaziri/laterbox';
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   let cfEnvToken = '';
   try {
     const { getCloudflareContext } = await import('@opennextjs/cloudflare');
@@ -12,14 +12,7 @@ export async function GET(request: NextRequest) {
     // Node fallback
   }
 
-  const token =
-    request.headers.get('x-github-token') ||
-    request.nextUrl.searchParams.get('token') ||
-    cfEnvToken ||
-    process.env.GITHUB_TOKEN ||
-    process.env.GITHUB_ACCESS_TOKEN ||
-    process.env.NEXT_PUBLIC_GITHUB_TOKEN ||
-    '';
+  const token = cfEnvToken || process.env.GITHUB_TOKEN || process.env.GITHUB_ACCESS_TOKEN || '';
 
   const authHeader: HeadersInit = token
     ? {

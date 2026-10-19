@@ -64,14 +64,7 @@ export async function GET(
     // Node environment fallback
   }
 
-  const token =
-    request.headers.get('x-github-token') ||
-    request.nextUrl.searchParams.get('token') ||
-    cfEnvToken ||
-    process.env.GITHUB_TOKEN ||
-    process.env.GITHUB_ACCESS_TOKEN ||
-    process.env.NEXT_PUBLIC_GITHUB_TOKEN ||
-    '';
+  const token = cfEnvToken || process.env.GITHUB_TOKEN || process.env.GITHUB_ACCESS_TOKEN || '';
 
   const authHeader: HeadersInit = token
     ? {
