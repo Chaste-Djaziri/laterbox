@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[iOS / Releases]** Check that the App Store signing profile includes Sign in with Apple before archiving.
+
 - **[iOS / Testing]** Match the subscription UI test to the current Plans navigation.
 
 - **[Android / Releases]** Keep Google Play build numbers increasing across release workflows.
