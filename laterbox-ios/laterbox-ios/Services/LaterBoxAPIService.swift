@@ -7,13 +7,30 @@
 
 import Foundation
 
+#if DEBUG
+public enum LaterBoxDevConfig {
+    public static let localHost = "192.168.0.7"
+    public static let defaultSupabaseUrl = "http://\(localHost):54321"
+    public static let defaultAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0"
+    public static let defaultWebUrl = "http://\(localHost):3000"
+    public static let defaultBillingUrl = "http://\(localHost):3000"
+    public static let defaultMailpitUrl = "http://\(localHost):54324"
+}
+#endif
+
 private enum LaterBoxRuntimeConfiguration {
-    static func value(for environmentKey: String, fallback: String) -> String {
+    static func value(for environmentKey: String, devDefault: String, prodFallback: String) -> String {
         #if DEBUG
-        let value = ProcessInfo.processInfo.environment[environmentKey]?.trimmingCharacters(in: .whitespacesAndNewlines)
-        return value?.isEmpty == false ? value! : fallback
+        if let env = ProcessInfo.processInfo.environment[environmentKey]?.trimmingCharacters(in: .whitespacesAndNewlines), !env.isEmpty {
+            // Strictly forbid remote hosted Supabase in dev mode
+            if env.contains("supabase.co") {
+                return devDefault
+            }
+            return env
+        }
+        return devDefault
         #else
-        return fallback
+        return prodFallback
         #endif
     }
 }
@@ -65,10 +82,62 @@ public actor LaterBoxAPIService {
     public static let shared = LaterBoxAPIService()
 
     public static let defaultSupabaseUrl = "https://ltjisrgldssqskcylcbj.supabase.co"
-    public let supabaseUrl = LaterBoxRuntimeConfiguration.value(for: "LATERBOX_SUPABASE_URL", fallback: defaultSupabaseUrl)
-    public let anonKey = LaterBoxRuntimeConfiguration.value(for: "LATERBOX_SUPABASE_ANON_KEY", fallback: "sb_publishable_Rc4e_ik2LE4SR0UrfX-OEQ_5Mu_lw9p")
-    public let webUrl = LaterBoxRuntimeConfiguration.value(for: "LATERBOX_WEB_URL", fallback: "https://laterbox.dev")
-    public let billingUrl = LaterBoxRuntimeConfiguration.value(for: "LATERBOX_BILLING_URL", fallback: "https://app.laterbox.dev")
+    #if DEBUG
+    public static let isDevMode = true
+    public let mailpitUrl: String = LaterBoxRuntimeConfiguration.value(
+        for: "LATERBOX_MAILPIT_URL",
+        devDefault: LaterBoxDevConfig.defaultMailpitUrl,
+        prodFallback: ""
+    )
+    #else
+    public static let isDevMode = false
+    public let mailpitUrl: String = ""
+    #endif
+
+    public let supabaseUrl = LaterBoxRuntimeConfiguration.value(
+        for: "LATERBOX_SUPABASE_URL",
+        devDefault: {
+            #if DEBUG
+            return LaterBoxDevConfig.defaultSupabaseUrl
+            #else
+            return defaultSupabaseUrl
+            #endif
+        }(),
+        prodFallback: defaultSupabaseUrl
+    )
+    public let anonKey = LaterBoxRuntimeConfiguration.value(
+        for: "LATERBOX_SUPABASE_ANON_KEY",
+        devDefault: {
+            #if DEBUG
+            return LaterBoxDevConfig.defaultAnonKey
+            #else
+            return "sb_publishable_Rc4e_ik2LE4SR0UrfX-OEQ_5Mu_lw9p"
+            #endif
+        }(),
+        prodFallback: "sb_publishable_Rc4e_ik2LE4SR0UrfX-OEQ_5Mu_lw9p"
+    )
+    public let webUrl = LaterBoxRuntimeConfiguration.value(
+        for: "LATERBOX_WEB_URL",
+        devDefault: {
+            #if DEBUG
+            return LaterBoxDevConfig.defaultWebUrl
+            #else
+            return "https://laterbox.dev"
+            #endif
+        }(),
+        prodFallback: "https://laterbox.dev"
+    )
+    public let billingUrl = LaterBoxRuntimeConfiguration.value(
+        for: "LATERBOX_BILLING_URL",
+        devDefault: {
+            #if DEBUG
+            return LaterBoxDevConfig.defaultBillingUrl
+            #else
+            return "https://app.laterbox.dev"
+            #endif
+        }(),
+        prodFallback: "https://app.laterbox.dev"
+    )
 
     private let session: URLSession
 
@@ -339,4 +408,45 @@ public actor LaterBoxAPIService {
         }
         return try JSONDecoder().decode([RemoteCollectionDTO].self, from: data)
     }
+
+    // MARK: - Dev Mode Mailpit Helper
+    #if DEBUG
+    public func fetchLatestMailpitOTP(for email: String) async -> String? {
+        guard let url = URL(string: "\(mailpitUrl)/api/v1/messages") else { return nil }
+        var req = URLRequest(url: url)
+        req.timeoutInterval = 5
+        guard let (data, response) = try? await session.data(for: req),
+              (response as? HTTPURLResponse)?.statusCode == 200,
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let messages = json["messages"] as? [[String: Any]] else {
+            return nil
+        }
+        let cleanEmail = email.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+        for msg in messages {
+            if let toList = msg["To"] as? [[String: Any]] {
+                let matchesTo = toList.contains { ($0["Address"] as? String)?.lowercased() == cleanEmail }
+                if matchesTo, let msgId = msg["ID"] as? String {
+                    if let detailUrl = URL(string: "\(mailpitUrl)/api/v1/message/\(msgId)") {
+                        var detailReq = URLRequest(url: detailUrl)
+                        detailReq.timeoutInterval = 5
+                        if let (detailData, detailResp) = try? await session.data(for: detailReq),
+                           (detailResp as? HTTPURLResponse)?.statusCode == 200,
+                           let detailJson = try? JSONSerialization.jsonObject(with: detailData) as? [String: Any] {
+                            let text = (detailJson["Text"] as? String) ?? ""
+                            let html = (detailJson["HTML"] as? String) ?? ""
+                            let snippet = (msg["Snippet"] as? String) ?? ""
+                            let combined = text + "\n" + html + "\n" + snippet
+                            if let regex = try? NSRegularExpression(pattern: "\\b(\\d{8})\\b"),
+                               let match = regex.firstMatch(in: combined, range: NSRange(combined.startIndex..., in: combined)),
+                               let range = Range(match.range(at: 1), in: combined) {
+                                return String(combined[range])
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return nil
+    }
+    #endif
 }
