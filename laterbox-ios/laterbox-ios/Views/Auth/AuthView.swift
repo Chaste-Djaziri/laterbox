@@ -565,6 +565,7 @@ struct AuthView: View {
                                 request.requestedScopes = [.fullName, .email]
                             }, onCompletion: handleAppleResult)
                             .signInWithAppleButtonStyle(.white)
+                            .frame(maxWidth: 375)
                             .frame(height: 54)
                             .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                             .disabled(isLoading)
