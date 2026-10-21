@@ -18,6 +18,9 @@ struct GuidedCaptureView: View {
     @State private var newCollectionName = ""
     @State private var chooseDate = false
     @State private var date = Date().addingTimeInterval(86400)
+    @State private var isAnalyzing = false
+    @State private var wasEnrichedByAI = false
+    @State private var enrichedSourceDescription = "On-Device AI"
 
     // Attachments state
     private enum AttachmentMode {
@@ -225,6 +228,24 @@ struct GuidedCaptureView: View {
                 Text("A clear title helps you find and remember this item.")
                     .font(.system(size: 13))
                     .foregroundColor(Color.white.opacity(0.6))
+
+                if wasEnrichedByAI {
+                    HStack(spacing: 5) {
+                        Image(systemName: "sparkles")
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundColor(LaterAIStyle.accent)
+                        Text(enrichedSourceDescription)
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundColor(LaterAIStyle.accent)
+                        Spacer()
+                    }
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 4)
+                    .background(LaterAIStyle.accent.opacity(0.12), in: Capsule())
+                    .overlay(Capsule().strokeBorder(LaterAIStyle.accent.opacity(0.25), lineWidth: 0.5))
+                    .padding(.top, 4)
+                    .transition(.opacity.combined(with: .scale))
+                }
             }
 
             VStack(alignment: .leading, spacing: 6) {
@@ -802,11 +823,10 @@ struct GuidedCaptureView: View {
             // Continue / Save Button
             Button(action: {
                 if step == 0 {
-                    let inferred = CaptureDraft.manual(draft.content)
-                    if draft.title.isEmpty {
-                        draft.title = draft.attachments.first?.name ?? inferred.title
+                    Task {
+                        await performStep0AnalysisAndProceed()
                     }
-                    if draft.tags.isEmpty { draft.tags = inferred.tags }
+                    return
                 }
                 if step == 2 {
                     commitCurrentTagInput()
@@ -820,10 +840,18 @@ struct GuidedCaptureView: View {
                 }
             }) {
                 HStack(spacing: 6) {
-                    Text(step == 3 ? "Save to Vault" : "Continue")
-                        .font(.system(size: 15, weight: .bold))
-                    Image(systemName: step == 3 ? "checkmark" : "chevron.right")
-                        .font(.system(size: 13, weight: .bold))
+                    if isAnalyzing {
+                        ProgressView()
+                            .progressViewStyle(CircularProgressViewStyle(tint: .black))
+                            .scaleEffect(0.85)
+                        Text(draft.url != nil ? "Enriching..." : "Analyzing...")
+                            .font(.system(size: 15, weight: .bold))
+                    } else {
+                        Text(step == 3 ? "Save to Vault" : "Continue")
+                            .font(.system(size: 15, weight: .bold))
+                        Image(systemName: step == 3 ? "checkmark" : "chevron.right")
+                            .font(.system(size: 13, weight: .bold))
+                    }
                 }
                 .frame(maxWidth: fillsAvailableSpace ? .infinity : nil)
                 .foregroundColor(.black)
@@ -831,11 +859,11 @@ struct GuidedCaptureView: View {
                 .padding(.vertical, 12)
                 .background(
                     RoundedRectangle(cornerRadius: fillsAvailableSpace ? 24 : 14)
-                        .fill(canProceed ? LaterAIStyle.accent : Color.gray.opacity(0.3))
+                        .fill(canProceed && !isAnalyzing ? LaterAIStyle.accent : Color.gray.opacity(0.3))
                 )
             }
             .buttonStyle(.plain)
-            .disabled(!canProceed)
+            .disabled(!canProceed || isAnalyzing)
         }
         .padding(.top, 4)
     }
@@ -1038,5 +1066,61 @@ struct GuidedCaptureView: View {
             formatter.dateFormat = "EEE, MMM d 'at' h:mm a"
         }
         return formatter.string(from: date)
+    }
+
+    private func performStep0AnalysisAndProceed() async {
+        isAnalyzing = true
+        let collectionNames = collections.map(\.name)
+        let analysis = await LaterAIModelManager.shared.analyzeCapture(
+            content: draft.content,
+            attachments: draft.attachments,
+            availableCollections: collectionNames
+        )
+
+        let isTitleGeneric = draft.title.isEmpty || draft.title == draft.url || LinkMetadataLoader.isGenericTitle(draft.title)
+        if isTitleGeneric, let newTitle = analysis.title, !newTitle.isEmpty {
+            draft.title = newTitle
+            wasEnrichedByAI = true
+        }
+
+        if draft.summary.isEmpty, let newSummary = analysis.summary, !newSummary.isEmpty {
+            draft.summary = newSummary
+            wasEnrichedByAI = true
+        }
+
+        if draft.contentType.isEmpty, let ct = analysis.contentType, !ct.isEmpty {
+            draft.contentType = ct
+        }
+
+        if draft.tags.isEmpty && !analysis.tags.isEmpty {
+            draft.tags = analysis.tags
+        }
+
+        if draft.collectionName == nil, let coll = analysis.collectionName {
+            draft.collectionName = coll
+            draft.category = coll
+        }
+
+        if draft.returnAt == nil, let ret = analysis.returnAt {
+            draft.returnAt = ret
+            date = ret
+        }
+
+        if let site = analysis.siteName, draft.siteName == nil {
+            draft.siteName = site
+        }
+        if let img = analysis.previewImageUrl, draft.previewImageUrl == nil {
+            draft.previewImageUrl = img
+        }
+        if let fav = analysis.faviconUrl, draft.faviconUrl == nil {
+            draft.faviconUrl = fav
+        }
+
+        enrichedSourceDescription = analysis.sourceDescription
+        isAnalyzing = false
+
+        withAnimation(.easeInOut(duration: 0.22)) {
+            step += 1
+        }
     }
 }
