@@ -18,14 +18,14 @@ public final class StoreKitManager: ObservableObject {
     public static let shared = StoreKitManager()
 
     // MARK: - Product Identifiers
-    public static let monthlyId = "com.laterbox.pro.monthly"
-    public static let annualId = "com.laterbox.pro.annual"
-    public static let allProductIds: Set<String> = [monthlyId, annualId]
+    public nonisolated static let monthlyId = "com.laterbox.pro.monthly"
+    public nonisolated static let annualId = "com.laterbox.pro.annual"
+    public nonisolated static let allProductIds: Set<String> = [monthlyId, annualId]
 
     // Official Policy URLs
-    public static let eulaUrl = "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/"
-    public static let termsOfServiceUrl = "https://laterbox.dev/terms"
-    public static let privacyPolicyUrl = "https://laterbox.dev/privacy"
+    public nonisolated static let eulaUrl = "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/"
+    public nonisolated static let termsOfServiceUrl = "https://laterbox.dev/terms"
+    public nonisolated static let privacyPolicyUrl = "https://laterbox.dev/privacy"
 
     // MARK: - Published State
     @Published public private(set) var products: [Product] = []
