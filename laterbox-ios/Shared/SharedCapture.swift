@@ -1,7 +1,7 @@
 import Foundation
 import UserNotifications
 
-struct SharedAttachment: Codable, Identifiable, Equatable {
+struct SharedAttachment: Codable, Identifiable, Equatable, Sendable {
     var id: String = UUID().uuidString
     var name: String
     var relativePath: String
@@ -12,7 +12,7 @@ struct SharedAttachment: Codable, Identifiable, Equatable {
     var sha256: String?
     var mimeType: String?
 }
-struct SharedCapture: Codable, Identifiable {
+struct SharedCapture: Codable, Identifiable, Sendable {
     var id = UUID().uuidString
     var content = ""
     var title = ""
@@ -24,10 +24,10 @@ struct SharedCapture: Codable, Identifiable {
     var siteName: String?
     var metadataDescription: String?
 }
-enum SharedCaptureStore {
-    static let group = "group.pro.micorp.laterbox"
+enum SharedCaptureStore: Sendable {
+    nonisolated static let group = "group.pro.micorp.laterbox"
 
-    static func root() throws -> URL {
+    nonisolated static func root() throws -> URL {
         if let container = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: group) {
             try? FileManager.default.createDirectory(at: container, withIntermediateDirectories: true)
             return container
@@ -65,13 +65,13 @@ enum SharedCaptureStore {
         #endif
     }
 
-    static func save(_ capture: SharedCapture) throws {
+    nonisolated static func save(_ capture: SharedCapture) throws {
         let folder = try root().appendingPathComponent("Captures", isDirectory: true)
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         try JSONEncoder().encode(capture).write(to: folder.appendingPathComponent(capture.id + ".json"), options: .atomic)
     }
 
-    static func pending() throws -> [(URL, SharedCapture)] {
+    nonisolated static func pending() throws -> [(URL, SharedCapture)] {
         let folder = try root().appendingPathComponent("Captures", isDirectory: true)
         guard FileManager.default.fileExists(atPath: folder.path) else { return [] }
         return try FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil)
@@ -82,7 +82,7 @@ enum SharedCaptureStore {
             }
     }
 
-    static func copyFile(_ source: URL, type: String) throws -> SharedAttachment {
+    nonisolated static func copyFile(_ source: URL, type: String) throws -> SharedAttachment {
         let id = UUID().uuidString
         let filename = source.lastPathComponent.isEmpty ? "attachment-\(id)" : source.lastPathComponent
         let path = "Attachments/\(id)/\(filename)"
@@ -97,7 +97,7 @@ enum SharedCaptureStore {
         return SharedAttachment(id: id, name: filename, relativePath: path, typeIdentifier: type)
     }
 
-    static func fileURL(_ attachment: SharedAttachment) throws -> URL {
+    nonisolated static func fileURL(_ attachment: SharedAttachment) throws -> URL {
         let root = try root()
         let file = root.appendingPathComponent(attachment.relativePath).standardizedFileURL
         guard file.path.hasPrefix(root.standardizedFileURL.path) else { throw CocoaError(.fileReadInvalidFileName) }
@@ -106,7 +106,7 @@ enum SharedCaptureStore {
 
     /// Cloud UUIDs are lowercase; Swift UUIDs are uppercase. Reuse the actual
     /// directory spelling rather than trying to recreate it on a case-insensitive volume.
-    static func attachmentDirectory(id: String, root: URL) throws -> URL {
+    nonisolated static func attachmentDirectory(id: String, root: URL) throws -> URL {
         guard UUID(uuidString: id) != nil else { throw CocoaError(.fileReadInvalidFileName) }
         let base = root.appendingPathComponent("Attachments", isDirectory: true)
         try FileManager.default.createDirectory(at: base, withIntermediateDirectories: true)
