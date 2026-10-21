@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[iOS / Auth]** Open Terms of Service and Privacy Policy in an in-app sheet popup instead of navigating out of the app to external Safari.
+
 - **[iOS / UI]** Remove the redundant Save Item button from the mobile sidebar drawer, relying on the permanently anchored quick capture button.
 
 - **[iOS / Dev]** Add Xcode Canvas Previews for InboxView with populated sample items and empty state configurations.
