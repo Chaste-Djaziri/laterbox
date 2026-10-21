@@ -28,6 +28,9 @@ struct ContentView: View {
         if coordinator.showingAuthSheet {
             return .dark
         }
+        if coordinator.isShowingCapture || coordinator.showingQuickCapture {
+            return .dark
+        }
         return .light
     }
 
