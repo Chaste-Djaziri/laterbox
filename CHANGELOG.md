@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[iOS / UI]** Add vertical spacing between the "OR" divider and the "Sign in with Apple" button on the auth screen.
+
 - **[iOS / UI]** Enlarge brand logo in the top right and firmly pin the login form and buttons to the bottom using a geometry-backed vertical spacer.
 
 - **[Web / UI]** Enlarge brand logo in the top right and anchor the login form and buttons directly on the bottom.

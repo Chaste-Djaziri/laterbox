@@ -461,7 +461,8 @@ struct AuthView: View {
                                 Text("OR").font(.caption.weight(.semibold)).foregroundColor(Color.white.opacity(0.6))
                                 Rectangle().fill(Color.white.opacity(0.2)).frame(height: 1)
                             }
-                            .padding(.top, 14)
+                            .padding(.top, 16)
+                            .padding(.bottom, 14)
 
                             SignInWithAppleButton(.signIn, onRequest: { request in
                                 request.requestedScopes = [.fullName, .email]
