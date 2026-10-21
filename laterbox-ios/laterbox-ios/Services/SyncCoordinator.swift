@@ -81,6 +81,7 @@ public final class SyncCoordinator: ObservableObject {
     @Published public var searchQuery: String = ""
     @Published public var isGuestMode: Bool = false
     @Published public var showingQuickCapture: Bool = false
+    @Published public var isShowingCapture: Bool = false
     @Published public var showingAuthSheet: Bool = false
     @Published public var showingPlansSheet: Bool = false
     @Published public var catalogUpdateTrigger: UUID = UUID()
