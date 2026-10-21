@@ -1,5 +1,6 @@
 import Foundation
 import Combine
+import NaturalLanguage
 #if canImport(Darwin)
 import Darwin
 #endif
@@ -222,4 +223,285 @@ final class LaterAIModelManager: ObservableObject {
             }
         }
     }
+
+    // MARK: - On-Device Capture Analysis & Link Enrichment
+    func analyzeCapture(
+        content: String,
+        attachments: [SharedAttachment] = [],
+        availableCollections: [String] = []
+    ) async -> OnDeviceCaptureAnalysis {
+        let trimmedContent = content.trimmingCharacters(in: .whitespacesAndNewlines)
+        let detectedUrl = CaptureDraft.detectURL(trimmedContent)
+
+        var enrichedTitle: String? = nil
+        var enrichedSummary: String? = nil
+        var enrichedSite: String? = nil
+        var enrichedImage: String? = nil
+        var enrichedFavicon: String? = nil
+        var enrichedContentType: String? = nil
+        var enrichedTags: [String] = []
+        var isLinkEnriched = false
+
+        if let detectedUrl, let url = URL(string: detectedUrl) {
+            do {
+                let metadata = try await withThrowingTaskGroup(of: LinkMetadata.self) { group in
+                    group.addTask {
+                        try await LinkMetadataLoader.load(url)
+                    }
+                    group.addTask {
+                        try await Task.sleep(nanoseconds: 2_000_000_000)
+                        throw URLError(.timedOut)
+                    }
+                    let first = try await group.next()!
+                    group.cancelAll()
+                    return first
+                }
+
+                isLinkEnriched = true
+                enrichedTitle = LinkMetadataLoader.cleanTitle(metadata.title) ?? metadata.title
+                enrichedSummary = metadata.description
+                enrichedSite = metadata.site ?? url.host
+                enrichedImage = metadata.image
+                enrichedFavicon = metadata.faviconUrl
+                enrichedContentType = metadata.contentType
+                enrichedTags = metadata.keywords.map { $0.lowercased().trimmingCharacters(in: .whitespacesAndNewlines) }
+            } catch {
+                if let host = url.host?.replacingOccurrences(of: "www.", with: "") {
+                    enrichedSite = host
+                    if let firstPart = host.split(separator: ".").first {
+                        enrichedTags.append(String(firstPart).lowercased())
+                    }
+                }
+            }
+        }
+
+        var userTextWithoutUrl = trimmedContent
+        if let detectedUrl {
+            userTextWithoutUrl = userTextWithoutUrl.replacingOccurrences(of: detectedUrl, with: "").trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+
+        // Title Extraction
+        var finalTitle = enrichedTitle
+        if finalTitle == nil || finalTitle?.isEmpty == true || LinkMetadataLoader.isGenericTitle(finalTitle) {
+            if !userTextWithoutUrl.isEmpty {
+                let firstLine = userTextWithoutUrl.components(separatedBy: .newlines).first(where: { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }) ?? userTextWithoutUrl
+                let cleaned = firstLine
+                    .trimmingCharacters(in: CharacterSet(charactersIn: "-*#• \t\r\n"))
+                    .replacingOccurrences(of: "(?i)^(todo:|task:|\\[ \\]|-\\[ \\]|\\* \\[ \\])\\s*", with: "", options: .regularExpression)
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                if !cleaned.isEmpty {
+                    finalTitle = String(cleaned.prefix(90))
+                }
+            } else if let att = attachments.first {
+                let name = att.name
+                let withoutExt = (name as NSString).deletingPathExtension
+                finalTitle = withoutExt.replacingOccurrences(of: "_", with: " ").replacingOccurrences(of: "-", with: " ")
+            } else if let detectedUrl, let host = URL(string: detectedUrl)?.host {
+                finalTitle = host.replacingOccurrences(of: "www.", with: "")
+            }
+        }
+
+        // Summary / Notes Formulation
+        var finalSummary = enrichedSummary ?? ""
+        if !userTextWithoutUrl.isEmpty {
+            if !finalSummary.isEmpty && !finalSummary.localizedCaseInsensitiveContains(userTextWithoutUrl) {
+                finalSummary = "\(userTextWithoutUrl)\n\n\(finalSummary)"
+            } else if finalSummary.isEmpty {
+                let lines = userTextWithoutUrl.components(separatedBy: .newlines).filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+                if lines.count > 1 {
+                    finalSummary = lines.dropFirst().joined(separator: "\n")
+                } else {
+                    finalSummary = userTextWithoutUrl
+                }
+            }
+        } else if finalSummary.isEmpty, let att = attachments.first {
+            finalSummary = "Attached: \(att.name)"
+        }
+
+        // Content Type
+        var finalContentType = enrichedContentType ?? ""
+        let lower = trimmedContent.lowercased()
+        if finalContentType.isEmpty {
+            if lower.hasPrefix("todo:") || lower.hasPrefix("task:") || lower.hasPrefix("[ ]") || lower.contains("remind me to") || lower.contains("don't forget to") {
+                finalContentType = "task"
+            } else if lower.contains("func ") || lower.contains("import ") || lower.contains("class ") || lower.contains("const ") || lower.contains("```") || lower.contains("def ") {
+                finalContentType = "code"
+            } else if let att = attachments.first {
+                let n = att.name.lowercased()
+                if n.hasSuffix(".jpg") || n.hasSuffix(".png") || n.hasSuffix(".heic") || n.hasSuffix(".webp") {
+                    finalContentType = "image"
+                } else {
+                    finalContentType = "document"
+                }
+            } else if detectedUrl != nil {
+                if lower.contains("youtube.com") || lower.contains("youtu.be") || lower.contains("vimeo.com") {
+                    finalContentType = "video"
+                } else if lower.contains("spotify.com") || lower.contains("music.apple.com") || lower.contains("soundcloud.com") {
+                    finalContentType = "music"
+                } else if lower.hasSuffix(".pdf") || lower.contains("/pdf") {
+                    finalContentType = "document"
+                } else if lower.contains("medium.com") || lower.contains("substack.com") || lower.contains("blog") || lower.contains("article") {
+                    finalContentType = "article"
+                } else {
+                    finalContentType = "link"
+                }
+            } else {
+                finalContentType = "note"
+            }
+        }
+
+        // Tags Extraction (Hashtags, Link keywords, Domain, NaturalLanguage NER & Topic taxonomy)
+        var allTags = Set<String>()
+
+        // 1. Hashtags in text
+        let hashtags = trimmedContent.split(whereSeparator: \.isWhitespace)
+            .filter { $0.hasPrefix("#") && $0.count > 1 }
+            .map { String($0.dropFirst()).trimmingCharacters(in: CharacterSet.alphanumerics.inverted).lowercased() }
+            .filter { !$0.isEmpty }
+        allTags.formUnion(hashtags)
+
+        // 2. Link keywords
+        for kw in enrichedTags {
+            let clean = kw.lowercased().trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
+            if clean.count >= 2 && clean.count <= 25 {
+                allTags.insert(clean)
+            }
+        }
+
+        // 3. Domain tag
+        if let detectedUrl, let host = URL(string: detectedUrl)?.host {
+            let domain = host.replacingOccurrences(of: "www.", with: "")
+            if let primary = domain.split(separator: ".").first, primary.count >= 3 {
+                allTags.insert(String(primary).lowercased())
+            }
+        }
+
+        // 4. On-Device NaturalLanguage NER
+        let textToTag = "\(finalTitle ?? "") \(trimmedContent) \(finalSummary)"
+        if !textToTag.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            let tagger = NLTagger(tagSchemes: [.nameType])
+            tagger.string = textToTag
+            let options: NLTagger.Options = [.omitPunctuation, .omitWhitespace, .joinNames]
+            let tagsToExtract: Set<NLTag> = [.organizationName, .placeName, .personalName]
+            tagger.enumerateTags(in: textToTag.startIndex..<textToTag.endIndex, unit: .word, scheme: .nameType, options: options) { tag, tokenRange in
+                if let tag, tagsToExtract.contains(tag) {
+                    let entity = String(textToTag[tokenRange]).lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+                    if entity.count >= 3 && entity.count <= 20 {
+                        allTags.insert(entity.replacingOccurrences(of: " ", with: "-"))
+                    }
+                }
+                return true
+            }
+        }
+
+        // 5. Taxonomy matching
+        let lowerCorpus = textToTag.lowercased()
+        let topicMap: [(keyword: String, tag: String)] = [
+            ("design", "design"), ("figma", "design"), ("ui", "ui"), ("ux", "ux"),
+            ("swift", "swift"), ("ios", "ios"), ("apple", "apple"), ("python", "python"),
+            ("react", "react"), ("javascript", "javascript"), ("rust", "rust"),
+            ("recipe", "recipe"), ("cook", "cooking"), ("dinner", "food"),
+            ("book", "reading"), ("paper", "research"), ("article", "reading"),
+            ("workout", "fitness"), ("gym", "fitness"), ("health", "health"),
+            ("crypto", "crypto"), ("bitcoin", "crypto"), ("finance", "finance"), ("budget", "finance"),
+            ("travel", "travel"), ("flight", "travel"), ("hotel", "travel"),
+            ("meeting", "work"), ("client", "work"), ("project", "work"), ("deadline", "work"),
+            ("idea", "ideas"), ("startup", "startup"), ("ai", "ai"), ("llm", "ai")
+        ]
+        for item in topicMap {
+            if lowerCorpus.contains(item.keyword) {
+                allTags.insert(item.tag)
+            }
+        }
+
+        if finalContentType == "task" { allTags.insert("task") }
+        if finalContentType == "code" { allTags.insert("code") }
+        if finalContentType == "video" { allTags.insert("video") }
+        if finalContentType == "document" { allTags.insert("document") }
+
+        // Smart Collection Matching
+        var suggestedCollection: String? = nil
+        let candidateTags = Array(allTags)
+        for collName in availableCollections {
+            let lowerColl = collName.lowercased()
+            if candidateTags.contains(where: { $0.localizedCaseInsensitiveCompare(lowerColl) == .orderedSame }) ||
+               lowerCorpus.contains(lowerColl) {
+                suggestedCollection = collName
+                break
+            }
+        }
+
+        // Date / Return Schedule Detection
+        var detectedReturnAt: Date? = nil
+        if lower.contains("tomorrow") || lower.contains("tmrw") {
+            detectedReturnAt = Calendar.current.date(bySettingHour: 9, minute: 0, second: 0, of: Date().addingTimeInterval(86400))
+        } else if lower.contains("tonight") {
+            detectedReturnAt = Calendar.current.date(bySettingHour: 20, minute: 0, second: 0, of: Date())
+        } else if lower.contains("this weekend") || lower.contains("saturday") || lower.contains("sunday") {
+            detectedReturnAt = CaptureDraft.weekend()
+        } else if lower.contains("next week") {
+            detectedReturnAt = Calendar.current.date(byAdding: .day, value: 7, to: Date())
+        }
+
+        let sourceDesc = isLinkEnriched ? "Auto-filled from link" : (isOnDeviceModelEnabled ? "Auto-filled by On-Device AI" : "Auto-filled by Local AI")
+
+        return OnDeviceCaptureAnalysis(
+            title: finalTitle,
+            summary: finalSummary.isEmpty ? nil : finalSummary,
+            contentType: finalContentType.isEmpty ? nil : finalContentType,
+            tags: Array(allTags).sorted(),
+            collectionName: suggestedCollection,
+            returnAt: detectedReturnAt,
+            detectedUrl: detectedUrl,
+            previewImageUrl: enrichedImage,
+            siteName: enrichedSite,
+            faviconUrl: enrichedFavicon,
+            isLinkEnriched: isLinkEnriched,
+            sourceDescription: sourceDesc
+        )
+    }
 }
+
+public struct OnDeviceCaptureAnalysis: Sendable {
+    public var title: String?
+    public var summary: String?
+    public var contentType: String?
+    public var tags: [String]
+    public var collectionName: String?
+    public var returnAt: Date?
+    public var detectedUrl: String?
+    public var previewImageUrl: String?
+    public var siteName: String?
+    public var faviconUrl: String?
+    public var isLinkEnriched: Bool
+    public var sourceDescription: String
+
+    public init(
+        title: String? = nil,
+        summary: String? = nil,
+        contentType: String? = nil,
+        tags: [String] = [],
+        collectionName: String? = nil,
+        returnAt: Date? = nil,
+        detectedUrl: String? = nil,
+        previewImageUrl: String? = nil,
+        siteName: String? = nil,
+        faviconUrl: String? = nil,
+        isLinkEnriched: Bool = false,
+        sourceDescription: String = "On-Device AI"
+    ) {
+        self.title = title
+        self.summary = summary
+        self.contentType = contentType
+        self.tags = tags
+        self.collectionName = collectionName
+        self.returnAt = returnAt
+        self.detectedUrl = detectedUrl
+        self.previewImageUrl = previewImageUrl
+        self.siteName = siteName
+        self.faviconUrl = faviconUrl
+        self.isLinkEnriched = isLinkEnriched
+        self.sourceDescription = sourceDescription
+    }
+}
+
