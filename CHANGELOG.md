@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[iOS / Core]** Resolve Swift 6 concurrency errors in LaterBoxAPIService by marking LaterBoxDevConfig, runtime configuration, and API service configuration properties as nonisolated Sendable.
+
 - **[iOS / Core]** Resolve Swift 6 concurrency warnings in ServiceStatus models by marking DTOs nonisolated and clean up unused variable warnings.
 
 - **[iOS / Sync]** Resolve Swift 6 concurrency warnings in cloud attachment sync by declaring SharedCaptureStore methods as nonisolated Sendable.
