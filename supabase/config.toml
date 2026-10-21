@@ -243,7 +243,11 @@ otp_expiry = 3600
 # admin_email = "admin@email.com"
 # sender_name = "Admin"
 
-# Custom email template with 8-digit OTP code
+# Custom email templates with 8-digit OTP code
+[auth.email.template.confirmation]
+subject = "Your LaterBox verification code"
+content_path = "./supabase/templates/confirm-signup.html"
+
 [auth.email.template.magic_link]
 subject = "Your LaterBox sign-in code"
 content_path = "./supabase/templates/magic-link.html"
