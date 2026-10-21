@@ -16,12 +16,15 @@ struct AuthView: View {
 
     enum AuthStep: Equatable {
         case enterEmail
-        case verifyOTP
+        case enterPassword(isSignUp: Bool)
+        case verifyOTP(type: String)
         case resolveLocalData(unassignedCount: Int, token: String, refreshToken: String?, userId: String)
     }
 
     @State private var step: AuthStep = .enterEmail
     @State private var email: String = ""
+    @State private var password: String = ""
+    @State private var showPassword: Bool = false
     @State private var otpCode: String = ""
     @State private var isLoading: Bool = false
     @State private var isFetchingMailpit: Bool = false
@@ -30,9 +33,14 @@ struct AuthView: View {
 
     private var headerTitle: String {
         switch step {
-        case .enterEmail: return "Enter your email"
-        case .verifyOTP: return "Enter the code"
-        case .resolveLocalData: return "Sync local data"
+        case .enterEmail:
+            return "Enter your email"
+        case .enterPassword(let isSignUp):
+            return isSignUp ? "Create a password" : "Enter your password"
+        case .verifyOTP:
+            return "Enter the code"
+        case .resolveLocalData:
+            return "Sync local data"
         }
     }
 
@@ -40,10 +48,41 @@ struct AuthView: View {
         switch step {
         case .enterEmail:
             return "We'll send you a code to sign in or create your account."
+        case .enterPassword(let isSignUp):
+            return isSignUp
+                ? "No account found for \(email). Create a password before we send your verification code."
+                : "Enter the password for \(email)."
         case .verifyOTP:
             return "We sent an 8-digit code to \(email)."
         case .resolveLocalData(let count, _, _, _):
             return "You have \(count) item\(count == 1 ? "" : "s") saved on this device. Choose how to sync."
+        }
+    }
+
+    private var isButtonDisabled: Bool {
+        if isLoading { return true }
+        switch step {
+        case .enterEmail:
+            return email.trimmingCharacters(in: .whitespaces).isEmpty
+        case .enterPassword:
+            return password.count < 6
+        case .verifyOTP:
+            return otpCode.count != 8
+        case .resolveLocalData:
+            return false
+        }
+    }
+
+    private var continueButtonTitle: String {
+        switch step {
+        case .enterEmail:
+            return "Continue"
+        case .enterPassword(let isSignUp):
+            return isSignUp ? "Continue & Send Code" : "Sign In"
+        case .verifyOTP:
+            return "Continue"
+        case .resolveLocalData:
+            return "Continue"
         }
     }
 
@@ -55,7 +94,7 @@ struct AuthView: View {
 
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .center, spacing: 0) {
-                    // Laterbox Logo (significantly enlarged and centered)
+                    // Laterbox Logo (centered)
                     Image("LaterboxLogo")
                         .resizable()
                         .scaledToFit()
@@ -126,6 +165,48 @@ struct AuthView: View {
                         .padding(.top, 8)
                         #endif
 
+                    case .enterPassword(let isSignUp):
+                        HStack {
+                            Spacer(minLength: 24)
+                            if showPassword {
+                                TextField("Password (min 6 characters)", text: $password)
+                                    .font(.system(size: 16))
+                                    .foregroundColor(.black)
+                                    .multilineTextAlignment(.center)
+                                    .autocapitalization(.none)
+                                    .autocorrectionDisabled()
+                                    .submitLabel(.continue)
+                                    .onSubmit {
+                                        submitPassword(isSignUp: isSignUp)
+                                    }
+                            } else {
+                                SecureField("Password (min 6 characters)", text: $password)
+                                    .font(.system(size: 16))
+                                    .foregroundColor(.black)
+                                    .multilineTextAlignment(.center)
+                                    .autocapitalization(.none)
+                                    .autocorrectionDisabled()
+                                    .submitLabel(.continue)
+                                    .onSubmit {
+                                        submitPassword(isSignUp: isSignUp)
+                                    }
+                            }
+
+                            Button(action: { showPassword.toggle() }) {
+                                Image(systemName: showPassword ? "eye.slash.fill" : "eye.fill")
+                                    .font(.system(size: 15))
+                                    .foregroundColor(Color.black.opacity(0.4))
+                            }
+                        }
+                        .padding(.horizontal, 16)
+                        .frame(height: 54)
+                        .background(Color.white)
+                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                .stroke(Color.black.opacity(0.1), lineWidth: 1)
+                        )
+
                     case .verifyOTP:
                         HStack {
                             Spacer(minLength: !otpCode.isEmpty ? 24 : 0)
@@ -143,7 +224,9 @@ struct AuthView: View {
                                         otpCode = filtered
                                     }
                                     if otpCode.count == 8 {
-                                        verifyCode()
+                                        if case .verifyOTP(let type) = step {
+                                            verifyCode(type: type)
+                                        }
                                     }
                                 }
 
@@ -299,13 +382,18 @@ struct AuthView: View {
                             .padding(.top, 8)
                     }
 
-                    // Primary Black "Continue" Button for Email & OTP steps
-                    if step == .enterEmail || step == .verifyOTP {
+                    // Primary Black Action Button for Email, Password, and OTP steps
+                    if step != .resolveLocalData(unassignedCount: 0, token: "", refreshToken: nil, userId: "") && !isResolveStep {
                         Button(action: {
-                            if step == .enterEmail {
+                            switch step {
+                            case .enterEmail:
                                 submitEmail()
-                            } else {
-                                verifyCode()
+                            case .enterPassword(let isSignUp):
+                                submitPassword(isSignUp: isSignUp)
+                            case .verifyOTP(let type):
+                                verifyCode(type: type)
+                            case .resolveLocalData:
+                                break
                             }
                         }) {
                             HStack {
@@ -313,7 +401,7 @@ struct AuthView: View {
                                     ProgressView()
                                         .tint(.white)
                                 } else {
-                                    Text("Continue")
+                                    Text(continueButtonTitle)
                                         .font(.system(size: 16, weight: .semibold))
                                         .foregroundColor(.white)
                                 }
@@ -323,8 +411,8 @@ struct AuthView: View {
                             .background(Color(red: 26/255, green: 26/255, blue: 26/255))
                             .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                         }
-                        .disabled(isLoading || (step == .enterEmail ? email.trimmingCharacters(in: .whitespaces).isEmpty : otpCode.count != 8))
-                        .opacity((isLoading || (step == .enterEmail ? email.trimmingCharacters(in: .whitespaces).isEmpty : otpCode.count != 8)) ? 0.6 : 1.0)
+                        .disabled(isButtonDisabled)
+                        .opacity(isButtonDisabled ? 0.6 : 1.0)
                         .padding(.top, 18)
                     }
 
@@ -345,7 +433,7 @@ struct AuthView: View {
                         .disabled(isLoading)
                     }
 
-                    // Secondary Action: "Continue without account" or "Resend code"
+                    // Secondary Actions
                     if step == .enterEmail {
                         Button(action: {
                             LBHaptic.light()
@@ -358,10 +446,26 @@ struct AuthView: View {
                                 .frame(maxWidth: .infinity, alignment: .center)
                                 .padding(.vertical, 16)
                         }
-                    } else if step == .verifyOTP {
+                    } else if case .enterPassword = step {
+                        Button("Use different email") {
+                            withAnimation {
+                                step = .enterEmail
+                                password = ""
+                                errorMessage = nil
+                                infoMessage = nil
+                            }
+                        }
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(Color.black.opacity(0.75))
+                        .padding(.top, 16)
+                    } else if case .verifyOTP(let type) = step {
                         HStack(spacing: 20) {
                             Button("Resend code") {
-                                submitEmail()
+                                if type == "signup" && !password.isEmpty {
+                                    submitPassword(isSignUp: true)
+                                } else {
+                                    submitEmail()
+                                }
                             }
                             .font(.system(size: 14, weight: .medium))
                             .foregroundColor(Color.black.opacity(0.75))
@@ -373,6 +477,7 @@ struct AuthView: View {
                                 withAnimation {
                                     step = .enterEmail
                                     otpCode = ""
+                                    password = ""
                                     errorMessage = nil
                                     infoMessage = nil
                                 }
@@ -393,13 +498,39 @@ struct AuthView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
-                Button(action: { dismiss() }) {
+                Button(action: {
+                    switch step {
+                    case .enterEmail:
+                        dismiss()
+                    case .enterPassword:
+                        withAnimation {
+                            step = .enterEmail
+                            password = ""
+                            errorMessage = nil
+                            infoMessage = nil
+                        }
+                    case .verifyOTP:
+                        withAnimation {
+                            step = .enterEmail
+                            otpCode = ""
+                            errorMessage = nil
+                            infoMessage = nil
+                        }
+                    case .resolveLocalData:
+                        dismiss()
+                    }
+                }) {
                     Image(systemName: "chevron.left")
                         .font(.system(size: 16, weight: .medium))
                         .foregroundColor(.black)
                 }
             }
         }
+    }
+
+    private var isResolveStep: Bool {
+        if case .resolveLocalData = step { return true }
+        return false
     }
 
     // MARK: - Email Submission
@@ -423,17 +554,26 @@ struct AuthView: View {
 
         Task {
             do {
-                _ = try await LaterBoxAPIService.shared.sendEmailOTP(email: cleanEmail)
+                let result = try await LaterBoxAPIService.shared.requestEmailOTP(email: cleanEmail)
                 await MainActor.run {
                     isLoading = false
-                    infoMessage = "Verification code sent to your email."
-                    LBHaptic.success()
-                    withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                        step = .verifyOTP
+                    switch result {
+                    case .sent:
+                        infoMessage = "Verification code sent to your email."
+                        LBHaptic.success()
+                        withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                            step = .verifyOTP(type: "email")
+                        }
+                        #if DEBUG
+                        fetchMailpitCode()
+                        #endif
+                    case .userNotFound:
+                        LBHaptic.light()
+                        infoMessage = "Account not found. Create a password to get started."
+                        withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                            step = .enterPassword(isSignUp: true)
+                        }
                     }
-                    #if DEBUG
-                    fetchMailpitCode()
-                    #endif
                 }
             } catch {
                 await MainActor.run {
@@ -453,6 +593,68 @@ struct AuthView: View {
         }
     }
 
+    // MARK: - Password Submission
+    private func submitPassword(isSignUp: Bool) {
+        let cleanEmail = email.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard password.count >= 6 else {
+            errorMessage = "Password must be at least 6 characters."
+            LBHaptic.error()
+            return
+        }
+
+        isLoading = true
+        errorMessage = nil
+        infoMessage = nil
+        LBHaptic.medium()
+
+        Task {
+            do {
+                if isSignUp {
+                    let (requiresConfirmation, userId) = try await LaterBoxAPIService.shared.signUp(
+                        email: cleanEmail,
+                        password: password
+                    )
+                    await MainActor.run {
+                        isLoading = false
+                        LBHaptic.success()
+                        if requiresConfirmation {
+                            infoMessage = "Verification code sent to your email."
+                            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                                step = .verifyOTP(type: "signup")
+                            }
+                            #if DEBUG
+                            fetchMailpitCode()
+                            #endif
+                        } else if let userId {
+                            finishAuth(token: "", refreshToken: nil, userId: userId)
+                        }
+                    }
+                } else {
+                    let (token, refreshToken, userId) = try await LaterBoxAPIService.shared.signInWithPassword(
+                        email: cleanEmail,
+                        password: password
+                    )
+                    await MainActor.run {
+                        isLoading = false
+                        LBHaptic.success()
+                        finishAuth(token: token, refreshToken: refreshToken, userId: userId)
+                    }
+                }
+            } catch {
+                await MainActor.run {
+                    isLoading = false
+                    let desc = error.localizedDescription
+                    if desc.localizedCaseInsensitiveContains("already registered") || desc.localizedCaseInsensitiveContains("already exists") {
+                        errorMessage = "Account already exists for \(cleanEmail). Sign in with your password or use a code."
+                    } else {
+                        errorMessage = desc
+                    }
+                    LBHaptic.error()
+                }
+            }
+        }
+    }
+
     #if DEBUG
     private func fetchMailpitCode() {
         guard !isFetchingMailpit else { return }
@@ -465,7 +667,9 @@ struct AuthView: View {
                     self.otpCode = code
                     self.isFetchingMailpit = false
                     LBHaptic.success()
-                    verifyCode()
+                    if case .verifyOTP(let type) = step {
+                        verifyCode(type: type)
+                    }
                 }
             } else {
                 await MainActor.run {
@@ -527,7 +731,7 @@ struct AuthView: View {
     }
 
     // MARK: - Code Verification
-    private func verifyCode() {
+    private func verifyCode(type: String) {
         let cleanToken = otpCode.trimmingCharacters(in: .whitespacesAndNewlines)
         guard cleanToken.count == 8 else {
             errorMessage = "Please enter the complete 8-digit code."
@@ -545,41 +749,49 @@ struct AuthView: View {
                 let cleanEmail = email.trimmingCharacters(in: .whitespacesAndNewlines)
                 let (token, refreshToken, userId) = try await LaterBoxAPIService.shared.verifyOTP(
                     email: cleanEmail,
-                    token: cleanToken
+                    token: cleanToken,
+                    type: type
                 )
 
-                let unassignedCount = await MainActor.run {
-                    coordinator.countUnassignedLocalItems(context: modelContext, targetUserId: userId)
-                }
-
-                if unassignedCount > 0 {
-                    await MainActor.run {
-                        isLoading = false
-                        withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                            step = .resolveLocalData(unassignedCount: unassignedCount, token: token, refreshToken: refreshToken, userId: userId)
-                        }
-                    }
-                } else {
-                    // No unassigned items; immediately hydrate catalog and finish
-                    try await coordinator.resolveLoginData(
-                        merge: true,
-                        email: cleanEmail,
-                        userId: userId,
-                        token: token,
-                        refreshToken: refreshToken,
-                        context: modelContext
-                    )
-                    await MainActor.run {
-                        isLoading = false
-                        LBHaptic.success()
-                        dismiss()
-                    }
+                await MainActor.run {
+                    isLoading = false
+                    finishAuth(token: token, refreshToken: refreshToken, userId: userId)
                 }
             } catch {
                 await MainActor.run {
                     isLoading = false
                     errorMessage = "Invalid verification code. Please check your email and try again."
                     LBHaptic.error()
+                }
+            }
+        }
+    }
+
+    private func finishAuth(token: String, refreshToken: String?, userId: String) {
+        let unassignedCount = coordinator.countUnassignedLocalItems(context: modelContext, targetUserId: userId)
+        if unassignedCount > 0 {
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                step = .resolveLocalData(
+                    unassignedCount: unassignedCount,
+                    token: token,
+                    refreshToken: refreshToken,
+                    userId: userId
+                )
+            }
+        } else {
+            Task {
+                let cleanEmail = email.trimmingCharacters(in: .whitespacesAndNewlines)
+                try? await coordinator.resolveLoginData(
+                    merge: true,
+                    email: cleanEmail,
+                    userId: userId,
+                    token: token,
+                    refreshToken: refreshToken,
+                    context: modelContext
+                )
+                await MainActor.run {
+                    LBHaptic.success()
+                    dismiss()
                 }
             }
         }

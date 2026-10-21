@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[iOS / Auth]** Require verification codes on sign in and signup, prompting for a password when an account is not found before delivering the verification code.
+
 - **[Auth / Config]** Require email confirmation code on signup and include verification code in email template subjects.
 
 - **[iOS / Development]** Route dev mode exclusively to local Supabase and Mailpit, rejecting remote endpoints and adding OTP auto-retrieval from Mailpit.
