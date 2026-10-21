@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[iOS / UI]** Replace onboarding hero illustration with a full-page desk background image, dark contrast gradient overlay, and bottom-aligned typography and action buttons.
+
 - **[iOS / UI]** Relocate "By continuing, you agree to our Terms & Privacy Policy" disclaimer from onboarding WelcomeView to the bottom of the AuthView.
 
 - **[Web / UI]** Add "By continuing, you agree to our Terms & Privacy Policy" disclaimer to the bottom of the login form.

@@ -15,17 +15,37 @@ struct WelcomeView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                // Main App Background #F7F5EE
-                Color.lbBackground
-                    .ignoresSafeArea()
+                // Full Page Background Image
+                GeometryReader { proxy in
+                    Image("WelcomeBackground")
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: proxy.size.width, height: proxy.size.height)
+                        .clipped()
+                }
+                .ignoresSafeArea()
+
+                // Contrast Gradient Overlay: Darkens smoothly towards the bottom
+                LinearGradient(
+                    colors: [
+                        Color.black.opacity(0.35),
+                        Color.black.opacity(0.15),
+                        Color.black.opacity(0.55),
+                        Color.black.opacity(0.90)
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .ignoresSafeArea()
 
                 VStack(spacing: 0) {
                     // Top Bar: Logo & Sign In
                     HStack(alignment: .center) {
-                        Image("LaterboxLogo")
+                        Image("LaterboxLogoWhite")
                             .resizable()
                             .scaledToFit()
-                            .frame(height: 34)
+                            .frame(height: 38)
+                            .shadow(color: Color.black.opacity(0.5), radius: 8, x: 0, y: 2)
 
                         Spacer()
 
@@ -35,42 +55,35 @@ struct WelcomeView: View {
                         }) {
                             Text("Sign In")
                                 .font(.system(size: 15, weight: .semibold))
-                                .foregroundColor(.black)
-                                .padding(.horizontal, 14)
-                                .padding(.vertical, 7)
-                                .background(Color.white)
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 8)
+                                .background(Color.white.opacity(0.2))
                                 .clipShape(Capsule())
                                 .overlay(
                                     Capsule()
-                                        .stroke(Color.black.opacity(0.08), lineWidth: 1)
+                                        .stroke(Color.white.opacity(0.4), lineWidth: 1)
                                 )
+                                .shadow(color: Color.black.opacity(0.3), radius: 6, x: 0, y: 2)
                         }
                     }
                     .padding(.horizontal, 24)
                     .padding(.top, 12)
 
-                    Spacer(minLength: 8)
-
-                    // Big Hero Illustration
-                    Image("OnboardingHero")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(maxWidth: .infinity)
-                        .frame(maxHeight: 380)
-                        .padding(.horizontal, 16)
-
-                    Spacer(minLength: 16)
+                    Spacer(minLength: 40)
 
                     // Headline with Reduced Words
                     VStack(alignment: .leading, spacing: 6) {
                         Text("Save it now.\nRead it later.")
-                            .font(.system(size: 36, weight: .bold))
+                            .font(.system(size: 38, weight: .bold))
                             .lineSpacing(-3)
-                            .foregroundColor(.black)
+                            .foregroundColor(.white)
+                            .shadow(color: Color.black.opacity(0.4), radius: 8, x: 0, y: 2)
 
                         Text("Your personal knowledge vault.")
-                            .font(.system(size: 16, weight: .regular))
-                            .foregroundColor(Color.black.opacity(0.6))
+                            .font(.system(size: 17, weight: .regular))
+                            .foregroundColor(Color.white.opacity(0.85))
+                            .shadow(color: Color.black.opacity(0.3), radius: 6, x: 0, y: 1)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 24)
@@ -84,12 +97,13 @@ struct WelcomeView: View {
                             coordinator.continueAsGuest()
                         }) {
                             Text("Continue without account")
-                                .font(.system(size: 16, weight: .semibold))
-                                .foregroundColor(.white)
+                                .font(.system(size: 16, weight: .bold))
+                                .foregroundColor(.black)
                                 .frame(maxWidth: .infinity)
                                 .frame(height: 54)
-                                .background(Color(red: 26/255, green: 26/255, blue: 26/255))
-                                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                                .background(Color.white)
+                                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                                .shadow(color: Color.black.opacity(0.25), radius: 8, x: 0, y: 3)
                         }
 
                         // Continue Without Account
@@ -97,21 +111,21 @@ struct WelcomeView: View {
                             showingAuthView = true
                         }) {
                             Text("Sign in for cloud and web access (optional)")
-                                .font(.system(size: 15, weight: .regular))
-                                .foregroundColor(Color.black.opacity(0.85))
+                                .font(.system(size: 15, weight: .medium))
+                                .foregroundColor(Color.white.opacity(0.9))
                                 .frame(maxWidth: .infinity)
-                                .padding(.vertical, 8)
+                                .padding(.vertical, 6)
                         }
 
                         Button("View Pro plans · Purchase or restore") {
                             showingPlans = true
                         }
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundColor(.black)
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundColor(Color.white.opacity(0.75))
                         .accessibilityIdentifier("welcome.plans")
                     }
                     .padding(.horizontal, 24)
-                    .padding(.bottom, 20)
+                    .padding(.bottom, 28)
                 }
             }
             .sheet(isPresented: $showingPlans) {
