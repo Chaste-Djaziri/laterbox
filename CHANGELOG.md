@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[iOS / Sync]** Resolve Swift 6 concurrency warnings in cloud attachment sync by declaring SharedCaptureStore methods as nonisolated Sendable.
+
 - **[iOS / UI]** Add device capability detection for native liquid glass materials, automatically leveraging hardware-accelerated system blur when supported with high-contrast accessibility fallbacks.
 
 - **[iOS / UI]** Redesign View Pro Plans modal on the Welcome screen with a liquid glass aesthetic, transparent background, frosted cards, and refined typography.
