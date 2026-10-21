@@ -260,6 +260,73 @@ export function CustomLoginContent({ actions, extra, initialMode = 'login' }: { 
     );
   }
 
+  const renderDevToolbar = () => {
+    if (process.env.NODE_ENV === 'production') return null;
+    return (
+      <div className="mb-4 flex flex-wrap items-center gap-1.5 p-2 rounded-xl bg-black/60 border border-white/20 text-[11px] font-mono text-white/80">
+        <span className="font-bold text-white/50 pr-1">Dev Sim:</span>
+        <button
+          type="button"
+          onClick={() => {
+            setAwaitingPassword(false);
+            setAwaitingOtp(false);
+            setAuthMode('login');
+            setError(null);
+            setMessage(null);
+          }}
+          className="px-2 py-0.5 rounded-lg bg-white/15 hover:bg-white/25 cursor-pointer"
+        >
+          Email
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            const targetEmail = email.trim() || 'alex@example.com';
+            setEmail(targetEmail);
+            setAwaitingOtp(false);
+            setAuthMode('signup');
+            setAwaitingPassword(true);
+            setError(null);
+            setMessage(null);
+          }}
+          className="px-2 py-0.5 rounded-lg bg-white/15 hover:bg-white/25 cursor-pointer"
+        >
+          Pwd (Sign Up)
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            const targetEmail = email.trim() || 'alex@example.com';
+            setEmail(targetEmail);
+            setAwaitingOtp(false);
+            setAuthMode('login');
+            setAwaitingPassword(true);
+            setError(null);
+            setMessage(null);
+          }}
+          className="px-2 py-0.5 rounded-lg bg-white/15 hover:bg-white/25 cursor-pointer"
+        >
+          Pwd (Sign In)
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            const targetEmail = email.trim() || 'alex@example.com';
+            setEmail(targetEmail);
+            setOtp('48291055');
+            setAwaitingPassword(false);
+            setAwaitingOtp(true);
+            setError(null);
+            setMessage(null);
+          }}
+          className="px-2 py-0.5 rounded-lg bg-white/15 hover:bg-white/25 cursor-pointer"
+        >
+          Verify Code
+        </button>
+      </div>
+    );
+  };
+
   if (awaitingName) {
     return (
       <DisplayNameInput
@@ -274,6 +341,7 @@ export function CustomLoginContent({ actions, extra, initialMode = 'login' }: { 
   if (awaitingPassword) {
     return (
       <AuthLayout>
+        {renderDevToolbar()}
         {/* Feedback Alerts */}
         {error && (
           <div className="w-full mb-4 p-3.5 rounded-[16px] bg-red-50/90 border border-red-200 text-red-700 text-xs font-semibold flex items-center gap-2 text-left animate-in fade-in">
@@ -372,12 +440,14 @@ export function CustomLoginContent({ actions, extra, initialMode = 'login' }: { 
           setError(null);
           setMessage(null);
         }}
+        devToolbar={renderDevToolbar()}
       />
     );
   }
 
   return (
     <AuthLayout>
+      {renderDevToolbar()}
       {isAuthenticated && authError && <div role="alert" className="mb-4 text-sm text-red-300"><p>{authError}</p><button type="button" onClick={retryAuth} className="mt-2 underline">Retry account setup</button></div>}
       {extra}
       {/* Feedback Alerts */}
@@ -499,6 +569,7 @@ function OtpVerification({
   onVerify,
   onResend,
   onBack,
+  devToolbar,
 }: {
   email: string;
   secondFactor?: boolean;
@@ -510,9 +581,11 @@ function OtpVerification({
   onVerify: () => void;
   onResend: () => void;
   onBack: () => void;
+  devToolbar?: React.ReactNode;
 }) {
   return (
     <AuthLayout>
+      {devToolbar}
       <h1 id="otp-title" className="text-2xl sm:text-3xl font-black tracking-tight text-white text-left">
         {secondFactor ? 'Verify your sign-in' : 'Check your email'}
       </h1>

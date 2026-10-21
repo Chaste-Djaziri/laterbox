@@ -1,5 +1,9 @@
 # Free extension and local library
 
+- **[iOS / Dev]** Add an in-app interactive Auth State Simulator and separate Xcode previews for every authentication step (email entry, sign-up password, sign-in password, code verification, and data sync).
+
+- **[Web / Dev]** Add an interactive Dev State Simulator toolbar to the web auth page for switching between email, password, and OTP verification flows during development.
+
 - **[iOS / UI]** Remove redundant bottom sign-in link on the welcome screen, keeping sign-in exclusively in the top-right header capsule.
 
 - **[iOS / UI]** Replace onboarding hero illustration with a full-page desk background image, dark contrast gradient overlay, and bottom-aligned typography and action buttons.
