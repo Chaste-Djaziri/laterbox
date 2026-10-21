@@ -90,7 +90,7 @@ struct ShareChatMessage: Identifiable, Equatable {
                 if provider.canLoadObject(ofClass: URL.self) {
                     let loadedUrl: URL? = await withCheckedContinuation { continuation in
                         _ = provider.loadObject(ofClass: URL.self) { obj, _ in
-                            continuation.resume(returning: obj as? URL)
+                            continuation.resume(returning: obj)
                         }
                     }
                     if let url = loadedUrl {
@@ -111,7 +111,7 @@ struct ShareChatMessage: Identifiable, Equatable {
                 if provider.canLoadObject(ofClass: String.self) {
                     let loadedText: String? = await withCheckedContinuation { continuation in
                         _ = provider.loadObject(ofClass: String.self) { obj, _ in
-                            continuation.resume(returning: obj as? String)
+                            continuation.resume(returning: obj)
                         }
                     }
                     if let text = loadedText {
