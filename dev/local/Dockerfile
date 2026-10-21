@@ -1,11 +1,6 @@
 FROM golang:1.25-alpine AS minio-build
 
-RUN apk add --no-cache git \
-  && git clone --depth 1 https://github.com/minio/minio.git /src
-
-WORKDIR /src
-
-RUN go build -trimpath -ldflags="-s -w" -o /out/minio .
+RUN GOBIN=/out go install github.com/minio/minio@latest
 
 FROM alpine:3.21 AS server
 
