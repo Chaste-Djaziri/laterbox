@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[iOS / UI]** Add a full graphical date and time picker with interactive calendar month grid, time selection, and quick time shortcut pills to step 3 return scheduling on the capture screen.
+
 - **[iOS / UI]** Replace category selector on capture screen with dynamic collections picker (including inline new collection creation) and interactive tag chips with enter/: to commit and removal support.
 
 - **[iOS / UI]** Expand the note or summary input in step 1 of the capture screen to fill available vertical space down to just above the Continue button, matching step 1 content layout.
