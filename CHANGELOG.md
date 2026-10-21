@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[iOS / UI]** Resolve Sign in with Apple Auto Layout constraint conflict by capping maximum button width to adhere to Apple's internal 375pt limit on wider devices.
+
 - **[iOS / UI]** Fix status bar styling on Welcome and Auth screens by binding dynamic color scheme to the root view hierarchy and triggering status bar appearance updates for pure white icons on dark onboarding backgrounds.
 
 - **[iOS / UI]** Set dark preferred color scheme on Welcome and Auth views so the system status bar (time, battery, Wi-Fi) renders in white.
