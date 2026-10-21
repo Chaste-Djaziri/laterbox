@@ -1667,6 +1667,43 @@ extension LaterAITests {
         #expect(coordinator.hasAccess == true)
         #expect(coordinator.currentUserEmail == nil)
     }
+
+    @Test
+    func authFlowUserNotFoundThenSignUpWithPasswordAndVerifyCode() async throws {
+        let uniqueEmail = "user_\(UUID().uuidString.prefix(8).lowercased())@testbox.local"
+        let testPassword = "Password123!"
+
+        // 1. Initial OTP request for non-existent user should indicate userNotFound
+        let otpResult = try await LaterBoxAPIService.shared.requestEmailOTP(email: uniqueEmail)
+        #expect(otpResult == .userNotFound)
+
+        // 2. Sign up with email and password -> requiresConfirmation should be true
+        let (requiresConfirmation, userId) = try await LaterBoxAPIService.shared.signUp(
+            email: uniqueEmail,
+            password: testPassword
+        )
+        #expect(requiresConfirmation == true)
+        #expect(userId != nil)
+
+        // 3. Wait briefly and fetch the 8-digit verification code from local Mailpit
+        try await Task.sleep(nanoseconds: 800_000_000)
+        let code = await LaterBoxAPIService.shared.fetchLatestMailpitOTP(for: uniqueEmail)
+        let token = try #require(code)
+        #expect(token.count == 8)
+
+        // 4. Verify signup OTP code
+        let (accessToken, refreshToken, verifiedUserId) = try await LaterBoxAPIService.shared.verifyOTP(
+            email: uniqueEmail,
+            token: token,
+            type: "signup"
+        )
+        #expect(!accessToken.isEmpty)
+        #expect(verifiedUserId == userId)
+
+        // 5. Existing user requesting OTP code should now return .sent
+        let existingUserResult = try await LaterBoxAPIService.shared.requestEmailOTP(email: uniqueEmail)
+        #expect(existingUserResult == .sent)
+    }
 }
 @MainActor
 private final class MockCloudTransport: IOSCloudTransport {

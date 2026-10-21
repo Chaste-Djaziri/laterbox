@@ -170,40 +170,107 @@ public actor LaterBoxAPIService {
         }
     }
 
-    // MARK: - Auth: Email OTP / Magic Link
-    public func sendEmailOTP(email: String) async throws -> Bool {
+    // MARK: - Auth: Email OTP & Password Flow
+    public enum SendOTPResult: Equatable {
+        case sent
+        case userNotFound
+    }
+
+    public func requestEmailOTP(email: String) async throws -> SendOTPResult {
         guard let url = URL(string: "\(supabaseUrl)/auth/v1/otp") else {
             throw URLError(.badURL)
         }
         var req = URLRequest(url: url)
         req.httpMethod = "POST"
         for (k, v) in headers() { req.setValue(v, forHTTPHeaderField: k) }
-        let body = ["email": email, "create_user": true] as [String : Any]
+        let body = ["email": email, "create_user": false] as [String : Any]
         req.httpBody = try JSONSerialization.data(withJSONObject: body)
 
-        let (_, response) = try await session.data(for: req)
-        guard let http = response as? HTTPURLResponse, (200...299).contains(http.statusCode) else {
-            throw URLError(.userAuthenticationRequired)
+        let (data, response) = try await session.data(for: req)
+        guard let http = response as? HTTPURLResponse else {
+            throw URLError(.badServerResponse)
         }
-        return true
+
+        if (200...299).contains(http.statusCode) {
+            return .sent
+        }
+
+        if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+            let msg = ((json["msg"] as? String) ?? (json["message"] as? String) ?? "").lowercased()
+            let errorCode = ((json["error_code"] as? String) ?? "").lowercased()
+            if errorCode == "otp_disabled" ||
+               errorCode == "user_not_found" ||
+               msg.contains("signups not allowed") ||
+               msg.contains("user not found") {
+                return .userNotFound
+            }
+            if let customMsg = json["msg"] as? String ?? json["message"] as? String {
+                throw NSError(domain: "LaterBoxAuth", code: http.statusCode, userInfo: [NSLocalizedDescriptionKey: customMsg])
+            }
+        }
+
+        throw URLError(.userAuthenticationRequired)
     }
 
-    public func verifyOTP(email: String, token: String) async throws -> (accessToken: String, refreshToken: String?, userId: String) {
-        guard let url = URL(string: "\(supabaseUrl)/auth/v1/verify") else {
+    @discardableResult
+    public func sendEmailOTP(email: String) async throws -> Bool {
+        let result = try await requestEmailOTP(email: email)
+        switch result {
+        case .sent:
+            return true
+        case .userNotFound:
+            throw NSError(domain: "LaterBoxAuth", code: 422, userInfo: [NSLocalizedDescriptionKey: "User not found"])
+        }
+    }
+
+    public func signUp(email: String, password: String) async throws -> (requiresConfirmation: Bool, userId: String?) {
+        guard let url = URL(string: "\(supabaseUrl)/auth/v1/signup") else {
             throw URLError(.badURL)
         }
         var req = URLRequest(url: url)
         req.httpMethod = "POST"
         for (k, v) in headers() { req.setValue(v, forHTTPHeaderField: k) }
-        let body: [String: Any] = [
-            "type": "email",
-            "email": email,
-            "token": token
-        ]
+        let body = ["email": email, "password": password]
+        req.httpBody = try JSONSerialization.data(withJSONObject: body)
+
+        let (data, response) = try await session.data(for: req)
+        guard let http = response as? HTTPURLResponse else {
+            throw URLError(.badServerResponse)
+        }
+
+        if (200...299).contains(http.statusCode) {
+            if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                let hasAccessToken = (json["access_token"] as? String) != nil
+                let user = (json["user"] as? [String: Any]) ?? json
+                let userId = user["id"] as? String
+                return (!hasAccessToken, userId)
+            }
+            return (true, nil)
+        }
+
+        if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+           let msg = json["msg"] as? String ?? json["message"] as? String ?? json["error_description"] as? String {
+            throw NSError(domain: "LaterBoxAuth", code: http.statusCode, userInfo: [NSLocalizedDescriptionKey: msg])
+        }
+        throw URLError(.userAuthenticationRequired)
+    }
+
+    public func signInWithPassword(email: String, password: String) async throws -> (accessToken: String, refreshToken: String?, userId: String) {
+        guard let url = URL(string: "\(supabaseUrl)/auth/v1/token?grant_type=password") else {
+            throw URLError(.badURL)
+        }
+        var req = URLRequest(url: url)
+        req.httpMethod = "POST"
+        for (k, v) in headers() { req.setValue(v, forHTTPHeaderField: k) }
+        let body = ["email": email, "password": password]
         req.httpBody = try JSONSerialization.data(withJSONObject: body)
 
         let (data, response) = try await session.data(for: req)
         guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
+            if let json = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any],
+               let msg = json["msg"] as? String ?? json["message"] as? String ?? json["error_description"] as? String {
+                throw NSError(domain: "LaterBoxAuth", code: (response as? HTTPURLResponse)?.statusCode ?? 400, userInfo: [NSLocalizedDescriptionKey: msg])
+            }
             throw URLError(.userAuthenticationRequired)
         }
         guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
@@ -216,9 +283,50 @@ public actor LaterBoxAPIService {
         return (token, refreshToken, userId)
     }
 
+    public func verifyOTP(email: String, token: String, type: String = "email") async throws -> (accessToken: String, refreshToken: String?, userId: String) {
+        guard let url = URL(string: "\(supabaseUrl)/auth/v1/verify") else {
+            throw URLError(.badURL)
+        }
+        do {
+            return try await executeVerifyOTP(url: url, email: email, token: token, type: type)
+        } catch {
+            let fallbackType = (type == "signup") ? "email" : "signup"
+            return try await executeVerifyOTP(url: url, email: email, token: token, type: fallbackType)
+        }
+    }
+
     public func verifyOTP(email: String, token: String) async throws -> (accessToken: String, userId: String) {
-        let (token, _, userId): (String, String?, String) = try await verifyOTP(email: email, token: token)
+        let (token, _, userId): (String, String?, String) = try await verifyOTP(email: email, token: token, type: "email")
         return (token, userId)
+    }
+
+    private func executeVerifyOTP(url: URL, email: String, token: String, type: String) async throws -> (accessToken: String, refreshToken: String?, userId: String) {
+        var req = URLRequest(url: url)
+        req.httpMethod = "POST"
+        for (k, v) in headers() { req.setValue(v, forHTTPHeaderField: k) }
+        let body: [String: Any] = [
+            "type": type,
+            "email": email,
+            "token": token
+        ]
+        req.httpBody = try JSONSerialization.data(withJSONObject: body)
+
+        let (data, response) = try await session.data(for: req)
+        guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
+            if let json = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any],
+               let msg = json["msg"] as? String ?? json["message"] as? String ?? json["error_description"] as? String {
+                throw NSError(domain: "LaterBoxAuth", code: (response as? HTTPURLResponse)?.statusCode ?? 400, userInfo: [NSLocalizedDescriptionKey: msg])
+            }
+            throw URLError(.userAuthenticationRequired)
+        }
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let accessToken = json["access_token"] as? String,
+              let user = json["user"] as? [String: Any],
+              let userId = user["id"] as? String else {
+            throw URLError(.cannotParseResponse)
+        }
+        let refreshToken = json["refresh_token"] as? String
+        return (accessToken, refreshToken, userId)
     }
 
     // MARK: - Auth: Native Sign in with Apple
