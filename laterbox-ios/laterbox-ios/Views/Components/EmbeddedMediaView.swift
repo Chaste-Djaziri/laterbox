@@ -267,19 +267,43 @@ public struct WebViewEmbed: UIViewRepresentable {
 public struct SFSafariViewWrapper: UIViewControllerRepresentable {
     public let url: URL
     public var entersReaderIfAvailable: Bool
+    public var onDismiss: (() -> Void)?
 
-    public init(url: URL, entersReaderIfAvailable: Bool = true) {
+    @Environment(\.dismiss) private var dismiss
+
+    public init(url: URL, entersReaderIfAvailable: Bool = true, onDismiss: (() -> Void)? = nil) {
         self.url = url
         self.entersReaderIfAvailable = entersReaderIfAvailable
+        self.onDismiss = onDismiss
+    }
+
+    public func makeCoordinator() -> Coordinator {
+        Coordinator(parent: self)
     }
 
     public func makeUIViewController(context: Context) -> SFSafariViewController {
         let config = SFSafariViewController.Configuration()
         config.entersReaderIfAvailable = entersReaderIfAvailable
-        return SFSafariViewController(url: url, configuration: config)
+        let controller = SFSafariViewController(url: url, configuration: config)
+        controller.delegate = context.coordinator
+        controller.dismissButtonStyle = .done
+        return controller
     }
 
     public func updateUIViewController(_ uiViewController: SFSafariViewController, context: Context) {}
+
+    public final class Coordinator: NSObject, SFSafariViewControllerDelegate {
+        let parent: SFSafariViewWrapper
+
+        init(parent: SFSafariViewWrapper) {
+            self.parent = parent
+        }
+
+        public func safariViewControllerDidFinish(_ controller: SFSafariViewController) {
+            parent.onDismiss?()
+            parent.dismiss()
+        }
+    }
 }
 
 // MARK: - PDFKit In-App Viewer
