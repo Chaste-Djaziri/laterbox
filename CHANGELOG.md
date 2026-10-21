@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[iOS / UI]** Expand the note or summary input in step 1 of the capture screen to fill available vertical space down to just above the Continue button, matching step 1 content layout.
+
 - **[iOS / UI]** Fix status bar styling on capture screen by dynamically switching root active color scheme and cascading dark appearance overrides so time, battery, and Wi-Fi indicators render in pure white.
 
 - **[iOS / UI]** Render the top system status bar in pure white on the dark-themed capture and add-item views, automatically restoring dark status bar icons upon returning to the inbox.
