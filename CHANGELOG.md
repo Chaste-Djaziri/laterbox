@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[iOS / UI]** Remove the redundant Save Item button from the mobile sidebar drawer, relying on the permanently anchored quick capture button.
+
 - **[iOS / Dev]** Add Xcode Canvas Previews for InboxView with populated sample items and empty state configurations.
 
 - **[iOS / UI]** Keep the floating quick capture (+) button permanently anchored without animation, remaining visible and accessible during sidebar navigation and active search.
