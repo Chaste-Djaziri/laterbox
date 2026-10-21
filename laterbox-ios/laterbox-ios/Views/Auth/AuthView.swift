@@ -21,6 +21,22 @@ struct AuthView: View {
         case resolveLocalData(unassignedCount: Int, token: String, refreshToken: String?, userId: String)
     }
 
+    private enum LegalDocument: String, Identifiable {
+        case terms
+        case privacy
+
+        var id: String { rawValue }
+
+        var url: URL {
+            switch self {
+            case .terms:
+                return URL(string: "https://laterbox.dev/terms")!
+            case .privacy:
+                return URL(string: "https://laterbox.dev/privacy")!
+            }
+        }
+    }
+
     @State private var step: AuthStep = .enterEmail
     @State private var email: String = ""
     @State private var password: String = ""
@@ -30,6 +46,7 @@ struct AuthView: View {
     @State private var isFetchingMailpit: Bool = false
     @State private var errorMessage: String? = nil
     @State private var infoMessage: String? = nil
+    @State private var activeLegalDocument: LegalDocument? = nil
 
     private let isPreviewSimulatorEnabled: Bool
 
@@ -632,14 +649,24 @@ struct AuthView: View {
                         HStack(spacing: 4) {
                             Text("By continuing, you agree to our")
                                 .foregroundColor(Color.white.opacity(0.60))
-                            Link("Terms", destination: URL(string: "https://laterbox.dev/terms")!)
-                                .foregroundColor(.white)
-                                .underline()
+                            Button {
+                                activeLegalDocument = .terms
+                            } label: {
+                                Text("Terms")
+                                    .foregroundColor(.white)
+                                    .underline()
+                            }
+                            .buttonStyle(.plain)
                             Text("&")
                                 .foregroundColor(Color.white.opacity(0.60))
-                            Link("Privacy Policy", destination: URL(string: "https://laterbox.dev/privacy")!)
-                                .foregroundColor(.white)
-                                .underline()
+                            Button {
+                                activeLegalDocument = .privacy
+                            } label: {
+                                Text("Privacy Policy")
+                                    .foregroundColor(.white)
+                                    .underline()
+                            }
+                            .buttonStyle(.plain)
                         }
                         .font(.caption2)
                         .frame(maxWidth: .infinity, alignment: .center)
@@ -656,6 +683,10 @@ struct AuthView: View {
         .navigationBarTitleDisplayMode(.inline)
         .preferredColorScheme(.dark)
         .whiteStatusBar()
+        .sheet(item: $activeLegalDocument) { doc in
+            SFSafariViewWrapper(url: doc.url, entersReaderIfAvailable: false)
+                .ignoresSafeArea()
+        }
         .onDisappear {
             if coordinator.hasAccess {
                 StatusBarStyleModifier.apply(.light)
