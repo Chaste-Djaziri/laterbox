@@ -7,10 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		LBW000300000000000000001 /* LaterBoxWidgets.swift in Sources */ = {isa = PBXBuildFile; fileRef = LBW000100000000000000001 /* LaterBoxWidgets.swift */; };
-		LBW000400000000000000001 /* SharedCapture.swift in Sources */ = {isa = PBXBuildFile; fileRef = 498F59466D1129E98872BACB /* SharedCapture.swift */; };
-		LBW000600000000000000001 /* QuickSaveIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = LBW000500000000000000001 /* QuickSaveIntent.swift */; };
-		LBW000800000000000000001 /* LaterBoxWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = LBW000200000000000000001 /* LaterBoxWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		3E8CA1BB48FC8305B7D75A1C /* LaterAIChrome.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81F2BE3A1CA37F34720FBB7A /* LaterAIChrome.swift */; };
 		4DF5DF6A52B4D2679DE9BEA5 /* SharedCapture.swift in Sources */ = {isa = PBXBuildFile; fileRef = 498F59466D1129E98872BACB /* SharedCapture.swift */; };
 		5589579C7454F92A09BBABF0 /* LaterBoxShare.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 9CD0ABE6B11066E3BE4E19C1 /* LaterBoxShare.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -18,16 +14,13 @@
 		6F6C4FD026002CB02E6370CE /* SharedCapture.swift in Sources */ = {isa = PBXBuildFile; fileRef = 498F59466D1129E98872BACB /* SharedCapture.swift */; };
 		75A2160469BA7EC3719EA8B8 /* LaterAIChrome.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81F2BE3A1CA37F34720FBB7A /* LaterAIChrome.swift */; };
 		DBF7234AD81B74862C37F88B /* ShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F81B1954BAF7A76CDFE5F0E /* ShareViewController.swift */; };
+		LBW000300000000000000001 /* LaterBoxWidgets.swift in Sources */ = {isa = PBXBuildFile; fileRef = LBW000100000000000000001 /* LaterBoxWidgets.swift */; };
+		LBW000400000000000000001 /* SharedCapture.swift in Sources */ = {isa = PBXBuildFile; fileRef = 498F59466D1129E98872BACB /* SharedCapture.swift */; };
+		LBW000600000000000000001 /* QuickSaveIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = LBW000500000000000000001 /* QuickSaveIntent.swift */; };
+		LBW000800000000000000001 /* LaterBoxWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = LBW000200000000000000001 /* LaterBoxWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
-		LBW000900000000000000001 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 5194A4F03072E2E100DE79B5 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = LBW001200000000000000001;
-			remoteInfo = LaterBoxWidgets;
-		};
 		428B8B82BB545D4C129B4618 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 5194A4F03072E2E100DE79B5 /* Project object */;
@@ -49,6 +42,13 @@
 			remoteGlobalIDString = 5194A4F73072E2E100DE79B5;
 			remoteInfo = "laterbox-ios";
 		};
+		LBW000900000000000000001 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 5194A4F03072E2E100DE79B5 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = LBW001200000000000000001;
+			remoteInfo = LaterBoxWidgets;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -67,9 +67,6 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		LBW000100000000000000001 /* LaterBoxWidgets.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LaterBoxWidgets.swift; sourceTree = "<group>"; };
-		LBW000200000000000000001 /* LaterBoxWidgets.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = LaterBoxWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
-		LBW000500000000000000001 /* QuickSaveIntent.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = QuickSaveIntent.swift; sourceTree = "<group>"; };
 		498F59466D1129E98872BACB /* SharedCapture.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SharedCapture.swift; sourceTree = "<group>"; };
 		5194A4F83072E2E100DE79B5 /* laterbox-ios.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "laterbox-ios.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		5194A5073072E2E100DE79B5 /* laterbox-iosTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "laterbox-iosTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -78,6 +75,9 @@
 		9CD0ABE6B11066E3BE4E19C1 /* LaterBoxShare.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = LaterBoxShare.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		9F81B1954BAF7A76CDFE5F0E /* ShareViewController.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
 		DAC0F63DC56B313D3701E636 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
+		LBW000100000000000000001 /* LaterBoxWidgets.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LaterBoxWidgets.swift; sourceTree = "<group>"; };
+		LBW000200000000000000001 /* LaterBoxWidgets.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = LaterBoxWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		LBW000500000000000000001 /* QuickSaveIntent.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = QuickSaveIntent.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -125,6 +125,13 @@
 			buildActionMask = 2147483647;
 			files = (
 				6BCE5025967DEFC753BDA913 /* Foundation.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		LBW001400000000000000001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -378,26 +385,6 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-/* End PBXResourcesBuildPhase section */
-
-/* Begin PBXSourcesBuildPhase section */
-		LBW001300000000000000001 /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				LBW000300000000000000001 /* LaterBoxWidgets.swift in Sources */,
-				LBW000400000000000000001 /* SharedCapture.swift in Sources */,
-				LBW000600000000000000001 /* QuickSaveIntent.swift in Sources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		LBW001400000000000000001 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 		LBW001500000000000000001 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -405,6 +392,9 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
 		4478E9BF192129AE51748935 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -438,15 +428,19 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		LBW001300000000000000001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				LBW000300000000000000001 /* LaterBoxWidgets.swift in Sources */,
+				LBW000400000000000000001 /* SharedCapture.swift in Sources */,
+				LBW000600000000000000001 /* QuickSaveIntent.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
-		LBW001000000000000000001 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			name = LaterBoxWidgets;
-			target = LBW001200000000000000001 /* LaterBoxWidgets */;
-			targetProxy = LBW000900000000000000001 /* PBXContainerItemProxy */;
-		};
 		15AF3A62E3C17D4F48CD1D91 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			name = LaterBoxShare;
@@ -462,6 +456,12 @@
 			isa = PBXTargetDependency;
 			target = 5194A4F73072E2E100DE79B5 /* laterbox-ios */;
 			targetProxy = 5194A5123072E2E100DE79B5 /* PBXContainerItemProxy */;
+		};
+		LBW001000000000000000001 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = LaterBoxWidgets;
+			target = LBW001200000000000000001 /* LaterBoxWidgets */;
+			targetProxy = LBW000900000000000000001 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -620,7 +620,6 @@
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UIUserInterfaceStyle = Light;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
@@ -677,7 +676,6 @@
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UIUserInterfaceStyle = Light;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
@@ -845,6 +843,27 @@
 			};
 			name = Debug;
 		};
+		LBW001700000000000000001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_ENTITLEMENTS = LaterBoxWidgets.entitlements;
+				CURRENT_PROJECT_VERSION = 184;
+				DEVELOPMENT_TEAM = LS42X27YFY;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = LaterBoxWidgets/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0.183;
+				PRODUCT_BUNDLE_IDENTIFIER = pro.micorp.laterbox.widgets;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
 		LBW001800000000000000001 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -866,27 +885,6 @@
 				VALIDATE_PRODUCT = YES;
 			};
 			name = Release;
-		};
-		LBW001700000000000000001 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				APPLICATION_EXTENSION_API_ONLY = YES;
-				CLANG_ENABLE_OBJC_WEAK = NO;
-				CODE_SIGN_ENTITLEMENTS = LaterBoxWidgets.entitlements;
-				CURRENT_PROJECT_VERSION = 184;
-				DEVELOPMENT_TEAM = LS42X27YFY;
-				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = LaterBoxWidgets/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				MARKETING_VERSION = 1.0.183;
-				PRODUCT_BUNDLE_IDENTIFIER = pro.micorp.laterbox.widgets;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = iphoneos;
-				SKIP_INSTALL = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-			};
-			name = Debug;
 		};
 /* End XCBuildConfiguration section */
 
