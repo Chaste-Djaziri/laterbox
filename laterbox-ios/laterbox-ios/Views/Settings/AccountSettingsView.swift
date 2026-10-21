@@ -197,6 +197,7 @@ public struct AccountSettingsView: View {
                                 request.requestedScopes = [.email, .fullName]
                             }, onCompletion: handleAppleLinkResult)
                             .signInWithAppleButtonStyle(.black)
+                            .frame(maxWidth: 375)
                             .frame(height: 48)
                             .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
 
