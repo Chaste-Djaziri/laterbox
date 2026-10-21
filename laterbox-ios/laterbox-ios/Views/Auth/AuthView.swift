@@ -24,6 +24,7 @@ struct AuthView: View {
     @State private var email: String = ""
     @State private var otpCode: String = ""
     @State private var isLoading: Bool = false
+    @State private var isFetchingMailpit: Bool = false
     @State private var errorMessage: String? = nil
     @State private var infoMessage: String? = nil
 
@@ -149,6 +150,52 @@ struct AuthView: View {
                             RoundedRectangle(cornerRadius: 14, style: .continuous)
                                 .stroke(Color.black.opacity(0.1), lineWidth: 1)
                         )
+
+                        #if DEBUG
+                        VStack(spacing: 8) {
+                            HStack(spacing: 6) {
+                                Image(systemName: "envelope.badge.shield.half.filled")
+                                    .foregroundColor(Color(red: 26/255, green: 26/255, blue: 26/255))
+                                Text("Dev Mode · Local Mailpit")
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundColor(.black.opacity(0.7))
+                            }
+                            HStack(spacing: 12) {
+                                Button(action: { fetchMailpitCode() }) {
+                                    HStack(spacing: 6) {
+                                        if isFetchingMailpit {
+                                            ProgressView().scaleEffect(0.7)
+                                        } else {
+                                            Image(systemName: "arrow.clockwise")
+                                                .font(.system(size: 11))
+                                        }
+                                        Text("Fetch from Mailpit")
+                                            .font(.system(size: 13, weight: .semibold))
+                                    }
+                                    .foregroundColor(.black)
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 7)
+                                    .background(Color.white)
+                                    .clipShape(Capsule())
+                                    .overlay(Capsule().stroke(Color.black.opacity(0.12), lineWidth: 1))
+                                }
+                                .disabled(isFetchingMailpit)
+
+                                if let mailpitUrl = URL(string: LaterBoxAPIService.shared.mailpitUrl) {
+                                    Link(destination: mailpitUrl) {
+                                        HStack(spacing: 4) {
+                                            Text("Open Mailpit")
+                                                .font(.system(size: 13, weight: .medium))
+                                            Image(systemName: "arrow.up.right")
+                                                .font(.system(size: 10))
+                                        }
+                                        .foregroundColor(.black.opacity(0.8))
+                                    }
+                                }
+                            }
+                        }
+                        .padding(.top, 10)
+                        #endif
 
                     case .resolveLocalData(let count, let token, let refreshToken, let userId):
                         VStack(spacing: 16) {
@@ -372,6 +419,9 @@ struct AuthView: View {
                     withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
                         step = .verifyOTP
                     }
+                    #if DEBUG
+                    fetchMailpitCode()
+                    #endif
                 }
             } catch {
                 await MainActor.run {
@@ -382,6 +432,29 @@ struct AuthView: View {
             }
         }
     }
+
+    #if DEBUG
+    private func fetchMailpitCode() {
+        guard !isFetchingMailpit else { return }
+        isFetchingMailpit = true
+        Task {
+            // Give local Mailpit a short moment to receive the message from local GoTrue
+            try? await Task.sleep(nanoseconds: 700_000_000)
+            if let code = await LaterBoxAPIService.shared.fetchLatestMailpitOTP(for: email) {
+                await MainActor.run {
+                    self.otpCode = code
+                    self.isFetchingMailpit = false
+                    LBHaptic.success()
+                    verifyCode()
+                }
+            } else {
+                await MainActor.run {
+                    self.isFetchingMailpit = false
+                }
+            }
+        }
+    }
+    #endif
 
     private func handleAppleResult(_ result: Result<ASAuthorization, Error>) {
         switch result {
