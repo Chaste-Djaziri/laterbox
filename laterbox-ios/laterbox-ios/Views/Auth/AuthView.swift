@@ -31,6 +31,18 @@ struct AuthView: View {
     @State private var errorMessage: String? = nil
     @State private var infoMessage: String? = nil
 
+    init(
+        initialStep: AuthStep = .enterEmail,
+        initialEmail: String = "",
+        initialPassword: String = "",
+        initialOtp: String = ""
+    ) {
+        _step = State(initialValue: initialStep)
+        _email = State(initialValue: initialEmail)
+        _password = State(initialValue: initialPassword)
+        _otpCode = State(initialValue: initialOtp)
+    }
+
     private var headerTitle: String {
         switch step {
         case .enterEmail:
@@ -164,7 +176,98 @@ struct AuthView: View {
                             .foregroundColor(Color.white.opacity(0.82))
                             .multilineTextAlignment(.leading)
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.bottom, 22)
+                            .padding(.bottom, 16)
+
+                        #if DEBUG
+                        // Dev Mode State Simulator: Quick Switcher for testing all authentication states
+                        VStack(alignment: .leading, spacing: 6) {
+                            HStack(spacing: 6) {
+                                Circle()
+                                    .fill(Color.green)
+                                    .frame(width: 7, height: 7)
+                                Text("Dev Simulator")
+                                    .font(.system(size: 11, weight: .bold, design: .monospaced))
+                                    .foregroundColor(Color.white.opacity(0.85))
+                                Spacer()
+                                Text(LaterBoxAPIService.shared.supabaseUrl.replacingOccurrences(of: "http://", with: ""))
+                                    .font(.system(size: 10, design: .monospaced))
+                                    .foregroundColor(Color.white.opacity(0.6))
+                            }
+
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: 6) {
+                                    Button("Email") {
+                                        withAnimation(.easeInOut(duration: 0.2)) {
+                                            step = .enterEmail
+                                            errorMessage = nil
+                                            infoMessage = nil
+                                        }
+                                    }
+                                    .buttonStyle(AuthSimulatorPillStyle(isSelected: step == .enterEmail))
+
+                                    Button("Password (Sign Up)") {
+                                        withAnimation(.easeInOut(duration: 0.2)) {
+                                            if email.isEmpty { email = "alex@example.com" }
+                                            step = .enterPassword(isSignUp: true)
+                                            errorMessage = nil
+                                            infoMessage = nil
+                                        }
+                                    }
+                                    .buttonStyle(AuthSimulatorPillStyle(isSelected: {
+                                        if case .enterPassword(let isSignUp) = step { return isSignUp }
+                                        return false
+                                    }()))
+
+                                    Button("Password (Sign In)") {
+                                        withAnimation(.easeInOut(duration: 0.2)) {
+                                            if email.isEmpty { email = "alex@example.com" }
+                                            step = .enterPassword(isSignUp: false)
+                                            errorMessage = nil
+                                            infoMessage = nil
+                                        }
+                                    }
+                                    .buttonStyle(AuthSimulatorPillStyle(isSelected: {
+                                        if case .enterPassword(let isSignUp) = step { return !isSignUp }
+                                        return false
+                                    }()))
+
+                                    Button("Verify Code") {
+                                        withAnimation(.easeInOut(duration: 0.2)) {
+                                            if email.isEmpty { email = "alex@example.com" }
+                                            if otpCode.isEmpty { otpCode = "12345678" }
+                                            step = .verifyOTP(type: "signup")
+                                            errorMessage = nil
+                                            infoMessage = nil
+                                        }
+                                    }
+                                    .buttonStyle(AuthSimulatorPillStyle(isSelected: {
+                                        if case .verifyOTP = step { return true }
+                                        return false
+                                    }()))
+
+                                    Button("Sync Data") {
+                                        withAnimation(.easeInOut(duration: 0.2)) {
+                                            if email.isEmpty { email = "alex@example.com" }
+                                            step = .resolveLocalData(unassignedCount: 4, token: "mock", refreshToken: "mock", userId: "mock")
+                                            errorMessage = nil
+                                            infoMessage = nil
+                                        }
+                                    }
+                                    .buttonStyle(AuthSimulatorPillStyle(isSelected: {
+                                        if case .resolveLocalData = step { return true }
+                                        return false
+                                    }()))
+                                }
+                                .padding(.vertical, 2)
+                            }
+                        }
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .background(Color.black.opacity(0.45))
+                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                        .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(Color.white.opacity(0.18), lineWidth: 1))
+                        .padding(.bottom, 16)
+                        #endif
 
                         // Input or Action Area
                         switch step {
@@ -196,18 +299,6 @@ struct AuthView: View {
                                 RoundedRectangle(cornerRadius: 16, style: .continuous)
                                     .stroke(Color.white.opacity(0.3), lineWidth: 1)
                             )
-
-                            #if DEBUG
-                            HStack(spacing: 6) {
-                                Circle()
-                                    .fill(Color.green)
-                                    .frame(width: 7, height: 7)
-                                Text("Dev Mode · Target: \(LaterBoxAPIService.shared.supabaseUrl)")
-                                    .font(.system(size: 11, weight: .medium, design: .monospaced))
-                                    .foregroundColor(Color.white.opacity(0.8))
-                            }
-                            .padding(.top, 8)
-                            #endif
 
                         case .enterPassword(let isSignUp):
                             HStack {
@@ -878,8 +969,68 @@ struct AuthView: View {
     }
 }
 
-#Preview {
+private struct AuthSimulatorPillStyle: ButtonStyle {
+    let isSelected: Bool
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.system(size: 11, weight: isSelected ? .bold : .medium, design: .monospaced))
+            .foregroundColor(isSelected ? .black : .white)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 5)
+            .background(isSelected ? Color.white : Color.white.opacity(0.14))
+            .clipShape(Capsule())
+            .overlay(Capsule().stroke(isSelected ? Color.white : Color.white.opacity(0.25), lineWidth: 1))
+            .scaleEffect(configuration.isPressed ? 0.94 : 1.0)
+    }
+}
+
+// MARK: - Previews for Every Auth State
+
+#Preview("1. Enter Email") {
     NavigationStack {
-        AuthView()
+        AuthView(initialStep: .enterEmail)
+    }
+}
+
+#Preview("2. Create Password (Sign Up)") {
+    NavigationStack {
+        AuthView(
+            initialStep: .enterPassword(isSignUp: true),
+            initialEmail: "alex@example.com"
+        )
+    }
+}
+
+#Preview("3. Enter Password (Sign In)") {
+    NavigationStack {
+        AuthView(
+            initialStep: .enterPassword(isSignUp: false),
+            initialEmail: "alex@example.com"
+        )
+    }
+}
+
+#Preview("4. Verify OTP Code") {
+    NavigationStack {
+        AuthView(
+            initialStep: .verifyOTP(type: "signup"),
+            initialEmail: "alex@example.com",
+            initialOtp: "48291055"
+        )
+    }
+}
+
+#Preview("5. Sync Local Data") {
+    NavigationStack {
+        AuthView(
+            initialStep: .resolveLocalData(
+                unassignedCount: 4,
+                token: "mock-token",
+                refreshToken: "mock-refresh",
+                userId: "mock-user"
+            ),
+            initialEmail: "alex@example.com"
+        )
     }
 }
