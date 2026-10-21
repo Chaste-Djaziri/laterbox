@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[iOS / UI]** Keep the floating quick capture (+) button permanently anchored without animation, remaining visible and accessible during sidebar navigation and active search.
+
 - **[iOS / Core]** Resolve Swift 6 concurrency errors and compiler warnings in StoreKitManager, SharedCapture DTOs, and ShareViewController item provider downcasts.
 
 - **[iOS / Auth]** Prevent automatic auto-finishing after password submission by requiring manual verification code entry and reserving Mailpit code retrieval for explicit user tap in dev mode.
