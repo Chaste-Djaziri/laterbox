@@ -15,7 +15,7 @@ services:
     volumes:
       - laterbox-minio-data:/data
     healthcheck:
-      test: ["CMD", "mc", "ready", "local"]
+      test: ["CMD-SHELL", "curl -fsS http://localhost:9000/minio/health/live >/dev/null"]
       interval: 5s
       timeout: 3s
       retries: 30
