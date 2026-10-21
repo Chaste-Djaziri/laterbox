@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[iOS / AI]** Add hardware capability detection for Apple Intelligence on-device models, automatically enabling on-device processing on supported iPhones and displaying real-time hardware support status in Settings.
+
 - **[iOS / Auth]** Style input placeholders in dark/black with clear contrast on the white text inputs in AuthView.
 
 - **[iOS / Auth]** Open Terms of Service and Privacy Policy in an in-app sheet popup instead of navigating out of the app to external Safari.
