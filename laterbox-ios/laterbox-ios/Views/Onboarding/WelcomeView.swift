@@ -109,22 +109,6 @@ struct WelcomeView: View {
                         .font(.system(size: 15, weight: .semibold))
                         .foregroundColor(.black)
                         .accessibilityIdentifier("welcome.plans")
-
-                        // Legal Disclaimer
-                        HStack(spacing: 4) {
-                            Text("By continuing, you agree to our")
-                                .foregroundColor(Color.black.opacity(0.45))
-                            Link("Terms", destination: URL(string: "https://laterbox.dev/terms")!)
-                                .foregroundColor(.black)
-                                .underline()
-                            Text("&")
-                                .foregroundColor(Color.black.opacity(0.45))
-                            Link("Privacy Policy", destination: URL(string: "https://laterbox.dev/privacy")!)
-                                .foregroundColor(.black)
-                                .underline()
-                        }
-                        .font(.caption2)
-                        .padding(.top, 4)
                     }
                     .padding(.horizontal, 24)
                     .padding(.bottom, 20)
