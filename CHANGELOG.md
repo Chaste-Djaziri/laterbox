@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[iOS / Auth]** Invalidate sessions created against a different Supabase endpoint on startup and provide an option to use local storage when a session fails.
+
 - **[Releases]** Show the latest changes as readable text in each GitHub Release description.
 
 - **[iOS / Releases]** Check that the App Store signing profile includes Sign in with Apple before archiving.
