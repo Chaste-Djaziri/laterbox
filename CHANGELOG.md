@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[iOS / Auth]** Prevent automatic auto-finishing after password submission by requiring manual verification code entry and reserving Mailpit code retrieval for explicit user tap in dev mode.
+
 - **[iOS / Core]** Resolve Swift 6 concurrency errors in LaterBoxAPIService by marking LaterBoxDevConfig, runtime configuration, and API service configuration properties as nonisolated Sendable.
 
 - **[iOS / Core]** Resolve Swift 6 concurrency warnings in ServiceStatus models by marking DTOs nonisolated and clean up unused variable warnings.
