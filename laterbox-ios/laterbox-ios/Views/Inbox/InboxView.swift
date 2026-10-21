@@ -823,6 +823,7 @@ public struct InboxView: View {
             }
             .navigationDestination(isPresented: $navigateToCapture) {
                 CaptureView()
+                    .whiteStatusBar()
             }
             .sheet(isPresented: $showingQuickCapture) {
                 QuickCaptureSheet()
