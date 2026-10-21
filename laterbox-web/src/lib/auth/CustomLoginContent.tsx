@@ -262,6 +262,7 @@ export function CustomLoginContent({ actions, extra, initialMode = 'login' }: { 
 
   const renderDevToolbar = () => {
     if (process.env.NODE_ENV === 'production') return null;
+    if (typeof window !== 'undefined' && !window.location.search.includes('dev_sim=true')) return null;
     return (
       <div className="mb-4 flex flex-wrap items-center gap-1.5 p-2 rounded-xl bg-black/60 border border-white/20 text-[11px] font-mono text-white/80">
         <span className="font-bold text-white/50 pr-1">Dev Sim:</span>

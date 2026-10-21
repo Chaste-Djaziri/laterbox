@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[iOS / Dev]** Restrict Auth State Simulator to Xcode Canvas Previews mode, keeping normal iOS simulator and device builds clean.
+
 - **[Welcome / UI]** Update welcome page full-bleed background to the clean, high-resolution desk, coffee, and spiral notebook image across iOS and Web.
 
 - **[Auth / UI]** Update authentication full-page background across iOS and Web to the new desk workspace image featuring plant, book, notebook, and laptop.
