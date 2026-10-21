@@ -223,7 +223,7 @@ enable_signup = true
 # addresses. If disabled, only the new email is required to confirm.
 double_confirm_changes = true
 # If enabled, users need to confirm their email address before signing in.
-enable_confirmations = false
+enable_confirmations = true
 # If enabled, users will need to reauthenticate or have logged in recently to change their password.
 secure_password_change = false
 # Controls the minimum amount of time that must pass before sending another signup confirmation or password reset email.
@@ -245,11 +245,11 @@ otp_expiry = 3600
 
 # Custom email templates with 8-digit OTP code
 [auth.email.template.confirmation]
-subject = "Your LaterBox verification code"
+subject = "{{ .Token }} is your LaterBox verification code"
 content_path = "./supabase/templates/confirm-signup.html"
 
 [auth.email.template.magic_link]
-subject = "Your LaterBox sign-in code"
+subject = "{{ .Token }} is your LaterBox sign-in code"
 content_path = "./supabase/templates/magic-link.html"
 
 # Uncomment to customize notification email template

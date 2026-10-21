@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[Auth / Config]** Require email confirmation code on signup and include verification code in email template subjects.
+
 - **[iOS / Development]** Route dev mode exclusively to local Supabase and Mailpit, rejecting remote endpoints and adding OTP auto-retrieval from Mailpit.
 
 - **[iOS / Auth]** Invalidate sessions created against a different Supabase endpoint on startup and provide an option to use local storage when a session fails.
