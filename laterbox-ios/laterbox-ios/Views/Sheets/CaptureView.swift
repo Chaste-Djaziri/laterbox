@@ -141,7 +141,12 @@ public struct CaptureView: View {
         .toolbarColorScheme(.dark, for: .navigationBar)
         .preferredColorScheme(.dark)
         .whiteStatusBar()
+        .onAppear {
+            SyncCoordinator.shared.isShowingCapture = true
+            StatusBarStyleModifier.apply(.dark)
+        }
         .onDisappear {
+            SyncCoordinator.shared.isShowingCapture = false
             StatusBarStyleModifier.apply(.light)
         }
         .alert("Error Saving Capture", isPresented: Binding(
