@@ -39,8 +39,8 @@ struct GuidedCaptureView: View {
         VStack(alignment: .leading, spacing: 18) {
             headerView
 
-            if fillsAvailableSpace && step == 0 {
-                step0ContentView
+            if fillsAvailableSpace && (step == 0 || step == 1) {
+                stepContent
                     .frame(maxHeight: .infinity, alignment: .top)
             } else if fillsAvailableSpace {
                 ScrollView {
@@ -245,16 +245,30 @@ struct GuidedCaptureView: View {
                     .foregroundColor(Color.white.opacity(0.5))
                     .tracking(0.5)
 
-                TextField("Add context or key takeaways", text: $draft.summary, axis: .vertical)
-                    .font(.system(size: 14))
-                    .foregroundColor(.white)
-                    .tint(LaterAIStyle.accent)
-                    .lineLimit(2...4)
-                    .padding(12)
-                    .background(Color(white: 24.0 / 255), in: RoundedRectangle(cornerRadius: 12))
-                    .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(Color.white.opacity(0.12), lineWidth: 1))
+                ZStack(alignment: .topLeading) {
+                    if draft.summary.isEmpty {
+                        Text("Add context or key takeaways...")
+                            .font(.system(size: 14))
+                            .foregroundColor(Color.white.opacity(0.35))
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 12)
+                    }
+
+                    TextEditor(text: $draft.summary)
+                        .scrollContentBackground(.hidden)
+                        .font(.system(size: 14))
+                        .foregroundColor(.white)
+                        .tint(LaterAIStyle.accent)
+                        .padding(8)
+                        .frame(minHeight: 100, maxHeight: fillsAvailableSpace ? .infinity : 180)
+                }
+                .background(Color(white: 24.0 / 255), in: RoundedRectangle(cornerRadius: 14))
+                .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(Color.white.opacity(0.12), lineWidth: 1))
+                .frame(maxHeight: fillsAvailableSpace ? .infinity : nil)
             }
+            .frame(maxHeight: fillsAvailableSpace ? .infinity : nil)
         }
+        .frame(maxHeight: fillsAvailableSpace ? .infinity : nil, alignment: .top)
     }
 
     // MARK: - Step 2: Category & Tags
