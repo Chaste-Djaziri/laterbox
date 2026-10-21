@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[iOS / AI]** Automatically enrich captured web links and leverage on-device Apple Intelligence NLP to pre-fill titles, notes, content types, smart collections, and interactive tags across all capture types.
+
 - **[iOS / UI]** Add a full graphical date and time picker with interactive calendar month grid, time selection, and quick time shortcut pills to step 3 return scheduling on the capture screen.
 
 - **[iOS / UI]** Replace category selector on capture screen with dynamic collections picker (including inline new collection creation) and interactive tag chips with enter/: to commit and removal support.
