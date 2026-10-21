@@ -654,6 +654,12 @@ struct AuthView: View {
         .navigationBarBackButtonHidden(true)
         .navigationBarTitleDisplayMode(.inline)
         .preferredColorScheme(.dark)
+        .whiteStatusBar()
+        .onDisappear {
+            if coordinator.hasAccess {
+                StatusBarStyleModifier.apply(.light)
+            }
+        }
     }
 
     private func handleNavigationBack() {
