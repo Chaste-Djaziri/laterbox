@@ -4,6 +4,7 @@ import { safeReturnPath } from '@/lib/auth/config';
 
 import React, { Suspense, useState, useEffect } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import type { AuthContextType } from '@/lib/store/AuthContext';
 import { useAuth } from '@/lib/store/AuthContext';
@@ -434,6 +435,18 @@ export function CustomLoginContent({ actions, extra, initialMode = 'login' }: { 
             Continue without account
           </button>
         </div>
+
+        {/* Legal Disclaimer */}
+        <p className="pt-3 text-center text-xs text-white/60">
+          By continuing, you agree to our{' '}
+          <Link href="/terms" className="text-white underline hover:text-white/90">
+            Terms
+          </Link>{' '}
+          &{' '}
+          <Link href="/privacy" className="text-white underline hover:text-white/90">
+            Privacy Policy
+          </Link>
+        </p>
       </form>
     </AuthLayout>
   );

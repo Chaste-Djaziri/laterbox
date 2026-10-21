@@ -1,5 +1,9 @@
 # Free extension and local library
 
+- **[iOS / UI]** Relocate "By continuing, you agree to our Terms & Privacy Policy" disclaimer from onboarding WelcomeView to the bottom of the AuthView.
+
+- **[Web / UI]** Add "By continuing, you agree to our Terms & Privacy Policy" disclaimer to the bottom of the login form.
+
 - **[iOS / UI]** Add vertical spacing between the "OR" divider and the "Sign in with Apple" button on the auth screen.
 
 - **[iOS / UI]** Enlarge brand logo in the top right and firmly pin the login form and buttons to the bottom using a geometry-backed vertical spacer.
