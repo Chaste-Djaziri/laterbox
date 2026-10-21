@@ -116,38 +116,40 @@ struct AuthView: View {
             )
             .ignoresSafeArea()
 
-            // Content Layout: Top Bar (Logo on Top Right) + Form & Buttons on Bottom
-            VStack(spacing: 0) {
-                // Top Bar
-                HStack(alignment: .center) {
-                    Button(action: handleNavigationBack) {
-                        Image(systemName: step == .enterEmail ? "xmark" : "chevron.left")
-                            .font(.system(size: 14, weight: .bold))
-                            .foregroundColor(.white)
-                            .frame(width: 38, height: 38)
-                            .background(Color.black.opacity(0.45))
-                            .clipShape(Circle())
-                            .overlay(Circle().stroke(Color.white.opacity(0.25), lineWidth: 1))
-                            .shadow(color: Color.black.opacity(0.3), radius: 6, x: 0, y: 2)
-                    }
-
-                    Spacer()
-
-                    // Brand Logo on the Top Right
-                    Image("LaterboxLogoWhite")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(height: 26)
-                        .shadow(color: Color.black.opacity(0.5), radius: 8, x: 0, y: 2)
-                }
-                .padding(.horizontal, 20)
-                .padding(.top, 10)
-
-                Spacer(minLength: 20)
-
-                // Form and Buttons directly on the bottom (no container background)
+            // Content Layout: Top Bar with larger Logo on Top Right + Form & Buttons pinned on Bottom
+            GeometryReader { geometry in
                 ScrollView(showsIndicators: false) {
-                    VStack(alignment: .leading, spacing: 0) {
+                    VStack(spacing: 0) {
+                        // Top Bar
+                        HStack(alignment: .center) {
+                            Button(action: handleNavigationBack) {
+                                Image(systemName: step == .enterEmail ? "xmark" : "chevron.left")
+                                    .font(.system(size: 15, weight: .bold))
+                                    .foregroundColor(.white)
+                                    .frame(width: 42, height: 42)
+                                    .background(Color.black.opacity(0.45))
+                                    .clipShape(Circle())
+                                    .overlay(Circle().stroke(Color.white.opacity(0.25), lineWidth: 1))
+                                    .shadow(color: Color.black.opacity(0.3), radius: 6, x: 0, y: 2)
+                            }
+
+                            Spacer()
+
+                            // Brand Logo on the Top Right (larger size)
+                            Image("LaterboxLogoWhite")
+                                .resizable()
+                                .scaledToFit()
+                                .frame(height: 50)
+                                .shadow(color: Color.black.opacity(0.55), radius: 10, x: 0, y: 3)
+                        }
+                        .padding(.horizontal, 20)
+                        .padding(.top, 10)
+
+                        // Spacer pushes the form and buttons firmly to the bottom
+                        Spacer(minLength: 32)
+
+                        // Form and Buttons directly on the bottom (no container background)
+                        VStack(alignment: .leading, spacing: 0) {
                         // Title: Left-aligned
                         Text(headerTitle)
                             .font(.system(size: 30, weight: .bold))
@@ -528,9 +530,11 @@ struct AuthView: View {
                         }
                     }
                     .padding(.horizontal, 24)
-                    .padding(.bottom, 24)
+                    .padding(.bottom, 28)
                 }
+                .frame(minHeight: geometry.size.height)
             }
+        }
         }
         .navigationBarBackButtonHidden(true)
         .navigationBarTitleDisplayMode(.inline)
