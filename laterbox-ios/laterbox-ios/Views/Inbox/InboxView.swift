@@ -113,7 +113,7 @@ public struct InboxView: View {
     }
 
     private var emptySubtitleText: String {
-        if let col = selectedCollection { return "Items tagged with this collection will appear here." }
+        if selectedCollection != nil { return "Items tagged with this collection will appear here." }
         switch selectedMailbox {
         case .inbox: return "All caught up. Everything saved has been processed or reviewed."
         case .today: return "You have no items scheduled for review today."
