@@ -653,6 +653,7 @@ struct AuthView: View {
         }
         .navigationBarBackButtonHidden(true)
         .navigationBarTitleDisplayMode(.inline)
+        .preferredColorScheme(.dark)
     }
 
     private func handleNavigationBack() {
