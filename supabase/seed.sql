@@ -1,0 +1,1 @@
+-- Intentionally empty. Local Supabase startup applies this file after migrations.
