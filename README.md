@@ -39,6 +39,22 @@ npm run build:all
 
 See [extension setup](laterbox-extension/README.md), [deployment](docs/deployment.md), [architecture](docs/architecture.md), and [contributing](CONTRIBUTING.md).
 
+## Local full-stack development
+
+Use the local stack when testing authenticated sync, attachments, or email on the web, extensions, Android, and iOS. It runs Supabase locally in Docker, uses Supabase's bundled Mailpit inbox, and replaces Cloudflare R2 with local MinIO.
+
+```sh
+scripts/local-stack.sh start
+# In a second terminal, while exercising Edge Functions:
+scripts/local-stack.sh functions
+# To erase and recreate only local Supabase data:
+scripts/local-stack.sh reset
+```
+
+The startup command detects the active private LAN address, creates ignored configuration files for the web app, Edge Functions, Android, and an Xcode `LaterBoxLocal` Debug scheme. Start the web app on all interfaces with `cd laterbox-web && npm run dev -- --hostname 0.0.0.0`, then use the printed LAN address from a simulator, emulator, or physical device on the same network. In Xcode, choose the generated `LaterBoxLocal` scheme; release builds always retain their hosted endpoints.
+
+Mailpit is available at `http://LAN_IP:54324`; MinIO's console is at `http://LAN_IP:9001`. Run `scripts/local-stack.sh stop` to stop the local services while preserving their data. The stack never runs `supabase link`, `supabase db push`, or a Cloudflare command, and it rejects hosted Supabase and Cloudflare R2 endpoints before writing local credentials.
+
 ## License and support
 
 See [CHANGELOG.md](CHANGELOG.md) for notable updates.
