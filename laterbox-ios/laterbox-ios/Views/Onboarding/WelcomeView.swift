@@ -124,8 +124,10 @@ struct WelcomeView: View {
                 AuthView()
             }
             .preferredColorScheme(.dark)
+            .whiteStatusBar()
         }
         .preferredColorScheme(.dark)
+        .whiteStatusBar()
     }
 }
 
