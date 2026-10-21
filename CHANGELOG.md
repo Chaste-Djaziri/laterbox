@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[iOS / Dev]** Add Xcode Canvas Previews for InboxView with populated sample items and empty state configurations.
+
 - **[iOS / UI]** Keep the floating quick capture (+) button permanently anchored without animation, remaining visible and accessible during sidebar navigation and active search.
 
 - **[iOS / Core]** Resolve Swift 6 concurrency errors and compiler warnings in StoreKitManager, SharedCapture DTOs, and ShareViewController item provider downcasts.
