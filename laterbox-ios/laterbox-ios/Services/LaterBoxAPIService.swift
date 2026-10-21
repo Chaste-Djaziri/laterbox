@@ -64,7 +64,8 @@ public nonisolated struct AccountBillingEntitlement: Decodable, Sendable {
 public actor LaterBoxAPIService {
     public static let shared = LaterBoxAPIService()
 
-    public let supabaseUrl = LaterBoxRuntimeConfiguration.value(for: "LATERBOX_SUPABASE_URL", fallback: "https://ltjisrgldssqskcylcbj.supabase.co")
+    public static let defaultSupabaseUrl = "https://ltjisrgldssqskcylcbj.supabase.co"
+    public let supabaseUrl = LaterBoxRuntimeConfiguration.value(for: "LATERBOX_SUPABASE_URL", fallback: defaultSupabaseUrl)
     public let anonKey = LaterBoxRuntimeConfiguration.value(for: "LATERBOX_SUPABASE_ANON_KEY", fallback: "sb_publishable_Rc4e_ik2LE4SR0UrfX-OEQ_5Mu_lw9p")
     public let webUrl = LaterBoxRuntimeConfiguration.value(for: "LATERBOX_WEB_URL", fallback: "https://laterbox.dev")
     public let billingUrl = LaterBoxRuntimeConfiguration.value(for: "LATERBOX_BILLING_URL", fallback: "https://app.laterbox.dev")
