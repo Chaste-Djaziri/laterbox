@@ -51,7 +51,8 @@ public struct LaterAIView: View {
         .padding(.bottom, 12)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(hex: "0C0C0D").ignoresSafeArea())
-        .preferredColorScheme(.light)
+        .preferredColorScheme(.dark)
+        .whiteStatusBar()
         .offset(y: travelFactor * -160)
         .opacity(clampedProgress)
         .onAppear {
@@ -63,6 +64,7 @@ public struct LaterAIView: View {
             }
         }
         .onDisappear {
+            StatusBarStyleModifier.apply(.light)
             conversation.reset()
             LaterAIManager.shared.attachedSubject = nil
             LaterAIManager.shared.initialPrompt = nil
