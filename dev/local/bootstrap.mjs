@@ -13,10 +13,23 @@ const client = new S3Client({
   },
 });
 
-try {
-  await client.send(new HeadBucketCommand({ Bucket: bucket }));
-} catch {
-  await client.send(new CreateBucketCommand({ Bucket: bucket }));
+for (let attempt = 1; attempt <= 30; attempt += 1) {
+  try {
+    await client.send(new HeadBucketCommand({ Bucket: bucket }));
+    console.log(`Local MinIO bucket ${bucket} is ready.`);
+    process.exit(0);
+  } catch (error) {
+    if (error?.Code !== "XMinioServerNotInitialized") {
+      try {
+        await client.send(new CreateBucketCommand({ Bucket: bucket }));
+        console.log(`Local MinIO bucket ${bucket} is ready.`);
+        process.exit(0);
+      } catch (createError) {
+        if (createError?.Code !== "XMinioServerNotInitialized") throw createError;
+      }
+    }
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+  }
 }
 
-console.log(`Local MinIO bucket ${bucket} is ready.`);
+throw new Error("MinIO did not finish initializing within 30 seconds.");
