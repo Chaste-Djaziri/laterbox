@@ -1,5 +1,9 @@
 # Free extension and local library
 
+- **[iOS / UI]** Remove login container box background, anchor form and buttons directly on the bottom, and left-align title and description.
+
+- **[Web / UI]** Remove login container box background, anchor form and buttons directly on the bottom, and left-align title and description.
+
 - **[iOS / UI]** Refactor the login view with a full-bleed desk checklist background, top-right LaterBox logo, and bottom-anchored frosted card layout.
 
 - **[Web / UI]** Refactor the login page with a full-bleed desk checklist background, top-right LaterBox logo, and bottom-anchored frosted card layout.

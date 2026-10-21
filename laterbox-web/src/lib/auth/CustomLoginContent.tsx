@@ -288,10 +288,10 @@ export function CustomLoginContent({ actions, extra, initialMode = 'login' }: { 
           </div>
         )}
 
-        {/* Title */}
-        <h1 className="text-2xl sm:text-3xl font-black tracking-tight mb-2">Enter your password</h1>
-        <p className="text-[14px] text-[#6b6961] font-normal tracking-normal mb-6">
-          Create or enter your password for <strong className="text-[#181816]">{email.trim()}</strong> to continue.
+        {/* Title: Left-aligned */}
+        <h1 className="text-2xl sm:text-3xl font-black tracking-tight mb-2 text-white text-left">Enter your password</h1>
+        <p className="text-[15px] text-white/80 font-normal tracking-normal mb-6 text-left">
+          Create or enter your password for <strong className="text-white">{email.trim()}</strong> to continue.
         </p>
 
         {/* Password Form */}
@@ -305,7 +305,7 @@ export function CustomLoginContent({ actions, extra, initialMode = 'login' }: { 
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Password (at least 6 characters)"
-              className="w-full h-14 pl-5 pr-12 bg-white border border-[#e5e1d7] rounded-[18px] text-[15px] text-[#181816] placeholder:text-[#9e9b92] focus:outline-none focus:ring-2 focus:ring-zinc-900/10 focus:border-zinc-500 transition-all font-normal"
+              className="w-full h-14 pl-5 pr-12 bg-white rounded-[18px] text-[15px] text-[#181816] placeholder:text-[#9e9b92] focus:outline-none focus:ring-2 focus:ring-white/40 transition-all font-normal"
             />
             <button
               type="button"
@@ -321,7 +321,7 @@ export function CustomLoginContent({ actions, extra, initialMode = 'login' }: { 
             <button
               type="submit"
               disabled={loading || password.length < 6}
-              className="w-full h-14 bg-[#181816] hover:bg-[#282723] active:bg-[#0f0f0e] text-white font-bold text-[15px] rounded-[18px] shadow-sm transition-all duration-150 flex items-center justify-center disabled:opacity-60 cursor-pointer"
+              className="w-full h-14 bg-white hover:bg-zinc-100 text-[#181816] font-bold text-[15px] rounded-[18px] shadow-md transition-all duration-150 flex items-center justify-center disabled:opacity-50 cursor-pointer"
             >
               {loading ? (
                 <Loader2 className="w-5 h-5 animate-spin" />
@@ -340,7 +340,7 @@ export function CustomLoginContent({ actions, extra, initialMode = 'login' }: { 
                 setPassword('');
                 setError(null);
               }}
-              className="text-[14px] text-[#6b6961] hover:text-[#181816] font-normal transition-colors cursor-pointer py-1"
+              className="text-[14px] text-white/80 hover:text-white font-normal transition-colors cursor-pointer py-1"
             >
               Use a different email
             </button>
@@ -377,50 +377,50 @@ export function CustomLoginContent({ actions, extra, initialMode = 'login' }: { 
 
   return (
     <AuthLayout>
-      {isAuthenticated && authError && <div role="alert" className="mb-4 text-sm text-red-700"><p>{authError}</p><button type="button" onClick={retryAuth} className="mt-2 underline">Retry account setup</button></div>}
+      {isAuthenticated && authError && <div role="alert" className="mb-4 text-sm text-red-300"><p>{authError}</p><button type="button" onClick={retryAuth} className="mt-2 underline">Retry account setup</button></div>}
       {extra}
       {/* Feedback Alerts */}
       {error && (
-        <div className="w-full mb-4 p-3.5 rounded-[16px] bg-red-50/90 border border-red-200 text-red-700 text-xs font-semibold flex items-center gap-2 text-left animate-in fade-in">
+        <div className="w-full mb-4 p-3.5 rounded-[16px] bg-red-500/20 border border-red-400/40 text-red-200 text-xs font-semibold flex items-center gap-2 text-left animate-in fade-in">
           <AlertCircle className="w-4 h-4 shrink-0" />
           <span>{error}</span>
         </div>
       )}
 
       {message && (
-        <div className="w-full mb-4 p-3.5 rounded-[16px] bg-emerald-50/90 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center gap-2 text-left animate-in fade-in">
+        <div className="w-full mb-4 p-3.5 rounded-[16px] bg-emerald-500/20 border border-emerald-400/40 text-emerald-200 text-xs font-semibold flex items-center gap-2 text-left animate-in fade-in">
           <CheckCircle2 className="w-4 h-4 shrink-0" />
           <span>{message}</span>
         </div>
       )}
 
       {/* Mode Selector */}
-      <div className="mb-6 flex rounded-[18px] border border-[#e5e1d7] bg-white p-1">
+      <div className="mb-6 flex rounded-[18px] border border-white/20 bg-black/40 p-1">
         {(['login', 'signup'] as const).map(mode => (
-          <button key={mode} type="button" onClick={() => { setAuthMode(mode); setError(null); setMessage(null); }} className={`h-11 flex-1 rounded-[14px] text-sm font-bold transition-colors ${authMode === mode ? 'bg-[#181816] text-white' : 'text-[#6b6961] hover:text-[#181816]'}`}>
+          <button key={mode} type="button" onClick={() => { setAuthMode(mode); setError(null); setMessage(null); }} className={`h-11 flex-1 rounded-[14px] text-sm font-bold transition-colors ${authMode === mode ? 'bg-white text-black' : 'text-white/70 hover:text-white'}`}>
             {mode === 'login' ? 'Log in' : 'Sign up'}
           </button>
         ))}
       </div>
 
-      <h1 className="text-2xl sm:text-3xl font-black tracking-tight mb-2">{authMode === 'login' ? 'Welcome back' : 'Create your account'}</h1>
-      <p className="text-[14px] text-[#6b6961] font-normal tracking-normal mb-6">
+      <h1 className="text-2xl sm:text-3xl font-black tracking-tight mb-2 text-white text-left">{authMode === 'login' ? 'Welcome back' : 'Create your account'}</h1>
+      <p className="text-[15px] text-white/80 font-normal tracking-normal mb-6 text-left">
         {authMode === 'login' ? 'Use email, Google, or Apple to sign in.' : 'Create a LaterBox account with Google or Apple.'}
       </p>
 
       <form onSubmit={(e) => void handleEmailSubmit(e)} className="w-full space-y-3.5">
         {authMode === 'login' && <>
-          <input type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" className="w-full h-14 px-5 bg-white border border-[#e5e1d7] rounded-[18px] text-[15px] text-[#181816] placeholder:text-[#9e9b92] focus:outline-none focus:ring-2 focus:ring-zinc-900/10 focus:border-zinc-500 transition-all font-normal" />
-          <button type="submit" disabled={loading || authLoading || Boolean(isAuthenticated)} className="w-full h-14 bg-[#181816] hover:bg-[#282723] text-white font-bold text-[15px] rounded-[18px] shadow-sm transition-all flex items-center justify-center disabled:opacity-60 cursor-pointer">
+          <input type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" className="w-full h-14 px-5 bg-white rounded-[18px] text-[15px] text-[#181816] placeholder:text-[#9e9b92] focus:outline-none focus:ring-2 focus:ring-white/40 transition-all font-normal" />
+          <button type="submit" disabled={loading || authLoading || Boolean(isAuthenticated)} className="w-full h-14 bg-white hover:bg-zinc-100 text-[#181816] font-bold text-[15px] rounded-[18px] shadow-md transition-all flex items-center justify-center disabled:opacity-50 cursor-pointer">
             {loading || authLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Continue with email'}
           </button>
         </>}
 
-        <button type="button" disabled={loading || authLoading || Boolean(isAuthenticated)} onClick={() => void handleGoogle()} className="w-full h-14 rounded-[18px] border border-[#e5e1d7] bg-white text-[15px] font-bold disabled:opacity-60 hover:bg-zinc-50 transition-colors">
+        <button type="button" disabled={loading || authLoading || Boolean(isAuthenticated)} onClick={() => void handleGoogle()} className="w-full h-14 rounded-[18px] bg-white text-[#181816] text-[15px] font-bold disabled:opacity-50 hover:bg-zinc-100 transition-colors">
           <span className="inline-flex items-center justify-center gap-3"><GoogleLogo />{authMode === 'signup' ? 'Create account with Google' : 'Continue with Google'}</span>
         </button>
 
-        <button type="button" disabled={loading || authLoading || Boolean(isAuthenticated)} onClick={() => void handleApple()} className="w-full h-14 rounded-[18px] bg-[#181816] text-white text-[15px] font-bold disabled:opacity-60 hover:bg-[#282723] transition-colors cursor-pointer">
+        <button type="button" disabled={loading || authLoading || Boolean(isAuthenticated)} onClick={() => void handleApple()} className="w-full h-14 rounded-[18px] bg-white text-[#181816] text-[15px] font-bold disabled:opacity-50 hover:bg-zinc-100 transition-colors cursor-pointer">
           <span className="inline-flex items-center justify-center gap-3"><Apple className="size-5" aria-hidden="true" />{authMode === 'signup' ? 'Create account with Apple' : 'Continue with Apple'}</span>
         </button>
 
@@ -429,7 +429,7 @@ export function CustomLoginContent({ actions, extra, initialMode = 'login' }: { 
           <button
             type="button"
             onClick={handleContinueWithoutAccount}
-            className="text-[14px] text-[#181816] hover:text-black font-normal transition-colors cursor-pointer py-1"
+            className="text-[14px] text-white/85 hover:text-white font-medium transition-colors cursor-pointer py-1"
           >
             Continue without account
           </button>
@@ -452,7 +452,7 @@ function AuthLayout({ children }: { children: React.ReactNode }) {
           sizes="100vw"
           className="object-cover object-center"
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/45 via-black/15 via-35% to-black/85" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/45 via-black/20 via-40% to-black/90" />
       </div>
 
       {/* Top Bar: Brand Logo on the Top Right */}
@@ -467,11 +467,9 @@ function AuthLayout({ children }: { children: React.ReactNode }) {
         />
       </header>
 
-      {/* Contents on the Bottom */}
-      <div className="relative z-10 w-full max-w-[440px] mx-auto mt-auto mb-6 sm:mb-10 px-4 sm:px-6">
-        <div className="rounded-[32px] bg-[#f7f5ee]/96 backdrop-blur-2xl border border-white/60 shadow-[0_20px_50px_rgba(0,0,0,0.45)] p-6 sm:p-8 text-left text-[#181816]">
-          {children}
-        </div>
+      {/* Contents on the Bottom (no container box background) */}
+      <div className="relative z-10 w-full max-w-[440px] mx-auto mt-auto mb-6 sm:mb-10 px-4 sm:px-6 text-left">
+        {children}
       </div>
     </main>
   );
@@ -502,15 +500,15 @@ function OtpVerification({
 }) {
   return (
     <AuthLayout>
-      <h1 id="otp-title" className="text-2xl sm:text-3xl font-black tracking-tight">
+      <h1 id="otp-title" className="text-2xl sm:text-3xl font-black tracking-tight text-white text-left">
         {secondFactor ? 'Verify your sign-in' : 'Check your email'}
       </h1>
-      <p className="mt-2 text-sm leading-6 text-[#6b6961]">
-        {secondFactor ? 'Enter the code from your authenticator app.' : <>Enter the verification code sent to <strong>{email}</strong>.</>}
+      <p className="mt-2 text-sm leading-6 text-white/80 text-left">
+        {secondFactor ? 'Enter the code from your authenticator app.' : <>Enter the verification code sent to <strong className="text-white">{email}</strong>.</>}
       </p>
 
-      {error && <p role="alert" className="mt-4 rounded-2xl border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-700">{error}</p>}
-      {message && <p role="status" className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-3 text-sm font-semibold text-emerald-800">{message}</p>}
+      {error && <p role="alert" className="mt-4 rounded-2xl border border-red-400/40 bg-red-500/20 p-3 text-sm font-semibold text-red-200 text-left">{error}</p>}
+      {message && <p role="status" className="mt-4 rounded-2xl border border-emerald-400/40 bg-emerald-500/20 p-3 text-sm font-semibold text-emerald-200 text-left">{message}</p>}
 
       <form
         className="mt-6 space-y-3"
@@ -530,17 +528,17 @@ function OtpVerification({
           value={otp}
           onChange={(event) => onOtpChange(event.target.value.replace(/\D/g, '').slice(0, 8))}
           placeholder="00000000"
-          className="h-16 w-full rounded-[18px] border border-[#d8d3c7] bg-white px-5 text-center text-2xl font-black tracking-[0.45em] focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-900/10"
+          className="h-16 w-full rounded-[18px] bg-white px-5 text-center text-2xl font-black tracking-[0.45em] text-[#181816] focus:outline-none focus:ring-2 focus:ring-white/40"
         />
-        <button type="submit" disabled={busy || otp.length < 6} className="flex h-14 w-full items-center justify-center rounded-[18px] bg-[#181816] text-[15px] font-bold text-white disabled:opacity-50 cursor-pointer">
+        <button type="submit" disabled={busy || otp.length < 6} className="flex h-14 w-full items-center justify-center rounded-[18px] bg-white text-[15px] font-bold text-[#181816] disabled:opacity-50 cursor-pointer">
           {busy ? <Loader2 className="size-5 animate-spin" /> : 'Verify code'}
         </button>
-        <div className="flex items-center justify-center gap-3 pt-1">
-          {!secondFactor && <><button type="button" disabled={busy} onClick={onResend} className="text-sm font-semibold disabled:opacity-50 cursor-pointer">
+        <div className="flex items-center justify-center gap-3 pt-2">
+          {!secondFactor && <><button type="button" disabled={busy} onClick={onResend} className="text-sm font-semibold text-white/90 hover:text-white disabled:opacity-50 cursor-pointer">
             Send a new code
           </button>
-          <span className="text-[#9e9b92]">·</span></>}
-          <button type="button" disabled={busy} onClick={onBack} className="text-sm text-[#6b6961] disabled:opacity-50 cursor-pointer">
+          <span className="text-white/40">·</span></>}
+          <button type="button" disabled={busy} onClick={onBack} className="text-sm text-white/80 hover:text-white disabled:opacity-50 cursor-pointer">
             Use a different email
           </button>
         </div>
