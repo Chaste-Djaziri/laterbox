@@ -202,21 +202,62 @@ public final class SyncCoordinator: ObservableObject {
         isAuthenticated || isGuestMode
     }
 
-    private let defaults = UserDefaults.standard
-    private let api = LaterBoxAPIService.shared
+    public static let endpointDefaultsKey = "lb_auth_endpoint"
 
-    private init() {
+    private let defaults: UserDefaults
+    private let api: LaterBoxAPIService
+
+    public init(defaults: UserDefaults = .standard, api: LaterBoxAPIService = .shared) {
+        self.defaults = defaults
+        self.api = api
+
+        let currentEndpoint = api.supabaseUrl
+        let storedEndpoint = defaults.string(forKey: Self.endpointDefaultsKey)
+        let hasStoredSession = defaults.string(forKey: "lb_user_email") != nil || defaults.string(forKey: "lb_auth_token") != nil
+
+        if hasStoredSession {
+            let sessionEndpoint = storedEndpoint ?? LaterBoxAPIService.defaultSupabaseUrl
+            if sessionEndpoint != currentEndpoint {
+                // Invalidate session that was created against a different Supabase endpoint
+                defaults.removeObject(forKey: "lb_user_email")
+                defaults.removeObject(forKey: "lb_user_id")
+                defaults.removeObject(forKey: "lb_auth_token")
+                defaults.removeObject(forKey: "lb_refresh_token")
+                defaults.removeObject(forKey: Self.endpointDefaultsKey)
+            } else if storedEndpoint == nil {
+                defaults.set(currentEndpoint, forKey: Self.endpointDefaultsKey)
+            }
+        }
+
         self.currentUserEmail = defaults.string(forKey: "lb_user_email")
         self.currentUserId = defaults.string(forKey: "lb_user_id")
         self.authToken = defaults.string(forKey: "lb_auth_token")
         self.refreshToken = defaults.string(forKey: "lb_refresh_token")
         self.isGuestMode = defaults.bool(forKey: "lb_guest_mode")
         self.syncState = (currentUserEmail != nil && !(currentUserEmail?.isEmpty ?? true)) ? .synced : .offline
-        
+
         Task {
             await refreshSystemStatus()
             await refreshEntitlement()
         }
+    }
+
+    @discardableResult
+    public func validateSessionEndpoint() -> Bool {
+        let currentEndpoint = api.supabaseUrl
+        let storedEndpoint = defaults.string(forKey: Self.endpointDefaultsKey)
+        let hasStoredSession = currentUserEmail != nil || authToken != nil || defaults.string(forKey: "lb_user_email") != nil || defaults.string(forKey: "lb_auth_token") != nil
+
+        guard hasStoredSession else { return true }
+
+        let sessionEndpoint = storedEndpoint ?? LaterBoxAPIService.defaultSupabaseUrl
+        if sessionEndpoint != currentEndpoint {
+            signOut()
+            return false
+        } else if storedEndpoint == nil {
+            defaults.set(currentEndpoint, forKey: Self.endpointDefaultsKey)
+        }
+        return true
     }
 
     public func refreshSystemStatus() async {
@@ -241,6 +282,7 @@ public final class SyncCoordinator: ObservableObject {
         defaults.set(userId, forKey: "lb_user_id")
         defaults.set(token, forKey: "lb_auth_token")
         defaults.set(false, forKey: "lb_guest_mode")
+        defaults.set(api.supabaseUrl, forKey: Self.endpointDefaultsKey)
         Task { await StoreKitManager.shared.updatePurchasedProducts(); await refreshEntitlement() }
         LBHaptic.success()
     }
@@ -269,6 +311,7 @@ public final class SyncCoordinator: ObservableObject {
         defaults.removeObject(forKey: "lb_auth_token")
         defaults.removeObject(forKey: "lb_refresh_token")
         defaults.removeObject(forKey: "lb_guest_mode")
+        defaults.removeObject(forKey: Self.endpointDefaultsKey)
         LBHaptic.light()
     }
 
@@ -319,6 +362,7 @@ public final class SyncCoordinator: ObservableObject {
             defaults.set(newAccess, forKey: "lb_auth_token")
             defaults.set(newRefresh, forKey: "lb_refresh_token")
             defaults.set(uid, forKey: "lb_user_id")
+            defaults.set(api.supabaseUrl, forKey: Self.endpointDefaultsKey)
             return true
         } catch {
             return false
