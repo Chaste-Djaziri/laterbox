@@ -296,16 +296,21 @@ struct AuthView: View {
                         switch step {
                         case .enterEmail:
                             HStack {
-                                TextField("Email", text: $email)
-                                    .font(.system(size: 16))
-                                    .foregroundColor(.black)
-                                    .keyboardType(.emailAddress)
-                                    .autocapitalization(.none)
-                                    .autocorrectionDisabled()
-                                    .submitLabel(.continue)
-                                    .onSubmit {
-                                        submitEmail()
-                                    }
+                                TextField(
+                                    "",
+                                    text: $email,
+                                    prompt: Text("Email").foregroundColor(Color.black.opacity(0.50))
+                                )
+                                .font(.system(size: 16))
+                                .foregroundColor(.black)
+                                .tint(.black)
+                                .keyboardType(.emailAddress)
+                                .autocapitalization(.none)
+                                .autocorrectionDisabled()
+                                .submitLabel(.continue)
+                                .onSubmit {
+                                    submitEmail()
+                                }
 
                                 if !email.isEmpty {
                                     Button(action: { email = "" }) {
@@ -322,29 +327,40 @@ struct AuthView: View {
                                 RoundedRectangle(cornerRadius: 16, style: .continuous)
                                     .stroke(Color.white.opacity(0.3), lineWidth: 1)
                             )
+                            .environment(\.colorScheme, .light)
 
                         case .enterPassword(let isSignUp):
                             HStack {
                                 if showPassword {
-                                    TextField("Password (min 6 characters)", text: $password)
-                                        .font(.system(size: 16))
-                                        .foregroundColor(.black)
-                                        .autocapitalization(.none)
-                                        .autocorrectionDisabled()
-                                        .submitLabel(.continue)
-                                        .onSubmit {
-                                            submitPassword(isSignUp: isSignUp)
-                                        }
+                                    TextField(
+                                        "",
+                                        text: $password,
+                                        prompt: Text("Password (min 6 characters)").foregroundColor(Color.black.opacity(0.50))
+                                    )
+                                    .font(.system(size: 16))
+                                    .foregroundColor(.black)
+                                    .tint(.black)
+                                    .autocapitalization(.none)
+                                    .autocorrectionDisabled()
+                                    .submitLabel(.continue)
+                                    .onSubmit {
+                                        submitPassword(isSignUp: isSignUp)
+                                    }
                                 } else {
-                                    SecureField("Password (min 6 characters)", text: $password)
-                                        .font(.system(size: 16))
-                                        .foregroundColor(.black)
-                                        .autocapitalization(.none)
-                                        .autocorrectionDisabled()
-                                        .submitLabel(.continue)
-                                        .onSubmit {
-                                            submitPassword(isSignUp: isSignUp)
-                                        }
+                                    SecureField(
+                                        "",
+                                        text: $password,
+                                        prompt: Text("Password (min 6 characters)").foregroundColor(Color.black.opacity(0.50))
+                                    )
+                                    .font(.system(size: 16))
+                                    .foregroundColor(.black)
+                                    .tint(.black)
+                                    .autocapitalization(.none)
+                                    .autocorrectionDisabled()
+                                    .submitLabel(.continue)
+                                    .onSubmit {
+                                        submitPassword(isSignUp: isSignUp)
+                                    }
                                 }
 
                                 Button(action: { showPassword.toggle() }) {
@@ -361,29 +377,35 @@ struct AuthView: View {
                                 RoundedRectangle(cornerRadius: 16, style: .continuous)
                                     .stroke(Color.white.opacity(0.3), lineWidth: 1)
                             )
+                            .environment(\.colorScheme, .light)
 
                         case .verifyOTP:
                             HStack {
                                 Spacer(minLength: !otpCode.isEmpty ? 24 : 0)
-                                TextField("8-digit code", text: $otpCode)
-                                    .font(.system(size: 24, weight: .bold, design: .monospaced))
-                                    .foregroundColor(.black)
-                                    .multilineTextAlignment(.center)
-                                    .keyboardType(.numberPad)
-                                    .autocorrectionDisabled()
-                                    .onChange(of: otpCode) { _, newValue in
-                                        let filtered = newValue.filter { $0.isNumber }
-                                        if filtered.count > 8 {
-                                            otpCode = String(filtered.prefix(8))
-                                        } else {
-                                            otpCode = filtered
-                                        }
-                                        if otpCode.count == 8 {
-                                            if case .verifyOTP(let type) = step {
-                                                verifyCode(type: type)
-                                            }
+                                TextField(
+                                    "",
+                                    text: $otpCode,
+                                    prompt: Text("8-digit code").foregroundColor(Color.black.opacity(0.40))
+                                )
+                                .font(.system(size: 24, weight: .bold, design: .monospaced))
+                                .foregroundColor(.black)
+                                .tint(.black)
+                                .multilineTextAlignment(.center)
+                                .keyboardType(.numberPad)
+                                .autocorrectionDisabled()
+                                .onChange(of: otpCode) { _, newValue in
+                                    let filtered = newValue.filter { $0.isNumber }
+                                    if filtered.count > 8 {
+                                        otpCode = String(filtered.prefix(8))
+                                    } else {
+                                        otpCode = filtered
+                                    }
+                                    if otpCode.count == 8 {
+                                        if case .verifyOTP(let type) = step {
+                                            verifyCode(type: type)
                                         }
                                     }
+                                }
 
                                 if !otpCode.isEmpty {
                                     Button(action: { otpCode = "" }) {
@@ -400,6 +422,7 @@ struct AuthView: View {
                                 RoundedRectangle(cornerRadius: 16, style: .continuous)
                                     .stroke(Color.white.opacity(0.3), lineWidth: 1)
                             )
+                            .environment(\.colorScheme, .light)
 
                             #if DEBUG
                             VStack(alignment: .leading, spacing: 8) {
