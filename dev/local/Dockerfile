@@ -1,23 +1,9 @@
-FROM alpine:3.21 AS download
+FROM node:22-alpine AS client
 
-ARG TARGETARCH
+WORKDIR /bootstrap
 
-RUN apk add --no-cache ca-certificates curl \
-  && case "$TARGETARCH" in amd64|arm64) ;; *) echo "Unsupported architecture: $TARGETARCH" >&2; exit 1 ;; esac \
-  && curl --fail --location --silent --show-error "https://dl.min.io/server/minio/release/linux-${TARGETARCH}/minio" --output /minio \
-  && curl --fail --location --silent --show-error "https://dl.min.io/client/mc/release/linux-${TARGETARCH}/mc" --output /mc \
-  && chmod +x /minio /mc
+RUN npm install --omit=dev @aws-sdk/client-s3@3.888.0
 
-FROM alpine:3.21 AS server
+COPY bootstrap.mjs ./bootstrap.mjs
 
-RUN apk add --no-cache curl
-
-COPY --from=download /minio /usr/local/bin/minio
-
-ENTRYPOINT ["/usr/local/bin/minio"]
-
-FROM alpine:3.21 AS client
-
-COPY --from=download /mc /usr/local/bin/mc
-
-ENTRYPOINT ["/usr/local/bin/mc"]
+ENTRYPOINT ["node", "bootstrap.mjs"]

@@ -2,9 +2,7 @@ name: laterbox-local
 
 services:
   minio:
-    build:
-      context: .
-      target: server
+    image: quay.io/minio/aistor/minio:RELEASE.2026-09-19T17-05-25Z
     command: server /data --console-address ":9001"
     env_file:
       - .env
@@ -31,11 +29,6 @@ services:
     depends_on:
       minio:
         condition: service_healthy
-    entrypoint: >-
-      /bin/sh -ec
-      "mc alias set local http://minio:9000 \"$${MINIO_ROOT_USER}\" \"$${MINIO_ROOT_PASSWORD}\";
-      mc mb --ignore-existing local/$${MINIO_BUCKET};
-      mc anonymous set none local/$${MINIO_BUCKET};"
     restart: "no"
 
 volumes:
