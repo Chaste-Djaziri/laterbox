@@ -529,6 +529,23 @@ struct AuthView: View {
                             .frame(maxWidth: .infinity, alignment: .center)
                             .padding(.top, 16)
                         }
+
+                        // Legal Disclaimer
+                        HStack(spacing: 4) {
+                            Text("By continuing, you agree to our")
+                                .foregroundColor(Color.white.opacity(0.60))
+                            Link("Terms", destination: URL(string: "https://laterbox.dev/terms")!)
+                                .foregroundColor(.white)
+                                .underline()
+                            Text("&")
+                                .foregroundColor(Color.white.opacity(0.60))
+                            Link("Privacy Policy", destination: URL(string: "https://laterbox.dev/privacy")!)
+                                .foregroundColor(.white)
+                                .underline()
+                        }
+                        .font(.caption2)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .padding(.top, 18)
                     }
                     .padding(.horizontal, 24)
                     .padding(.bottom, 28)
