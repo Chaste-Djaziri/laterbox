@@ -106,17 +106,6 @@ struct WelcomeView: View {
                                 .shadow(color: Color.black.opacity(0.25), radius: 8, x: 0, y: 3)
                         }
 
-                        // Continue Without Account
-                        Button(action: {
-                            showingAuthView = true
-                        }) {
-                            Text("Sign in for cloud and web access (optional)")
-                                .font(.system(size: 15, weight: .medium))
-                                .foregroundColor(Color.white.opacity(0.9))
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 6)
-                        }
-
                         Button("View Pro plans · Purchase or restore") {
                             showingPlans = true
                         }
