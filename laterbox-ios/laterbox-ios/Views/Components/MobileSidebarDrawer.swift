@@ -44,7 +44,6 @@ public struct MobileSidebarDrawer: View {
     public var onOpenReturns: (ReturnSegment) -> Void = { _ in }
     public var onOpenPlans: () -> Void = {}
     public var onOpenSettings: () -> Void = {}
-    public var onOpenSaveItem: () -> Void = {}
 
     @Environment(\.modelContext) private var modelContext
     @ObservedObject var coordinator = SyncCoordinator.shared
@@ -68,8 +67,7 @@ public struct MobileSidebarDrawer: View {
         onSelectCollection: @escaping (String) -> Void = { _ in },
         onOpenReturns: @escaping (ReturnSegment) -> Void = { _ in },
         onOpenPlans: @escaping () -> Void = {},
-        onOpenSettings: @escaping () -> Void = {},
-        onOpenSaveItem: @escaping () -> Void = {}
+        onOpenSettings: @escaping () -> Void = {}
     ) {
         self._isPresented = isPresented
         self.activeMailbox = activeMailbox
@@ -79,7 +77,6 @@ public struct MobileSidebarDrawer: View {
         self.onOpenReturns = onOpenReturns
         self.onOpenPlans = onOpenPlans
         self.onOpenSettings = onOpenSettings
-        self.onOpenSaveItem = onOpenSaveItem
     }
 
     private var deduplicatedItems: [LBItem] {
@@ -154,7 +151,6 @@ public struct MobileSidebarDrawer: View {
 
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(spacing: 16) {
-                    saveItemButton
                     coreMailboxesSection
                     collectionsSection
                     activitySection
@@ -241,29 +237,6 @@ public struct MobileSidebarDrawer: View {
         .padding(.bottom, 14)
     }
 
-    // MARK: - Save Item Button
-    private var saveItemButton: some View {
-        Button {
-            close()
-            onOpenSaveItem()
-            LBHaptic.medium()
-        } label: {
-            HStack(spacing: 8) {
-                Image(systemName: "plus")
-                    .font(.system(size: 17, weight: .bold))
-                Text("Save Item")
-                    .font(.system(size: 16, weight: .heavy))
-            }
-            .foregroundColor(.white)
-            .frame(maxWidth: .infinity)
-            .frame(height: 52)
-            .background(Color(hex: "171711"))
-            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-            .shadow(color: Color.black.opacity(0.12), radius: 6, y: 2)
-        }
-        .buttonStyle(.plain)
-        .padding(.horizontal, 14)
-    }
 
     // MARK: - Core Mailboxes
     private var coreMailboxesSection: some View {
