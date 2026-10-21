@@ -2,7 +2,9 @@ name: laterbox-local
 
 services:
   minio:
-    image: minio/minio:latest
+    build:
+      context: .
+      target: server
     command: server /data --console-address ":9001"
     env_file:
       - .env
@@ -21,7 +23,9 @@ services:
       retries: 30
 
   minio-bootstrap:
-    image: minio/mc:latest
+    build:
+      context: .
+      target: client
     env_file:
       - .env
     depends_on:
