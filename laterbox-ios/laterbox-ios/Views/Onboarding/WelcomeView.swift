@@ -119,7 +119,11 @@ struct WelcomeView: View {
             }
             .sheet(isPresented: $showingPlans) {
                 PlansView(isLiquidGlass: true)
-                    .presentationBackground(.clear)
+                    .presentationBackground(
+                        DeviceGlassSupport.isNativeLiquidGlassSupported
+                            ? AnyShapeStyle(.ultraThinMaterial)
+                            : AnyShapeStyle(Color.black.opacity(0.92))
+                    )
             }
             .navigationDestination(isPresented: $showingAuthView) {
                 AuthView()
