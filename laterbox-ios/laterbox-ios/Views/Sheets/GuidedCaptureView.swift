@@ -563,8 +563,12 @@ struct GuidedCaptureView: View {
                     icon: "calendar.badge.clock",
                     isSelected: draft.returnAt != nil && !chooseDate && Calendar.current.isDateInTomorrow(draft.returnAt ?? Date())
                 ) {
-                    chooseDate = false
-                    draft.returnAt = Calendar.current.date(bySettingHour: 9, minute: 0, second: 0, of: Date().addingTimeInterval(86400))
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        chooseDate = false
+                    }
+                    let target = Calendar.current.date(bySettingHour: 9, minute: 0, second: 0, of: Date().addingTimeInterval(86400)) ?? Date().addingTimeInterval(86400)
+                    draft.returnAt = target
+                    date = target
                 }
 
                 scheduleChoiceRow(
@@ -573,8 +577,12 @@ struct GuidedCaptureView: View {
                     icon: "sun.max.fill",
                     isSelected: draft.returnAt != nil && !chooseDate && Calendar.current.component(.weekday, from: draft.returnAt ?? Date()) == 7
                 ) {
-                    chooseDate = false
-                    draft.returnAt = CaptureDraft.weekend()
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        chooseDate = false
+                    }
+                    let target = CaptureDraft.weekend()
+                    draft.returnAt = target
+                    date = target
                 }
 
                 scheduleChoiceRow(
@@ -583,8 +591,12 @@ struct GuidedCaptureView: View {
                     icon: "calendar",
                     isSelected: draft.returnAt != nil && !chooseDate && (draft.returnAt?.timeIntervalSinceNow ?? 0) > 86400 * 5
                 ) {
-                    chooseDate = false
-                    draft.returnAt = Calendar.current.date(byAdding: .day, value: 7, to: Date())
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        chooseDate = false
+                    }
+                    let target = Calendar.current.date(byAdding: .day, value: 7, to: Date()) ?? Date().addingTimeInterval(7 * 86400)
+                    draft.returnAt = target
+                    date = target
                 }
 
                 scheduleChoiceRow(
@@ -593,41 +605,125 @@ struct GuidedCaptureView: View {
                     icon: "tray",
                     isSelected: draft.returnAt == nil && !chooseDate
                 ) {
-                    chooseDate = false
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        chooseDate = false
+                    }
                     draft.returnAt = nil
                 }
 
                 scheduleChoiceRow(
                     title: "Choose Date",
-                    subtitle: chooseDate && draft.returnAt != nil ? draft.returnAt!.formatted(date: .abbreviated, time: .shortened) : "Custom date & time",
-                    icon: "slider.horizontal.3",
+                    subtitle: chooseDate && draft.returnAt != nil ? formattedScheduleSummary(draft.returnAt!) : "Custom date & time",
+                    icon: "calendar.badge.clock",
                     isSelected: chooseDate
                 ) {
-                    chooseDate.toggle()
-                    if chooseDate { draft.returnAt = date }
+                    withAnimation(.easeInOut(duration: 0.22)) {
+                        chooseDate.toggle()
+                    }
+                    if chooseDate {
+                        if let current = draft.returnAt {
+                            date = current
+                        } else {
+                            draft.returnAt = date
+                        }
+                    }
                 }
             }
 
             if chooseDate {
-                CaptureDateChoices(date: $date)
-                    .onChange(of: date) { _, value in
-                        draft.returnAt = value
+                VStack(alignment: .leading, spacing: 14) {
+                    HStack {
+                        Image(systemName: "calendar.badge.clock")
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundColor(LaterAIStyle.accent)
+                        Text("SELECT DATE & TIME")
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundColor(Color.white.opacity(0.6))
+                            .tracking(0.5)
+
+                        Spacer()
+
+                        Button {
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                chooseDate = false
+                                draft.returnAt = nil
+                            }
+                        } label: {
+                            Text("Clear")
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundColor(Color.white.opacity(0.5))
+                        }
+                        .buttonStyle(.plain)
+                    }
+
+                    DatePicker(
+                        "Return Date & Time",
+                        selection: $date,
+                        in: Date()...,
+                        displayedComponents: [.date, .hourAndMinute]
+                    )
+                    .datePickerStyle(.graphical)
+                    .tint(LaterAIStyle.accent)
+                    .colorScheme(.dark)
+                    .onChange(of: date) { _, newDate in
+                        draft.returnAt = newDate
+                    }
+
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("QUICK TIME PRESETS")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundColor(Color.white.opacity(0.4))
+                            .tracking(0.5)
+
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 8) {
+                                timePresetChip(title: "Morning", time: "9:00 AM", hour: 9, minute: 0)
+                                timePresetChip(title: "Noon", time: "12:00 PM", hour: 12, minute: 0)
+                                timePresetChip(title: "Afternoon", time: "2:00 PM", hour: 14, minute: 0)
+                                timePresetChip(title: "Evening", time: "6:00 PM", hour: 18, minute: 0)
+                                timePresetChip(title: "Night", time: "8:00 PM", hour: 20, minute: 0)
+                            }
+                        }
                     }
                     .padding(.top, 4)
+                }
+                .padding(14)
+                .background(Color(white: 24.0 / 255), in: RoundedRectangle(cornerRadius: 16))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .strokeBorder(LaterAIStyle.accent.opacity(0.35), lineWidth: 1)
+                )
+                .transition(.opacity.combined(with: .move(edge: .top)))
             }
 
             if let selected = draft.returnAt {
-                HStack(spacing: 6) {
+                HStack(spacing: 8) {
                     Image(systemName: "bell.fill")
-                        .font(.system(size: 11))
+                        .font(.system(size: 11, weight: .bold))
                         .foregroundColor(LaterAIStyle.accent)
-                    Text("Returns: \(selected.formatted(date: .abbreviated, time: .shortened))")
+
+                    Text("Returns: \(formattedScheduleSummary(selected))")
                         .font(.system(size: 12, weight: .semibold))
                         .foregroundColor(.white)
+
+                    Spacer()
+
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            draft.returnAt = nil
+                            chooseDate = false
+                        }
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 13))
+                            .foregroundColor(Color.white.opacity(0.4))
+                    }
+                    .buttonStyle(.plain)
                 }
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
-                .background(Color(white: 24.0 / 255), in: RoundedRectangle(cornerRadius: 8))
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(Color(white: 24.0 / 255), in: RoundedRectangle(cornerRadius: 10))
+                .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(LaterAIStyle.accent.opacity(0.2), lineWidth: 1))
             }
         }
     }
@@ -894,5 +990,53 @@ struct GuidedCaptureView: View {
             draft.tags.removeAll { $0.localizedCaseInsensitiveCompare(tag) == .orderedSame }
         }
         LBHaptic.light()
+    }
+
+    private func timePresetChip(title: String, time: String, hour: Int, minute: Int) -> some View {
+        let cal = Calendar.current
+        let isSelected = cal.component(.hour, from: date) == hour && cal.component(.minute, from: date) == minute
+
+        return Button {
+            if let updated = cal.date(bySettingHour: hour, minute: minute, second: 0, of: date) {
+                withAnimation(.easeInOut(duration: 0.15)) {
+                    date = updated
+                    draft.returnAt = updated
+                }
+                LBHaptic.light()
+            }
+        } label: {
+            HStack(spacing: 4) {
+                Text(title)
+                    .font(.system(size: 11, weight: .semibold))
+                Text(time)
+                    .font(.system(size: 10))
+                    .opacity(0.7)
+            }
+            .foregroundColor(isSelected ? .black : .white)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(
+                Capsule()
+                    .fill(isSelected ? LaterAIStyle.accent : Color(white: 32.0 / 255))
+            )
+            .overlay(
+                Capsule()
+                    .strokeBorder(isSelected ? Color.clear : Color.white.opacity(0.12), lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func formattedScheduleSummary(_ date: Date) -> String {
+        let cal = Calendar.current
+        let formatter = DateFormatter()
+        if cal.isDateInToday(date) {
+            formatter.dateFormat = "'Today at' h:mm a"
+        } else if cal.isDateInTomorrow(date) {
+            formatter.dateFormat = "'Tomorrow at' h:mm a"
+        } else {
+            formatter.dateFormat = "EEE, MMM d 'at' h:mm a"
+        }
+        return formatter.string(from: date)
     }
 }
