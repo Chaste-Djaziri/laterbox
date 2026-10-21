@@ -1,7 +1,7 @@
 import Foundation
 import UserNotifications
 
-struct SharedAttachment: Codable, Identifiable, Equatable, Sendable {
+nonisolated struct SharedAttachment: Codable, Identifiable, Equatable, Sendable {
     var id: String = UUID().uuidString
     var name: String
     var relativePath: String
@@ -12,7 +12,7 @@ struct SharedAttachment: Codable, Identifiable, Equatable, Sendable {
     var sha256: String?
     var mimeType: String?
 }
-struct SharedCapture: Codable, Identifiable, Sendable {
+nonisolated struct SharedCapture: Codable, Identifiable, Sendable {
     var id = UUID().uuidString
     var content = ""
     var title = ""
@@ -24,7 +24,7 @@ struct SharedCapture: Codable, Identifiable, Sendable {
     var siteName: String?
     var metadataDescription: String?
 }
-enum SharedCaptureStore: Sendable {
+nonisolated enum SharedCaptureStore: Sendable {
     nonisolated static let group = "group.pro.micorp.laterbox"
 
     nonisolated static func root() throws -> URL {
