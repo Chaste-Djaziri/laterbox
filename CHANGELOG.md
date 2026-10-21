@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[Auth / UI]** Update authentication full-page background across iOS and Web to the new desk workspace image featuring plant, book, notebook, and laptop.
+
 - **[iOS / Dev]** Add an in-app interactive Auth State Simulator and separate Xcode previews for every authentication step (email entry, sign-up password, sign-in password, code verification, and data sync).
 
 - **[Web / Dev]** Add an interactive Dev State Simulator toolbar to the web auth page for switching between email, password, and OTP verification flows during development.
