@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[iOS / UI]** Set dark preferred color scheme on Welcome and Auth views so the system status bar (time, battery, Wi-Fi) renders in white.
+
 - **[iOS / Dev]** Restrict Auth State Simulator to Xcode Canvas Previews mode, keeping normal iOS simulator and device builds clean.
 
 - **[Welcome / UI]** Update welcome page full-bleed background to the clean, high-resolution desk, coffee, and spiral notebook image across iOS and Web.

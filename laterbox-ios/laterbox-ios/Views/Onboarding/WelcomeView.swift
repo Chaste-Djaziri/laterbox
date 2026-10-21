@@ -123,7 +123,9 @@ struct WelcomeView: View {
             .navigationDestination(isPresented: $showingAuthView) {
                 AuthView()
             }
+            .preferredColorScheme(.dark)
         }
+        .preferredColorScheme(.dark)
     }
 }
 
