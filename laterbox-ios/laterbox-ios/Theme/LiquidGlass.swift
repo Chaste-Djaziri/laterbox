@@ -160,3 +160,18 @@ public struct LiquidGlassBackground: View {
         .allowsHitTesting(false)
     }
 }
+
+// MARK: - Device Liquid Glass Support
+public enum DeviceGlassSupport {
+    /// Checks whether native real-time hardware-accelerated liquid glass materials are supported and active on the device.
+    public static var isNativeLiquidGlassSupported: Bool {
+        #if canImport(UIKit)
+        if UIAccessibility.isReduceTransparencyEnabled {
+            return false
+        }
+        return true
+        #else
+        return true
+        #endif
+    }
+}
