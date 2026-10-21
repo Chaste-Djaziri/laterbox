@@ -137,6 +137,7 @@ public final class AppLockManager: ObservableObject {
     }
 
     // MARK: - Unlock Application
+    @discardableResult
     public func unlockApp() async -> Bool {
         guard isLocked else { return true }
         let context = LAContext()
