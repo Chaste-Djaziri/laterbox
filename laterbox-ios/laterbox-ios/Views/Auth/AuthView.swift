@@ -31,16 +31,20 @@ struct AuthView: View {
     @State private var errorMessage: String? = nil
     @State private var infoMessage: String? = nil
 
+    private let isPreviewSimulatorEnabled: Bool
+
     init(
         initialStep: AuthStep = .enterEmail,
         initialEmail: String = "",
         initialPassword: String = "",
-        initialOtp: String = ""
+        initialOtp: String = "",
+        showSimulator: Bool = ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] == "1"
     ) {
         _step = State(initialValue: initialStep)
         _email = State(initialValue: initialEmail)
         _password = State(initialValue: initialPassword)
         _otpCode = State(initialValue: initialOtp)
+        self.isPreviewSimulatorEnabled = showSimulator
     }
 
     private var headerTitle: String {
@@ -179,94 +183,96 @@ struct AuthView: View {
                             .padding(.bottom, 16)
 
                         #if DEBUG
-                        // Dev Mode State Simulator: Quick Switcher for testing all authentication states
-                        VStack(alignment: .leading, spacing: 6) {
-                            HStack(spacing: 6) {
-                                Circle()
-                                    .fill(Color.green)
-                                    .frame(width: 7, height: 7)
-                                Text("Dev Simulator")
-                                    .font(.system(size: 11, weight: .bold, design: .monospaced))
-                                    .foregroundColor(Color.white.opacity(0.85))
-                                Spacer()
-                                Text(LaterBoxAPIService.shared.supabaseUrl.replacingOccurrences(of: "http://", with: ""))
-                                    .font(.system(size: 10, design: .monospaced))
-                                    .foregroundColor(Color.white.opacity(0.6))
-                            }
-
-                            ScrollView(.horizontal, showsIndicators: false) {
+                        if isPreviewSimulatorEnabled {
+                            // Dev Mode State Simulator: Quick Switcher for testing all authentication states (Only in Xcode Previews)
+                            VStack(alignment: .leading, spacing: 6) {
                                 HStack(spacing: 6) {
-                                    Button("Email") {
-                                        withAnimation(.easeInOut(duration: 0.2)) {
-                                            step = .enterEmail
-                                            errorMessage = nil
-                                            infoMessage = nil
-                                        }
-                                    }
-                                    .buttonStyle(AuthSimulatorPillStyle(isSelected: step == .enterEmail))
-
-                                    Button("Password (Sign Up)") {
-                                        withAnimation(.easeInOut(duration: 0.2)) {
-                                            if email.isEmpty { email = "alex@example.com" }
-                                            step = .enterPassword(isSignUp: true)
-                                            errorMessage = nil
-                                            infoMessage = nil
-                                        }
-                                    }
-                                    .buttonStyle(AuthSimulatorPillStyle(isSelected: {
-                                        if case .enterPassword(let isSignUp) = step { return isSignUp }
-                                        return false
-                                    }()))
-
-                                    Button("Password (Sign In)") {
-                                        withAnimation(.easeInOut(duration: 0.2)) {
-                                            if email.isEmpty { email = "alex@example.com" }
-                                            step = .enterPassword(isSignUp: false)
-                                            errorMessage = nil
-                                            infoMessage = nil
-                                        }
-                                    }
-                                    .buttonStyle(AuthSimulatorPillStyle(isSelected: {
-                                        if case .enterPassword(let isSignUp) = step { return !isSignUp }
-                                        return false
-                                    }()))
-
-                                    Button("Verify Code") {
-                                        withAnimation(.easeInOut(duration: 0.2)) {
-                                            if email.isEmpty { email = "alex@example.com" }
-                                            if otpCode.isEmpty { otpCode = "12345678" }
-                                            step = .verifyOTP(type: "signup")
-                                            errorMessage = nil
-                                            infoMessage = nil
-                                        }
-                                    }
-                                    .buttonStyle(AuthSimulatorPillStyle(isSelected: {
-                                        if case .verifyOTP = step { return true }
-                                        return false
-                                    }()))
-
-                                    Button("Sync Data") {
-                                        withAnimation(.easeInOut(duration: 0.2)) {
-                                            if email.isEmpty { email = "alex@example.com" }
-                                            step = .resolveLocalData(unassignedCount: 4, token: "mock", refreshToken: "mock", userId: "mock")
-                                            errorMessage = nil
-                                            infoMessage = nil
-                                        }
-                                    }
-                                    .buttonStyle(AuthSimulatorPillStyle(isSelected: {
-                                        if case .resolveLocalData = step { return true }
-                                        return false
-                                    }()))
+                                    Circle()
+                                        .fill(Color.green)
+                                        .frame(width: 7, height: 7)
+                                    Text("Dev Simulator")
+                                        .font(.system(size: 11, weight: .bold, design: .monospaced))
+                                        .foregroundColor(Color.white.opacity(0.85))
+                                    Spacer()
+                                    Text(LaterBoxAPIService.shared.supabaseUrl.replacingOccurrences(of: "http://", with: ""))
+                                        .font(.system(size: 10, design: .monospaced))
+                                        .foregroundColor(Color.white.opacity(0.6))
                                 }
-                                .padding(.vertical, 2)
+
+                                ScrollView(.horizontal, showsIndicators: false) {
+                                    HStack(spacing: 6) {
+                                        Button("Email") {
+                                            withAnimation(.easeInOut(duration: 0.2)) {
+                                                step = .enterEmail
+                                                errorMessage = nil
+                                                infoMessage = nil
+                                            }
+                                        }
+                                        .buttonStyle(AuthSimulatorPillStyle(isSelected: step == .enterEmail))
+
+                                        Button("Password (Sign Up)") {
+                                            withAnimation(.easeInOut(duration: 0.2)) {
+                                                if email.isEmpty { email = "alex@example.com" }
+                                                step = .enterPassword(isSignUp: true)
+                                                errorMessage = nil
+                                                infoMessage = nil
+                                            }
+                                        }
+                                        .buttonStyle(AuthSimulatorPillStyle(isSelected: {
+                                            if case .enterPassword(let isSignUp) = step { return isSignUp }
+                                            return false
+                                        }()))
+
+                                        Button("Password (Sign In)") {
+                                            withAnimation(.easeInOut(duration: 0.2)) {
+                                                if email.isEmpty { email = "alex@example.com" }
+                                                step = .enterPassword(isSignUp: false)
+                                                errorMessage = nil
+                                                infoMessage = nil
+                                            }
+                                        }
+                                        .buttonStyle(AuthSimulatorPillStyle(isSelected: {
+                                            if case .enterPassword(let isSignUp) = step { return !isSignUp }
+                                            return false
+                                        }()))
+
+                                        Button("Verify Code") {
+                                            withAnimation(.easeInOut(duration: 0.2)) {
+                                                if email.isEmpty { email = "alex@example.com" }
+                                                if otpCode.isEmpty { otpCode = "12345678" }
+                                                step = .verifyOTP(type: "signup")
+                                                errorMessage = nil
+                                                infoMessage = nil
+                                            }
+                                        }
+                                        .buttonStyle(AuthSimulatorPillStyle(isSelected: {
+                                            if case .verifyOTP = step { return true }
+                                            return false
+                                        }()))
+
+                                        Button("Sync Data") {
+                                            withAnimation(.easeInOut(duration: 0.2)) {
+                                                if email.isEmpty { email = "alex@example.com" }
+                                                step = .resolveLocalData(unassignedCount: 4, token: "mock", refreshToken: "mock", userId: "mock")
+                                                errorMessage = nil
+                                                infoMessage = nil
+                                            }
+                                        }
+                                        .buttonStyle(AuthSimulatorPillStyle(isSelected: {
+                                            if case .resolveLocalData = step { return true }
+                                            return false
+                                        }()))
+                                    }
+                                    .padding(.vertical, 2)
+                                }
                             }
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 8)
+                            .background(Color.black.opacity(0.45))
+                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                            .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(Color.white.opacity(0.18), lineWidth: 1))
+                            .padding(.bottom, 16)
                         }
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
-                        .background(Color.black.opacity(0.45))
-                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                        .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(Color.white.opacity(0.18), lineWidth: 1))
-                        .padding(.bottom, 16)
                         #endif
 
                         // Input or Action Area
@@ -989,7 +995,7 @@ private struct AuthSimulatorPillStyle: ButtonStyle {
 
 #Preview("1. Enter Email") {
     NavigationStack {
-        AuthView(initialStep: .enterEmail)
+        AuthView(initialStep: .enterEmail, showSimulator: true)
     }
 }
 
@@ -997,7 +1003,8 @@ private struct AuthSimulatorPillStyle: ButtonStyle {
     NavigationStack {
         AuthView(
             initialStep: .enterPassword(isSignUp: true),
-            initialEmail: "alex@example.com"
+            initialEmail: "alex@example.com",
+            showSimulator: true
         )
     }
 }
@@ -1006,7 +1013,8 @@ private struct AuthSimulatorPillStyle: ButtonStyle {
     NavigationStack {
         AuthView(
             initialStep: .enterPassword(isSignUp: false),
-            initialEmail: "alex@example.com"
+            initialEmail: "alex@example.com",
+            showSimulator: true
         )
     }
 }
@@ -1016,7 +1024,8 @@ private struct AuthSimulatorPillStyle: ButtonStyle {
         AuthView(
             initialStep: .verifyOTP(type: "signup"),
             initialEmail: "alex@example.com",
-            initialOtp: "48291055"
+            initialOtp: "48291055",
+            showSimulator: true
         )
     }
 }
@@ -1030,7 +1039,8 @@ private struct AuthSimulatorPillStyle: ButtonStyle {
                 refreshToken: "mock-refresh",
                 userId: "mock-user"
             ),
-            initialEmail: "alex@example.com"
+            initialEmail: "alex@example.com",
+            showSimulator: true
         )
     }
 }
