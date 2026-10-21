@@ -1596,6 +1596,77 @@ extension LaterAITests {
         let nextWeek = try #require(LaterBoxReturnPreset.nextWeek.targetDate)
         #expect(nextWeek.timeIntervalSince(now) >= 86400 * 6.5)
     }
+
+    @Test
+    func sessionInvalidationOnEndpointMismatch() async throws {
+        let testDefaults = try #require(UserDefaults(suiteName: "test_session_endpoint_\(UUID().uuidString)"))
+        testDefaults.set("remote-user@example.com", forKey: "lb_user_email")
+        testDefaults.set("remote-user-id", forKey: "lb_user_id")
+        testDefaults.set("remote-token", forKey: "lb_auth_token")
+        testDefaults.set("remote-refresh-token", forKey: "lb_refresh_token")
+        testDefaults.set("https://different-remote.supabase.co", forKey: SyncCoordinator.endpointDefaultsKey)
+
+        let coordinator = SyncCoordinator(defaults: testDefaults)
+        #expect(coordinator.currentUserEmail == nil)
+        #expect(coordinator.currentUserId == nil)
+        #expect(coordinator.authToken == nil)
+        #expect(coordinator.refreshToken == nil)
+        #expect(coordinator.isAuthenticated == false)
+        #expect(testDefaults.string(forKey: "lb_user_email") == nil)
+        #expect(testDefaults.string(forKey: "lb_auth_token") == nil)
+    }
+
+    @Test
+    func legacySessionFromDefaultEndpointInvalidatedOnLocalEndpoint() async throws {
+        let testDefaults = try #require(UserDefaults(suiteName: "test_legacy_endpoint_\(UUID().uuidString)"))
+        testDefaults.set("legacy-user@example.com", forKey: "lb_user_email")
+        testDefaults.set("legacy-user-id", forKey: "lb_user_id")
+        testDefaults.set("legacy-token", forKey: "lb_auth_token")
+
+        let coordinator = SyncCoordinator(defaults: testDefaults)
+        let activeEndpoint = await LaterBoxAPIService.shared.supabaseUrl
+        if activeEndpoint != LaterBoxAPIService.defaultSupabaseUrl {
+            #expect(coordinator.currentUserEmail == nil)
+            #expect(coordinator.isAuthenticated == false)
+            #expect(testDefaults.string(forKey: "lb_user_email") == nil)
+        } else {
+            #expect(coordinator.currentUserEmail == "legacy-user@example.com")
+            #expect(testDefaults.string(forKey: SyncCoordinator.endpointDefaultsKey) == activeEndpoint)
+        }
+    }
+
+    @Test
+    func sessionMatchingActiveEndpointIsPreserved() async throws {
+        let activeEndpoint = await LaterBoxAPIService.shared.supabaseUrl
+        let testDefaults = try #require(UserDefaults(suiteName: "test_matching_endpoint_\(UUID().uuidString)"))
+        testDefaults.set("valid-user@example.com", forKey: "lb_user_email")
+        testDefaults.set("valid-user-id", forKey: "lb_user_id")
+        testDefaults.set("valid-token", forKey: "lb_auth_token")
+        testDefaults.set(activeEndpoint, forKey: SyncCoordinator.endpointDefaultsKey)
+
+        let coordinator = SyncCoordinator(defaults: testDefaults)
+        #expect(coordinator.currentUserEmail == "valid-user@example.com")
+        #expect(coordinator.currentUserId == "valid-user-id")
+        #expect(coordinator.authToken == "valid-token")
+        #expect(coordinator.isAuthenticated == true)
+    }
+
+    @Test
+    func sessionFallbackToLocalGuestMode() async throws {
+        let testDefaults = try #require(UserDefaults(suiteName: "test_fallback_guest_\(UUID().uuidString)"))
+        let coordinator = SyncCoordinator(defaults: testDefaults)
+        coordinator.setSession(email: "user@example.com", userId: "uid-1", token: "tok-1")
+        #expect(coordinator.isAuthenticated == true)
+        #expect(coordinator.isGuestMode == false)
+
+        coordinator.signOut()
+        coordinator.continueAsGuest()
+
+        #expect(coordinator.isAuthenticated == false)
+        #expect(coordinator.isGuestMode == true)
+        #expect(coordinator.hasAccess == true)
+        #expect(coordinator.currentUserEmail == nil)
+    }
 }
 @MainActor
 private final class MockCloudTransport: IOSCloudTransport {
