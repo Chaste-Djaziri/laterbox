@@ -825,6 +825,10 @@ public struct InboxView: View {
                 CaptureView()
                     .whiteStatusBar()
             }
+            .onChange(of: navigateToCapture) { _, isNavigating in
+                coordinator.isShowingCapture = isNavigating
+                StatusBarStyleModifier.apply(isNavigating ? .dark : .light)
+            }
             .sheet(isPresented: $showingQuickCapture) {
                 QuickCaptureSheet()
             }
