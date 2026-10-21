@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[iOS / UI]** Fix status bar styling on capture screen by dynamically switching root active color scheme and cascading dark appearance overrides so time, battery, and Wi-Fi indicators render in pure white.
+
 - **[iOS / UI]** Render the top system status bar in pure white on the dark-themed capture and add-item views, automatically restoring dark status bar icons upon returning to the inbox.
 
 - **[iOS / AI]** Add hardware capability detection for Apple Intelligence on-device models, automatically enabling on-device processing on supported iPhones and displaying real-time hardware support status in Settings.
