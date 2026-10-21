@@ -21,13 +21,25 @@ struct ContentView: View {
     @State private var showingSyncReport = false
     @State private var syncReportMessage = ""
 
+    private var activeColorScheme: ColorScheme {
+        if !coordinator.hasAccess {
+            return .dark
+        }
+        if coordinator.showingAuthSheet {
+            return .dark
+        }
+        return .light
+    }
+
     var body: some View {
         ZStack {
             if !coordinator.hasAccess {
                 WelcomeView()
+                    .whiteStatusBar()
                     .transition(.opacity)
             } else {
                 InboxView()
+                    .darkStatusBar()
                     .sheet(isPresented: $coordinator.showingQuickCapture) {
                         QuickCaptureSheet()
                     }
@@ -35,6 +47,7 @@ struct ContentView: View {
                         NavigationStack {
                             AuthView()
                         }
+                        .whiteStatusBar()
                     }
                     .sheet(isPresented: $coordinator.showingPlansSheet) {
                         PlansView()
@@ -71,6 +84,13 @@ struct ContentView: View {
             }
         }
         .animation(.spring(response: 0.45, dampingFraction: 0.85), value: coordinator.hasAccess)
+        .preferredColorScheme(activeColorScheme)
+        .onChange(of: activeColorScheme) { _, newScheme in
+            StatusBarStyleModifier.apply(newScheme == .dark ? .dark : .light)
+        }
+        .onAppear {
+            StatusBarStyleModifier.apply(activeColorScheme == .dark ? .dark : .light)
+        }
         .alert("Sync failed", isPresented: $coordinator.showingSyncFailureAlert) {
             if coordinator.sessionExpired {
                 Button("Sign In") { coordinator.showingAuthSheet = true }
