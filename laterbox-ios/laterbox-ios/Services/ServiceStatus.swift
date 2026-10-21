@@ -1,20 +1,20 @@
 import Foundation
 
-struct ServiceStatusSnapshot: Decodable, Sendable {
+nonisolated struct ServiceStatusSnapshot: Decodable, Sendable {
     let status: String
     let label: String
     let monitors: [ServiceMonitorStatus]
     let timestamp: String
 
     var refreshedAt: Date? { Self.date(timestamp) }
-    static func date(_ value: String) -> Date? {
+    nonisolated static func date(_ value: String) -> Date? {
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         return formatter.date(from: value) ?? ISO8601DateFormatter().date(from: value)
     }
 }
 
-struct ServiceMonitorStatus: Decodable, Identifiable, Sendable {
+nonisolated struct ServiceMonitorStatus: Decodable, Identifiable, Sendable {
     let id: String
     let name: String
     let status: String
@@ -25,7 +25,7 @@ struct ServiceMonitorStatus: Decodable, Identifiable, Sendable {
     var lastCheck: Date? { lastCheckedAt.flatMap(ServiceStatusSnapshot.date) }
 }
 
-struct ServiceUptimeHistory: Decodable, Sendable {
+nonisolated struct ServiceUptimeHistory: Decodable, Sendable {
     let from: String
     let to: String
     let timeZone: String
@@ -33,14 +33,14 @@ struct ServiceUptimeHistory: Decodable, Sendable {
     let monitors: [MonitorUptimeHistory]
 }
 
-struct MonitorUptimeHistory: Decodable, Identifiable, Sendable {
+nonisolated struct MonitorUptimeHistory: Decodable, Identifiable, Sendable {
     let id: String
     let availability: Double?
     let downtimeSeconds: Double?
     let buckets: [UptimeBucket]
 }
 
-struct UptimeBucket: Decodable, Identifiable, Sendable {
+nonisolated struct UptimeBucket: Decodable, Identifiable, Sendable {
     var id: String { start }
     let start: String
     let end: String
