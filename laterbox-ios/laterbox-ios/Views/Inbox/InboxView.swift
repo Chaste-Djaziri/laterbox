@@ -753,9 +753,6 @@ public struct InboxView: View {
                         },
                         onOpenSettings: {
                             navigateToSettings = true
-                        },
-                        onOpenSaveItem: {
-                            navigateToCapture = true
                         }
                     )
                     .frame(width: drawerWidth)
