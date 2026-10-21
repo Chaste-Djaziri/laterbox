@@ -907,6 +907,16 @@ extension LaterAITests {
         #expect(refined?.contentType.isEmpty == true)
     }
 
+    @Test func onDeviceModelHardwareDetection() async throws {
+        let modelManager = LaterAIModelManager.shared
+        #expect(!modelManager.deviceMarketingName.isEmpty)
+        #expect(!modelManager.deviceHardwareSummary.isEmpty)
+        #expect(!modelManager.supportStatusMessage.isEmpty)
+        if modelManager.isOnDeviceModelSupported {
+            #expect(modelManager.isOnDeviceModelEnabled == true)
+        }
+    }
+
     @Test
     func syncConflictEqualTimestampDeleteWins() async throws {
         let coordinator = SyncCoordinator.shared
