@@ -272,95 +272,81 @@ export function CustomLoginContent({ actions, extra, initialMode = 'login' }: { 
 
   if (awaitingPassword) {
     return (
-      <main className="min-h-screen bg-[#f7f5ee] flex flex-col items-center justify-center p-6 text-[#181816] selection:bg-zinc-900 selection:text-white">
-        <div className="w-full max-w-[420px] flex flex-col text-left">
-          {/* Brand Logo */}
-          <div className="mb-3">
-            <Image
-              src="/branding/laterbox-logo.png"
-              alt="laterbox"
-              width={280}
-              height={75}
-              className="w-44 sm:w-48 h-auto object-contain"
-              priority
+      <AuthLayout>
+        {/* Feedback Alerts */}
+        {error && (
+          <div className="w-full mb-4 p-3.5 rounded-[16px] bg-red-50/90 border border-red-200 text-red-700 text-xs font-semibold flex items-center gap-2 text-left animate-in fade-in">
+            <AlertCircle className="w-4 h-4 shrink-0" />
+            <span>{error}</span>
+          </div>
+        )}
+
+        {message && (
+          <div className="w-full mb-4 p-3.5 rounded-[16px] bg-emerald-50/90 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center gap-2 text-left animate-in fade-in">
+            <CheckCircle2 className="w-4 h-4 shrink-0" />
+            <span>{message}</span>
+          </div>
+        )}
+
+        {/* Title */}
+        <h1 className="text-2xl sm:text-3xl font-black tracking-tight mb-2">Enter your password</h1>
+        <p className="text-[14px] text-[#6b6961] font-normal tracking-normal mb-6">
+          Create or enter your password for <strong className="text-[#181816]">{email.trim()}</strong> to continue.
+        </p>
+
+        {/* Password Form */}
+        <form onSubmit={(e) => void handlePasswordSubmit(e)} className="w-full space-y-3.5">
+          <div className="relative">
+            <input
+              type={showPassword ? 'text' : 'password'}
+              autoComplete="current-password"
+              required
+              autoFocus
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Password (at least 6 characters)"
+              className="w-full h-14 pl-5 pr-12 bg-white border border-[#e5e1d7] rounded-[18px] text-[15px] text-[#181816] placeholder:text-[#9e9b92] focus:outline-none focus:ring-2 focus:ring-zinc-900/10 focus:border-zinc-500 transition-all font-normal"
             />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-[#9e9b92] hover:text-[#181816] transition-colors cursor-pointer p-1"
+              title={showPassword ? 'Hide password' : 'Show password'}
+            >
+              {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+            </button>
           </div>
 
-          {/* Feedback Alerts */}
-          {error && (
-            <div className="w-full mb-4 p-3.5 rounded-[16px] bg-red-50/90 border border-red-200 text-red-700 text-xs font-semibold flex items-center gap-2 text-left animate-in fade-in">
-              <AlertCircle className="w-4 h-4 shrink-0" />
-              <span>{error}</span>
-            </div>
-          )}
+          <div className="pt-1.5 space-y-3">
+            <button
+              type="submit"
+              disabled={loading || password.length < 6}
+              className="w-full h-14 bg-[#181816] hover:bg-[#282723] active:bg-[#0f0f0e] text-white font-bold text-[15px] rounded-[18px] shadow-sm transition-all duration-150 flex items-center justify-center disabled:opacity-60 cursor-pointer"
+            >
+              {loading ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              ) : (
+                'Continue'
+              )}
+            </button>
+          </div>
 
-          {message && (
-            <div className="w-full mb-4 p-3.5 rounded-[16px] bg-emerald-50/90 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center gap-2 text-left animate-in fade-in">
-              <CheckCircle2 className="w-4 h-4 shrink-0" />
-              <span>{message}</span>
-            </div>
-          )}
-
-          {/* Title */}
-          <h1 className="text-3xl font-black tracking-tight mb-2">Enter your password</h1>
-          <p className="text-[15px] text-[#6b6961] font-normal tracking-normal mb-8">
-            Create or enter your password for <strong className="text-[#181816]">{email.trim()}</strong> to continue.
-          </p>
-
-          {/* Password Form */}
-          <form onSubmit={(e) => void handlePasswordSubmit(e)} className="w-full space-y-3.5">
-            <div className="relative">
-              <input
-                type={showPassword ? 'text' : 'password'}
-                autoComplete="current-password"
-                required
-                autoFocus
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Password (at least 6 characters)"
-                className="w-full h-14 pl-5 pr-12 bg-white border border-[#e5e1d7] rounded-[18px] text-[15px] text-[#181816] placeholder:text-[#9e9b92] focus:outline-none focus:ring-2 focus:ring-zinc-900/10 focus:border-zinc-500 transition-all font-normal"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-[#9e9b92] hover:text-[#181816] transition-colors cursor-pointer p-1"
-                title={showPassword ? 'Hide password' : 'Show password'}
-              >
-                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-              </button>
-            </div>
-
-            <div className="pt-1.5 space-y-3">
-              <button
-                type="submit"
-                disabled={loading || password.length < 6}
-                className="w-full h-14 bg-[#181816] hover:bg-[#282723] active:bg-[#0f0f0e] text-white font-bold text-[15px] rounded-[18px] shadow-sm transition-all duration-150 flex items-center justify-center disabled:opacity-60 cursor-pointer"
-              >
-                {loading ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                ) : (
-                  'Continue'
-                )}
-              </button>
-            </div>
-
-            {/* Back to email */}
-            <div className="pt-2 text-center">
-              <button
-                type="button"
-                onClick={() => {
-                  setAwaitingPassword(false);
-                  setPassword('');
-                  setError(null);
-                }}
-                className="text-[14px] text-[#6b6961] hover:text-[#181816] font-normal transition-colors cursor-pointer py-1"
-              >
-                Use a different email
-              </button>
-            </div>
-          </form>
-        </div>
-      </main>
+          {/* Back to email */}
+          <div className="pt-2 text-center">
+            <button
+              type="button"
+              onClick={() => {
+                setAwaitingPassword(false);
+                setPassword('');
+                setError(null);
+              }}
+              className="text-[14px] text-[#6b6961] hover:text-[#181816] font-normal transition-colors cursor-pointer py-1"
+            >
+              Use a different email
+            </button>
+          </div>
+        </form>
+      </AuthLayout>
     );
   }
 
@@ -390,78 +376,102 @@ export function CustomLoginContent({ actions, extra, initialMode = 'login' }: { 
   }
 
   return (
-    <main className="min-h-screen bg-[#f7f5ee] flex flex-col items-center justify-center p-6 text-[#181816] selection:bg-zinc-900 selection:text-white">
-      <div className="w-full max-w-[420px] flex flex-col text-left">
-        {/* Brand Logo */}
-        <div className="mb-3">
-          <Image
-            src="/branding/laterbox-logo.png"
-            alt="laterbox"
-            width={280}
-            height={75}
-            className="w-44 sm:w-48 h-auto object-contain"
-            priority
-          />
+    <AuthLayout>
+      {isAuthenticated && authError && <div role="alert" className="mb-4 text-sm text-red-700"><p>{authError}</p><button type="button" onClick={retryAuth} className="mt-2 underline">Retry account setup</button></div>}
+      {extra}
+      {/* Feedback Alerts */}
+      {error && (
+        <div className="w-full mb-4 p-3.5 rounded-[16px] bg-red-50/90 border border-red-200 text-red-700 text-xs font-semibold flex items-center gap-2 text-left animate-in fade-in">
+          <AlertCircle className="w-4 h-4 shrink-0" />
+          <span>{error}</span>
         </div>
+      )}
 
-        {isAuthenticated && authError && <div role="alert" className="mb-4 text-sm text-red-700"><p>{authError}</p><button type="button" onClick={retryAuth} className="mt-2 underline">Retry account setup</button></div>}
-        {extra}
-        {/* Feedback Alerts */}
-        {error && (
-          <div className="w-full mb-4 p-3.5 rounded-[16px] bg-red-50/90 border border-red-200 text-red-700 text-xs font-semibold flex items-center gap-2 text-left animate-in fade-in">
-            <AlertCircle className="w-4 h-4 shrink-0" />
-            <span>{error}</span>
-          </div>
-        )}
-
-        {message && (
-          <div className="w-full mb-4 p-3.5 rounded-[16px] bg-emerald-50/90 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center gap-2 text-left animate-in fade-in">
-            <CheckCircle2 className="w-4 h-4 shrink-0" />
-            <span>{message}</span>
-          </div>
-        )}
-
-        {/* Title */}
-        <div className="mb-7 flex rounded-[18px] border border-[#e5e1d7] bg-white p-1">
-          {(['login', 'signup'] as const).map(mode => (
-            <button key={mode} type="button" onClick={() => { setAuthMode(mode); setError(null); setMessage(null); }} className={`h-11 flex-1 rounded-[14px] text-sm font-bold transition-colors ${authMode === mode ? 'bg-[#181816] text-white' : 'text-[#6b6961] hover:text-[#181816]'}`}>
-              {mode === 'login' ? 'Log in' : 'Sign up'}
-            </button>
-          ))}
+      {message && (
+        <div className="w-full mb-4 p-3.5 rounded-[16px] bg-emerald-50/90 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center gap-2 text-left animate-in fade-in">
+          <CheckCircle2 className="w-4 h-4 shrink-0" />
+          <span>{message}</span>
         </div>
+      )}
 
-        <h1 className="text-3xl font-black tracking-tight mb-2">{authMode === 'login' ? 'Welcome back' : 'Create your account'}</h1>
-        <p className="text-[15px] text-[#6b6961] font-normal tracking-normal mb-8">
-          {authMode === 'login' ? 'Use email, Google, or Apple to sign in.' : 'Create a LaterBox account with Google or Apple.'}
-        </p>
-
-        <form onSubmit={(e) => void handleEmailSubmit(e)} className="w-full space-y-3.5">
-          {authMode === 'login' && <>
-            <input type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" className="w-full h-14 px-5 bg-white border border-[#e5e1d7] rounded-[18px] text-[15px] text-[#181816] placeholder:text-[#9e9b92] focus:outline-none focus:ring-2 focus:ring-zinc-900/10 focus:border-zinc-500 transition-all font-normal" />
-            <button type="submit" disabled={loading || authLoading || Boolean(isAuthenticated)} className="w-full h-14 bg-[#181816] hover:bg-[#282723] text-white font-bold text-[15px] rounded-[18px] shadow-sm transition-all flex items-center justify-center disabled:opacity-60 cursor-pointer">
-              {loading || authLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Continue with email'}
-            </button>
-          </>}
-
-          <button type="button" disabled={loading || authLoading || Boolean(isAuthenticated)} onClick={() => void handleGoogle()} className="w-full h-14 rounded-[18px] border border-[#e5e1d7] bg-white text-[15px] font-bold disabled:opacity-60">
-            <span className="inline-flex items-center justify-center gap-3"><GoogleLogo />{authMode === 'signup' ? 'Create account with Google' : 'Continue with Google'}</span>
+      {/* Mode Selector */}
+      <div className="mb-6 flex rounded-[18px] border border-[#e5e1d7] bg-white p-1">
+        {(['login', 'signup'] as const).map(mode => (
+          <button key={mode} type="button" onClick={() => { setAuthMode(mode); setError(null); setMessage(null); }} className={`h-11 flex-1 rounded-[14px] text-sm font-bold transition-colors ${authMode === mode ? 'bg-[#181816] text-white' : 'text-[#6b6961] hover:text-[#181816]'}`}>
+            {mode === 'login' ? 'Log in' : 'Sign up'}
           </button>
+        ))}
+      </div>
 
-          <button type="button" disabled={loading || authLoading || Boolean(isAuthenticated)} onClick={() => void handleApple()} className="w-full h-14 rounded-[18px] bg-[#181816] text-white text-[15px] font-bold disabled:opacity-60 cursor-pointer">
-            <span className="inline-flex items-center justify-center gap-3"><Apple className="size-5" aria-hidden="true" />{authMode === 'signup' ? 'Create account with Apple' : 'Continue with Apple'}</span>
+      <h1 className="text-2xl sm:text-3xl font-black tracking-tight mb-2">{authMode === 'login' ? 'Welcome back' : 'Create your account'}</h1>
+      <p className="text-[14px] text-[#6b6961] font-normal tracking-normal mb-6">
+        {authMode === 'login' ? 'Use email, Google, or Apple to sign in.' : 'Create a LaterBox account with Google or Apple.'}
+      </p>
+
+      <form onSubmit={(e) => void handleEmailSubmit(e)} className="w-full space-y-3.5">
+        {authMode === 'login' && <>
+          <input type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" className="w-full h-14 px-5 bg-white border border-[#e5e1d7] rounded-[18px] text-[15px] text-[#181816] placeholder:text-[#9e9b92] focus:outline-none focus:ring-2 focus:ring-zinc-900/10 focus:border-zinc-500 transition-all font-normal" />
+          <button type="submit" disabled={loading || authLoading || Boolean(isAuthenticated)} className="w-full h-14 bg-[#181816] hover:bg-[#282723] text-white font-bold text-[15px] rounded-[18px] shadow-sm transition-all flex items-center justify-center disabled:opacity-60 cursor-pointer">
+            {loading || authLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Continue with email'}
           </button>
+        </>}
 
-          {/* Continue without account */}
-          <div className="pt-2 text-center">
-            <button
-              type="button"
-              onClick={handleContinueWithoutAccount}
-              className="text-[14px] text-[#181816] hover:text-black font-normal transition-colors cursor-pointer py-1"
-            >
-              Continue without account
-            </button>
-          </div>
-        </form>
+        <button type="button" disabled={loading || authLoading || Boolean(isAuthenticated)} onClick={() => void handleGoogle()} className="w-full h-14 rounded-[18px] border border-[#e5e1d7] bg-white text-[15px] font-bold disabled:opacity-60 hover:bg-zinc-50 transition-colors">
+          <span className="inline-flex items-center justify-center gap-3"><GoogleLogo />{authMode === 'signup' ? 'Create account with Google' : 'Continue with Google'}</span>
+        </button>
+
+        <button type="button" disabled={loading || authLoading || Boolean(isAuthenticated)} onClick={() => void handleApple()} className="w-full h-14 rounded-[18px] bg-[#181816] text-white text-[15px] font-bold disabled:opacity-60 hover:bg-[#282723] transition-colors cursor-pointer">
+          <span className="inline-flex items-center justify-center gap-3"><Apple className="size-5" aria-hidden="true" />{authMode === 'signup' ? 'Create account with Apple' : 'Continue with Apple'}</span>
+        </button>
+
+        {/* Continue without account */}
+        <div className="pt-2 text-center">
+          <button
+            type="button"
+            onClick={handleContinueWithoutAccount}
+            className="text-[14px] text-[#181816] hover:text-black font-normal transition-colors cursor-pointer py-1"
+          >
+            Continue without account
+          </button>
+        </div>
+      </form>
+    </AuthLayout>
+  );
+}
+
+function AuthLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <main className="relative min-h-screen w-full flex flex-col justify-between overflow-x-hidden selection:bg-zinc-900 selection:text-white">
+      {/* Full Page Background Image */}
+      <div className="fixed inset-0 z-0 pointer-events-none">
+        <Image
+          src="/branding/auth-background.png"
+          alt="LaterBox background"
+          fill
+          priority
+          sizes="100vw"
+          className="object-cover object-center"
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/45 via-black/15 via-35% to-black/85" />
+      </div>
+
+      {/* Top Bar: Brand Logo on the Top Right */}
+      <header className="relative z-10 w-full flex items-center justify-end p-6 sm:p-8">
+        <Image
+          src="/branding/laterbox-logo-white.png"
+          alt="LaterBox"
+          width={180}
+          height={48}
+          className="w-36 sm:w-44 h-auto object-contain drop-shadow-lg"
+          priority
+        />
+      </header>
+
+      {/* Contents on the Bottom */}
+      <div className="relative z-10 w-full max-w-[440px] mx-auto mt-auto mb-6 sm:mb-10 px-4 sm:px-6">
+        <div className="rounded-[32px] bg-[#f7f5ee]/96 backdrop-blur-2xl border border-white/60 shadow-[0_20px_50px_rgba(0,0,0,0.45)] p-6 sm:p-8 text-left text-[#181816]">
+          {children}
+        </div>
       </div>
     </main>
   );
@@ -491,61 +501,51 @@ function OtpVerification({
   onBack: () => void;
 }) {
   return (
-    <main className="min-h-screen bg-[#f7f5ee] flex items-center justify-center p-6 text-[#181816]">
-      <section className="w-full max-w-[420px] text-left" aria-labelledby="otp-title">
-        <Image
-          src="/branding/laterbox-logo.png"
-          alt="LaterBox"
-          width={280}
-          height={75}
-          className="h-auto w-44"
-          priority
+    <AuthLayout>
+      <h1 id="otp-title" className="text-2xl sm:text-3xl font-black tracking-tight">
+        {secondFactor ? 'Verify your sign-in' : 'Check your email'}
+      </h1>
+      <p className="mt-2 text-sm leading-6 text-[#6b6961]">
+        {secondFactor ? 'Enter the code from your authenticator app.' : <>Enter the verification code sent to <strong>{email}</strong>.</>}
+      </p>
+
+      {error && <p role="alert" className="mt-4 rounded-2xl border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-700">{error}</p>}
+      {message && <p role="status" className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-3 text-sm font-semibold text-emerald-800">{message}</p>}
+
+      <form
+        className="mt-6 space-y-3"
+        onSubmit={(event) => {
+          event.preventDefault();
+          onVerify();
+        }}
+      >
+        <label htmlFor="email-otp" className="sr-only">Verification code</label>
+        <input
+          id="email-otp"
+          type="text"
+          inputMode="numeric"
+          autoComplete="one-time-code"
+          autoFocus
+          maxLength={8}
+          value={otp}
+          onChange={(event) => onOtpChange(event.target.value.replace(/\D/g, '').slice(0, 8))}
+          placeholder="00000000"
+          className="h-16 w-full rounded-[18px] border border-[#d8d3c7] bg-white px-5 text-center text-2xl font-black tracking-[0.45em] focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-900/10"
         />
-        <h1 id="otp-title" className="mt-8 text-3xl font-black tracking-tight">
-          {secondFactor ? 'Verify your sign-in' : 'Check your email'}
-        </h1>
-        <p className="mt-3 text-sm leading-6 text-[#6b6961]">
-          {secondFactor ? 'Enter the code from your authenticator app.' : <>Enter the verification code sent to <strong>{email}</strong>.</>}
-        </p>
-
-        {error && <p role="alert" className="mt-5 rounded-2xl border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-700">{error}</p>}
-        {message && <p role="status" className="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 p-3 text-sm font-semibold text-emerald-800">{message}</p>}
-
-        <form
-          className="mt-6 space-y-3"
-          onSubmit={(event) => {
-            event.preventDefault();
-            onVerify();
-          }}
-        >
-          <label htmlFor="email-otp" className="sr-only">Verification code</label>
-          <input
-            id="email-otp"
-            type="text"
-            inputMode="numeric"
-            autoComplete="one-time-code"
-            autoFocus
-            maxLength={8}
-            value={otp}
-            onChange={(event) => onOtpChange(event.target.value.replace(/\D/g, '').slice(0, 8))}
-            placeholder="000000"
-            className="h-16 w-full rounded-[18px] border border-[#d8d3c7] bg-white px-5 text-center text-2xl font-black tracking-[0.45em] focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-900/10"
-          />
-          <button type="submit" disabled={busy || otp.length < 6} className="flex h-14 w-full items-center justify-center rounded-[18px] bg-[#181816] text-[15px] font-bold text-white disabled:opacity-50 cursor-pointer">
-            {busy ? <Loader2 className="size-5 animate-spin" /> : 'Verify code'}
+        <button type="submit" disabled={busy || otp.length < 6} className="flex h-14 w-full items-center justify-center rounded-[18px] bg-[#181816] text-[15px] font-bold text-white disabled:opacity-50 cursor-pointer">
+          {busy ? <Loader2 className="size-5 animate-spin" /> : 'Verify code'}
+        </button>
+        <div className="flex items-center justify-center gap-3 pt-1">
+          {!secondFactor && <><button type="button" disabled={busy} onClick={onResend} className="text-sm font-semibold disabled:opacity-50 cursor-pointer">
+            Send a new code
           </button>
-          <div className="flex items-center justify-center gap-3 pt-1">
-            {!secondFactor && <><button type="button" disabled={busy} onClick={onResend} className="text-sm font-semibold disabled:opacity-50 cursor-pointer">
-              Send a new code
-            </button>
-            <span className="text-[#9e9b92]">·</span></>}
-            <button type="button" disabled={busy} onClick={onBack} className="text-sm text-[#6b6961] disabled:opacity-50 cursor-pointer">
-              Use a different email
-            </button>
-          </div>
-        </form>
-      </section>
-    </main>
+          <span className="text-[#9e9b92]">·</span></>}
+          <button type="button" disabled={busy} onClick={onBack} className="text-sm text-[#6b6961] disabled:opacity-50 cursor-pointer">
+            Use a different email
+          </button>
+        </div>
+      </form>
+    </AuthLayout>
   );
 }
 

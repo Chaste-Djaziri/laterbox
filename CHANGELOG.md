@@ -1,5 +1,9 @@
 # Free extension and local library
 
+- **[iOS / UI]** Refactor the login view with a full-bleed desk checklist background, top-right LaterBox logo, and bottom-anchored frosted card layout.
+
+- **[Web / UI]** Refactor the login page with a full-bleed desk checklist background, top-right LaterBox logo, and bottom-anchored frosted card layout.
+
 - **[iOS / Auth]** Require verification codes on sign in and signup, prompting for a password when an account is not found before delivering the verification code.
 
 - **[Auth / Config]** Require email confirmation code on signup and include verification code in email template subjects.
