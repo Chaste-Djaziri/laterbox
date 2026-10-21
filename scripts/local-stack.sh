@@ -74,22 +74,33 @@ update_android_property() {
 }
 
 write_ios_scheme() {
-  local host="$1" anon_key="$2" source="$IOS_SCHEME_DIR/laterbox-ios.xcscheme"
+  local host="$1" anon_key="$2"
+  local schemes=("$IOS_SCHEME_DIR/laterbox-ios.xcscheme" "$IOS_LOCAL_SCHEME")
   mkdir -p "$IOS_SCHEME_DIR"
-  awk -v supabase_url="http://${host}:54321" -v anon_key="$anon_key" -v web_url="http://${host}:3000" -v mailpit_url="http://${host}:54324" '
-    /allowLocationSimulation = "YES">/ {
-      print
-      print "      <EnvironmentVariables>"
-      print "         <EnvironmentVariable key = \"LATERBOX_SUPABASE_URL\" value = \"" supabase_url "\" isEnabled = \"YES\"/>"
-      print "         <EnvironmentVariable key = \"LATERBOX_SUPABASE_ANON_KEY\" value = \"" anon_key "\" isEnabled = \"YES\"/>"
-      print "         <EnvironmentVariable key = \"LATERBOX_WEB_URL\" value = \"" web_url "\" isEnabled = \"YES\"/>"
-      print "         <EnvironmentVariable key = \"LATERBOX_BILLING_URL\" value = \"" web_url "\" isEnabled = \"YES\"/>"
-      print "         <EnvironmentVariable key = \"LATERBOX_MAILPIT_URL\" value = \"" mailpit_url "\" isEnabled = \"YES\"/>"
-      print "      </EnvironmentVariables>"
-      next
-    }
-    { print }
-  ' "$source" >"$IOS_LOCAL_SCHEME"
+  for target_file in "${schemes[@]}"; do
+    [[ -f "$target_file" ]] || cp "$IOS_SCHEME_DIR/laterbox-ios.xcscheme" "$target_file"
+    local temporary="$(mktemp)"
+    awk '
+      /<EnvironmentVariables>/ { in_env = 1; next }
+      /<\/EnvironmentVariables>/ { in_env = 0; next }
+      !in_env { print }
+    ' "$target_file" > "$temporary"
+    awk -v supabase_url="http://${host}:54321" -v anon_key="$anon_key" -v web_url="http://${host}:3000" -v mailpit_url="http://${host}:54324" '
+      /allowLocationSimulation = "YES">/ {
+        print
+        print "      <EnvironmentVariables>"
+        print "         <EnvironmentVariable key = \"LATERBOX_SUPABASE_URL\" value = \"" supabase_url "\" isEnabled = \"YES\"/>"
+        print "         <EnvironmentVariable key = \"LATERBOX_SUPABASE_ANON_KEY\" value = \"" anon_key "\" isEnabled = \"YES\"/>"
+        print "         <EnvironmentVariable key = \"LATERBOX_WEB_URL\" value = \"" web_url "\" isEnabled = \"YES\"/>"
+        print "         <EnvironmentVariable key = \"LATERBOX_BILLING_URL\" value = \"" web_url "\" isEnabled = \"YES\"/>"
+        print "         <EnvironmentVariable key = \"LATERBOX_MAILPIT_URL\" value = \"" mailpit_url "\" isEnabled = \"YES\"/>"
+        print "      </EnvironmentVariables>"
+        next
+      }
+      { print }
+    ' "$temporary" > "$target_file"
+    rm -f "$temporary"
+  done
 }
 
 update_ios_dev_config() {
