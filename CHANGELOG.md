@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[iOS / UI]** Add device capability detection for native liquid glass materials, automatically leveraging hardware-accelerated system blur when supported with high-contrast accessibility fallbacks.
+
 - **[iOS / UI]** Redesign View Pro Plans modal on the Welcome screen with a liquid glass aesthetic, transparent background, frosted cards, and refined typography.
 
 - **[iOS / UI]** Resolve Sign in with Apple Auto Layout constraint conflict by capping maximum button width to adhere to Apple's internal 375pt limit on wider devices.
