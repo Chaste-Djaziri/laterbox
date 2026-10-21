@@ -114,6 +114,18 @@ struct AuthView: View {
                                 .stroke(Color.black.opacity(0.1), lineWidth: 1)
                         )
 
+                        #if DEBUG
+                        HStack(spacing: 6) {
+                            Circle()
+                                .fill(Color.green)
+                                .frame(width: 7, height: 7)
+                            Text("Dev Mode · Target: \(LaterBoxAPIService.shared.supabaseUrl)")
+                                .font(.system(size: 11, weight: .medium, design: .monospaced))
+                                .foregroundColor(Color.black.opacity(0.6))
+                        }
+                        .padding(.top, 8)
+                        #endif
+
                     case .verifyOTP:
                         HStack {
                             Spacer(minLength: !otpCode.isEmpty ? 24 : 0)
@@ -426,7 +438,15 @@ struct AuthView: View {
             } catch {
                 await MainActor.run {
                     isLoading = false
+                    #if DEBUG
+                    if let urlErr = error as? URLError, urlErr.code == .timedOut || urlErr.code == .cannotConnectToHost {
+                        errorMessage = "Request timed out connecting to local backend at \(LaterBoxAPIService.shared.supabaseUrl). Ensure your iPhone is on the same network as your Mac (\(LaterBoxDevConfig.localHost))."
+                    } else {
+                        errorMessage = "Failed to send code: \(error.localizedDescription)"
+                    }
+                    #else
                     errorMessage = "Failed to send code: \(error.localizedDescription)"
+                    #endif
                     LBHaptic.error()
                 }
             }
