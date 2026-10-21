@@ -683,34 +683,32 @@ public struct InboxView: View {
             }
             .ignoresSafeArea(edges: .bottom)
 
-            // Floating Action Button (+): Home Page Only
-            if !isSearchActive && !showingSidebar {
-                VStack {
+            // Floating Action Button (+)
+            VStack {
+                Spacer()
+                HStack {
                     Spacer()
-                    HStack {
-                        Spacer()
-                        Button {
-                            navigateToCapture = true
-                            LBHaptic.medium()
-                        } label: {
-                            Image(systemName: "plus")
-                                .font(.system(size: 24, weight: .medium))
-                                .foregroundStyle(AppTheme.accent)
-                                .frame(width: 56, height: 56)
-                                .background(AppTheme.darkSurface, in: Circle())
-                                .shadow(color: .black.opacity(0.18), radius: 8, y: 4)
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel("Capture Item")
-                        .accessibilityIdentifier("Open Later AI")
-                        .padding(.trailing, 20)
-                        .padding(.bottom, max(10, bottomSafeAreaInset) + 56)
+                    Button {
+                        navigateToCapture = true
+                        LBHaptic.medium()
+                    } label: {
+                        Image(systemName: "plus")
+                            .font(.system(size: 24, weight: .medium))
+                            .foregroundStyle(AppTheme.accent)
+                            .frame(width: 56, height: 56)
+                            .background(AppTheme.darkSurface, in: Circle())
+                            .shadow(color: .black.opacity(0.18), radius: 8, y: 4)
                     }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Capture Item")
+                    .accessibilityIdentifier("Open Later AI")
+                    .padding(.trailing, 20)
+                    .padding(.bottom, max(10, bottomSafeAreaInset) + 56)
                 }
-                .ignoresSafeArea(edges: .bottom)
-                .transition(.scale.combined(with: .opacity))
-                .zIndex(10)
             }
+            .ignoresSafeArea(edges: .bottom)
+            .zIndex(95)
+            .transaction { $0.animation = nil }
 
                 // Dimming backdrop
                 if showingSidebar {
