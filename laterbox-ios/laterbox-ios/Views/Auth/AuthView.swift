@@ -717,9 +717,6 @@ struct AuthView: View {
                         withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
                             step = .verifyOTP(type: "email")
                         }
-                        #if DEBUG
-                        fetchMailpitCode()
-                        #endif
                     case .userNotFound:
                         LBHaptic.light()
                         infoMessage = "Account not found. Create a password to get started."
@@ -775,9 +772,6 @@ struct AuthView: View {
                             withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
                                 step = .verifyOTP(type: "signup")
                             }
-                            #if DEBUG
-                            fetchMailpitCode()
-                            #endif
                         } else if let userId {
                             finishAuth(token: "", refreshToken: nil, userId: userId)
                         }
@@ -813,15 +807,12 @@ struct AuthView: View {
         guard !isFetchingMailpit else { return }
         isFetchingMailpit = true
         Task {
-            try? await Task.sleep(nanoseconds: 700_000_000)
+            try? await Task.sleep(nanoseconds: 500_000_000)
             if let code = await LaterBoxAPIService.shared.fetchLatestMailpitOTP(for: email) {
                 await MainActor.run {
                     self.otpCode = code
                     self.isFetchingMailpit = false
                     LBHaptic.success()
-                    if case .verifyOTP(let type) = step {
-                        verifyCode(type: type)
-                    }
                 }
             } else {
                 await MainActor.run {
