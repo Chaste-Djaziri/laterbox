@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[iOS / UI]** Render the top system status bar in pure white on the dark-themed capture and add-item views, automatically restoring dark status bar icons upon returning to the inbox.
+
 - **[iOS / AI]** Add hardware capability detection for Apple Intelligence on-device models, automatically enabling on-device processing on supported iPhones and displaying real-time hardware support status in Settings.
 
 - **[iOS / Auth]** Style input placeholders in dark/black with clear contrast on the white text inputs in AuthView.
