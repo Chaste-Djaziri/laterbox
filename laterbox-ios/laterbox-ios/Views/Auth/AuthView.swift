@@ -103,20 +103,20 @@ struct AuthView: View {
             }
             .ignoresSafeArea()
 
-            // Contrast Gradient Overlay
+            // Contrast Gradient Overlay: Darkens smoothly towards the bottom
             LinearGradient(
                 colors: [
                     Color.black.opacity(0.40),
-                    Color.black.opacity(0.12),
-                    Color.black.opacity(0.35),
-                    Color.black.opacity(0.85)
+                    Color.black.opacity(0.15),
+                    Color.black.opacity(0.55),
+                    Color.black.opacity(0.92)
                 ],
                 startPoint: .top,
                 endPoint: .bottom
             )
             .ignoresSafeArea()
 
-            // Content Layout: Top Bar (Logo on Top Right) + Contents on Bottom
+            // Content Layout: Top Bar (Logo on Top Right) + Form & Buttons on Bottom
             VStack(spacing: 0) {
                 // Top Bar
                 HStack(alignment: .center) {
@@ -143,37 +143,34 @@ struct AuthView: View {
                 .padding(.horizontal, 20)
                 .padding(.top, 10)
 
-                Spacer(minLength: 16)
+                Spacer(minLength: 20)
 
-                // Contents on the Bottom (Card container)
+                // Form and Buttons directly on the bottom (no container background)
                 ScrollView(showsIndicators: false) {
-                    VStack(alignment: .center, spacing: 0) {
-                        // Title
+                    VStack(alignment: .leading, spacing: 0) {
+                        // Title: Left-aligned
                         Text(headerTitle)
-                            .font(.system(size: 26, weight: .bold))
-                            .foregroundColor(.black)
-                            .multilineTextAlignment(.center)
-                            .frame(maxWidth: .infinity, alignment: .center)
+                            .font(.system(size: 30, weight: .bold))
+                            .foregroundColor(.white)
+                            .multilineTextAlignment(.leading)
+                            .frame(maxWidth: .infinity, alignment: .leading)
                             .padding(.bottom, 6)
 
-                        // Subtitle
+                        // Subtitle: Left-aligned
                         Text(headerSubtitle)
-                            .font(.system(size: 14, weight: .regular))
-                            .foregroundColor(Color.black.opacity(0.65))
-                            .multilineTextAlignment(.center)
-                            .frame(maxWidth: .infinity, alignment: .center)
-                            .padding(.horizontal, 10)
-                            .padding(.bottom, 20)
+                            .font(.system(size: 15, weight: .regular))
+                            .foregroundColor(Color.white.opacity(0.82))
+                            .multilineTextAlignment(.leading)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.bottom, 22)
 
                         // Input or Action Area
                         switch step {
                         case .enterEmail:
                             HStack {
-                                Spacer(minLength: !email.isEmpty ? 24 : 0)
                                 TextField("Email", text: $email)
                                     .font(.system(size: 16))
                                     .foregroundColor(.black)
-                                    .multilineTextAlignment(.center)
                                     .keyboardType(.emailAddress)
                                     .autocapitalization(.none)
                                     .autocorrectionDisabled()
@@ -185,17 +182,17 @@ struct AuthView: View {
                                 if !email.isEmpty {
                                     Button(action: { email = "" }) {
                                         Image(systemName: "xmark.circle.fill")
-                                            .foregroundColor(Color.black.opacity(0.3))
+                                            .foregroundColor(Color.black.opacity(0.35))
                                     }
                                 }
                             }
                             .padding(.horizontal, 16)
-                            .frame(height: 52)
+                            .frame(height: 54)
                             .background(Color.white)
-                            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                             .overlay(
-                                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                    .stroke(Color.black.opacity(0.12), lineWidth: 1)
+                                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                    .stroke(Color.white.opacity(0.3), lineWidth: 1)
                             )
 
                             #if DEBUG
@@ -205,19 +202,17 @@ struct AuthView: View {
                                     .frame(width: 7, height: 7)
                                 Text("Dev Mode · Target: \(LaterBoxAPIService.shared.supabaseUrl)")
                                     .font(.system(size: 11, weight: .medium, design: .monospaced))
-                                    .foregroundColor(Color.black.opacity(0.6))
+                                    .foregroundColor(Color.white.opacity(0.8))
                             }
                             .padding(.top, 8)
                             #endif
 
                         case .enterPassword(let isSignUp):
                             HStack {
-                                Spacer(minLength: 24)
                                 if showPassword {
                                     TextField("Password (min 6 characters)", text: $password)
                                         .font(.system(size: 16))
                                         .foregroundColor(.black)
-                                        .multilineTextAlignment(.center)
                                         .autocapitalization(.none)
                                         .autocorrectionDisabled()
                                         .submitLabel(.continue)
@@ -228,7 +223,6 @@ struct AuthView: View {
                                     SecureField("Password (min 6 characters)", text: $password)
                                         .font(.system(size: 16))
                                         .foregroundColor(.black)
-                                        .multilineTextAlignment(.center)
                                         .autocapitalization(.none)
                                         .autocorrectionDisabled()
                                         .submitLabel(.continue)
@@ -240,23 +234,23 @@ struct AuthView: View {
                                 Button(action: { showPassword.toggle() }) {
                                     Image(systemName: showPassword ? "eye.slash.fill" : "eye.fill")
                                         .font(.system(size: 15))
-                                        .foregroundColor(Color.black.opacity(0.4))
+                                        .foregroundColor(Color.black.opacity(0.45))
                                 }
                             }
                             .padding(.horizontal, 16)
-                            .frame(height: 52)
+                            .frame(height: 54)
                             .background(Color.white)
-                            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                             .overlay(
-                                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                    .stroke(Color.black.opacity(0.12), lineWidth: 1)
+                                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                    .stroke(Color.white.opacity(0.3), lineWidth: 1)
                             )
 
                         case .verifyOTP:
                             HStack {
                                 Spacer(minLength: !otpCode.isEmpty ? 24 : 0)
                                 TextField("8-digit code", text: $otpCode)
-                                    .font(.system(size: 22, weight: .bold, design: .monospaced))
+                                    .font(.system(size: 24, weight: .bold, design: .monospaced))
                                     .foregroundColor(.black)
                                     .multilineTextAlignment(.center)
                                     .keyboardType(.numberPad)
@@ -278,33 +272,33 @@ struct AuthView: View {
                                 if !otpCode.isEmpty {
                                     Button(action: { otpCode = "" }) {
                                         Image(systemName: "xmark.circle.fill")
-                                            .foregroundColor(Color.black.opacity(0.3))
+                                            .foregroundColor(Color.black.opacity(0.35))
                                     }
                                 }
                             }
                             .padding(.horizontal, 16)
-                            .frame(height: 52)
+                            .frame(height: 54)
                             .background(Color.white)
-                            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                             .overlay(
-                                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                    .stroke(Color.black.opacity(0.12), lineWidth: 1)
+                                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                    .stroke(Color.white.opacity(0.3), lineWidth: 1)
                             )
 
                             #if DEBUG
-                            VStack(spacing: 8) {
+                            VStack(alignment: .leading, spacing: 8) {
                                 HStack(spacing: 6) {
                                     Image(systemName: "envelope.badge.shield.half.filled")
-                                        .foregroundColor(Color(red: 26/255, green: 26/255, blue: 26/255))
+                                        .foregroundColor(.white)
                                     Text("Dev Mode · Local Mailpit")
                                         .font(.caption.weight(.semibold))
-                                        .foregroundColor(.black.opacity(0.7))
+                                        .foregroundColor(.white.opacity(0.85))
                                 }
                                 HStack(spacing: 12) {
                                     Button(action: { fetchMailpitCode() }) {
                                         HStack(spacing: 6) {
                                             if isFetchingMailpit {
-                                                ProgressView().scaleEffect(0.7)
+                                                ProgressView().scaleEffect(0.7).tint(.black)
                                             } else {
                                                 Image(systemName: "arrow.clockwise")
                                                     .font(.system(size: 11))
@@ -317,7 +311,6 @@ struct AuthView: View {
                                         .padding(.vertical, 7)
                                         .background(Color.white)
                                         .clipShape(Capsule())
-                                        .overlay(Capsule().stroke(Color.black.opacity(0.12), lineWidth: 1))
                                     }
                                     .disabled(isFetchingMailpit)
 
@@ -329,7 +322,7 @@ struct AuthView: View {
                                                 Image(systemName: "arrow.up.right")
                                                     .font(.system(size: 10))
                                             }
-                                            .foregroundColor(.black.opacity(0.8))
+                                            .foregroundColor(.white.opacity(0.9))
                                         }
                                     }
                                 }
@@ -338,34 +331,34 @@ struct AuthView: View {
                             #endif
 
                         case .resolveLocalData(let count, let token, let refreshToken, let userId):
-                            VStack(spacing: 16) {
+                            VStack(spacing: 14) {
                                 HStack(spacing: 14) {
                                     ZStack {
                                         Circle()
-                                            .fill(Color(red: 26/255, green: 26/255, blue: 26/255).opacity(0.08))
+                                            .fill(Color.white.opacity(0.15))
                                             .frame(width: 48, height: 48)
                                         Image(systemName: "arrow.triangle.2.circlepath")
                                             .font(.system(size: 20, weight: .semibold))
-                                            .foregroundColor(Color(red: 26/255, green: 26/255, blue: 26/255))
+                                            .foregroundColor(.white)
                                     }
 
                                     VStack(alignment: .leading, spacing: 4) {
                                         Text("\(count) Local Item\(count == 1 ? "" : "s")")
                                             .font(.system(size: 17, weight: .semibold))
-                                            .foregroundColor(.black)
+                                            .foregroundColor(.white)
                                         Text("Merge them with your account or discard them to download your cloud catalog.")
                                             .font(.system(size: 13, weight: .regular))
-                                            .foregroundColor(Color.black.opacity(0.6))
+                                            .foregroundColor(Color.white.opacity(0.75))
                                             .fixedSize(horizontal: false, vertical: true)
                                     }
                                 }
                                 .padding(16)
                                 .frame(maxWidth: .infinity, alignment: .leading)
-                                .background(Color.white)
+                                .background(Color.white.opacity(0.12))
                                 .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                        .stroke(Color.black.opacity(0.08), lineWidth: 1)
+                                        .stroke(Color.white.opacity(0.25), lineWidth: 1)
                                 )
 
                                 Button(action: {
@@ -373,7 +366,7 @@ struct AuthView: View {
                                 }) {
                                     HStack {
                                         if isLoading {
-                                            ProgressView().tint(.white)
+                                            ProgressView().tint(.black)
                                         } else {
                                             Image(systemName: "arrow.up.circle.fill")
                                                 .font(.system(size: 16, weight: .semibold))
@@ -381,11 +374,11 @@ struct AuthView: View {
                                                 .font(.system(size: 16, weight: .semibold))
                                         }
                                     }
-                                    .foregroundColor(.white)
+                                    .foregroundColor(.black)
                                     .frame(maxWidth: .infinity)
-                                    .frame(height: 52)
-                                    .background(Color(red: 26/255, green: 26/255, blue: 26/255))
-                                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                                    .frame(height: 54)
+                                    .background(Color.white)
+                                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                                 }
                                 .disabled(isLoading)
 
@@ -398,30 +391,30 @@ struct AuthView: View {
                                         Text("Remove Local Data")
                                             .font(.system(size: 15, weight: .medium))
                                     }
-                                    .foregroundColor(Color.red.opacity(0.9))
+                                    .foregroundColor(Color(red: 255/255, green: 130/255, blue: 130/255))
                                     .frame(maxWidth: .infinity)
-                                    .frame(height: 46)
-                                    .background(Color.red.opacity(0.08))
-                                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                                    .frame(height: 48)
+                                    .background(Color.red.opacity(0.15))
+                                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                                 }
                                 .disabled(isLoading)
                             }
                         }
 
-                        // Feedback Messages
+                        // Feedback Messages: Left-aligned
                         if let error = errorMessage {
                             Text(error)
-                                .font(.footnote)
-                                .foregroundColor(.red)
-                                .multilineTextAlignment(.center)
-                                .frame(maxWidth: .infinity, alignment: .center)
+                                .font(.footnote.weight(.medium))
+                                .foregroundColor(Color(red: 255/255, green: 120/255, blue: 120/255))
+                                .multilineTextAlignment(.leading)
+                                .frame(maxWidth: .infinity, alignment: .leading)
                                 .padding(.top, 8)
                         } else if let info = infoMessage {
                             Text(info)
                                 .font(.footnote)
-                                .foregroundColor(Color.black.opacity(0.7))
-                                .multilineTextAlignment(.center)
-                                .frame(maxWidth: .infinity, alignment: .center)
+                                .foregroundColor(Color.white.opacity(0.9))
+                                .multilineTextAlignment(.leading)
+                                .frame(maxWidth: .infinity, alignment: .leading)
                                 .padding(.top, 8)
                         }
 
@@ -441,38 +434,39 @@ struct AuthView: View {
                             }) {
                                 HStack {
                                     if isLoading {
-                                        ProgressView().tint(.white)
+                                        ProgressView().tint(.black)
                                     } else {
                                         Text(continueButtonTitle)
-                                            .font(.system(size: 16, weight: .semibold))
-                                            .foregroundColor(.white)
+                                            .font(.system(size: 16, weight: .bold))
+                                            .foregroundColor(.black)
                                     }
                                 }
                                 .frame(maxWidth: .infinity)
-                                .frame(height: 52)
-                                .background(Color(red: 26/255, green: 26/255, blue: 26/255))
-                                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                                .frame(height: 54)
+                                .background(Color.white)
+                                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                                .shadow(color: Color.black.opacity(0.2), radius: 8, x: 0, y: 3)
                             }
                             .disabled(isButtonDisabled)
-                            .opacity(isButtonDisabled ? 0.6 : 1.0)
+                            .opacity(isButtonDisabled ? 0.5 : 1.0)
                             .padding(.top, 16)
                         }
 
                         // Apple OAuth for Email Step
                         if step == .enterEmail {
                             HStack(spacing: 12) {
-                                Rectangle().fill(Color.black.opacity(0.12)).frame(height: 1)
-                                Text("OR").font(.caption.weight(.semibold)).foregroundColor(.secondary)
-                                Rectangle().fill(Color.black.opacity(0.12)).frame(height: 1)
+                                Rectangle().fill(Color.white.opacity(0.2)).frame(height: 1)
+                                Text("OR").font(.caption.weight(.semibold)).foregroundColor(Color.white.opacity(0.6))
+                                Rectangle().fill(Color.white.opacity(0.2)).frame(height: 1)
                             }
-                            .padding(.top, 12)
+                            .padding(.top, 14)
 
                             SignInWithAppleButton(.signIn, onRequest: { request in
                                 request.requestedScopes = [.fullName, .email]
                             }, onCompletion: handleAppleResult)
-                            .signInWithAppleButtonStyle(.black)
-                            .frame(height: 52)
-                            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                            .signInWithAppleButtonStyle(.white)
+                            .frame(height: 54)
+                            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                             .disabled(isLoading)
                         }
 
@@ -485,9 +479,9 @@ struct AuthView: View {
                             }) {
                                 Text("Continue without account")
                                     .font(.system(size: 14, weight: .medium))
-                                    .foregroundColor(Color.black.opacity(0.85))
+                                    .foregroundColor(Color.white.opacity(0.85))
                                     .frame(maxWidth: .infinity, alignment: .center)
-                                    .padding(.top, 14)
+                                    .padding(.top, 16)
                             }
                         } else if case .enterPassword = step {
                             Button("Use different email") {
@@ -499,8 +493,9 @@ struct AuthView: View {
                                 }
                             }
                             .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(Color.black.opacity(0.75))
-                            .padding(.top, 14)
+                            .foregroundColor(Color.white.opacity(0.85))
+                            .frame(maxWidth: .infinity, alignment: .center)
+                            .padding(.top, 16)
                         } else if case .verifyOTP(let type) = step {
                             HStack(spacing: 16) {
                                 Button("Resend code") {
@@ -511,10 +506,10 @@ struct AuthView: View {
                                     }
                                 }
                                 .font(.system(size: 14, weight: .medium))
-                                .foregroundColor(Color.black.opacity(0.75))
+                                .foregroundColor(Color.white.opacity(0.9))
 
                                 Text("•")
-                                    .foregroundColor(Color.black.opacity(0.3))
+                                    .foregroundColor(Color.white.opacity(0.4))
 
                                 Button("Use different email") {
                                     withAnimation {
@@ -526,27 +521,15 @@ struct AuthView: View {
                                     }
                                 }
                                 .font(.system(size: 14, weight: .medium))
-                                .foregroundColor(Color.black.opacity(0.75))
+                                .foregroundColor(Color.white.opacity(0.85))
                             }
                             .frame(maxWidth: .infinity, alignment: .center)
-                            .padding(.top, 14)
+                            .padding(.top, 16)
                         }
                     }
-                    .padding(.horizontal, 20)
-                    .padding(.top, 24)
-                    .padding(.bottom, 20)
+                    .padding(.horizontal, 24)
+                    .padding(.bottom, 24)
                 }
-                .background(
-                    RoundedRectangle(cornerRadius: 28, style: .continuous)
-                        .fill(Color(red: 247/255, green: 245/255, blue: 238/255).opacity(0.97))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 28, style: .continuous)
-                                .stroke(Color.white.opacity(0.6), lineWidth: 1)
-                        )
-                        .shadow(color: Color.black.opacity(0.35), radius: 24, x: 0, y: 8)
-                )
-                .padding(.horizontal, 16)
-                .padding(.bottom, 12)
             }
         }
         .navigationBarBackButtonHidden(true)
