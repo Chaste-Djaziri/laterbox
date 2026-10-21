@@ -8,7 +8,7 @@
 import Foundation
 
 #if DEBUG
-public enum LaterBoxDevConfig {
+public nonisolated enum LaterBoxDevConfig: Sendable {
     public static let localHost = "172.20.10.3"
     public static let defaultSupabaseUrl = "http://\(localHost):54321"
     public static let defaultAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0"
@@ -18,8 +18,8 @@ public enum LaterBoxDevConfig {
 }
 #endif
 
-private enum LaterBoxRuntimeConfiguration {
-    static func value(for environmentKey: String, devDefault: String, prodFallback: String) -> String {
+private nonisolated enum LaterBoxRuntimeConfiguration: Sendable {
+    nonisolated static func value(for environmentKey: String, devDefault: String, prodFallback: String) -> String {
         #if DEBUG
         if let env = ProcessInfo.processInfo.environment[environmentKey]?.trimmingCharacters(in: .whitespacesAndNewlines), !env.isEmpty {
             // Strictly forbid remote hosted Supabase in dev mode
@@ -35,7 +35,7 @@ private enum LaterBoxRuntimeConfiguration {
     }
 }
 
-public struct RemoteItemDTO: Codable {
+public nonisolated struct RemoteItemDTO: Codable, Sendable {
     public let id: String
     public let user_id: String?
     public let url: String?
@@ -49,7 +49,7 @@ public struct RemoteItemDTO: Codable {
     public let updated_at: String?
 }
 
-public struct RemoteCollectionDTO: Codable {
+public nonisolated struct RemoteCollectionDTO: Codable, Sendable {
     public let id: String
     public let user_id: String?
     public let name: String
@@ -81,20 +81,20 @@ public nonisolated struct AccountBillingEntitlement: Decodable, Sendable {
 public actor LaterBoxAPIService {
     public static let shared = LaterBoxAPIService()
 
-    public static let defaultSupabaseUrl = "https://ltjisrgldssqskcylcbj.supabase.co"
+    public nonisolated static let defaultSupabaseUrl = "https://ltjisrgldssqskcylcbj.supabase.co"
     #if DEBUG
-    public static let isDevMode = true
-    public let mailpitUrl: String = LaterBoxRuntimeConfiguration.value(
+    public nonisolated static let isDevMode = true
+    public nonisolated let mailpitUrl: String = LaterBoxRuntimeConfiguration.value(
         for: "LATERBOX_MAILPIT_URL",
         devDefault: LaterBoxDevConfig.defaultMailpitUrl,
         prodFallback: ""
     )
     #else
-    public static let isDevMode = false
-    public let mailpitUrl: String = ""
+    public nonisolated static let isDevMode = false
+    public nonisolated let mailpitUrl: String = ""
     #endif
 
-    public let supabaseUrl = LaterBoxRuntimeConfiguration.value(
+    public nonisolated let supabaseUrl = LaterBoxRuntimeConfiguration.value(
         for: "LATERBOX_SUPABASE_URL",
         devDefault: {
             #if DEBUG
@@ -105,7 +105,7 @@ public actor LaterBoxAPIService {
         }(),
         prodFallback: defaultSupabaseUrl
     )
-    public let anonKey = LaterBoxRuntimeConfiguration.value(
+    public nonisolated let anonKey = LaterBoxRuntimeConfiguration.value(
         for: "LATERBOX_SUPABASE_ANON_KEY",
         devDefault: {
             #if DEBUG
@@ -116,7 +116,7 @@ public actor LaterBoxAPIService {
         }(),
         prodFallback: "sb_publishable_Rc4e_ik2LE4SR0UrfX-OEQ_5Mu_lw9p"
     )
-    public let webUrl = LaterBoxRuntimeConfiguration.value(
+    public nonisolated let webUrl = LaterBoxRuntimeConfiguration.value(
         for: "LATERBOX_WEB_URL",
         devDefault: {
             #if DEBUG
@@ -127,7 +127,7 @@ public actor LaterBoxAPIService {
         }(),
         prodFallback: "https://laterbox.dev"
     )
-    public let billingUrl = LaterBoxRuntimeConfiguration.value(
+    public nonisolated let billingUrl = LaterBoxRuntimeConfiguration.value(
         for: "LATERBOX_BILLING_URL",
         devDefault: {
             #if DEBUG
