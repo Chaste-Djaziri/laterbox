@@ -118,7 +118,8 @@ struct WelcomeView: View {
                 }
             }
             .sheet(isPresented: $showingPlans) {
-                PlansView()
+                PlansView(isLiquidGlass: true)
+                    .presentationBackground(.clear)
             }
             .navigationDestination(isPresented: $showingAuthView) {
                 AuthView()
