@@ -1,18 +1,23 @@
 import SwiftUI
 import UniformTypeIdentifiers
 import PhotosUI
+import SwiftData
 
 struct GuidedCaptureView: View {
+    @Environment(\.modelContext) private var modelContext
+    @Query(sort: \LBCollection.name) private var collections: [LBCollection]
+
     @Binding var draft: CaptureDraft
     var onCancel: (() -> Void)? = nil
     var fillsAvailableSpace = false
     var save: () -> Void
 
     @State private var step = 0
-    @State private var tagText = ""
+    @State private var tagInput = ""
+    @State private var showingNewCollectionInput = false
+    @State private var newCollectionName = ""
     @State private var chooseDate = false
     @State private var date = Date().addingTimeInterval(86400)
-    private let categories = ["General", "Reading", "Work", "Ideas", "Learning", "Personal"]
 
     // Attachments state
     private enum AttachmentMode {
@@ -73,7 +78,6 @@ struct GuidedCaptureView: View {
                 }
                 if !metadata.keywords.isEmpty && draft.tags.isEmpty {
                     draft.tags = Array(Set(metadata.keywords.map { $0.lowercased() })).sorted()
-                    tagText = draft.tags.joined(separator: ", ")
                 }
             } catch { /* Metadata is optional; manual saving stays available. */ }
         }
@@ -111,7 +115,7 @@ struct GuidedCaptureView: View {
         switch step {
         case 0: step0ContentView
         case 1: step1TitleView
-        case 2: step2CategoryView
+        case 2: step2CollectionAndTagsView
         default: step3ReturnScheduleView
         }
     }
@@ -271,11 +275,11 @@ struct GuidedCaptureView: View {
         .frame(maxHeight: fillsAvailableSpace ? .infinity : nil, alignment: .top)
     }
 
-    // MARK: - Step 2: Category & Tags
-    private var step2CategoryView: some View {
+    // MARK: - Step 2: Collection & Tags
+    private var step2CollectionAndTagsView: some View {
         VStack(alignment: .leading, spacing: 14) {
             VStack(alignment: .leading, spacing: 4) {
-                Text("Format, Category & Tags")
+                Text("Format, Collection & Tags")
                     .font(.system(size: 17, weight: .bold))
                     .foregroundColor(.white)
                 Text("Organize this capture so you can filter it later.")
@@ -304,61 +308,212 @@ struct GuidedCaptureView: View {
             }
 
             VStack(alignment: .leading, spacing: 6) {
-                Text("CATEGORY")
-                    .font(.system(size: 11, weight: .bold))
-                    .foregroundColor(Color.white.opacity(0.5))
-                    .tracking(0.5)
+                HStack {
+                    Text("COLLECTION")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundColor(Color.white.opacity(0.5))
+                        .tracking(0.5)
+
+                    Spacer()
+
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            showingNewCollectionInput.toggle()
+                        }
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: showingNewCollectionInput ? "xmark" : "plus")
+                                .font(.system(size: 10, weight: .bold))
+                            Text(showingNewCollectionInput ? "Cancel" : "New Collection")
+                                .font(.system(size: 11, weight: .semibold))
+                        }
+                        .foregroundColor(LaterAIStyle.accent)
+                    }
+                    .buttonStyle(.plain)
+                }
+
+                if showingNewCollectionInput {
+                    HStack(spacing: 8) {
+                        Image(systemName: "folder.badge.plus")
+                            .foregroundColor(LaterAIStyle.accent)
+                            .font(.system(size: 14))
+
+                        TextField("New collection name...", text: $newCollectionName)
+                            .font(.system(size: 14))
+                            .foregroundColor(.white)
+                            .tint(LaterAIStyle.accent)
+                            .onSubmit {
+                                createNewCollection()
+                            }
+
+                        if !newCollectionName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                            Button {
+                                createNewCollection()
+                            } label: {
+                                Text("Add")
+                                    .font(.system(size: 12, weight: .bold))
+                                    .foregroundColor(.black)
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 5)
+                                    .background(LaterAIStyle.accent, in: Capsule())
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(Color(white: 24.0 / 255), in: RoundedRectangle(cornerRadius: 12))
+                    .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(LaterAIStyle.accent.opacity(0.35), lineWidth: 1))
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+                }
 
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 8) {
-                        ForEach(categories, id: \.self) { category in
-                            formatPill(title: category, isSelected: draft.category == category) {
-                                draft.category = category
+                        let isNoneSelected = (draft.collectionName == nil || draft.collectionName?.isEmpty == true) && (draft.category.isEmpty || draft.category.lowercased() == "none" || draft.category.lowercased() == "general")
+
+                        formatPill(title: "None", icon: "tray", isSelected: isNoneSelected) {
+                            draft.collectionName = nil
+                            draft.category = ""
+                        }
+
+                        if let custom = draft.collectionName?.trimmingCharacters(in: .whitespacesAndNewlines),
+                           !custom.isEmpty,
+                           !collections.contains(where: { $0.name.localizedCaseInsensitiveCompare(custom) == .orderedSame }) {
+                            formatPill(title: custom, icon: "folder.fill", isSelected: true) {
+                                draft.collectionName = custom
+                                draft.category = custom
+                            }
+                        }
+
+                        ForEach(collections) { coll in
+                            let isSelected = (draft.collectionName?.localizedCaseInsensitiveCompare(coll.name) == .orderedSame) ||
+                                             (draft.category.localizedCaseInsensitiveCompare(coll.name) == .orderedSame)
+                            formatPill(title: coll.name, icon: coll.iconName, isSelected: isSelected) {
+                                if isSelected {
+                                    draft.collectionName = nil
+                                    draft.category = ""
+                                } else {
+                                    draft.collectionName = coll.name
+                                    draft.category = coll.name
+                                }
                             }
                         }
                     }
                 }
             }
 
-            VStack(alignment: .leading, spacing: 6) {
-                Text("TAGS")
-                    .font(.system(size: 11, weight: .bold))
-                    .foregroundColor(Color.white.opacity(0.5))
-                    .tracking(0.5)
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Text("TAGS")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundColor(Color.white.opacity(0.5))
+                        .tracking(0.5)
 
-                TextField("Tags, separated by commas", text: $tagText)
-                    .font(.system(size: 14))
-                    .foregroundColor(.white)
-                    .tint(LaterAIStyle.accent)
-                    .padding(12)
-                    .background(Color(white: 24.0 / 255), in: RoundedRectangle(cornerRadius: 12))
-                    .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(Color.white.opacity(0.12), lineWidth: 1))
-                    .accessibilityIdentifier("capture.tags")
+                    Spacer()
+
+                    if !draft.tags.isEmpty {
+                        Text("\(draft.tags.count) marked")
+                            .font(.system(size: 11))
+                            .foregroundColor(Color.white.opacity(0.4))
+                    }
+                }
+
+                if !draft.tags.isEmpty {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 8) {
+                            ForEach(draft.tags, id: \.self) { tag in
+                                HStack(spacing: 5) {
+                                    Text("#\(tag)")
+                                        .font(.system(size: 12, weight: .bold))
+                                        .foregroundColor(.black)
+
+                                    Button {
+                                        removeTag(tag)
+                                    } label: {
+                                        Image(systemName: "xmark")
+                                            .font(.system(size: 10, weight: .bold))
+                                            .foregroundColor(Color.black.opacity(0.7))
+                                            .padding(2)
+                                    }
+                                    .buttonStyle(.plain)
+                                    .accessibilityLabel("Remove tag \(tag)")
+                                }
+                                .padding(.leading, 10)
+                                .padding(.trailing, 8)
+                                .padding(.vertical, 6)
+                                .background(LaterAIStyle.accent, in: Capsule())
+                                .overlay(Capsule().strokeBorder(Color.white.opacity(0.2), lineWidth: 0.5))
+                                .transition(.scale.combined(with: .opacity))
+                            }
+                        }
+                        .padding(.vertical, 2)
+                    }
+                }
+
+                HStack(spacing: 8) {
+                    Image(systemName: "number")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(Color.white.opacity(0.4))
+
+                    TextField("Add tag (Enter or : to mark)", text: $tagInput)
+                        .font(.system(size: 14))
+                        .foregroundColor(.white)
+                        .tint(LaterAIStyle.accent)
+                        .accessibilityIdentifier("capture.tags")
+                        .onSubmit {
+                            commitCurrentTagInput()
+                        }
+                        .onChange(of: tagInput) { _, newValue in
+                            handleTagInputChange(newValue)
+                        }
+
+                    if !tagInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        Button {
+                            commitCurrentTagInput()
+                        } label: {
+                            Image(systemName: "plus.circle.fill")
+                                .foregroundColor(LaterAIStyle.accent)
+                                .font(.system(size: 18))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(12)
+                .background(Color(white: 24.0 / 255), in: RoundedRectangle(cornerRadius: 12))
+                .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(Color.white.opacity(0.12), lineWidth: 1))
 
                 if !suggestedTags.isEmpty {
-                    HStack(spacing: 6) {
-                        Text("Suggested:")
-                            .font(.system(size: 11))
-                            .foregroundColor(Color.white.opacity(0.5))
-                        ForEach(suggestedTags, id: \.self) { tag in
-                            Button(action: {
-                                let current = tagText.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }
-                                if !current.contains(tag) {
-                                    tagText += tagText.isEmpty ? tag : ", \(tag)"
-                                }
-                            }) {
-                                Text("#\(tag)")
-                                    .font(.system(size: 11, weight: .medium))
-                                    .foregroundColor(LaterAIStyle.accent)
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 6) {
+                            Text("Suggested:")
+                                .font(.system(size: 11))
+                                .foregroundColor(Color.white.opacity(0.5))
+
+                            ForEach(suggestedTags, id: \.self) { tag in
+                                let isAlreadyAdded = draft.tags.contains(where: { $0.localizedCaseInsensitiveCompare(tag) == .orderedSame })
+                                Button(action: {
+                                    addTag(tag)
+                                }) {
+                                    HStack(spacing: 3) {
+                                        Text("#\(tag)")
+                                            .font(.system(size: 11, weight: .medium))
+                                        if isAlreadyAdded {
+                                            Image(systemName: "checkmark")
+                                                .font(.system(size: 9, weight: .bold))
+                                        }
+                                    }
+                                    .foregroundColor(isAlreadyAdded ? Color.white.opacity(0.4) : LaterAIStyle.accent)
                                     .padding(.horizontal, 8)
                                     .padding(.vertical, 4)
                                     .background(Color(white: 26.0 / 255), in: Capsule())
-                                    .overlay(Capsule().strokeBorder(Color.white.opacity(0.1), lineWidth: 1))
+                                    .overlay(Capsule().strokeBorder(isAlreadyAdded ? Color.white.opacity(0.06) : Color.white.opacity(0.1), lineWidth: 1))
+                                }
+                                .buttonStyle(.plain)
+                                .disabled(isAlreadyAdded)
                             }
-                            .buttonStyle(.plain)
                         }
+                        .padding(.top, 2)
                     }
-                    .padding(.top, 2)
                 }
             }
         }
@@ -556,10 +711,9 @@ struct GuidedCaptureView: View {
                         draft.title = draft.attachments.first?.name ?? inferred.title
                     }
                     if draft.tags.isEmpty { draft.tags = inferred.tags }
-                    tagText = draft.tags.joined(separator: ", ")
                 }
                 if step == 2 {
-                    draft.tags = tagText.split(separator: ",").map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                    commitCurrentTagInput()
                 }
                 if step == 3 {
                     save()
@@ -691,5 +845,54 @@ struct GuidedCaptureView: View {
     private var suggestedTags: [String] {
         let text = draft.content.lowercased()
         return ["design", "work", "recipe", "travel", "code", "music"].filter { text.contains($0) }.prefix(3).map { $0 }
+    }
+
+    private func createNewCollection() {
+        let trimmed = newCollectionName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        draft.collectionName = trimmed
+        draft.category = trimmed
+        _ = SyncCoordinator.shared.ensureCollectionExists(named: trimmed, context: modelContext)
+        newCollectionName = ""
+        withAnimation(.easeInOut(duration: 0.2)) {
+            showingNewCollectionInput = false
+        }
+        LBHaptic.medium()
+    }
+
+    private func handleTagInputChange(_ value: String) {
+        if value.contains(":") || value.contains(",") {
+            let parts = value.components(separatedBy: CharacterSet(charactersIn: ":,"))
+            for part in parts.dropLast() {
+                addTag(part)
+            }
+            tagInput = parts.last ?? ""
+        }
+    }
+
+    private func commitCurrentTagInput() {
+        let clean = tagInput.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: "#", with: "")
+        if !clean.isEmpty {
+            addTag(clean)
+            tagInput = ""
+        }
+    }
+
+    private func addTag(_ raw: String) {
+        let clean = raw.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: "#", with: "")
+        guard !clean.isEmpty else { return }
+        if !draft.tags.contains(where: { $0.localizedCaseInsensitiveCompare(clean) == .orderedSame }) {
+            withAnimation(.easeInOut(duration: 0.18)) {
+                draft.tags.append(clean)
+            }
+            LBHaptic.light()
+        }
+    }
+
+    private func removeTag(_ tag: String) {
+        withAnimation(.easeInOut(duration: 0.18)) {
+            draft.tags.removeAll { $0.localizedCaseInsensitiveCompare(tag) == .orderedSame }
+        }
+        LBHaptic.light()
     }
 }
