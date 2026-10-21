@@ -1361,3 +1361,57 @@ public struct InboxView: View {
         return 16
     }
 }
+
+#Preview("Inbox with Sample Items") {
+    let config = ModelConfiguration(isStoredInMemoryOnly: true)
+    let container = try! ModelContainer(for: LBItem.self, LBCollection.self, configurations: config)
+    let context = container.mainContext
+
+    let sample1 = LBItem(
+        title: "Designing Fluid Interfaces for iOS",
+        textContent: "Notes on spring animations, touch tracking, and gestural responsiveness in modern iOS interfaces.",
+        type: .article,
+        favorite: true,
+        status: .inbox,
+        domain: "apple.com",
+        siteName: "Apple Developer",
+        metadataDescription: "An in-depth look at gestures, springs, and momentum physics in user interfaces.",
+        collectionName: "Design"
+    )
+    let sample2 = LBItem(
+        url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+        title: "WWDC26: Swift 6 Concurrency and Beyond",
+        type: .video,
+        favorite: false,
+        status: .inbox,
+        domain: "youtube.com",
+        siteName: "YouTube",
+        collectionName: "Development"
+    )
+    let sample3 = LBItem(
+        title: "Key takeaways from Distributed Systems Paper",
+        textContent: "Consensus algorithms, CRDTs, and offline-first state synchronization techniques.",
+        type: .note,
+        favorite: false,
+        status: .inbox,
+        collectionName: "Research"
+    )
+    let col1 = LBCollection(name: "Design", colorHex: "#3B82F6", iconName: "paintpalette.fill")
+    let col2 = LBCollection(name: "Development", colorHex: "#10B981", iconName: "chevron.left.forwardslash.chevron.right")
+    let col3 = LBCollection(name: "Research", colorHex: "#8B5CF6", iconName: "book.fill")
+
+    context.insert(sample1)
+    context.insert(sample2)
+    context.insert(sample3)
+    context.insert(col1)
+    context.insert(col2)
+    context.insert(col3)
+
+    return InboxView()
+        .modelContainer(container)
+}
+
+#Preview("Inbox Empty State") {
+    InboxView()
+        .modelContainer(for: [LBItem.self, LBCollection.self], inMemory: true)
+}
