@@ -76,7 +76,7 @@ update_android_property() {
 write_ios_scheme() {
   local host="$1" anon_key="$2" source="$IOS_SCHEME_DIR/laterbox-ios.xcscheme"
   mkdir -p "$IOS_SCHEME_DIR"
-  awk -v supabase_url="http://${host}:54321" -v anon_key="$anon_key" -v web_url="http://${host}:3000" '
+  awk -v supabase_url="http://${host}:54321" -v anon_key="$anon_key" -v web_url="http://${host}:3000" -v mailpit_url="http://${host}:54324" '
     /allowLocationSimulation = "YES">/ {
       print
       print "      <EnvironmentVariables>"
@@ -84,11 +84,29 @@ write_ios_scheme() {
       print "         <EnvironmentVariable key = \"LATERBOX_SUPABASE_ANON_KEY\" value = \"" anon_key "\" isEnabled = \"YES\"/>"
       print "         <EnvironmentVariable key = \"LATERBOX_WEB_URL\" value = \"" web_url "\" isEnabled = \"YES\"/>"
       print "         <EnvironmentVariable key = \"LATERBOX_BILLING_URL\" value = \"" web_url "\" isEnabled = \"YES\"/>"
+      print "         <EnvironmentVariable key = \"LATERBOX_MAILPIT_URL\" value = \"" mailpit_url "\" isEnabled = \"YES\"/>"
       print "      </EnvironmentVariables>"
       next
     }
     { print }
   ' "$source" >"$IOS_LOCAL_SCHEME"
+}
+
+update_ios_dev_config() {
+  local host="$1" anon_key="$2" file="$ROOT_DIR/laterbox-ios/laterbox-ios/Services/LaterBoxAPIService.swift" temporary
+  temporary="$(mktemp)"
+  awk -v host="$host" -v anon_key="$anon_key" '
+    /public static let localHost = / {
+      print "    public static let localHost = \"" host "\""
+      next
+    }
+    /public static let defaultAnonKey = / {
+      print "    public static let defaultAnonKey = \"" anon_key "\""
+      next
+    }
+    { print }
+  ' "$file" >"$temporary"
+  mv "$temporary" "$file"
 }
 
 generate_runtime_config() {
@@ -127,6 +145,7 @@ EOF
   update_android_property SUPABASE_ANON_KEY "$anon_key"
   update_android_property WEB_BASE_URL "http://${host}:3000"
   update_android_property LATERBOX_WEB_URL "http://${host}:3000"
+  update_ios_dev_config "$host" "$anon_key"
   write_ios_scheme "$host" "$anon_key"
 }
 
