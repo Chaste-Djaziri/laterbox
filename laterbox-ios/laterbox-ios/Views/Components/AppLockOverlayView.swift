@@ -96,7 +96,7 @@ public struct AppLockOverlayView: View {
             Task {
                 // Short delay to allow window transition to complete smoothly
                 try? await Task.sleep(nanoseconds: 200_000_000)
-                await lockManager.unlockApp()
+                _ = await lockManager.unlockApp()
             }
         }
     }
