@@ -28,24 +28,29 @@ public struct PlansView: View {
 
     private var liquidGlassModalBackground: some View {
         ZStack {
-            Rectangle()
-                .fill(.ultraThinMaterial)
-                .ignoresSafeArea()
+            if DeviceGlassSupport.isNativeLiquidGlassSupported {
+                Rectangle()
+                    .fill(.ultraThinMaterial)
+                    .ignoresSafeArea()
 
-            Color.black.opacity(0.42)
-                .ignoresSafeArea()
+                Color.black.opacity(0.38)
+                    .ignoresSafeArea()
 
-            Circle()
-                .fill(Color(hex: "E6EDB0").opacity(0.18))
-                .frame(width: 320, height: 320)
-                .blur(radius: 80)
-                .offset(x: -120, y: -200)
+                Circle()
+                    .fill(Color(hex: "E6EDB0").opacity(0.18))
+                    .frame(width: 320, height: 320)
+                    .blur(radius: 80)
+                    .offset(x: -120, y: -200)
 
-            Circle()
-                .fill(Color.white.opacity(0.12))
-                .frame(width: 260, height: 260)
-                .blur(radius: 70)
-                .offset(x: 140, y: 160)
+                Circle()
+                    .fill(Color.white.opacity(0.12))
+                    .frame(width: 260, height: 260)
+                    .blur(radius: 70)
+                    .offset(x: 140, y: 160)
+            } else {
+                Color.black.opacity(0.92)
+                    .ignoresSafeArea()
+            }
         }
         .allowsHitTesting(false)
     }
