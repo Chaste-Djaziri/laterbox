@@ -455,14 +455,14 @@ function AuthLayout({ children }: { children: React.ReactNode }) {
         <div className="absolute inset-0 bg-gradient-to-b from-black/45 via-black/20 via-40% to-black/90" />
       </div>
 
-      {/* Top Bar: Brand Logo on the Top Right */}
+      {/* Top Bar: Brand Logo on the Top Right (larger size) */}
       <header className="relative z-10 w-full flex items-center justify-end p-6 sm:p-8">
         <Image
           src="/branding/laterbox-logo-white.png"
           alt="LaterBox"
-          width={180}
-          height={48}
-          className="w-36 sm:w-44 h-auto object-contain drop-shadow-lg"
+          width={280}
+          height={93}
+          className="w-48 sm:w-60 md:w-64 h-auto object-contain drop-shadow-2xl"
           priority
         />
       </header>

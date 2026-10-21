@@ -1,5 +1,9 @@
 # Free extension and local library
 
+- **[iOS / UI]** Enlarge brand logo in the top right and firmly pin the login form and buttons to the bottom using a geometry-backed vertical spacer.
+
+- **[Web / UI]** Enlarge brand logo in the top right and anchor the login form and buttons directly on the bottom.
+
 - **[iOS / UI]** Remove login container box background, anchor form and buttons directly on the bottom, and left-align title and description.
 
 - **[Web / UI]** Remove login container box background, anchor form and buttons directly on the bottom, and left-align title and description.
