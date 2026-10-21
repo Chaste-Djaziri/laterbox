@@ -9,7 +9,7 @@ import Foundation
 
 #if DEBUG
 public enum LaterBoxDevConfig {
-    public static let localHost = "192.168.0.7"
+    public static let localHost = "172.20.10.3"
     public static let defaultSupabaseUrl = "http://\(localHost):54321"
     public static let defaultAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0"
     public static let defaultWebUrl = "http://\(localHost):3000"
