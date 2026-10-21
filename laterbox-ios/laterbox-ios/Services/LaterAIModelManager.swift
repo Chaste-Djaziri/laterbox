@@ -6,9 +6,9 @@ import Darwin
 
 // MARK: - On-Device Hardware Capability Detection
 
-public enum OnDeviceModelSupport {
+enum OnDeviceModelSupport {
     /// Raw hardware identifier (e.g. "iPhone16,1", "iPhone17,3")
-    public static var modelIdentifier: String {
+    static var modelIdentifier: String {
         #if targetEnvironment(simulator)
         if let simModel = ProcessInfo.processInfo.environment["SIMULATOR_MODEL_IDENTIFIER"], !simModel.isEmpty {
             return simModel
@@ -25,7 +25,7 @@ public enum OnDeviceModelSupport {
     }
 
     /// User-friendly marketing name of the device
-    public static var deviceMarketingName: String {
+    static var deviceMarketingName: String {
         let id = modelIdentifier
         if id.contains("iPhone-17-Pro-Max") || id == "iPhone18,2" { return "iPhone 17 Pro Max" }
         if id.contains("iPhone-17-Pro") || id == "iPhone18,1" { return "iPhone 17 Pro" }
@@ -48,7 +48,7 @@ public enum OnDeviceModelSupport {
     }
 
     /// Formatted total system RAM
-    public static var formattedRAM: String {
+    static var formattedRAM: String {
         let bytes = ProcessInfo.processInfo.physicalMemory
         let gigabytes = Double(bytes) / 1_073_741_824.0
         return String(format: "%.0f GB Unified Memory", gigabytes.rounded())
@@ -56,7 +56,7 @@ public enum OnDeviceModelSupport {
 
     /// Checks if device hardware meets requirements for Apple Intelligence / on-device foundation models
     /// Requirements: 8GB+ RAM, Apple Neural Engine, A17 Pro / A18 / A19 / M-series chips.
-    public static var isSupported: Bool {
+    static var isSupported: Bool {
         let id = modelIdentifier.lowercased()
 
         // Explicitly unsupported generations (A16 or older, <8GB RAM)
@@ -97,12 +97,12 @@ public enum OnDeviceModelSupport {
 // MARK: - On-Device AI Provider
 
 @MainActor
-public struct OnDeviceLaterAIProvider: LaterAIProvider {
+struct OnDeviceLaterAIProvider: LaterAIProvider {
     private let fallback = DeterministicLaterAIProvider()
 
-    public init() {}
+    init() {}
 
-    public func respond(_ prompt: String) async throws -> AIAction {
+    func respond(_ prompt: String) async throws -> AIAction {
         // Ready for future integration with Apple Intelligence on-device model APIs
         return try await fallback.respond(prompt)
     }
@@ -110,65 +110,65 @@ public struct OnDeviceLaterAIProvider: LaterAIProvider {
 
 // MARK: - Provider Types
 
-public enum AIProviderType: String, CaseIterable, Identifiable, Codable {
+enum AIProviderType: String, CaseIterable, Identifiable, Codable {
     case local
     case onDevice
 
-    public var id: String { rawValue }
-    public var displayName: String {
+    var id: String { rawValue }
+    var displayName: String {
         switch self {
         case .local: return "Local responses"
         case .onDevice: return "On-Device Model"
         }
     }
-    public var shortName: String {
+    var shortName: String {
         switch self {
         case .local: return "Local"
         case .onDevice: return "On-Device"
         }
     }
-    public var subtitle: String {
+    var subtitle: String {
         switch self {
         case .local: return "Offline deterministic capture assistant"
         case .onDevice: return "Apple Intelligence on-device neural processing"
         }
     }
-    public var iconName: String {
+    var iconName: String {
         switch self {
         case .local: return "wand.and.stars"
         case .onDevice: return "cpu"
         }
     }
-    public var isCustomKey: Bool { false }
+    var isCustomKey: Bool { false }
 }
 
 // MARK: - Model Manager
 
 @MainActor
-public final class LaterAIModelManager: ObservableObject {
-    public static let shared = LaterAIModelManager()
+final class LaterAIModelManager: ObservableObject {
+    static let shared = LaterAIModelManager()
 
-    @Published public var selectedProvider: AIProviderType = .local
-    @Published public var enableSearchRefine: Bool = true
-    @Published public var isOnDeviceModelEnabled: Bool {
+    @Published var selectedProvider: AIProviderType = .local
+    @Published var enableSearchRefine: Bool = true
+    @Published var isOnDeviceModelEnabled: Bool {
         didSet {
             UserDefaults.standard.set(isOnDeviceModelEnabled, forKey: "laterbox_enable_on_device_model")
         }
     }
 
-    public var isOnDeviceModelSupported: Bool {
+    var isOnDeviceModelSupported: Bool {
         OnDeviceModelSupport.isSupported
     }
 
-    public var deviceMarketingName: String {
+    var deviceMarketingName: String {
         OnDeviceModelSupport.deviceMarketingName
     }
 
-    public var deviceHardwareSummary: String {
+    var deviceHardwareSummary: String {
         "\(OnDeviceModelSupport.deviceMarketingName) · \(OnDeviceModelSupport.formattedRAM)"
     }
 
-    public var supportStatusMessage: String {
+    var supportStatusMessage: String {
         if isOnDeviceModelSupported {
             return "This iPhone supports on-device Apple Intelligence and Neural Engine processing. AI tasks run locally with zero data leaving your device."
         } else {
@@ -176,7 +176,7 @@ public final class LaterAIModelManager: ObservableObject {
         }
     }
 
-    public var activeModelName: String {
+    var activeModelName: String {
         switch selectedProvider {
         case .local:
             return "Local assistant"
@@ -185,9 +185,9 @@ public final class LaterAIModelManager: ObservableObject {
         }
     }
 
-    public var canRefineSearch: Bool { true }
+    var canRefineSearch: Bool { true }
 
-    public init() {
+    init() {
         let isSupported = OnDeviceModelSupport.isSupported
         if UserDefaults.standard.object(forKey: "laterbox_enable_on_device_model") != nil {
             self.isOnDeviceModelEnabled = isSupported && UserDefaults.standard.bool(forKey: "laterbox_enable_on_device_model")
@@ -197,7 +197,7 @@ public final class LaterAIModelManager: ObservableObject {
         }
     }
 
-    public func activeProvider() -> any LaterAIProvider {
+    func activeProvider() -> any LaterAIProvider {
         switch selectedProvider {
         case .local:
             return DeterministicLaterAIProvider()
@@ -206,11 +206,11 @@ public final class LaterAIModelManager: ObservableObject {
         }
     }
 
-    public func interpretSearch(_ query: String) async throws -> SearchInterpretation {
+    func interpretSearch(_ query: String) async throws -> SearchInterpretation {
         SearchInterpretation(terms: query.trimmingCharacters(in: .whitespacesAndNewlines), contentType: "", returnWindow: "")
     }
 
-    public func testConnection(for provider: AIProviderType) async throws -> String {
+    func testConnection(for provider: AIProviderType) async throws -> String {
         switch provider {
         case .local:
             return "Local responses are available offline."
