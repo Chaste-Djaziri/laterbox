@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[Welcome / UI]** Update welcome page full-bleed background to the clean, high-resolution desk, coffee, and spiral notebook image across iOS and Web.
+
 - **[Auth / UI]** Update authentication full-page background across iOS and Web to the new desk workspace image featuring plant, book, notebook, and laptop.
 
 - **[iOS / Dev]** Add an in-app interactive Auth State Simulator and separate Xcode previews for every authentication step (email entry, sign-up password, sign-in password, code verification, and data sync).
