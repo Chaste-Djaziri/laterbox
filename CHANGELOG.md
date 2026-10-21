@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[iOS / UI]** Fix status bar styling on Welcome and Auth screens by binding dynamic color scheme to the root view hierarchy and triggering status bar appearance updates for pure white icons on dark onboarding backgrounds.
+
 - **[iOS / UI]** Set dark preferred color scheme on Welcome and Auth views so the system status bar (time, battery, Wi-Fi) renders in white.
 
 - **[iOS / Dev]** Restrict Auth State Simulator to Xcode Canvas Previews mode, keeping normal iOS simulator and device builds clean.
