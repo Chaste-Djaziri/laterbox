@@ -64,3 +64,7 @@ laterbox-extension/dist/
 
 # Wrangler local state
 .wrangler/
+
+# Generated local-development launch scheme; it contains the active LAN address
+# and local Supabase credentials.
+laterbox-ios/laterbox-ios.xcodeproj/xcshareddata/xcschemes/LaterBoxLocal.xcscheme
