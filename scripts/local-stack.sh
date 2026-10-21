@@ -138,7 +138,7 @@ start_stack() {
   host="$(detect_lan_host)"
   is_private_ipv4 "$host" || fail 'LATERBOX_LOCAL_HOST must be a private IPv4 address'
   docker compose --env-file "$COMPOSE_ENV" -f "$COMPOSE_FILE" up -d --wait minio
-  docker compose --env-file "$COMPOSE_ENV" -f "$COMPOSE_FILE" run --rm minio-bootstrap
+  docker compose --env-file "$COMPOSE_ENV" -f "$COMPOSE_FILE" run --build --rm minio-bootstrap
   npx supabase --workdir "$ROOT_DIR" start
   generate_runtime_config "$host"
   printf 'Local LaterBox services are ready on %s. Mailpit: http://%s:54324  MinIO: http://%s:9001\n' "$host" "$host" "$host"
