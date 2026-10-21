@@ -7,6 +7,17 @@
 
 import Foundation
 
+private enum LaterBoxRuntimeConfiguration {
+    static func value(for environmentKey: String, fallback: String) -> String {
+        #if DEBUG
+        let value = ProcessInfo.processInfo.environment[environmentKey]?.trimmingCharacters(in: .whitespacesAndNewlines)
+        return value?.isEmpty == false ? value! : fallback
+        #else
+        return fallback
+        #endif
+    }
+}
+
 public struct RemoteItemDTO: Codable {
     public let id: String
     public let user_id: String?
@@ -53,10 +64,10 @@ public nonisolated struct AccountBillingEntitlement: Decodable, Sendable {
 public actor LaterBoxAPIService {
     public static let shared = LaterBoxAPIService()
 
-    public let supabaseUrl = "https://ltjisrgldssqskcylcbj.supabase.co"
-    public let anonKey = "sb_publishable_Rc4e_ik2LE4SR0UrfX-OEQ_5Mu_lw9p"
-    public let webUrl = "https://laterbox.dev"
-    public let billingUrl = "https://app.laterbox.dev"
+    public let supabaseUrl = LaterBoxRuntimeConfiguration.value(for: "LATERBOX_SUPABASE_URL", fallback: "https://ltjisrgldssqskcylcbj.supabase.co")
+    public let anonKey = LaterBoxRuntimeConfiguration.value(for: "LATERBOX_SUPABASE_ANON_KEY", fallback: "sb_publishable_Rc4e_ik2LE4SR0UrfX-OEQ_5Mu_lw9p")
+    public let webUrl = LaterBoxRuntimeConfiguration.value(for: "LATERBOX_WEB_URL", fallback: "https://laterbox.dev")
+    public let billingUrl = LaterBoxRuntimeConfiguration.value(for: "LATERBOX_BILLING_URL", fallback: "https://app.laterbox.dev")
 
     private let session: URLSession
 
