@@ -67,6 +67,10 @@ A floating selection button saves quotes. During the Instagram trial, post butto
 
 Account mode shows Saved only after server acknowledgement. Local mode shows Saved locally only after extension storage succeeds; web import acknowledges after durable guest-library storage. Connected accounts can queue captures offline; Pending, an amber count, and a muted icon identify this state. Persistent account-scoped queues replay on connectivity, browser alarms, and popup opening. Another account cannot upload those captures. Approval resumes after popup closure or worker suspension, and exchange retries reuse the same scoped credential.
 
+### Authenticated local backend
+
+For account-mode testing against local Supabase, start the repository stack with `../scripts/local-stack.sh start`, serve Edge Functions in a second terminal with `../scripts/local-stack.sh functions`, and run the web app on port 8080 as described above. `build:*:local` continues to use the desktop loopback API endpoint, while the generated web configuration also exposes the same local backend through the printed LAN address for simulators and physical devices. Mail OTPs are available in local Mailpit at `http://LAN_IP:54324`; no hosted LaterBox, Supabase, or Cloudflare R2 credentials are used.
+
 Default capture shortcuts are **Option+Shift+S** (macOS) / **Alt+Shift+S** (Windows/Linux) for the page and **Option/Alt+Shift+H** for selected text. Side-panel opening has no default. The popup displays assigned shortcuts and flags unassigned commands. Remap at `chrome://extensions/shortcuts` or Firefox's Manage Extension Shortcuts. OS and extension conflicts can prevent assignment; see [Chrome Commands](https://developer.chrome.com/docs/extensions/reference/api/commands).
 
 Snapshots are limited to 200 KB of UTF-8 Markdown, 10 KB of exact quote, and 8 KB of source URL. Truncated snapshots show a warning in item details. Missing public metadata uses the existing enrichment endpoint; failures keep the local capture.
