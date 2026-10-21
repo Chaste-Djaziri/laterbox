@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[iOS / UI]** Redesign View Pro Plans modal on the Welcome screen with a liquid glass aesthetic, transparent background, frosted cards, and refined typography.
+
 - **[iOS / UI]** Resolve Sign in with Apple Auto Layout constraint conflict by capping maximum button width to adhere to Apple's internal 375pt limit on wider devices.
 
 - **[iOS / UI]** Fix status bar styling on Welcome and Auth screens by binding dynamic color scheme to the root view hierarchy and triggering status bar appearance updates for pure white icons on dark onboarding backgrounds.
