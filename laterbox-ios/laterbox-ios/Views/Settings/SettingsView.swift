@@ -15,6 +15,7 @@ public struct SettingsView: View {
     @ObservedObject var coordinator = SyncCoordinator.shared
     @ObservedObject private var lockManager = AppLockManager.shared
     @ObservedObject private var iconManager = AppIconManager.shared
+    @ObservedObject private var modelManager = LaterAIModelManager.shared
     @StateObject private var storageManager = LocalStorageManager.shared
     @State private var notificationStatus: UNAuthorizationStatus = .notDetermined
     @State private var showingSignOutAlert = false
@@ -208,7 +209,7 @@ public struct SettingsView: View {
                             groupedRow(
                                 icon: "sparkles",
                                 title: "AI Assistant",
-                                badge: coordinator.isProUser ? "Configured" : "Pro"
+                                badge: modelManager.isOnDeviceModelSupported ? (modelManager.isOnDeviceModelEnabled ? "On-Device" : "Local") : "Local"
                             )
                         }
                         .buttonStyle(.plain)
