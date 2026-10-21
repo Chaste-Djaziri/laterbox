@@ -23,10 +23,8 @@ struct StatusBarStyleModifier: ViewModifier {
             for scene in scenes {
                 for window in scene.windows {
                     window.overrideUserInterfaceStyle = style
-                    window.rootViewController?.setNeedsStatusBarAppearanceUpdate()
-                    window.rootViewController?.presentedViewController?.setNeedsStatusBarAppearanceUpdate()
-                    if let nav = window.rootViewController as? UINavigationController {
-                        nav.topViewController?.setNeedsStatusBarAppearanceUpdate()
+                    if let root = window.rootViewController {
+                        updateVC(root, style: style)
                     }
                 }
             }
@@ -36,6 +34,17 @@ struct StatusBarStyleModifier: ViewModifier {
             action()
         } else {
             DispatchQueue.main.async(execute: action)
+        }
+    }
+
+    private static func updateVC(_ vc: UIViewController, style: UIUserInterfaceStyle) {
+        vc.overrideUserInterfaceStyle = style
+        vc.setNeedsStatusBarAppearanceUpdate()
+        for child in vc.children {
+            updateVC(child, style: style)
+        }
+        if let presented = vc.presentedViewController {
+            updateVC(presented, style: style)
         }
     }
 }
