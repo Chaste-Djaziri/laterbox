@@ -74,6 +74,10 @@ struct ContentView: View {
         .alert("Sync failed", isPresented: $coordinator.showingSyncFailureAlert) {
             if coordinator.sessionExpired {
                 Button("Sign In") { coordinator.showingAuthSheet = true }
+                Button("Use Local (Sign Out)", role: .destructive) {
+                    coordinator.signOut()
+                    coordinator.continueAsGuest()
+                }
             }
             Button("Report issue") {
                 syncReportMessage = "Cloud sync failed on iOS.\n\nWhat I was doing:\n\nError details:\n" + String((coordinator.lastSyncErrorMessage ?? "Unknown sync error").prefix(3000))
