@@ -213,10 +213,6 @@ struct ShareChatMessage: Identifiable, Equatable {
             capture.siteName = siteName
         }
 
-        if let faviconUrl = analysis.faviconUrl, !faviconUrl.isEmpty {
-            capture.faviconUrl = faviconUrl
-        }
-
         // Inbuilt fallback enrichment worker for web links if needed
         if let detectedUrl, !analysis.isLinkEnriched {
             await enrichIfLink(detectedUrl)
