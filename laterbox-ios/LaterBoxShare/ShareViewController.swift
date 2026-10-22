@@ -58,13 +58,13 @@ struct ShareChatMessage: Identifiable, Equatable {
 
     init(context: NSExtensionContext?) { self.context = context }
 
-    static func webLink(in text: String) -> String? {
+    nonisolated static func webLink(in text: String) -> String? {
         guard let detector = try? NSDataDetector(types: NSTextCheckingResult.CheckingType.link.rawValue),
               let match = detector.firstMatch(in: text, range: NSRange(text.startIndex..., in: text)),
               let url = match.url, ["http", "https"].contains(url.scheme?.lowercased() ?? "") else { return nil }
         return url.absoluteString
     }
-    static func webLink(in data: Data) -> String? {
+    nonisolated static func webLink(in data: Data) -> String? {
         if let text = String(data: data, encoding: .utf8), let link = webLink(in: text) { return link }
         guard let plist = try? PropertyListSerialization.propertyList(from: data, format: nil),
               let dictionary = plist as? [String: Any],
