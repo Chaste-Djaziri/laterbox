@@ -1,7 +1,6 @@
 import SwiftUI
 
 public struct ShortcutsSettingsView: View {
-    @Environment(\.dismiss) private var dismiss
     @State private var showingQuickCaptureTest = false
     @State private var testSuccessMessage: String? = nil
 
@@ -14,33 +13,6 @@ public struct ShortcutsSettingsView: View {
 
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(spacing: 20) {
-                    // Header
-                    HStack {
-                        Button {
-                            dismiss()
-                            LBHaptic.light()
-                        } label: {
-                            Image(systemName: "arrow.left")
-                                .font(.system(size: 15, weight: .bold))
-                                .foregroundColor(AppTheme.textPrimary)
-                                .frame(width: 38, height: 38)
-                                .background(Color.black.opacity(0.04), in: Circle())
-                                .contentShape(Circle())
-                        }
-                        .buttonStyle(.plain)
-
-                        Spacer()
-
-                        Text("Control Center & Quick Save")
-                            .font(.system(size: 18, weight: .bold))
-                            .foregroundColor(AppTheme.textPrimary)
-
-                        Spacer()
-
-                        Color.clear.frame(width: 38, height: 38)
-                    }
-                    .padding(.top, 4)
-
                     // Hero Card
                     VStack(alignment: .leading, spacing: 12) {
                         HStack(spacing: 12) {
@@ -153,6 +125,8 @@ public struct ShortcutsSettingsView: View {
                 .padding(.bottom, 36)
             }
         }
+        .navigationTitle("Quick Save")
+        .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $showingQuickCaptureTest) {
             QuickCaptureSheet()
         }
