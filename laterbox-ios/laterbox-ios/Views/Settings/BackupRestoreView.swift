@@ -4,6 +4,7 @@ import UniformTypeIdentifiers
 import LocalAuthentication
 
 struct BackupRestoreView: View {
+    @Environment(\.dismiss) private var dismiss
     var recoveryOnly = false
     @Environment(\.modelContext) private var modelContext
     @State private var backupURL: URL?
@@ -139,6 +140,13 @@ struct BackupRestoreView: View {
                 Text(recoveryOnly ? "Restore Backup" : "Backup & Restore")
                     .font(.headline.weight(.bold))
                     .foregroundStyle(AppTheme.textPrimary)
+            }
+            if recoveryOnly {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Done") { dismiss() }
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(AppTheme.textPrimary)
+                }
             }
         }
         .navigationBarTitleDisplayMode(.inline)
