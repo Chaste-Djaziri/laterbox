@@ -48,6 +48,10 @@ struct ShareChatMessage: Identifiable, Equatable {
     @Published var error: String?
     @Published var needsReturnDate = false
     @Published var isBlankMode = false
+    @Published var aiEngineDisplayName = "Later AI"
+    @Published var aiEngineShortName = "Later AI"
+    @Published var aiSourceDescription = "Auto-filled by Later AI"
+    @Published var recommendedReturnDate: Date? = nil
 
     let context: NSExtensionContext?
 
@@ -146,6 +150,11 @@ struct ShareChatMessage: Identifiable, Equatable {
             }
         }
 
+        // 1. Read active AI settings configured by user in Settings
+        let aiSettings = SharedCaptureStore.loadAISettings()
+        aiEngineDisplayName = aiSettings.providerDisplayName
+        aiEngineShortName = aiSettings.providerShortName
+
         let isBlank = capture.title.isEmpty && capture.content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && capture.attachments.isEmpty
         isBlankMode = isBlank
 
@@ -156,15 +165,60 @@ struct ShareChatMessage: Identifiable, Equatable {
             return
         }
 
-        if capture.title.isEmpty {
+        // 2. Perform intelligent capture analysis with the chosen AI engine
+        let availableCollections = SharedCaptureStore.loadAvailableCollections()
+        let analysis = await LaterAISharedAnalyzer.analyze(
+            content: capture.content,
+            attachments: capture.attachments,
+            availableCollections: availableCollections,
+            settings: aiSettings
+        )
+
+        aiSourceDescription = analysis.sourceDescription
+
+        if let analyzedTitle = analysis.title, !analyzedTitle.isEmpty {
+            capture.title = analyzedTitle
+        } else if capture.title.isEmpty {
             capture.title = capture.attachments.first?.name ?? String(capture.content.trimmingCharacters(in: .whitespacesAndNewlines).prefix(100))
         }
-        if capture.content.isEmpty && !capture.title.isEmpty {
+
+        if let taskContent = analysis.formattedTaskContent, !taskContent.isEmpty {
+            capture.content = taskContent
+        } else if capture.content.isEmpty && !capture.title.isEmpty {
             capture.content = capture.title
         }
 
-        // Inbuilt enrichment worker for web links & video embeds
-        if let detectedUrl {
+        if let summary = analysis.summary, !summary.isEmpty {
+            capture.metadataDescription = summary
+        }
+
+        if let collection = analysis.collectionName, !collection.isEmpty {
+            capture.category = collection
+        }
+
+        if !analysis.tags.isEmpty {
+            capture.tags = analysis.tags
+        }
+
+        if let returnDate = analysis.returnAt {
+            capture.returnAt = returnDate
+            recommendedReturnDate = returnDate
+        }
+
+        if let previewImage = analysis.previewImageUrl, !previewImage.isEmpty, capture.previewImageUrl == nil {
+            capture.previewImageUrl = previewImage
+        }
+
+        if let siteName = analysis.siteName, !siteName.isEmpty, capture.siteName == nil {
+            capture.siteName = siteName
+        }
+
+        if let faviconUrl = analysis.faviconUrl, !faviconUrl.isEmpty {
+            capture.faviconUrl = faviconUrl
+        }
+
+        // Inbuilt fallback enrichment worker for web links if needed
+        if let detectedUrl, !analysis.isLinkEnriched {
             await enrichIfLink(detectedUrl)
         }
 
@@ -172,7 +226,13 @@ struct ShareChatMessage: Identifiable, Equatable {
         processLocalClassification()
 
         let tagSummary = capture.tags.isEmpty ? "" : " with tags " + capture.tags.prefix(3).map { "#\($0)" }.joined(separator: " ")
-        let question = "I've drafted ‘\(capture.title)’\(tagSummary). When would you like to see it again?"
+        let question: String
+        if let rec = recommendedReturnDate {
+            let recFormatted = rec.formatted(date: .abbreviated, time: .shortened)
+            question = "[\(aiSourceDescription)] Drafted ‘\(capture.title)’\(tagSummary). Suggested return: \(recFormatted). When would you like to see it again?"
+        } else {
+            question = "[\(aiSourceDescription)] Drafted ‘\(capture.title)’\(tagSummary). When would you like to see it again?"
+        }
         messages.append(ShareChatMessage(text: question, isUser: false))
         needsReturnDate = true
     }
@@ -430,18 +490,49 @@ struct ShareChatMessage: Identifiable, Equatable {
     func saveBlankItem(title: String, content: String, category: String, tags: [String], returnAt: Date?) async {
         let cleanContent = content.trimmingCharacters(in: .whitespacesAndNewlines)
         var cleanTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        let aiSettings = SharedCaptureStore.loadAISettings()
+        let availableCollections = SharedCaptureStore.loadAvailableCollections()
+        let analysis = await LaterAISharedAnalyzer.analyze(
+            content: cleanContent.isEmpty ? cleanTitle : cleanContent,
+            attachments: [],
+            availableCollections: availableCollections,
+            settings: aiSettings
+        )
+
         if cleanTitle.isEmpty {
-            if let firstLine = cleanContent.components(separatedBy: .newlines).first, !firstLine.isEmpty {
-                cleanTitle = String(firstLine.prefix(80))
-            } else {
-                cleanTitle = "Quick Note"
-            }
+            cleanTitle = analysis.title ?? "Quick Note"
         }
+
         capture.title = cleanTitle
-        capture.content = cleanContent.isEmpty ? cleanTitle : cleanContent
-        capture.category = category.isEmpty ? "Inbox" : category
-        capture.tags = tags
-        capture.returnAt = returnAt
+        if let formattedTask = analysis.formattedTaskContent, !formattedTask.isEmpty {
+            capture.content = formattedTask
+        } else {
+            capture.content = cleanContent.isEmpty ? cleanTitle : cleanContent
+        }
+
+        let chosenCategory: String
+        if category.isEmpty || category == "Inbox" {
+            chosenCategory = analysis.collectionName ?? "Inbox"
+        } else {
+            chosenCategory = category
+        }
+        capture.category = chosenCategory
+
+        var allTags = Set(tags)
+        for t in analysis.tags { allTags.insert(t) }
+        capture.tags = Array(allTags).sorted()
+
+        capture.returnAt = returnAt ?? analysis.returnAt
+        if let previewImage = analysis.previewImageUrl, !previewImage.isEmpty {
+            capture.previewImageUrl = previewImage
+        }
+        if let site = analysis.siteName, !site.isEmpty {
+            capture.siteName = site
+        }
+        if let desc = analysis.summary, !desc.isEmpty {
+            capture.metadataDescription = desc
+        }
 
         // Detect if link
         if let detector = try? NSDataDetector(types: NSTextCheckingResult.CheckingType.link.rawValue),
@@ -855,7 +946,7 @@ struct ShareCaptureView: View {
                         }
 
                         if model.loading {
-                            LaterAIThinkingIndicator(thinking: model.loading, statusText: "Preparing draft...")
+                            LaterAIThinkingIndicator(thinking: model.loading, statusText: "Analyzing with \(model.aiEngineDisplayName)...")
                         }
 
                         if let error = model.error {
@@ -1087,12 +1178,30 @@ struct ShareCaptureView: View {
         }
 
         if model.needsReturnDate {
-            var options: [LaterAIOptionItem] = [
+            var options: [LaterAIOptionItem] = []
+
+            if let recDate = model.recommendedReturnDate {
+                let recFormatted = recDate.formatted(date: .abbreviated, time: .shortened)
+                options.append(
+                    LaterAIOptionItem(
+                        title: "Recommended: \(recFormatted)",
+                        subtitle: "Deduced by \(model.aiEngineShortName)",
+                        icon: "sparkles",
+                        isPrimary: true
+                    ) {
+                        sendOptionReply("Recommended: \(recFormatted)") {
+                            Task { await model.scheduleAndSave(date: recDate, optionLabel: "Recommended: \(recFormatted)") }
+                        }
+                    }
+                )
+            }
+
+            options.append(contentsOf: [
                 LaterAIOptionItem(
                     title: "In 10 Minutes",
                     subtitle: "Quick return",
                     icon: "timer",
-                    isPrimary: true
+                    isPrimary: model.recommendedReturnDate == nil
                 ) {
                     let tenMin = Date().addingTimeInterval(600)
                     sendOptionReply("In 10 minutes") {
@@ -1161,7 +1270,7 @@ struct ShareCaptureView: View {
                 ) {
                     chooseReturnDate = true
                 }
-            ]
+            ])
 
             if model.saved {
                 options.append(
