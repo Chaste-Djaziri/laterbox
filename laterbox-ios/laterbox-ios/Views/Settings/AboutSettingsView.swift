@@ -21,6 +21,19 @@ struct AboutSettingsView: View {
                 VStack(spacing: 20) {
                     appIdentityCard
                     detailsCard
+                    NavigationLink(destination: CheckForUpdatesView()) {
+                        HStack {
+                            Label("Check for Updates", systemImage: "arrow.triangle.2.circlepath")
+                            Spacer()
+                            Text(AppVersion.currentVersion).font(.caption.monospaced())
+                            Image(systemName: "chevron.right")
+                        }
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(AppTheme.textPrimary)
+                        .padding(18)
+                        .liquidGlassCard(cornerRadius: 18)
+                    }
+                    .buttonStyle(.plain)
                     linksCard
                 }
                 .padding(20)
