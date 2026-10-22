@@ -7,7 +7,6 @@
 
 import SwiftUI
 import SwiftData
-import UniformTypeIdentifiers
 
 public struct StorageManagementView: View {
     @Environment(\.dismiss) private var dismiss
@@ -20,10 +19,6 @@ public struct StorageManagementView: View {
     @State private var showingClearKeptConfirm = false
     @State private var showingResolveDuplicatesConfirm = false
     @State private var showingClearCacheAlert = false
-    @State private var backupURL: URL?
-    @State private var showingBackupImporter = false
-    @State private var backupError: String?
-    @State private var pendingImport: URL?
     @State private var successBannerMessage: String? = nil
 
     public init() {}
@@ -138,41 +133,6 @@ public struct StorageManagementView: View {
                         .padding(18)
                         .liquidGlassCard(cornerRadius: 20)
 
-                        VStack(alignment: .leading, spacing: 14) {
-                            Text("BACKUP & RESTORE")
-                                .font(.caption.weight(.bold))
-                                .foregroundStyle(AppTheme.textSecondary)
-                            Text("Keep a copy of your library, including collections, reminders and locally available attachments. Works in guest mode.")
-                                .font(.caption)
-                                .foregroundStyle(AppTheme.textSecondary)
-                            Button {
-                                do {
-                                    backupURL = try LibraryBackup.export(context: modelContext)
-                                } catch { backupError = error.localizedDescription }
-                            } label: {
-                                Label("Prepare Library Backup", systemImage: "square.and.arrow.up")
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                            }
-                            if let backupURL {
-                                ShareLink(item: backupURL) {
-                                    Label("Share or Save Backup", systemImage: "square.and.arrow.up.on.square")
-                                        .frame(maxWidth: .infinity, alignment: .leading)
-                                }
-                            }
-                            Button {
-                                showingBackupImporter = true
-                            } label: {
-                                Label("Import Library Backup", systemImage: "square.and.arrow.down")
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                            }
-                            Text("Import adds missing items by ID. Existing records are not overwritten or deleted.")
-                                .font(.caption2)
-                                .foregroundStyle(AppTheme.textSecondary)
-                        }
-                        .buttonStyle(.plain)
-                        .padding(18)
-                        .liquidGlassCard(cornerRadius: 18)
-
                         // Clean-up Actions Section
                         VStack(alignment: .leading, spacing: 14) {
                             Text("RECLAIM SPACE & CLEANUP")
@@ -286,39 +246,6 @@ public struct StorageManagementView: View {
             .onAppear {
                 storageManager.refreshBreakdown()
                 storageManager.scanDuplicates(items: allItems)
-            }
-            .fileImporter(isPresented: $showingBackupImporter, allowedContentTypes: [.data, .json, .item]) { result in
-                switch result {
-                case .success(let url):
-                    pendingImport = url
-                case .failure(let error):
-                    backupError = error.localizedDescription
-                }
-            }
-            .confirmationDialog("Import library backup?", isPresented: Binding(
-                get: { pendingImport != nil },
-                set: { if !$0 { pendingImport = nil } }
-            )) {
-                Button("Merge Into Library") {
-                    guard let url = pendingImport else { return }
-                    pendingImport = nil
-                    do {
-                        let result = try LibraryBackup.importArchive(from: url, context: modelContext)
-                        triggerSuccessBanner("Imported \(result.items) items, \(result.collections) collections and \(result.attachments) attachments.")
-                        storageManager.refreshBreakdown()
-                    } catch { backupError = error.localizedDescription }
-                }
-                Button("Cancel", role: .cancel) { pendingImport = nil }
-            } message: {
-                Text("Only missing item IDs are imported. Your existing library stays unchanged.")
-            }
-            .alert("Backup & Restore", isPresented: Binding(
-                get: { backupError != nil },
-                set: { if !$0 { backupError = nil } }
-            )) {
-                Button("OK") { backupError = nil }
-            } message: {
-                Text(backupError ?? "")
             }
             // Confirmation: Empty Trash
             .confirmationDialog(
