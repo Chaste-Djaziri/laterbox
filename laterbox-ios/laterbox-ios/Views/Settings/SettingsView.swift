@@ -186,6 +186,17 @@ public struct SettingsView: View {
 
                         rowDivider
 
+                        NavigationLink(destination: BackupRestoreView()) {
+                            groupedRow(
+                                icon: "externaldrive",
+                                title: "Backup & Restore",
+                                badge: nil
+                            )
+                        }
+                        .buttonStyle(.plain)
+
+                        rowDivider
+
                         NavigationLink(destination: ShortcutsSettingsView()) {
                             groupedRow(
                                 icon: "plus.square.fill.on.square.fill",
