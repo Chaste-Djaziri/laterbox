@@ -17,6 +17,7 @@ public enum ItemContentType: String, Codable, CaseIterable {
     case image
     case file
     case note
+    case task
 
     public var systemIcon: String {
         switch self {
@@ -28,6 +29,7 @@ public enum ItemContentType: String, Codable, CaseIterable {
         case .file: return "paperclip"
         case .document: return "doc.fill"
         case .note: return "note.text"
+        case .task: return "checklist"
         }
     }
 }
