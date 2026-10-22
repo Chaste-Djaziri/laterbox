@@ -1092,6 +1092,10 @@ struct GuidedCaptureView: View {
             draft.contentType = ct
         }
 
+        if analysis.contentType == "task", let formatted = analysis.formattedTaskContent, !formatted.isEmpty {
+            draft.content = formatted
+        }
+
         if draft.tags.isEmpty && !analysis.tags.isEmpty {
             draft.tags = analysis.tags
         }
