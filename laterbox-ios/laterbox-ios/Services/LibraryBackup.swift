@@ -1,5 +1,7 @@
 import Foundation
 import SwiftData
+import CryptoKit
+import CommonCrypto
 
 // A versioned, portable JSON archive. Attachment bytes are stored as base64 by Codable.
 enum LibraryBackup {
@@ -117,8 +119,53 @@ enum LibraryBackup {
         }
     }
 
+    // Encrypted backups use PBKDF2-SHA256 and AES-256-GCM.
+    struct EncryptedArchive: Codable {
+        var format: String
+        var salt: Data
+        var rounds: Int
+        var sealed: Data
+    }
+
+    static func derivedKey(password: String, salt: Data, rounds: Int) throws -> SymmetricKey {
+        guard !password.isEmpty, rounds >= 100_000 && rounds <= 2_000_000 else {
+            throw BackupError.invalidArchive
+        }
+        var keyBytes = [UInt8](repeating: 0, count: 32)
+        let status = password.withCString { passwordBytes in
+            salt.withUnsafeBytes { saltBytes in
+                CCKeyDerivationPBKDF(CCPBKDFAlgorithm(kCCPBKDF2), passwordBytes,
+                                    password.utf8.count,
+                                    saltBytes.bindMemory(to: UInt8.self).baseAddress, salt.count,
+                                    CCPseudoRandomAlgorithm(kCCPRFHmacAlgSHA256),
+                                    UInt32(rounds), &keyBytes, keyBytes.count)
+            }
+        }
+        guard status == kCCSuccess else { throw BackupError.invalidArchive }
+        defer { keyBytes.withUnsafeMutableBytes { $0.initializeMemory(as: UInt8.self, repeating: 0) } }
+        return SymmetricKey(data: keyBytes)
+    }
+
+    static func encrypt(_ data: Data, password: String) throws -> Data {
+        guard password.count >= 8 else { throw BackupError.invalidArchive }
+        let salt = Data((0..<16).map { _ in UInt8.random(in: 0...255) })
+        let rounds = 250_000
+        let key = try derivedKey(password: password, salt: salt, rounds: rounds)
+        let sealed = try AES.GCM.seal(data, using: key)
+        let envelope = EncryptedArchive(format: "laterbox-encrypted-v1", salt: salt,
+                                        rounds: rounds, sealed: sealed.combined!)
+        return try JSONEncoder().encode(envelope)
+    }
+
+    static func decrypt(_ data: Data, password: String) throws -> Data {
+        guard let envelope = try? JSONDecoder().decode(EncryptedArchive.self, from: data),
+              envelope.format == "laterbox-encrypted-v1" else { throw BackupError.invalidArchive }
+        let key = try derivedKey(password: password, salt: envelope.salt, rounds: envelope.rounds)
+        return try AES.GCM.open(AES.GCM.SealedBox(combined: envelope.sealed), using: key)
+    }
+
     @MainActor
-    static func export(context: ModelContext) throws -> URL {
+    static func export(context: ModelContext, password: String) throws -> URL {
         let items = try context.fetch(FetchDescriptor<LBItem>())
         let collections = try context.fetch(FetchDescriptor<LBCollection>())
         let archive = Archive(version: 1, exportedAt: Date(),
@@ -126,15 +173,15 @@ enum LibraryBackup {
         let data = try JSONEncoder().encode(archive)
         let url = FileManager.default.temporaryDirectory
             .appendingPathComponent("LaterBox-Backup-\(Int(Date().timeIntervalSince1970)).laterbox")
-        try data.write(to: url, options: .atomic)
+        try encrypt(data, password: password).write(to: url, options: .atomic)
         return url
     }
 
     @MainActor
-    static func importArchive(from file: URL, context: ModelContext) throws -> Result {
+    static func importArchive(from file: URL, context: ModelContext, password: String) throws -> Result {
         let access = file.startAccessingSecurityScopedResource()
         defer { if access { file.stopAccessingSecurityScopedResource() } }
-        let data = try Data(contentsOf: file)
+        let data = try decrypt(Data(contentsOf: file), password: password)
         guard let archive = try? JSONDecoder().decode(Archive.self, from: data) else {
             throw BackupError.invalidArchive
         }
