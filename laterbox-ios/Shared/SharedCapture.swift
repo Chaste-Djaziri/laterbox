@@ -1,4 +1,5 @@
 import Foundation
+import AppIntents
 import UserNotifications
 import NaturalLanguage
 #if canImport(Darwin)
@@ -1399,3 +1400,31 @@ enum LaterAISharedAnalyzer {
     }
 }
 
+
+@available(iOS 18.0, *)
+enum QuickSaveControlDestination: String, AppEnum {
+    case quickSave
+
+    static var typeDisplayRepresentation = TypeDisplayRepresentation("LaterBox Screen")
+    static var caseDisplayRepresentations: [Self: DisplayRepresentation] = [
+        .quickSave: "Quick Save"
+    ]
+}
+
+@available(iOS 18.0, *)
+struct OpenQuickSaveControlIntent: OpenIntent {
+    static var title: LocalizedStringResource = "Open LaterBox Quick Save"
+
+    @Parameter(title: "Destination")
+    var target: QuickSaveControlDestination
+
+    init() {
+        target = .quickSave
+    }
+
+    func perform() async throws -> some IntentResult {
+        UserDefaults(suiteName: "group.pro.micorp.laterbox")?
+            .set(true, forKey: "openQuickSaveFromControl")
+        return .result()
+    }
+}

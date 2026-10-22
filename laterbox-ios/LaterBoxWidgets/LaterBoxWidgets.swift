@@ -25,15 +25,3 @@ struct LaterBoxQuickSaveControl: ControlWidget {
         .description("Open the Quick Save composer in LaterBox.")
     }
 }
-
-@available(iOS 18.0, *)
-struct OpenQuickSaveControlIntent: AppIntent {
-    static var title: LocalizedStringResource = "Open LaterBox Quick Save"
-    static var openAppWhenRun: Bool = true
-
-    func perform() async throws -> some IntentResult {
-        UserDefaults(suiteName: "group.pro.micorp.laterbox")?
-            .set(true, forKey: "openQuickSaveFromControl")
-        return .result()
-    }
-}
