@@ -148,11 +148,11 @@ public struct SettingsView: View {
 
                     // Group 2: Preferences & System
                     VStack(spacing: 0) {
-                        NavigationLink(destination: NotificationsSettingsView()) {
+                        NavigationLink(destination: AppIconSelectionView()) {
                             groupedRow(
-                                icon: "bell",
-                                title: "Notifications",
-                                badge: notificationStatusTitle
+                                icon: "paintpalette",
+                                title: "Appearance",
+                                badge: "\(AppIconManager.availableIcons.count) Icons"
                             )
                         }
                         .buttonStyle(.plain)
@@ -170,11 +170,11 @@ public struct SettingsView: View {
 
                         rowDivider
 
-                        NavigationLink(destination: AppIconSelectionView()) {
+                        NavigationLink(destination: SyncSettingsView()) {
                             groupedRow(
-                                icon: "paintpalette",
-                                title: "Appearance",
-                                badge: "\(AppIconManager.availableIcons.count) Icons"
+                                icon: "bolt.horizontal.icloud",
+                                title: "Sync",
+                                badge: coordinator.isAuthenticated ? coordinator.syncState.rawValue : "Local"
                             )
                         }
                         .buttonStyle(.plain)
