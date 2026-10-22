@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[iOS / Tasks]** Add task/to-do format support with on-device classification for shopping and action lists (bulleted, numbered, or checklists), and interactive checklist completion directly within item details.
+
 - **[iOS / AI]** Automatically enrich captured web links and leverage on-device Apple Intelligence NLP to pre-fill titles, notes, content types, smart collections, and interactive tags across all capture types.
 
 - **[iOS / UI]** Add a full graphical date and time picker with interactive calendar month grid, time selection, and quick time shortcut pills to step 3 return scheduling on the capture screen.
