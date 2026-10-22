@@ -40,6 +40,7 @@ public struct ItemDetailView: View {
     @State private var newTagInput: String = ""
     @State private var showingSchedulePicker: Bool = false
     @State private var scheduledDate: Date = Date().addingTimeInterval(86400)
+    @State private var newChecklistTaskText: String = ""
 
     public var isModal: Bool
 
@@ -126,10 +127,12 @@ public struct ItemDetailView: View {
                             aiSummaryCard
                         }
 
-                        // Captured Content / Full Article Text Viewer
+                        // Tasks / Captured Content / Full Article Text Viewer
                         let captured = item.textContent?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
                         let formatted = item.formattedContent.trimmingCharacters(in: .whitespacesAndNewlines)
-                        if (!captured.isEmpty && item.textSelector == nil) || !formatted.isEmpty {
+                        if item.parsedContentType == .task || isTaskChecklistContent(captured) {
+                            taskChecklistCard(content: captured)
+                        } else if (!captured.isEmpty && item.textSelector == nil) || !formatted.isEmpty {
                             RichCapturedContentViewer(
                                 title: "Captured Content",
                                 content: !captured.isEmpty ? captured : formatted,
@@ -752,6 +755,272 @@ public struct ItemDetailView: View {
                 .font(.system(size: 13, weight: .regular))
                 .foregroundColor(Color(hex: "45443F"))
                 .lineSpacing(3)
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.white)
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .strokeBorder(Color.black.opacity(0.06), lineWidth: 1)
+        )
+        .shadow(color: Color.black.opacity(0.03), radius: 6, y: 2)
+    }
+
+    // MARK: - 6. Tasks & To-Do Checklist Card
+    private struct ChecklistTaskItem: Identifiable {
+        let id = UUID()
+        let rawLineIndex: Int
+        var isDone: Bool
+        var text: String
+    }
+
+    private func isTaskChecklistContent(_ text: String) -> Bool {
+        let pattern = #"(?m)^[-*•+]?\s*\[[ xX]\]"#
+        return (try? NSRegularExpression(pattern: pattern).firstMatch(in: text, range: NSRange(location: 0, length: (text as NSString).length))) != nil
+    }
+
+    private func parseChecklistItems(from text: String) -> (prelude: [String], tasks: [ChecklistTaskItem]) {
+        let lines = text.components(separatedBy: .newlines)
+        var tasks: [ChecklistTaskItem] = []
+        var prelude: [String] = []
+
+        let checkboxRegex = try? NSRegularExpression(pattern: #"^[-*•+]?\s*\[([ xX])\]\s*(.*)$"#)
+
+        for (index, line) in lines.enumerated() {
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            guard !trimmed.isEmpty else { continue }
+            let fullRange = NSRange(location: 0, length: (trimmed as NSString).length)
+            if let match = checkboxRegex?.firstMatch(in: trimmed, range: fullRange), match.numberOfRanges >= 3 {
+                let mark = (trimmed as NSString).substring(with: match.range(at: 1))
+                let isDone = mark.lowercased() == "x"
+                let itemText = (trimmed as NSString).substring(with: match.range(at: 2)).trimmingCharacters(in: .whitespaces)
+                tasks.append(ChecklistTaskItem(rawLineIndex: index, isDone: isDone, text: itemText))
+            } else if tasks.isEmpty {
+                prelude.append(trimmed)
+            } else {
+                tasks.append(ChecklistTaskItem(rawLineIndex: index, isDone: false, text: trimmed))
+            }
+        }
+
+        // If no explicit checkboxes were found, but this item is marked as task format, parse lines into tasks
+        if tasks.isEmpty && item.parsedContentType == .task {
+            for (index, line) in lines.enumerated() {
+                let trimmed = line.trimmingCharacters(in: .whitespaces)
+                guard !trimmed.isEmpty else { continue }
+                let cleanText = trimmed.replacingOccurrences(of: #"^[-*•+]\s+|^\d+[\.\)]\s+"#, with: "", options: .regularExpression)
+                tasks.append(ChecklistTaskItem(rawLineIndex: index, isDone: false, text: cleanText))
+            }
+            prelude.removeAll()
+        }
+
+        return (prelude, tasks)
+    }
+
+    private func toggleChecklistTask(_ task: ChecklistTaskItem) {
+        var lines = (item.textContent ?? "").components(separatedBy: .newlines)
+        if task.rawLineIndex < lines.count {
+            let line = lines[task.rawLineIndex]
+            let checkboxRegex = try? NSRegularExpression(pattern: #"^([ \t]*[-*•+]?\s*\[)([ xX])(\]\s*.*)$"#)
+            let fullRange = NSRange(location: 0, length: (line as NSString).length)
+            if let match = checkboxRegex?.firstMatch(in: line, range: fullRange), match.numberOfRanges >= 4 {
+                let prefix = (line as NSString).substring(with: match.range(at: 1))
+                let suffix = (line as NSString).substring(with: match.range(at: 3))
+                let newMark = task.isDone ? " " : "x"
+                lines[task.rawLineIndex] = "\(prefix)\(newMark)\(suffix)"
+            } else {
+                let newMark = task.isDone ? "[ ]" : "[x]"
+                lines[task.rawLineIndex] = "- \(newMark) \(task.text)"
+            }
+        }
+        item.textContent = lines.joined(separator: "\n")
+        LBHaptic.medium()
+        persistEdit()
+    }
+
+    private func deleteChecklistTask(_ task: ChecklistTaskItem) {
+        var lines = (item.textContent ?? "").components(separatedBy: .newlines)
+        if task.rawLineIndex < lines.count {
+            lines.remove(at: task.rawLineIndex)
+            item.textContent = lines.joined(separator: "\n")
+            LBHaptic.light()
+            persistEdit()
+        }
+    }
+
+    private func addChecklistTask() {
+        let trimmed = newChecklistTaskText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+
+        let current = (item.textContent ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        let newLine = "- [ ] \(trimmed)"
+        if current.isEmpty {
+            item.textContent = newLine
+        } else {
+            item.textContent = current + "\n" + newLine
+        }
+        newChecklistTaskText = ""
+        LBHaptic.success()
+        persistEdit()
+    }
+
+    private func taskChecklistCard(content: String) -> some View {
+        let (prelude, tasks) = parseChecklistItems(from: content)
+        let completedCount = tasks.filter(\.isDone).count
+        let totalCount = tasks.count
+        let progress = totalCount > 0 ? Double(completedCount) / Double(totalCount) : 0.0
+
+        return VStack(alignment: .leading, spacing: 14) {
+            // Header
+            HStack(spacing: 8) {
+                HStack(spacing: 6) {
+                    Image(systemName: "checklist")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundColor(Color(hex: "0284C7"))
+                    Text("TASKS & TO-DO")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundColor(AppTheme.textPrimary)
+                        .tracking(0.6)
+                }
+
+                Spacer()
+
+                if totalCount > 0 {
+                    HStack(spacing: 5) {
+                        Text("\(completedCount)/\(totalCount)")
+                            .font(.system(size: 11, weight: .bold, design: .rounded))
+                            .foregroundColor(completedCount == totalCount ? Color(hex: "16A34A") : Color(hex: "0284C7"))
+
+                        if completedCount == totalCount && totalCount > 0 {
+                            Image(systemName: "checkmark.circle.fill")
+                                .font(.system(size: 12, weight: .bold))
+                                .foregroundColor(Color(hex: "16A34A"))
+                        }
+                    }
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(
+                        (completedCount == totalCount ? Color(hex: "DCFCE7") : Color(hex: "E0F2FE")),
+                        in: Capsule()
+                    )
+                }
+            }
+
+            // Progress bar if more than 1 task
+            if totalCount > 1 {
+                GeometryReader { geo in
+                    ZStack(alignment: .leading) {
+                        Capsule()
+                            .fill(Color.black.opacity(0.06))
+                            .frame(height: 5)
+
+                        Capsule()
+                            .fill(completedCount == totalCount ? Color(hex: "16A34A") : Color(hex: "0284C7"))
+                            .frame(width: max(geo.size.width * CGFloat(progress), 0), height: 5)
+                            .animation(.spring(response: 0.3, dampingFraction: 0.7), value: progress)
+                    }
+                }
+                .frame(height: 5)
+            }
+
+            // Prelude lines (e.g., intro notes or list title before tasks)
+            if !prelude.isEmpty {
+                VStack(alignment: .leading, spacing: 4) {
+                    ForEach(Array(prelude.enumerated()), id: \.offset) { _, line in
+                        Text(line)
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundColor(Color(hex: "45443F"))
+                    }
+                }
+                .padding(.bottom, 2)
+            }
+
+            // Tasks List
+            if !tasks.isEmpty {
+                VStack(spacing: 8) {
+                    ForEach(tasks) { task in
+                        HStack(alignment: .center, spacing: 10) {
+                            Button {
+                                toggleChecklistTask(task)
+                            } label: {
+                                Image(systemName: task.isDone ? "checkmark.circle.fill" : "circle")
+                                    .font(.system(size: 20, weight: .semibold))
+                                    .foregroundColor(task.isDone ? Color(hex: "16A34A") : Color.black.opacity(0.3))
+                                    .frame(width: 28, height: 28)
+                            }
+                            .buttonStyle(.plain)
+
+                            Text(task.text)
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundColor(task.isDone ? Color.secondary : AppTheme.textPrimary)
+                                .strikethrough(task.isDone, color: Color.secondary.opacity(0.7))
+                                .lineLimit(nil)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .contentShape(Rectangle())
+                                .onTapGesture {
+                                    toggleChecklistTask(task)
+                                }
+
+                            Button {
+                                deleteChecklistTask(task)
+                            } label: {
+                                Image(systemName: "xmark")
+                                    .font(.system(size: 11, weight: .semibold))
+                                    .foregroundColor(Color.black.opacity(0.25))
+                                    .frame(width: 24, height: 24)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                        .padding(.vertical, 4)
+                        .padding(.horizontal, 8)
+                        .background(
+                            task.isDone ? Color.black.opacity(0.02) : Color.clear,
+                            in: RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        )
+                    }
+                }
+            } else {
+                Text("No tasks added yet.")
+                    .font(.system(size: 13))
+                    .foregroundColor(.secondary)
+                    .padding(.vertical, 4)
+            }
+
+            // Add new task row
+            HStack(spacing: 8) {
+                Image(systemName: "plus")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(Color(hex: "0284C7"))
+
+                TextField("Add a new task or item...", text: $newChecklistTaskText)
+                    .font(.system(size: 13))
+                    .foregroundColor(AppTheme.textPrimary)
+                    .submitLabel(.done)
+                    .onSubmit {
+                        addChecklistTask()
+                    }
+
+                if !newChecklistTaskText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    Button {
+                        addChecklistTask()
+                    } label: {
+                        Text("Add")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 5)
+                            .background(Color(hex: "0284C7"), in: Capsule())
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 8)
+            .background(Color(hex: "F8FAFC"), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .strokeBorder(Color(hex: "E2E8F0"), lineWidth: 1)
+            )
         }
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
