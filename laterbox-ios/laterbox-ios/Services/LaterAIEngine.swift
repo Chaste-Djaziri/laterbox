@@ -1,4 +1,5 @@
 import Foundation
+import UniformTypeIdentifiers
 
 struct AIAction: Codable {
     var intent: String
@@ -40,13 +41,15 @@ struct CaptureDraft: Codable, Equatable {
     var type: ItemContentType {
         if let specified = ItemContentType(rawValue: contentType) { return specified }
         if let first = attachments.first {
+            let attachmentType = UTType(first.typeIdentifier)
+            if attachmentType?.conforms(to: .movie) == true { return .video }
+            if attachmentType?.conforms(to: .audio) == true { return .music }
+            if attachmentType?.conforms(to: .image) == true { return .image }
+            if attachmentType?.conforms(to: .pdf) == true ||
+               attachmentType?.conforms(to: .text) == true { return .document }
             let name = first.name.lowercased()
-            if name.hasSuffix(".jpg") || name.hasSuffix(".jpeg") || name.hasSuffix(".png") || name.hasSuffix(".heic") || name.hasSuffix(".webp") {
-                return .image
-            }
-            if name.hasSuffix(".pdf") || name.hasSuffix(".doc") || name.hasSuffix(".docx") {
-                return .document
-            }
+            if [".jpg", ".jpeg", ".png", ".heic", ".webp"].contains(where: name.hasSuffix) { return .image }
+            if [".pdf", ".doc", ".docx", ".txt"].contains(where: name.hasSuffix) { return .document }
             return .file
         }
         guard let url else { return .note }
@@ -63,6 +66,24 @@ struct CaptureDraft: Codable, Equatable {
               ["http", "https"].contains(url.scheme?.lowercased() ?? "") else { return nil }
         return url.absoluteString
     }
+    /// Normalize Share Extension and Shortcut payloads into the same capture model.
+    static func fromShared(_ capture: SharedCapture) -> CaptureDraft {
+        var draft = CaptureDraft()
+        draft.id = capture.id
+        draft.content = capture.content
+        draft.title = capture.title
+        draft.tags = capture.tags
+        draft.category = capture.category
+        let collection = capture.category.trimmingCharacters(in: .whitespacesAndNewlines)
+        draft.collectionName = collection.isEmpty ? nil : collection
+        draft.returnAt = capture.returnAt
+        draft.attachments = capture.attachments
+        draft.previewImageUrl = capture.previewImageUrl
+        draft.siteName = capture.siteName
+        draft.metadataDescription = capture.metadataDescription
+        return draft
+    }
+
     static func manual(_ content: String) -> CaptureDraft {
         var draft = CaptureDraft(content: content)
         draft.title = String(content.split(separator: "\n").first.map(String.init)?.prefix(100) ?? "".prefix(100))
