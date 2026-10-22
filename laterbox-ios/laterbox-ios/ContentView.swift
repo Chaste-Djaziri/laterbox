@@ -206,31 +206,27 @@ struct ContentView: View {
     }
     private var launchSplash: some View {
         ZStack {
-            Color(hex: "171711").ignoresSafeArea()
+            AppTheme.canvasBackground.ignoresSafeArea()
 
             VStack(spacing: 22) {
                 Image("LaterboxLogo")
                     .resizable()
                     .scaledToFit()
-                    .frame(width: 104, height: 104)
-                    .accessibilityHidden(true)
-
-                Text("LaterBox")
-                    .font(.system(size: 30, weight: .bold, design: .rounded))
-                    .foregroundStyle(Color(hex: "E6EDB0"))
+                    .frame(width: 290, height: 110)
+                    .accessibilityLabel("LaterBox")
 
                 ProgressView()
-                    .tint(Color(hex: "E6EDB0"))
+                    .tint(AppTheme.textPrimary)
                     .padding(.top, 14)
 
                 Text(launchStatus)
                     .font(.subheadline)
-                    .foregroundStyle(.white.opacity(0.65))
+                    .foregroundStyle(AppTheme.textSecondary)
                     .accessibilityAddTraits(.updatesFrequently)
             }
             .padding(28)
         }
-        .preferredColorScheme(.dark)
+        .preferredColorScheme(.light)
         .accessibilityElement(children: .combine)
     }
 
