@@ -65,6 +65,7 @@ public final class LBItem {
     public var status: String
     public var returnAt: Date?
     public var createdAt: Date
+    public var inboxEnteredAt: Date?
     public var updatedAt: Date
     
     // Enriched metadata fields
@@ -102,6 +103,7 @@ public final class LBItem {
         status: ItemStatus = .inbox,
         returnAt: Date? = nil,
         createdAt: Date = Date(),
+        inboxEnteredAt: Date? = nil,
         updatedAt: Date = Date(),
         domain: String? = nil,
         siteName: String? = nil,
@@ -126,6 +128,7 @@ public final class LBItem {
         self.status = status.rawValue
         self.returnAt = returnAt
         self.createdAt = createdAt
+        self.inboxEnteredAt = inboxEnteredAt ?? (status == .inbox ? createdAt : nil)
         self.updatedAt = updatedAt
         self.domain = domain
         self.siteName = siteName
