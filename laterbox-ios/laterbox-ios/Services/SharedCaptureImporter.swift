@@ -18,37 +18,12 @@ import UniformTypeIdentifiers
                         try context.save()
                     }
                 } else {
-                    let type: ItemContentType = capture.attachments.first.map { attachment in
-                        let type = UTType(attachment.typeIdentifier)
-                        if type?.conforms(to: .movie) == true { return .video }
-                        if type?.conforms(to: .audio) == true { return .music }
-                        if type?.conforms(to: .image) == true { return .image }
-                        if type?.conforms(to: .pdf) == true || type?.conforms(to: .text) == true { return .document }
-                        return .file
-                    } ?? (CaptureDraft.detectURL(capture.content) == nil ? .note : .link)
-                    let item = LBItem(id: id, title: capture.title, textContent: capture.content, type: type,
-                                      status: capture.returnAt.map { $0 > now ? .deferred : .inbox } ?? .inbox, returnAt: capture.returnAt)
-                    item.url = CaptureDraft.detectURL(capture.content)
-                    item.tags = capture.tags; item.category = capture.category
-                    if !capture.category.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                        let coll = SyncCoordinator.shared.ensureCollectionExists(named: capture.category, context: context)
-                        item.collectionName = coll?.name ?? capture.category
-                        item.collectionId = coll?.id
-                    }
-                    item.previewImageUrl = capture.previewImageUrl
-                    item.siteName = capture.siteName
-                    item.metadataDescription = capture.metadataDescription
-                    item.attachmentsData = try JSONEncoder().encode(capture.attachments)
-                    context.insert(item)
-                    do {
-                        try context.save()
-                        if item.returnAt != nil {
-                            Task { _ = try? await ReturnNotification.update(id: item.id, title: item.title, description: item.notificationDescription, date: item.returnAt) }
-                        }
-                        if item.url != nil {
-                            Task { await SyncCoordinator.shared.enrich(item: item, context: context) }
-                        }
-                    } catch { context.delete(item); throw error }
+                    // Share Extension and Shortcut imports go through the same
+                    // validation, type inference, persistence, and sync path as
+                    // the in-app composer. Keep the original capture id so
+                    // repeatedly processing the same share stays idempotent.
+                    let draft = CaptureDraft.fromShared(capture)
+                    _ = try SyncCoordinator.shared.saveDraft(draft, context: context)
                 }
                 try FileManager.default.removeItem(at: file)
             }
