@@ -4,8 +4,11 @@ struct AIModelSettingsView: View {
     @ObservedObject private var modelManager = LaterAIModelManager.shared
 
     @State private var testingProvider: AIProviderType? = nil
+    @State private var lastTestedProvider: AIProviderType? = nil
     @State private var testResultMessage: String? = nil
     @State private var isTestingSuccess: Bool = false
+    @State private var showMissingKeyAlert: Bool = false
+    @State private var missingKeyProvider: AIProviderType = .bazaarlink
 
     private let bazaarlinkModels = [
         ("qwen/qwen3.7-flash", "Qwen 3.7 Flash · 1M Context (Free)"),
@@ -18,6 +21,18 @@ struct AIModelSettingsView: View {
         ("gemini-2.5-flash", "Gemini 2.5 Flash"),
         ("gemini-3.5-flash-lite", "Gemini 3.5 Flash Lite"),
         ("gemini-3.8-flash", "Gemini 3.8 Flash")
+    ]
+
+    private let openaiModels = [
+        ("gpt-4o-mini", "GPT-4o Mini · Fast & Affordable"),
+        ("gpt-4o", "GPT-4o · Flagship Omni Intelligence"),
+        ("o3-mini", "o3-mini · Advanced Reasoning")
+    ]
+
+    private let claudeModels = [
+        ("claude-3-5-haiku-20241022", "Claude 3.5 Haiku · Fast & Capable"),
+        ("claude-3-5-sonnet-20241022", "Claude 3.5 Sonnet · Highest Quality"),
+        ("claude-3-7-sonnet", "Claude 3.7 Sonnet · Hybrid Reasoning")
     ]
 
     var body: some View {
@@ -130,36 +145,46 @@ struct AIModelSettingsView: View {
 
                         if modelManager.isOnDeviceModelSupported && modelManager.isOnDeviceModelEnabled {
                             engineOptionRow(
+                                provider: .onDevice,
                                 title: "On-Device Neural Engine",
                                 subtitle: "Apple Intelligence hardware · Zero data leaves device",
-                                icon: "cpu",
-                                isSelected: modelManager.selectedProvider == .onDevice,
-                                action: { modelManager.selectedProvider = .onDevice }
+                                icon: "cpu"
                             )
                         }
 
                         engineOptionRow(
+                            provider: .local,
                             title: "Local responses",
                             subtitle: "Deterministic offline rules · 100% private",
-                            icon: "wand.and.stars",
-                            isSelected: modelManager.selectedProvider == .local,
-                            action: { modelManager.selectedProvider = .local }
+                            icon: "wand.and.stars"
                         )
 
                         engineOptionRow(
+                            provider: .bazaarlink,
                             title: "BazaarLink (Free AI)",
-                            subtitle: "Qwen 3.7 Flash / DeepSeek V4 · No credit card required",
-                            icon: "bolt.shield.fill",
-                            isSelected: modelManager.selectedProvider == .bazaarlink,
-                            action: { modelManager.selectedProvider = .bazaarlink }
+                            subtitle: "Qwen 3.7 Flash / DeepSeek V4 · Requires free key",
+                            icon: "bolt.shield.fill"
                         )
 
                         engineOptionRow(
+                            provider: .gemini,
                             title: "Google Gemini",
-                            subtitle: "Google Gemini 2.5 / 3.5 Flash intelligence",
-                            icon: "sparkles",
-                            isSelected: modelManager.selectedProvider == .gemini,
-                            action: { modelManager.selectedProvider = .gemini }
+                            subtitle: "Google Gemini 2.5 / 3.5 Flash · Requires API key",
+                            icon: "sparkles"
+                        )
+
+                        engineOptionRow(
+                            provider: .openai,
+                            title: "OpenAI GPT",
+                            subtitle: "GPT-4o / GPT-4o-mini · Requires API key",
+                            icon: "brain.head.profile"
+                        )
+
+                        engineOptionRow(
+                            provider: .claude,
+                            title: "Anthropic Claude",
+                            subtitle: "Claude 3.5 Sonnet / Haiku · Requires API key",
+                            icon: "bubble.left.and.text.bubble.right.fill"
                         )
                     }
                     .padding(18)
@@ -178,7 +203,7 @@ struct AIModelSettingsView: View {
 
                             Spacer()
 
-                            Text("Free Tier")
+                            Text("Free Tier · Own Key")
                                 .font(.caption.bold())
                                 .foregroundColor(Color(hex: "0284C7"))
                                 .padding(.horizontal, 8)
@@ -257,7 +282,7 @@ struct AIModelSettingsView: View {
                             }
                         }
 
-                        if let testResultMessage, testingProvider == nil {
+                        if lastTestedProvider == .bazaarlink, let testResultMessage, testingProvider == nil {
                             Text(testResultMessage)
                                 .font(.caption.bold())
                                 .foregroundColor(isTestingSuccess ? Color(red: 22/255, green: 130/255, blue: 60/255) : Color(red: 220/255, green: 38/255, blue: 38/255))
@@ -280,7 +305,7 @@ struct AIModelSettingsView: View {
 
                             Spacer()
 
-                            Text("Gemini API")
+                            Text("Gemini API · Own Key")
                                 .font(.caption.bold())
                                 .foregroundColor(Color(hex: "4338CA"))
                                 .padding(.horizontal, 8)
@@ -288,7 +313,7 @@ struct AIModelSettingsView: View {
                                 .background(Color(hex: "EEF2FF"), in: Capsule())
                         }
 
-                        Text("Multimodal cloud intelligence for complex task and media reasoning.")
+                        Text("Multimodal cloud intelligence for complex task and media reasoning. Requires your Google AI Studio key.")
                             .font(.caption)
                             .foregroundColor(AppTheme.textSecondary)
 
@@ -359,7 +384,211 @@ struct AIModelSettingsView: View {
                             }
                         }
 
-                        if let testResultMessage, testingProvider == nil {
+                        if lastTestedProvider == .gemini, let testResultMessage, testingProvider == nil {
+                            Text(testResultMessage)
+                                .font(.caption.bold())
+                                .foregroundColor(isTestingSuccess ? Color(red: 22/255, green: 130/255, blue: 60/255) : Color(red: 220/255, green: 38/255, blue: 38/255))
+                                .padding(.top, 2)
+                        }
+                    }
+                    .padding(18)
+                    .background(AppTheme.cardBackground, in: RoundedRectangle(cornerRadius: 18))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 18)
+                            .strokeBorder(AppTheme.cardBorder, lineWidth: 1)
+                    )
+
+                    // MARK: - OpenAI GPT Configuration Card
+                    VStack(alignment: .leading, spacing: 14) {
+                        HStack {
+                            Label("OpenAI GPT", systemImage: "brain.head.profile")
+                                .font(.headline)
+                                .foregroundColor(AppTheme.textPrimary)
+
+                            Spacer()
+
+                            Text("OpenAI API · Own Key")
+                                .font(.caption.bold())
+                                .foregroundColor(Color(hex: "0F766E"))
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 3)
+                                .background(Color(hex: "CCFBF1"), in: Capsule())
+                        }
+
+                        Text("Industry-standard GPT-4o, GPT-4o Mini, and o3-mini models. Requires your OpenAI API key.")
+                            .font(.caption)
+                            .foregroundColor(AppTheme.textSecondary)
+
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("Model")
+                                .font(.caption.bold())
+                                .foregroundColor(AppTheme.textSecondary)
+
+                            Picker("Model", selection: $modelManager.openaiModel) {
+                                ForEach(openaiModels, id: \.0) { model in
+                                    Text(model.1).tag(model.0)
+                                }
+                            }
+                            .pickerStyle(.menu)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 4)
+                            .background(Color.black.opacity(0.04), in: RoundedRectangle(cornerRadius: 8))
+                        }
+
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("API Key (OPENAI_API_KEY)")
+                                .font(.caption.bold())
+                                .foregroundColor(AppTheme.textSecondary)
+
+                            HStack {
+                                SecureField("sk-...", text: $modelManager.openaiApiKey)
+                                    .font(.system(size: 14))
+
+                                if !modelManager.openaiApiKey.isEmpty {
+                                    Button {
+                                        modelManager.openaiApiKey = ""
+                                    } label: {
+                                        Image(systemName: "xmark.circle.fill")
+                                            .foregroundColor(.secondary)
+                                    }
+                                }
+                            }
+                            .padding(10)
+                            .background(Color.white, in: RoundedRectangle(cornerRadius: 10))
+                            .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Color.black.opacity(0.1), lineWidth: 1))
+                        }
+
+                        HStack(spacing: 12) {
+                            Button {
+                                runTest(for: .openai)
+                            } label: {
+                                HStack(spacing: 5) {
+                                    if testingProvider == .openai {
+                                        ProgressView().scaleEffect(0.8)
+                                    } else {
+                                        Image(systemName: "antenna.radiowaves.left.and.right")
+                                    }
+                                    Text("Test Connection")
+                                        .font(.system(size: 13, weight: .semibold))
+                                }
+                                .padding(.horizontal, 14)
+                                .padding(.vertical, 8)
+                                .background(Color.black, in: RoundedRectangle(cornerRadius: 8))
+                                .foregroundColor(.white)
+                            }
+                            .buttonStyle(.plain)
+                            .disabled(testingProvider != nil)
+
+                            Link(destination: URL(string: "https://platform.openai.com/api-keys")!) {
+                                Text("Get OpenAI Key ↗")
+                                    .font(.system(size: 13, weight: .semibold))
+                                    .foregroundColor(Color(hex: "0F766E"))
+                            }
+                        }
+
+                        if lastTestedProvider == .openai, let testResultMessage, testingProvider == nil {
+                            Text(testResultMessage)
+                                .font(.caption.bold())
+                                .foregroundColor(isTestingSuccess ? Color(red: 22/255, green: 130/255, blue: 60/255) : Color(red: 220/255, green: 38/255, blue: 38/255))
+                                .padding(.top, 2)
+                        }
+                    }
+                    .padding(18)
+                    .background(AppTheme.cardBackground, in: RoundedRectangle(cornerRadius: 18))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 18)
+                            .strokeBorder(AppTheme.cardBorder, lineWidth: 1)
+                    )
+
+                    // MARK: - Anthropic Claude Configuration Card
+                    VStack(alignment: .leading, spacing: 14) {
+                        HStack {
+                            Label("Anthropic Claude", systemImage: "bubble.left.and.text.bubble.right.fill")
+                                .font(.headline)
+                                .foregroundColor(AppTheme.textPrimary)
+
+                            Spacer()
+
+                            Text("Claude API · Own Key")
+                                .font(.caption.bold())
+                                .foregroundColor(Color(hex: "C2410C"))
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 3)
+                                .background(Color(hex: "FFEDD5"), in: Capsule())
+                        }
+
+                        Text("State-of-the-art Claude 3.5 Sonnet, 3.5 Haiku, and 3.7 Sonnet. Requires your Anthropic console key.")
+                            .font(.caption)
+                            .foregroundColor(AppTheme.textSecondary)
+
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("Model")
+                                .font(.caption.bold())
+                                .foregroundColor(AppTheme.textSecondary)
+
+                            Picker("Model", selection: $modelManager.claudeModel) {
+                                ForEach(claudeModels, id: \.0) { model in
+                                    Text(model.1).tag(model.0)
+                                }
+                            }
+                            .pickerStyle(.menu)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 4)
+                            .background(Color.black.opacity(0.04), in: RoundedRectangle(cornerRadius: 8))
+                        }
+
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("API Key (ANTHROPIC_API_KEY)")
+                                .font(.caption.bold())
+                                .foregroundColor(AppTheme.textSecondary)
+
+                            HStack {
+                                SecureField("sk-ant-...", text: $modelManager.claudeApiKey)
+                                    .font(.system(size: 14))
+
+                                if !modelManager.claudeApiKey.isEmpty {
+                                    Button {
+                                        modelManager.claudeApiKey = ""
+                                    } label: {
+                                        Image(systemName: "xmark.circle.fill")
+                                            .foregroundColor(.secondary)
+                                    }
+                                }
+                            }
+                            .padding(10)
+                            .background(Color.white, in: RoundedRectangle(cornerRadius: 10))
+                            .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Color.black.opacity(0.1), lineWidth: 1))
+                        }
+
+                        HStack(spacing: 12) {
+                            Button {
+                                runTest(for: .claude)
+                            } label: {
+                                HStack(spacing: 5) {
+                                    if testingProvider == .claude {
+                                        ProgressView().scaleEffect(0.8)
+                                    } else {
+                                        Image(systemName: "antenna.radiowaves.left.and.right")
+                                    }
+                                    Text("Test Connection")
+                                        .font(.system(size: 13, weight: .semibold))
+                                }
+                                .padding(.horizontal, 14)
+                                .padding(.vertical, 8)
+                                .background(Color.black, in: RoundedRectangle(cornerRadius: 8))
+                                .foregroundColor(.white)
+                            }
+                            .buttonStyle(.plain)
+                            .disabled(testingProvider != nil)
+
+                            Link(destination: URL(string: "https://console.anthropic.com/settings/keys")!) {
+                                Text("Get Claude Key ↗")
+                                    .font(.system(size: 13, weight: .semibold))
+                                    .foregroundColor(Color(hex: "C2410C"))
+                            }
+                        }
+
+                        if lastTestedProvider == .claude, let testResultMessage, testingProvider == nil {
                             Text(testResultMessage)
                                 .font(.caption.bold())
                                 .foregroundColor(isTestingSuccess ? Color(red: 22/255, green: 130/255, blue: 60/255) : Color(red: 220/255, green: 38/255, blue: 38/255))
@@ -397,10 +626,28 @@ struct AIModelSettingsView: View {
         }
         .navigationTitle("Later AI Models")
         .navigationBarTitleDisplayMode(.inline)
+        .alert("API Key Required", isPresented: $showMissingKeyAlert) {
+            Button("Configure Key") {
+                modelManager.selectedProvider = missingKeyProvider
+            }
+            Button("Cancel", role: .cancel) { }
+        } message: {
+            Text("To activate \(missingKeyProvider.displayName), please enter your own API key in the configuration section below.\n\nOn-Device Model and Local responses are always free and work completely offline without an API key.")
+        }
+    }
+
+    private func handleSelectProvider(_ provider: AIProviderType) {
+        if provider.isCustomKey && !modelManager.hasApiKey(for: provider) {
+            missingKeyProvider = provider
+            showMissingKeyAlert = true
+        } else {
+            modelManager.selectedProvider = provider
+        }
     }
 
     private func runTest(for provider: AIProviderType) {
         testingProvider = provider
+        lastTestedProvider = provider
         testResultMessage = nil
         Task {
             do {
@@ -420,18 +667,45 @@ struct AIModelSettingsView: View {
         }
     }
 
-    private func engineOptionRow(title: String, subtitle: String, icon: String, isSelected: Bool, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
+    private func engineOptionRow(provider: AIProviderType, title: String, subtitle: String, icon: String) -> some View {
+        let isSelected = modelManager.selectedProvider == provider
+        let hasKey = modelManager.hasApiKey(for: provider)
+
+        return Button {
+            handleSelectProvider(provider)
+        } label: {
             HStack(spacing: 12) {
                 Image(systemName: icon)
                     .frame(width: 38, height: 38)
                     .background(isSelected ? AppTheme.accent : Color.black.opacity(0.05), in: Circle())
                     .foregroundColor(.black)
 
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(title)
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundColor(AppTheme.textPrimary)
+                VStack(alignment: .leading, spacing: 3) {
+                    HStack(spacing: 6) {
+                        Text(title)
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundColor(AppTheme.textPrimary)
+
+                        if provider.isCustomKey {
+                            Text(hasKey ? "Key Set" : "Key Required")
+                                .font(.system(size: 10, weight: .bold))
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(
+                                    Capsule()
+                                        .fill(hasKey ? Color.green.opacity(0.12) : Color.orange.opacity(0.15))
+                                )
+                                .foregroundColor(hasKey ? Color(red: 22/255, green: 130/255, blue: 60/255) : Color.orange)
+                        } else {
+                            Text("Offline")
+                                .font(.system(size: 10, weight: .bold))
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(Capsule().fill(Color.black.opacity(0.06)))
+                                .foregroundColor(AppTheme.textSecondary)
+                        }
+                    }
+
                     Text(subtitle)
                         .font(.caption)
                         .foregroundColor(AppTheme.textSecondary)
