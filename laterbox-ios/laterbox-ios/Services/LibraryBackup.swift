@@ -6,19 +6,19 @@ import CommonCrypto
 
 // A versioned, portable JSON archive. Attachment bytes are stored as base64 by Codable.
 enum LibraryBackup {
-    struct Archive: Codable {
+    nonisolated struct Archive: Codable, Sendable {
         var version: Int
         var exportedAt: Date
         var items: [Item]
         var collections: [Collection]
     }
 
-    struct Attachment: Codable {
+    nonisolated struct Attachment: Codable, Sendable {
         var metadata: SharedAttachment
         var bytes: Data?
     }
 
-    struct Item: Codable {
+    nonisolated struct Item: Codable, Sendable {
         var id: String
         var url: String?
         var title: String
@@ -86,7 +86,7 @@ enum LibraryBackup {
         }
     }
 
-    struct Collection: Codable {
+    nonisolated struct Collection: Codable, Sendable {
         var id: String
         var name: String
         var colorHex: String
@@ -123,14 +123,14 @@ enum LibraryBackup {
     }
 
     // Encrypted backups use PBKDF2-SHA256 and AES-256-GCM.
-    struct EncryptedArchive: Codable {
+    nonisolated struct EncryptedArchive: Codable, Sendable {
         var format: String
         var salt: Data
         var rounds: Int
         var sealed: Data
     }
 
-    static func derivedKey(password: String, salt: Data, rounds: Int) throws -> SymmetricKey {
+    nonisolated static func derivedKey(password: String, salt: Data, rounds: Int) throws -> SymmetricKey {
         guard !password.isEmpty, rounds >= 100_000 && rounds <= 2_000_000 else {
             throw BackupError.invalidArchive
         }
@@ -149,7 +149,7 @@ enum LibraryBackup {
         return SymmetricKey(data: keyBytes)
     }
 
-    static func encrypt(_ data: Data, password: String) throws -> Data {
+    nonisolated static func encrypt(_ data: Data, password: String) throws -> Data {
         guard password.count >= 8 else { throw BackupError.invalidArchive }
         let salt = Data((0..<16).map { _ in UInt8.random(in: 0...255) })
         let rounds = 250_000
@@ -160,11 +160,62 @@ enum LibraryBackup {
         return try JSONEncoder().encode(envelope)
     }
 
-    static func decrypt(_ data: Data, password: String) throws -> Data {
+    nonisolated static func decrypt(_ data: Data, password: String) throws -> Data {
         guard let envelope = try? JSONDecoder().decode(EncryptedArchive.self, from: data),
               envelope.format == "laterbox-encrypted-v1" else { throw BackupError.invalidArchive }
         let key = try derivedKey(password: password, salt: envelope.salt, rounds: envelope.rounds)
         return try AES.GCM.open(AES.GCM.SealedBox(combined: envelope.sealed), using: key)
+    }
+
+    struct ImportPreview {
+        let total: Int
+        let newItems: Int
+        let conflicts: [(id: String, title: String)]
+    }
+
+    @MainActor
+    static func inspectImport(from file: URL, password: String, context: ModelContext) async throws -> ImportPreview {
+        let archive = try await Task.detached(priority: .userInitiated) {
+            let access = file.startAccessingSecurityScopedResource()
+            defer { if access { file.stopAccessingSecurityScopedResource() } }
+            let data = try decrypt(Data(contentsOf: file), password: password)
+            return try JSONDecoder().decode(Archive.self, from: data)
+        }.value
+        guard archive.version == 1 else { throw BackupError.unsupportedVersion }
+        let ids = Set(try context.fetch(FetchDescriptor<LBItem>()).map(\.id))
+        let conflicts = archive.items.filter { ids.contains($0.id) }
+            .map { (id: $0.id, title: $0.title) }
+        return ImportPreview(total: archive.items.count,
+                             newItems: archive.items.count - conflicts.count,
+                             conflicts: conflicts)
+    }
+
+    @MainActor
+    static func exportAsync(context: ModelContext, password: String,
+                            progress: @escaping @MainActor (Double) -> Void) async throws -> URL {
+        let items = try context.fetch(FetchDescriptor<LBItem>())
+        let collections = try context.fetch(FetchDescriptor<LBCollection>())
+        var records: [Item] = []
+        for (index, item) in items.enumerated() {
+            records.append(Item(item))
+            if index % 10 == 0 {
+                progress(Double(index + 1) / Double(max(items.count, 1)) * 0.7)
+                await Task.yield()
+            }
+        }
+        let archive = Archive(version: 1, exportedAt: Date(), items: records,
+                              collections: collections.map(Collection.init))
+        progress(0.75)
+        let url = try await Task.detached(priority: .userInitiated) {
+            let encoded = try JSONEncoder().encode(archive)
+            let encrypted = try encrypt(encoded, password: password)
+            let destination = FileManager.default.temporaryDirectory
+                .appendingPathComponent("LaterBox-Backup-\\(Int(Date().timeIntervalSince1970)).laterbox")
+            try encrypted.write(to: destination, options: .atomic)
+            return destination
+        }.value
+        progress(1)
+        return url
     }
 
     @MainActor
@@ -181,7 +232,7 @@ enum LibraryBackup {
     }
 
     @MainActor
-    static func importArchive(from file: URL, context: ModelContext, password: String) throws -> Result {
+    static func importArchive(from file: URL, context: ModelContext, password: String, replaceIDs: Set<String> = []) throws -> Result {
         let access = file.startAccessingSecurityScopedResource()
         defer { if access { file.stopAccessingSecurityScopedResource() } }
         let data = try decrypt(Data(contentsOf: file), password: password)
@@ -219,9 +270,13 @@ enum LibraryBackup {
         }
 
         for entry in archive.items {
-            guard !itemIDs.contains(entry.id) else {
-                result.skipped += 1
-                continue
+            if itemIDs.contains(entry.id) {
+                guard replaceIDs.contains(entry.id),
+                      let existing = existingItems.first(where: { $0.id == entry.id }) else {
+                    result.skipped += 1
+                    continue
+                }
+                context.delete(existing)
             }
             guard ItemStatus(rawValue: entry.status) != nil, ItemContentType(rawValue: entry.type) != nil else {
                 result.skipped += 1
