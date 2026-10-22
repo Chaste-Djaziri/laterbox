@@ -65,6 +65,26 @@ struct ShareChatMessage: Identifiable, Equatable {
         var detectedUrl: String?
         for item in context?.inputItems as? [NSExtensionItem] ?? [] {
             for provider in item.attachments ?? [] {
+                // YouTube and other apps can provide a URL as plain text data.
+                // Prefer extracting that link before handling file representations.
+                if let linkType = provider.registeredTypeIdentifiers.first(where: {
+                    guard let type = UTType($0) else { return false }
+                    return type.conforms(to: .url) || type.conforms(to: .text)
+                }) {
+                    let sharedData: Data? = await withCheckedContinuation { continuation in
+                        provider.loadDataRepresentation(forTypeIdentifier: linkType) { data, _ in
+                            continuation.resume(returning: data)
+                        }
+                    }
+                    if let sharedData, let text = String(data: sharedData, encoding: .utf8),
+                       let detector = try? NSDataDetector(types: NSTextCheckingResult.CheckingType.link.rawValue),
+                       let match = detector.firstMatch(in: text, range: NSRange(text.startIndex..., in: text)),
+                       let url = match.url, ["http", "https"].contains(url.scheme?.lowercased() ?? "") {
+                        detectedUrl = url.absoluteString
+                        capture.content += url.absoluteString + "\n"
+                        continue
+                    }
+                }
                 // Some share sources expose images only as data, while their
                 // URL representation is just a filename. Capture the bytes
                 // first so the item receives a real attachment and can sync
