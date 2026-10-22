@@ -244,6 +244,17 @@ public struct SettingsView: View {
                             )
                         }
                         .buttonStyle(.plain)
+
+                        rowDivider
+
+                        NavigationLink(destination: AboutSettingsView()) {
+                            groupedRow(
+                                icon: "info.circle",
+                                title: "About",
+                                badge: AppVersion.currentVersion
+                            )
+                        }
+                        .buttonStyle(.plain)
                     }
                     .liquidGlassCard(cornerRadius: 18)
 
