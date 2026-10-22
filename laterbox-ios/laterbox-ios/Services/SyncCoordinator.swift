@@ -605,6 +605,22 @@ public final class SyncCoordinator: ObservableObject {
         LBHaptic.light()
     }
 
+    /// Dismiss a return reminder without deleting the saved content.
+    /// The item remains recoverable from Archive.
+    public func dismissReturn(item: LBItem, context: ModelContext) {
+        guard item.status == ItemStatus.deferred.rawValue else { return }
+        item.status = ItemStatus.archived.rawValue
+        item.returnAt = nil
+        item.updatedAt = Date()
+        item.isSyncPending = true
+        do {
+            try context.save()
+            UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [item.id])
+            Task { await syncPendingItems(context: context) }
+        } catch { context.rollback() }
+        LBHaptic.light()
+    }
+
     public func scheduleItem(item: LBItem, date: Date, context: ModelContext) {
         item.status = ItemStatus.deferred.rawValue
         item.returnAt = date
