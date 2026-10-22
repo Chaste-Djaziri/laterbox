@@ -161,9 +161,9 @@ public struct SettingsView: View {
 
                         NavigationLink(destination: SecuritySettingsView()) {
                             groupedRow(
-                                icon: "lock.shield",
-                                title: "Security",
-                                badge: lockManager.isAppLockEnabled ? "On" : "Off"
+                                icon: "hand.raised",
+                                title: "Privacy",
+                                badge: lockManager.isAppLockEnabled ? "App Lock On" : nil
                             )
                         }
                         .buttonStyle(.plain)
