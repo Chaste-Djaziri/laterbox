@@ -357,6 +357,7 @@ public struct ItemDetailView: View {
                 LBHaptic.medium()
             } else {
                 item.status = ItemStatus.inbox.rawValue
+                item.inboxEnteredAt = Date()
                 persistEdit()
                 Task { await coordinator.syncPendingItems(context: modelContext) }
                 LBHaptic.light()
@@ -411,8 +412,8 @@ public struct ItemDetailView: View {
                     .font(.system(size: 12, weight: .bold))
                     .foregroundStyle(AppTheme.textPrimary)
                 HStack(spacing: 3) {
-                    Text("Saved")
-                    Text(item.createdAt, style: .relative)
+                    Text("In Inbox for")
+                    Text(item.inboxEnteredAt ?? item.createdAt, style: .relative)
                 }
                 .font(.system(size: 11))
                 .foregroundStyle(.secondary)
@@ -473,6 +474,7 @@ public struct ItemDetailView: View {
             Button {
                 item.returnAt = nil
                 item.status = ItemStatus.inbox.rawValue
+                item.inboxEnteredAt = Date()
                 persistEdit()
                 Task {
                     _ = try? await ReturnNotification.update(id: item.id, title: item.title, date: nil)
@@ -1499,6 +1501,7 @@ public struct ItemDetailView: View {
             },
             onUnsnooze: {
                 item.status = ItemStatus.inbox.rawValue
+                item.inboxEnteredAt = Date()
                 item.returnAt = nil
                 persistEdit()
                 Task { await coordinator.syncPendingItems(context: modelContext) }
