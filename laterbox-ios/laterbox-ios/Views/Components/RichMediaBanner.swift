@@ -206,6 +206,29 @@ public struct RichMediaBanner: View {
                 }
                 .padding(.horizontal, 16)
 
+            case .task:
+                LinearGradient(
+                    colors: [Color(hex: "0284C7").opacity(0.85), Color(hex: "0F172A")],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+                HStack(spacing: 12) {
+                    Image(systemName: "checklist")
+                        .font(.system(size: 24, weight: .bold))
+                        .foregroundColor(Color(hex: "38BDF8"))
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Task / To-Do")
+                            .font(.caption2.weight(.bold))
+                            .foregroundColor(.white.opacity(0.75))
+                        Text(title)
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundColor(.white)
+                            .lineLimit(1)
+                    }
+                    Spacer()
+                }
+                .padding(.horizontal, 16)
+
             case .document, .image, .file:
                 LinearGradient(
                     colors: [Color(red: 225/255, green: 29/255, blue: 72/255).opacity(0.75), Color(red: 24/255, green: 24/255, blue: 27/255)],
