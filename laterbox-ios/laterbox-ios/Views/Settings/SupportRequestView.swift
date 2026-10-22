@@ -67,6 +67,8 @@ struct SupportRequestView: View {
         .disabled(sending)
         .scrollContentBackground(.hidden)
         .background(AppTheme.background)
+        .scrollContentBackground(.hidden)
+        .background(AppTheme.canvasBackground.ignoresSafeArea())
         .navigationTitle("Help & Report a Problem")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(.visible, for: .navigationBar)

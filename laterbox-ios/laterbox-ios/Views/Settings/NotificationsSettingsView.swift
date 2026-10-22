@@ -19,9 +19,9 @@ public struct NotificationsSettingsView: View {
 
     public var body: some View {
         ZStack {
-            LiquidGlassBackground()
+            AppTheme.canvasBackground.ignoresSafeArea()
 
-            ScrollView {
+            ScrollView(showsIndicators: false) {
                 VStack(spacing: 20) {
                     // Header Status Card
                     VStack(spacing: 12) {
@@ -46,14 +46,15 @@ public struct NotificationsSettingsView: View {
                         }
                     }
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 8)
+                    .padding(.vertical, 26)
+                    .padding(.horizontal, 18)
+                    .liquidGlassCard(cornerRadius: 22)
 
                     // Permission & Control Card
                     VStack(alignment: .leading, spacing: 14) {
                         Text("Notification Permissions")
-                            .font(.caption.weight(.bold))
-                            .foregroundColor(.secondary)
-                            .textCase(.uppercase)
+                            .font(.headline)
+                            .foregroundStyle(AppTheme.textPrimary)
 
                         VStack(spacing: 12) {
                             HStack {
@@ -214,9 +215,8 @@ public struct NotificationsSettingsView: View {
                     // Quiet Resurfacing Information
                     VStack(alignment: .leading, spacing: 10) {
                         Text("Quiet Utility Design")
-                            .font(.caption.weight(.bold))
-                            .foregroundColor(.secondary)
-                            .textCase(.uppercase)
+                            .font(.headline)
+                            .foregroundStyle(AppTheme.textPrimary)
 
                         VStack(alignment: .leading, spacing: 8) {
                             Text("LaterBox is built as a quiet utility. You will only receive a notification when an item you explicitly scheduled is ready to return to your inbox.")

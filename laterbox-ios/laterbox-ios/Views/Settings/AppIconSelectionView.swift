@@ -13,12 +13,20 @@ public struct AppIconSelectionView: View {
 
     public var body: some View {
         ZStack {
-            LiquidGlassBackground()
-            ScrollView {
+            AppTheme.canvasBackground.ignoresSafeArea()
+            ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 20) {
-                    Text("Choose the icon for your home screen.")
-                        .font(.subheadline)
-                        .foregroundStyle(AppTheme.textSecondary)
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Make LaterBox yours")
+                            .font(.headline)
+                            .foregroundStyle(AppTheme.textPrimary)
+                        Text("Choose the icon for your home screen.")
+                            .font(.subheadline)
+                            .foregroundStyle(AppTheme.textSecondary)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(18)
+                    .liquidGlassCard(cornerRadius: 20)
 
                     if !coordinator.isProUser {
                         Button {

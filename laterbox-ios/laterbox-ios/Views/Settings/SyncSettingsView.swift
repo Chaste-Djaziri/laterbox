@@ -18,9 +18,9 @@ public struct SyncSettingsView: View {
 
     public var body: some View {
         ZStack {
-            LiquidGlassBackground()
+            AppTheme.canvasBackground.ignoresSafeArea()
 
-            ScrollView {
+            ScrollView(showsIndicators: false) {
                 VStack(spacing: 20) {
                     // Header Status Card
                     VStack(spacing: 12) {
@@ -45,14 +45,15 @@ public struct SyncSettingsView: View {
                         }
                     }
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 8)
+                    .padding(.vertical, 26)
+                    .padding(.horizontal, 18)
+                    .liquidGlassCard(cornerRadius: 22)
 
                     // Live Diagnostics Card
                     VStack(alignment: .leading, spacing: 14) {
                         Text("Sync Metrics & Health")
-                            .font(.caption.weight(.bold))
-                            .foregroundColor(.secondary)
-                            .textCase(.uppercase)
+                            .font(.headline)
+                            .foregroundStyle(AppTheme.textPrimary)
 
                         VStack(spacing: 12) {
                             HStack {
@@ -188,9 +189,8 @@ public struct SyncSettingsView: View {
                     // Actions Card
                     VStack(alignment: .leading, spacing: 12) {
                         Text("Actions")
-                            .font(.caption.weight(.bold))
-                            .foregroundColor(.secondary)
-                            .textCase(.uppercase)
+                            .font(.headline)
+                            .foregroundStyle(AppTheme.textPrimary)
 
                         if coordinator.hasCloudPro {
                             // 1. Separate Pull Changes
@@ -319,9 +319,8 @@ public struct SyncSettingsView: View {
                     // Explanatory Info Card
                     VStack(alignment: .leading, spacing: 10) {
                         Text("About Multi-Device Sync")
-                            .font(.caption.weight(.bold))
-                            .foregroundColor(.secondary)
-                            .textCase(.uppercase)
+                            .font(.headline)
+                            .foregroundStyle(AppTheme.textPrimary)
 
                         VStack(alignment: .leading, spacing: 8) {
                             Text("When Pro is active, changes made in your iOS app, Chrome extension, Safari extension, and web browser are synchronized instantaneously.")

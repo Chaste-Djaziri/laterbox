@@ -20,9 +20,9 @@ public struct SecuritySettingsView: View {
 
     public var body: some View {
         ZStack {
-            LiquidGlassBackground()
+            AppTheme.canvasBackground.ignoresSafeArea()
 
-            ScrollView {
+            ScrollView(showsIndicators: false) {
                 VStack(spacing: 20) {
                     // Header Status Card
                     VStack(spacing: 12) {
@@ -47,14 +47,15 @@ public struct SecuritySettingsView: View {
                         }
                     }
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 8)
+                    .padding(.vertical, 26)
+                    .padding(.horizontal, 18)
+                    .liquidGlassCard(cornerRadius: 22)
 
                     // Biometric Configuration Card
                     VStack(alignment: .leading, spacing: 14) {
                         Text("App Lock Configuration")
-                            .font(.caption.weight(.bold))
-                            .foregroundColor(.secondary)
-                            .textCase(.uppercase)
+                            .font(.headline)
+                            .foregroundStyle(AppTheme.textPrimary)
 
                         VStack(spacing: 14) {
                             // Biometric Toggle Row
@@ -139,9 +140,8 @@ public struct SecuritySettingsView: View {
                     // Privacy Architecture
                     VStack(alignment: .leading, spacing: 10) {
                         Text("Zero-Tracking Privacy Guarantee")
-                            .font(.caption.weight(.bold))
-                            .foregroundColor(.secondary)
-                            .textCase(.uppercase)
+                            .font(.headline)
+                            .foregroundStyle(AppTheme.textPrimary)
 
                         VStack(alignment: .leading, spacing: 10) {
                             HStack(alignment: .top, spacing: 10) {

@@ -37,8 +37,8 @@ struct AIModelSettingsView: View {
 
     var body: some View {
         ZStack {
-            LiquidGlassBackground()
-            ScrollView {
+            AppTheme.canvasBackground.ignoresSafeArea()
+            ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 20) {
                     VStack(alignment: .leading, spacing: 6) {
                         Label("Intelligence Engine", systemImage: "sparkles")

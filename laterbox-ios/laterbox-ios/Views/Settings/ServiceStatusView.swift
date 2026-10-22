@@ -105,6 +105,8 @@ struct ServiceStatusView: View {
         .listStyle(.insetGrouped)
         .scrollContentBackground(.hidden)
         .background(AppTheme.background)
+        .scrollContentBackground(.hidden)
+        .background(AppTheme.canvasBackground.ignoresSafeArea())
         .navigationTitle("Service Status")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {

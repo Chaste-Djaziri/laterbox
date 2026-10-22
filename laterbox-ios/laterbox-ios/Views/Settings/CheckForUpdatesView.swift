@@ -62,9 +62,9 @@ public struct CheckForUpdatesView: View {
 
     public var body: some View {
         ZStack {
-            LiquidGlassBackground()
+            AppTheme.canvasBackground.ignoresSafeArea()
 
-            ScrollView {
+            ScrollView(showsIndicators: false) {
                 VStack(spacing: 20) {
                     // Header Visual Card
                     VStack(spacing: 12) {
@@ -90,14 +90,15 @@ public struct CheckForUpdatesView: View {
                         }
                     }
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 8)
+                    .padding(.vertical, 26)
+                    .padding(.horizontal, 18)
+                    .liquidGlassCard(cornerRadius: 22)
 
                     // Current Installation Details Card
                     VStack(alignment: .leading, spacing: 14) {
                         Text("Installed Version")
-                            .font(.caption.weight(.bold))
-                            .foregroundColor(.secondary)
-                            .textCase(.uppercase)
+                            .font(.headline)
+                            .foregroundStyle(AppTheme.textPrimary)
 
                         VStack(spacing: 12) {
                             HStack {
@@ -165,9 +166,8 @@ public struct CheckForUpdatesView: View {
                     // Check for Updates Action
                     VStack(alignment: .leading, spacing: 12) {
                         Text("Update Actions")
-                            .font(.caption.weight(.bold))
-                            .foregroundColor(.secondary)
-                            .textCase(.uppercase)
+                            .font(.headline)
+                            .foregroundStyle(AppTheme.textPrimary)
 
                         if case .updateAvailable = status {
                             Button(action: {
@@ -230,9 +230,8 @@ public struct CheckForUpdatesView: View {
                     // Recent Highlights / Release Notes
                     VStack(alignment: .leading, spacing: 10) {
                         Text("What’s New in This Release")
-                            .font(.caption.weight(.bold))
-                            .foregroundColor(.secondary)
-                            .textCase(.uppercase)
+                            .font(.headline)
+                            .foregroundStyle(AppTheme.textPrimary)
 
                         VStack(alignment: .leading, spacing: 10) {
                             highlightRow(icon: "sparkles", text: "Streamlined settings directory with dedicated sub-pages")

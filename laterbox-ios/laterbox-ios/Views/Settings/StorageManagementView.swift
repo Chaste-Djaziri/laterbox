@@ -41,9 +41,9 @@ public struct StorageManagementView: View {
 
     public var body: some View {
         ZStack {
-            LiquidGlassBackground()
+            AppTheme.canvasBackground.ignoresSafeArea()
 
-                ScrollView {
+                ScrollView(showsIndicators: false) {
                     VStack(alignment: .leading, spacing: 20) {
                         // Success Toast Banner
                         if let msg = successBannerMessage {
