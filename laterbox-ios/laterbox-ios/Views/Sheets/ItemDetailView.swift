@@ -412,7 +412,7 @@ public struct ItemDetailView: View {
                     .font(.system(size: 12, weight: .bold))
                     .foregroundStyle(AppTheme.textPrimary)
                 HStack(spacing: 3) {
-                    Text("In Inbox for")
+                    Text("Entered Inbox")
                     Text(item.inboxEnteredAt ?? item.createdAt, style: .relative)
                 }
                 .font(.system(size: 11))
