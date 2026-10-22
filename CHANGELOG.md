@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[iOS / Capture]** Standardize full Capture, Quick Save and the iOS Share Extension on the original conversational review interface: shared chat chrome, item previews, actionable review choices, attachments, scheduling, save and undo; retain a common capture draft and import pipeline.
+
 - **[iOS / Settings]** Harmonize the remaining settings screens with the About/Profile canvas, scroll surfaces, and Liquid Glass status hero cards without changing settings behavior.
 
 - **[iOS / Subscription]** Center the Compare plans action within the subscription management card.
