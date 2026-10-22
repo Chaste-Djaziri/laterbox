@@ -236,16 +236,14 @@ struct ContentView: View {
         launchStatus = "Loading saved items"
         try? SharedCaptureImporter.refresh(context: modelContext)
 
-        launchStatus = "Checking your account"
-        // Complete as soon as checks finish; a timeout keeps offline startup usable.
+        // The local vault is ready. Never block access on StoreKit, network,
+        // or entitlement requests: these may hang when the device is offline.
+        finishLaunch()
+
+        // Refresh optional cloud/account state independently of splash lifetime.
         Task {
             await StoreKitManager.shared.updatePurchasedProducts()
             await coordinator.refreshEntitlement()
-            finishLaunch()
-        }
-        Task {
-            try? await Task.sleep(for: .seconds(8))
-            finishLaunch()
         }
     }
 
