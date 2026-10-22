@@ -92,7 +92,6 @@ public struct InboxView: View {
                 items = allItems.filter {
                     $0.status == ItemStatus.deferred.rawValue &&
                     $0.returnAt != nil &&
-                    $0.returnAt! > now &&
                     $0.returnAt! <= endOfToday
                 }
             case .scheduled:
