@@ -223,6 +223,10 @@ struct ShareChatMessage: Identifiable, Equatable {
 
         // 2. Perform intelligent capture analysis with the chosen AI engine
         let availableCollections = SharedCaptureStore.loadAvailableCollections()
+        let suggestion = LaterAISharedAnalyzer.quickSuggestions(
+            content: capture.content, collections: availableCollections)
+        if capture.category.isEmpty { capture.category = suggestion.category }
+        if capture.returnAt == nil { capture.returnAt = suggestion.returnAt }
         let analysis = await LaterAISharedAnalyzer.analyze(
             content: capture.content,
             attachments: capture.attachments,
