@@ -245,7 +245,7 @@ public struct InboxView: View {
                                         Button {
                                             navigateToSettings = true
                                         } label: {
-                                            Label("Settings", systemImage: "gearshape")
+                                            Label("Settings", systemImage: "gearshape.fill")
                                         }
                                     }
 
@@ -254,7 +254,7 @@ public struct InboxView: View {
                                             Button(role: .destructive) {
                                                 showingSignOutConfirm = true
                                             } label: {
-                                                Label("Sign Out", systemImage: "rectangle.portrait.and.arrow.right")
+                                                Label("Log Out", systemImage: "rectangle.portrait.and.arrow.right.fill")
                                             }
                                         }
                                     } else {
@@ -263,13 +263,13 @@ public struct InboxView: View {
                                                 coordinator.showingAuthSheet = true
                                                 LBHaptic.medium()
                                             } label: {
-                                                Label("Sign In to Account", systemImage: "person.crop.circle.badge.plus")
+                                                Label("Log In", systemImage: "person.crop.circle.badge.plus")
                                             }
 
                                             Button(role: .destructive) {
                                                 showingExitGuestConfirm = true
                                             } label: {
-                                                Label("Exit Guest & Clear Data", systemImage: "rectangle.portrait.and.arrow.right")
+                                                Label("Exit Guest & Clear Data", systemImage: "door.left.hand.open")
                                             }
                                         }
                                     }
