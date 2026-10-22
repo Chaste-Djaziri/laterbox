@@ -15,6 +15,9 @@ struct BackupRestoreView: View {
     @State private var exportPassword = ""
     @State private var exporting = false
     @State private var importing = false
+    @State private var progressValue = 0.0
+    @State private var preview: LibraryBackup.ImportPreview?
+    @State private var selectedReplacements: Set<String> = []
     @State private var authenticateExport = false
     @State private var errorMessage: String?
     @State private var successMessage: String?
@@ -65,6 +68,7 @@ struct BackupRestoreView: View {
                         .background(AppTheme.accent, in: RoundedRectangle(cornerRadius: 14))
                     }
                     .disabled(exporting || password.count < 8 || password != confirmation)
+                    if exporting { ProgressView(value: progressValue).tint(AppTheme.accent) }
                     if let backupURL {
                         ShareLink(item: backupURL) {
                             Label("Save Backup to Files or iCloud Drive", systemImage: "square.and.arrow.up.fill")
@@ -99,13 +103,35 @@ struct BackupRestoreView: View {
                             .foregroundStyle(AppTheme.textPrimary)
                             .padding(13)
                             .background(AppTheme.canvasBackground, in: RoundedRectangle(cornerRadius: 12))
+                        if let preview {
+                            Text("\(preview.newItems) new items · \(preview.conflicts.count) existing items")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(AppTheme.textPrimary)
+                            Text("Existing items are kept by default. Enable Replace for any item you want to overwrite.")
+                                .font(.caption)
+                                .foregroundStyle(AppTheme.textSecondary)
+                            ForEach(preview.conflicts, id: \.id) { conflict in
+                                Toggle(isOn: Binding(
+                                    get: { selectedReplacements.contains(conflict.id) },
+                                    set: { replace in
+                                        if replace { selectedReplacements.insert(conflict.id) }
+                                        else { selectedReplacements.remove(conflict.id) }
+                                    }
+                                )) {
+                                    VStack(alignment: .leading) {
+                                        Text(conflict.title).lineLimit(2)
+                                        Text("Replace existing item").font(.caption)
+                                    }
+                                }
+                            }
+                        }
                         Button {
                             Task { await performImport() }
                         } label: {
                             HStack {
                                 if importing { ProgressView().tint(.black) }
                                 else { Image(systemName: "arrow.down.to.line.compact") }
-                                Text(importing ? "Restoring library…" : "Import and Merge")
+                                Text(importing ? "Restoring library…" : (preview == nil ? "Review Backup" : "Import and Merge"))
                             }
                             .font(.subheadline.bold())
                             .foregroundStyle(.black)
@@ -155,6 +181,8 @@ struct BackupRestoreView: View {
             switch result {
             case .success(let file):
                 pendingImport = file
+                preview = nil
+                selectedReplacements = []
                 successMessage = nil
             case .failure(let error): errorMessage = error.localizedDescription
             }
@@ -185,7 +213,8 @@ struct BackupRestoreView: View {
                 .deviceOwnerAuthentication,
                 localizedReason: "Authenticate to export your private LaterBox library")
             guard authorized else { return }
-            backupURL = try LibraryBackup.export(context: modelContext, password: password)
+            progressValue = 0
+            backupURL = try await LibraryBackup.exportAsync(context: modelContext, password: password) { value in progressValue = value }
             password = ""
             confirmation = ""
             successMessage = "Secure backup created. Save it outside the app to keep it safe."
@@ -200,9 +229,15 @@ struct BackupRestoreView: View {
         importing = true
         defer { importing = false }
         do {
+            if preview == nil {
+                preview = try await LibraryBackup.inspectImport(from: file, password: exportPassword, context: modelContext)
+                return
+            }
             let result = try LibraryBackup.importArchive(
-                from: file, context: modelContext, password: exportPassword)
+                from: file, context: modelContext, password: exportPassword, replaceIDs: selectedReplacements)
             pendingImport = nil
+            preview = nil
+            selectedReplacements = []
             exportPassword = ""
             successMessage = "Imported \(result.items) items, \(result.collections) collections, \(result.attachments) attachments. Skipped \(result.skipped) existing items."
         } catch {
