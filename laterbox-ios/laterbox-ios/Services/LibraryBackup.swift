@@ -145,7 +145,7 @@ enum LibraryBackup {
             }
         }
         guard status == kCCSuccess else { throw BackupError.invalidArchive }
-        defer { keyBytes.withUnsafeMutableBytes { $0.initializeMemory(as: UInt8.self, repeating: 0) } }
+        defer { _ = keyBytes.withUnsafeMutableBytes { $0.initializeMemory(as: UInt8.self, repeating: 0) } }
         return SymmetricKey(data: keyBytes)
     }
 
