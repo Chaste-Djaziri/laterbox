@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[iOS / Share Extension]** Detect URL payloads shared as plain text or text files, including YouTube app shares, before treating them as document attachments. Keep video metadata enrichment and social preview behavior available.
+
 - **[iOS / Today]** Add a focused review for overdue and returning-today items, ordered by return date, with Keep, Reschedule and Dismiss actions. Dismiss archives content safely and cancels its reminder; sidebar counts include overdue items.
 
 - **[iOS / Settings]** Prioritize Account, Subscription, Notifications, Appearance and Privacy; move AI models, service status and storage management under Advanced. Keep Sync and Quick Save accessible and relocate update checks to About.
