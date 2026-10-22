@@ -99,12 +99,9 @@ struct ShareChatMessage: Identifiable, Equatable {
                             continuation.resume(returning: data)
                         }
                     }
-                    if let sharedData, let text = String(data: sharedData, encoding: .utf8),
-                       let detector = try? NSDataDetector(types: NSTextCheckingResult.CheckingType.link.rawValue),
-                       let match = detector.firstMatch(in: text, range: NSRange(text.startIndex..., in: text)),
-                       let url = match.url, ["http", "https"].contains(url.scheme?.lowercased() ?? "") {
-                        detectedUrl = url.absoluteString
-                        capture.content += url.absoluteString + "\n"
+                    if let sharedData, let url = Self.webLink(in: sharedData) {
+                        detectedUrl = url
+                        capture.content += url + "\n"
                         continue
                     }
                 }
