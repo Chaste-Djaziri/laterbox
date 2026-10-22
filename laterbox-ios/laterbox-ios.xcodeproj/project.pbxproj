@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+        A11110000000000000000001 /* ChatCaptureComposer.swift in Share Sources */ = {isa = PBXBuildFile; fileRef = A11110000000000000000003 /* ChatCaptureComposer.swift */; };
+        A11110000000000000000002 /* ChatCaptureComposer.swift in App Sources */ = {isa = PBXBuildFile; fileRef = A11110000000000000000003 /* ChatCaptureComposer.swift */; };
 		3E8CA1BB48FC8305B7D75A1C /* LaterAIChrome.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81F2BE3A1CA37F34720FBB7A /* LaterAIChrome.swift */; };
 		4DF5DF6A52B4D2679DE9BEA5 /* SharedCapture.swift in Sources */ = {isa = PBXBuildFile; fileRef = 498F59466D1129E98872BACB /* SharedCapture.swift */; };
 		5589579C7454F92A09BBABF0 /* LaterBoxShare.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 9CD0ABE6B11066E3BE4E19C1 /* LaterBoxShare.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -67,6 +69,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+        A11110000000000000000003 /* ChatCaptureComposer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ChatCaptureComposer.swift; sourceTree = "<group>"; };
 		498F59466D1129E98872BACB /* SharedCapture.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SharedCapture.swift; sourceTree = "<group>"; };
 		5194A4F83072E2E100DE79B5 /* laterbox-ios.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "laterbox-ios.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		5194A5073072E2E100DE79B5 /* laterbox-iosTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "laterbox-iosTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -205,6 +208,7 @@
 			isa = PBXGroup;
 			children = (
 				498F59466D1129E98872BACB /* SharedCapture.swift */,
+                A11110000000000000000003 /* ChatCaptureComposer.swift */,
 				81F2BE3A1CA37F34720FBB7A /* LaterAIChrome.swift */,
 				LBW000500000000000000001 /* QuickSaveIntent.swift */,
 			);
@@ -413,6 +417,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				DBF7234AD81B74862C37F88B /* ShareViewController.swift in Sources */,
+                A11110000000000000000001 /* ChatCaptureComposer.swift in Share Sources */,
 				4DF5DF6A52B4D2679DE9BEA5 /* SharedCapture.swift in Sources */,
 				75A2160469BA7EC3719EA8B8 /* LaterAIChrome.swift in Sources */,
 			);
@@ -423,6 +428,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				6F6C4FD026002CB02E6370CE /* SharedCapture.swift in Sources */,
+                A11110000000000000000002 /* ChatCaptureComposer.swift in App Sources */,
 				3E8CA1BB48FC8305B7D75A1C /* LaterAIChrome.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
