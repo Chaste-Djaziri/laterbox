@@ -136,7 +136,7 @@ struct WelcomeView: View {
                     )
             }
             .sheet(isPresented: $showingRestore) {
-                NavigationStack { BackupRestoreView() }
+                NavigationStack { BackupRestoreView(recoveryOnly: true) }
             }
             .navigationDestination(isPresented: $showingAuthView) {
                 AuthView()
