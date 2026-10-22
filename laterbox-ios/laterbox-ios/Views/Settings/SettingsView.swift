@@ -453,3 +453,48 @@ public struct SettingsView: View {
         }
     }
 }
+ 
+private struct AdvancedSettingsView: View {
+    var body: some View {
+        ZStack {
+            AppTheme.canvasBackground.ignoresSafeArea()
+            ScrollView(showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 16) {
+                    Text("Configure AI, review service health, and manage local storage.")
+                        .font(.subheadline)
+                        .foregroundStyle(AppTheme.textSecondary)
+                    VStack(spacing: 0) {
+                        NavigationLink(destination: AIModelSettingsView()) {
+                            advancedRow("AI Models", icon: "sparkles")
+                        }
+                        Divider()
+                        NavigationLink(destination: ServiceStatusView()) {
+                            advancedRow("Service Status", icon: "waveform.path.ecg")
+                        }
+                        Divider()
+                        NavigationLink(destination: StorageManagementView()) {
+                            advancedRow("Storage Management", icon: "internaldrive")
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .liquidGlassCard(cornerRadius: 18)
+                }
+                .padding(20)
+            }
+        }
+        .navigationTitle("Advanced")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private func advancedRow(_ title: String, icon: String) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: icon).frame(width: 24)
+            Text(title).font(.system(size: 15, weight: .semibold))
+            Spacer()
+            Image(systemName: "chevron.right").foregroundStyle(AppTheme.textSecondary)
+        }
+        .foregroundStyle(AppTheme.textPrimary)
+        .padding(16)
+        .contentShape(Rectangle())
+    }
+}
