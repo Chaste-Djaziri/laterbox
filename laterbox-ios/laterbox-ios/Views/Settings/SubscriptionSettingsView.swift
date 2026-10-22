@@ -17,14 +17,14 @@ public struct SubscriptionSettingsView: View {
 
     public var body: some View {
         ZStack {
-            LiquidGlassBackground()
+            AppTheme.canvasBackground.ignoresSafeArea()
 
-            ScrollView {
+            ScrollView(showsIndicators: false) {
                 VStack(spacing: 20) {
                     // Header Plan Status Card
                     VStack(spacing: 12) {
                         ZStack {
-                            Circle()
+                            RoundedRectangle(cornerRadius: 23, style: .continuous)
                                 .fill(AppTheme.accent)
                                 .frame(width: 76, height: 76)
                             Image(systemName: "crown.fill")
@@ -34,7 +34,7 @@ public struct SubscriptionSettingsView: View {
 
                         VStack(spacing: 4) {
                             Text(coordinator.isProUser ? "LaterBox Pro" : "LaterBox Local")
-                                .font(.system(size: 22, weight: .bold))
+                                .font(.system(size: 24, weight: .bold, design: .rounded))
                                 .foregroundColor(AppTheme.textPrimary)
 
                             Text(coordinator.isProUser ? coordinator.hasCloudPro ? "Device Pro and account cloud access active" : "Device Pro active • Account connection optional" : "Free offline vault • Cloud synchronization available")
@@ -45,15 +45,16 @@ public struct SubscriptionSettingsView: View {
                         }
                     }
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 8)
+                    .padding(.vertical, 26)
+                    .padding(.horizontal, 18)
+                    .liquidGlassCard(cornerRadius: 22)
 
                     // Plan Overview Card
                     VStack(alignment: .leading, spacing: 14) {
                         HStack {
-                            Text("Current Membership")
-                                .font(.caption.weight(.bold))
-                                .foregroundColor(.secondary)
-                                .textCase(.uppercase)
+                            Text("Current membership")
+                                .font(.headline)
+                                .foregroundStyle(AppTheme.textPrimary)
 
                             Spacer()
 
@@ -87,24 +88,16 @@ public struct SubscriptionSettingsView: View {
                                 featureRow(icon: "lock.icloud.fill", title: "Cloud Backup & Restore", unlocked: coordinator.hasCloudPro)
                             }
                         }
-                        .padding(16)
-                        .background(
-                            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                .fill(AppTheme.cardBackground)
-                        )
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                .strokeBorder(AppTheme.cardBorder, lineWidth: 1)
-                        )
                     }
+                    .padding(18)
+                    .liquidGlassCard(cornerRadius: 20)
 
                     ConnectProView()
                     // Subscription Management Actions
                     VStack(alignment: .leading, spacing: 12) {
-                        Text("Plan Actions")
-                            .font(.caption.weight(.bold))
-                            .foregroundColor(.secondary)
-                            .textCase(.uppercase)
+                        Text("Manage subscription")
+                            .font(.headline)
+                            .foregroundStyle(AppTheme.textPrimary)
 
                         if coordinator.billingEntitlement?.provider != nil || storeKit.isProSubscriptionActive {
                             Button(action: {
@@ -252,6 +245,7 @@ public struct SubscriptionSettingsView: View {
                         }
                         Button("Compare plans") { coordinator.showingPlansSheet = true }
                             .font(.caption.weight(.semibold))
+                            .frame(maxWidth: .infinity, alignment: .center)
 
                         // Restore Purchases Button
                         Button(action: {
@@ -272,6 +266,8 @@ public struct SubscriptionSettingsView: View {
                         }
                         .buttonStyle(.plain)
                     }
+                    .padding(18)
+                    .liquidGlassCard(cornerRadius: 20)
 
                     Button("LaterBox Service Terms") { if let url = URL(string: StoreKitManager.termsOfServiceUrl) { openURL(url) } }
                         .font(.caption)
