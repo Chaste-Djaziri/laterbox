@@ -58,12 +58,23 @@ struct ShareChatMessage: Identifiable, Equatable {
 
     init(context: NSExtensionContext?) { self.context = context }
 
+    static func webLink(in text: String) -> String? {
+        guard let detector = try? NSDataDetector(types: NSTextCheckingResult.CheckingType.link.rawValue),
+              let match = detector.firstMatch(in: text, range: NSRange(text.startIndex..., in: text)),
+              let url = match.url, ["http", "https"].contains(url.scheme?.lowercased() ?? "") else { return nil }
+        return url.absoluteString
+    }
     func load() async {
         loading = true
         defer { loading = false }
 
         var detectedUrl: String?
         for item in context?.inputItems as? [NSExtensionItem] ?? [] {
+            if let text = item.attributedContentText?.string,
+               let url = Self.webLink(in: text) {
+                detectedUrl = url
+                capture.content += url + "\n"
+            }
             for provider in item.attachments ?? [] {
                 // YouTube and other apps can provide a URL as plain text data.
                 // Prefer extracting that link before handling file representations.
