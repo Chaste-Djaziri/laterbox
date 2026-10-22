@@ -3,6 +3,23 @@ import SwiftUI
 struct AIModelSettingsView: View {
     @ObservedObject private var modelManager = LaterAIModelManager.shared
 
+    @State private var testingProvider: AIProviderType? = nil
+    @State private var testResultMessage: String? = nil
+    @State private var isTestingSuccess: Bool = false
+
+    private let bazaarlinkModels = [
+        ("qwen/qwen3.7-flash", "Qwen 3.7 Flash · 1M Context (Free)"),
+        ("deepseek/deepseek-v4-flash-0731free", "DeepSeek V4 Flash · 1M Context (Free)"),
+        ("nvidia/nemotron-3.5-lightning-free", "Nemotron 3.5 Lightning (Free)"),
+        ("reflection/beam-free", "Beam Free · 1M Context (Free)")
+    ]
+
+    private let geminiModels = [
+        ("gemini-2.5-flash", "Gemini 2.5 Flash"),
+        ("gemini-3.5-flash-lite", "Gemini 3.5 Flash Lite"),
+        ("gemini-3.8-flash", "Gemini 3.8 Flash")
+    ]
+
     var body: some View {
         ZStack {
             LiquidGlassBackground()
@@ -11,7 +28,7 @@ struct AIModelSettingsView: View {
                     VStack(alignment: .leading, spacing: 6) {
                         Label("Intelligence Engine", systemImage: "sparkles")
                             .font(.title2.bold())
-                        Text("On-device intelligence and offline response assistant for capture and search.")
+                        Text("On-device intelligence, free cloud models, and AI assistants for capture and search.")
                             .font(.subheadline)
                             .foregroundStyle(AppTheme.textSecondary)
                     }
@@ -128,6 +145,226 @@ struct AIModelSettingsView: View {
                             isSelected: modelManager.selectedProvider == .local,
                             action: { modelManager.selectedProvider = .local }
                         )
+
+                        engineOptionRow(
+                            title: "BazaarLink (Free AI)",
+                            subtitle: "Qwen 3.7 Flash / DeepSeek V4 · No credit card required",
+                            icon: "bolt.shield.fill",
+                            isSelected: modelManager.selectedProvider == .bazaarlink,
+                            action: { modelManager.selectedProvider = .bazaarlink }
+                        )
+
+                        engineOptionRow(
+                            title: "Google Gemini",
+                            subtitle: "Google Gemini 2.5 / 3.5 Flash intelligence",
+                            icon: "sparkles",
+                            isSelected: modelManager.selectedProvider == .gemini,
+                            action: { modelManager.selectedProvider = .gemini }
+                        )
+                    }
+                    .padding(18)
+                    .background(AppTheme.cardBackground, in: RoundedRectangle(cornerRadius: 18))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 18)
+                            .strokeBorder(AppTheme.cardBorder, lineWidth: 1)
+                    )
+
+                    // MARK: - BazaarLink Free AI Configuration Card
+                    VStack(alignment: .leading, spacing: 14) {
+                        HStack {
+                            Label("BazaarLink Free AI", systemImage: "bolt.shield.fill")
+                                .font(.headline)
+                                .foregroundColor(AppTheme.textPrimary)
+
+                            Spacer()
+
+                            Text("Free Tier")
+                                .font(.caption.bold())
+                                .foregroundColor(Color(hex: "0284C7"))
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 3)
+                                .background(Color(hex: "E0F2FE"), in: Capsule())
+                        }
+
+                        Text("Drop-in OpenAI-compatible API with free Qwen 3.7 Flash and DeepSeek V4 models. Requires no credit card.")
+                            .font(.caption)
+                            .foregroundColor(AppTheme.textSecondary)
+
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("Model")
+                                .font(.caption.bold())
+                                .foregroundColor(AppTheme.textSecondary)
+
+                            Picker("Model", selection: $modelManager.bazaarlinkModel) {
+                                ForEach(bazaarlinkModels, id: \.0) { model in
+                                    Text(model.1).tag(model.0)
+                                }
+                            }
+                            .pickerStyle(.menu)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 4)
+                            .background(Color.black.opacity(0.04), in: RoundedRectangle(cornerRadius: 8))
+                        }
+
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("API Key (BAZAARLINK_API_KEY)")
+                                .font(.caption.bold())
+                                .foregroundColor(AppTheme.textSecondary)
+
+                            HStack {
+                                SecureField("Enter BazaarLink API key", text: $modelManager.bazaarlinkApiKey)
+                                    .font(.system(size: 14))
+
+                                if !modelManager.bazaarlinkApiKey.isEmpty {
+                                    Button {
+                                        modelManager.bazaarlinkApiKey = ""
+                                    } label: {
+                                        Image(systemName: "xmark.circle.fill")
+                                            .foregroundColor(.secondary)
+                                    }
+                                }
+                            }
+                            .padding(10)
+                            .background(Color.white, in: RoundedRectangle(cornerRadius: 10))
+                            .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Color.black.opacity(0.1), lineWidth: 1))
+                        }
+
+                        HStack(spacing: 12) {
+                            Button {
+                                runTest(for: .bazaarlink)
+                            } label: {
+                                HStack(spacing: 5) {
+                                    if testingProvider == .bazaarlink {
+                                        ProgressView().scaleEffect(0.8)
+                                    } else {
+                                        Image(systemName: "antenna.radiowaves.left.and.right")
+                                    }
+                                    Text("Test Connection")
+                                        .font(.system(size: 13, weight: .semibold))
+                                }
+                                .padding(.horizontal, 14)
+                                .padding(.vertical, 8)
+                                .background(Color.black, in: RoundedRectangle(cornerRadius: 8))
+                                .foregroundColor(.white)
+                            }
+                            .buttonStyle(.plain)
+                            .disabled(testingProvider != nil)
+
+                            Link(destination: URL(string: "https://bazaarlink.ai/keys")!) {
+                                Text("Get Free Key ↗")
+                                    .font(.system(size: 13, weight: .semibold))
+                                    .foregroundColor(Color(hex: "0284C7"))
+                            }
+                        }
+
+                        if let testResultMessage, testingProvider == nil {
+                            Text(testResultMessage)
+                                .font(.caption.bold())
+                                .foregroundColor(isTestingSuccess ? Color(red: 22/255, green: 130/255, blue: 60/255) : Color(red: 220/255, green: 38/255, blue: 38/255))
+                                .padding(.top, 2)
+                        }
+                    }
+                    .padding(18)
+                    .background(AppTheme.cardBackground, in: RoundedRectangle(cornerRadius: 18))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 18)
+                            .strokeBorder(AppTheme.cardBorder, lineWidth: 1)
+                    )
+
+                    // MARK: - Google Gemini Configuration Card
+                    VStack(alignment: .leading, spacing: 14) {
+                        HStack {
+                            Label("Google Gemini", systemImage: "sparkles")
+                                .font(.headline)
+                                .foregroundColor(AppTheme.textPrimary)
+
+                            Spacer()
+
+                            Text("Gemini API")
+                                .font(.caption.bold())
+                                .foregroundColor(Color(hex: "4338CA"))
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 3)
+                                .background(Color(hex: "EEF2FF"), in: Capsule())
+                        }
+
+                        Text("Multimodal cloud intelligence for complex task and media reasoning.")
+                            .font(.caption)
+                            .foregroundColor(AppTheme.textSecondary)
+
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("Model")
+                                .font(.caption.bold())
+                                .foregroundColor(AppTheme.textSecondary)
+
+                            Picker("Model", selection: $modelManager.geminiModel) {
+                                ForEach(geminiModels, id: \.0) { model in
+                                    Text(model.1).tag(model.0)
+                                }
+                            }
+                            .pickerStyle(.menu)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 4)
+                            .background(Color.black.opacity(0.04), in: RoundedRectangle(cornerRadius: 8))
+                        }
+
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("API Key (GEMINI_API_KEY)")
+                                .font(.caption.bold())
+                                .foregroundColor(AppTheme.textSecondary)
+
+                            HStack {
+                                SecureField("Enter Google Gemini API key", text: $modelManager.geminiApiKey)
+                                    .font(.system(size: 14))
+
+                                if !modelManager.geminiApiKey.isEmpty {
+                                    Button {
+                                        modelManager.geminiApiKey = ""
+                                    } label: {
+                                        Image(systemName: "xmark.circle.fill")
+                                            .foregroundColor(.secondary)
+                                    }
+                                }
+                            }
+                            .padding(10)
+                            .background(Color.white, in: RoundedRectangle(cornerRadius: 10))
+                            .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Color.black.opacity(0.1), lineWidth: 1))
+                        }
+
+                        HStack(spacing: 12) {
+                            Button {
+                                runTest(for: .gemini)
+                            } label: {
+                                HStack(spacing: 5) {
+                                    if testingProvider == .gemini {
+                                        ProgressView().scaleEffect(0.8)
+                                    } else {
+                                        Image(systemName: "antenna.radiowaves.left.and.right")
+                                    }
+                                    Text("Test Connection")
+                                        .font(.system(size: 13, weight: .semibold))
+                                }
+                                .padding(.horizontal, 14)
+                                .padding(.vertical, 8)
+                                .background(Color.black, in: RoundedRectangle(cornerRadius: 8))
+                                .foregroundColor(.white)
+                            }
+                            .buttonStyle(.plain)
+                            .disabled(testingProvider != nil)
+
+                            Link(destination: URL(string: "https://aistudio.google.com/app/apikey")!) {
+                                Text("Get Gemini Key ↗")
+                                    .font(.system(size: 13, weight: .semibold))
+                                    .foregroundColor(Color(hex: "4338CA"))
+                            }
+                        }
+
+                        if let testResultMessage, testingProvider == nil {
+                            Text(testResultMessage)
+                                .font(.caption.bold())
+                                .foregroundColor(isTestingSuccess ? Color(red: 22/255, green: 130/255, blue: 60/255) : Color(red: 220/255, green: 38/255, blue: 38/255))
+                                .padding(.top, 2)
+                        }
                     }
                     .padding(18)
                     .background(AppTheme.cardBackground, in: RoundedRectangle(cornerRadius: 18))
@@ -154,28 +391,33 @@ struct AIModelSettingsView: View {
                         RoundedRectangle(cornerRadius: 18)
                             .strokeBorder(AppTheme.cardBorder, lineWidth: 1)
                     )
-
-                    // MARK: - Future Providers
-                    VStack(alignment: .leading, spacing: 10) {
-                        Label("Cloud & Custom AI Providers", systemImage: "clock.badge")
-                            .font(.headline)
-                            .foregroundColor(AppTheme.textPrimary)
-                        Text("Custom API keys (OpenAI, Anthropic, Ollama) and cloud providers will connect here once on-device foundation model pipelines are finalized.")
-                            .font(.subheadline)
-                            .foregroundStyle(AppTheme.textSecondary)
-                    }
-                    .padding(18)
-                    .background(AppTheme.cardBackground, in: RoundedRectangle(cornerRadius: 18))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 18)
-                            .strokeBorder(AppTheme.cardBorder, lineWidth: 1)
-                    )
                 }
                 .padding(20)
             }
         }
         .navigationTitle("Later AI Models")
         .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private func runTest(for provider: AIProviderType) {
+        testingProvider = provider
+        testResultMessage = nil
+        Task {
+            do {
+                let res = try await modelManager.testConnection(for: provider)
+                await MainActor.run {
+                    testResultMessage = res
+                    isTestingSuccess = true
+                    testingProvider = nil
+                }
+            } catch {
+                await MainActor.run {
+                    testResultMessage = error.localizedDescription
+                    isTestingSuccess = false
+                    testingProvider = nil
+                }
+            }
+        }
     }
 
     private func engineOptionRow(title: String, subtitle: String, icon: String, isSelected: Bool, action: @escaping () -> Void) -> some View {
