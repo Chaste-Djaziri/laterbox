@@ -122,12 +122,12 @@ public struct SettingsView: View {
                     }
                     .buttonStyle(.plain)
 
-                    // Group 1: Membership & Cloud
+                    // Essentials: subscription and notifications
                     VStack(spacing: 0) {
                         NavigationLink(destination: SubscriptionSettingsView()) {
                             groupedRow(
                                 icon: "crown",
-                                title: "Plans",
+                                title: "Subscription",
                                 badge: coordinator.isProUser ? "Pro" : "Free"
                             )
                         }
@@ -135,11 +135,11 @@ public struct SettingsView: View {
 
                         rowDivider
 
-                        NavigationLink(destination: SyncSettingsView()) {
+                        NavigationLink(destination: NotificationsSettingsView()) {
                             groupedRow(
-                                icon: "bolt.horizontal.icloud",
-                                title: "Sync",
-                                badge: coordinator.isAuthenticated ? coordinator.syncState.rawValue : "Local"
+                                icon: "bell",
+                                title: "Notifications",
+                                badge: notificationStatusTitle
                             )
                         }
                         .buttonStyle(.plain)
