@@ -721,7 +721,75 @@ enum LaterAISharedAnalyzer {
             }
         }
 
+        // Enrichment services do not always return an image. Read the
+        // source page's Open Graph tags before falling back to a text card.
+        if finalImg == nil || finalImg?.isEmpty == true {
+            finalImg = await fetchOpenGraphImage(for: url)
+        }
+
         return (finalTitle, finalSite, finalDesc, finalImg, finalKeywords, detectedType)
+    }
+
+    /// Extract a social-preview image from HTML. Supports attributes in either
+    /// order, relative URLs, and common HTML entity encoding.
+    static func openGraphImage(in html: String, relativeTo pageURL: URL) -> String? {
+        guard let tags = try? NSRegularExpression(pattern: "<meta\\b[^>]*>", options: .caseInsensitive),
+              let attributes = try? NSRegularExpression(
+                  pattern: "([a-zA-Z_:.-]+)\\s*=\\s*[\"']([^\"']*)[\"']",
+                  options: .caseInsensitive
+              ) else { return nil }
+
+        var values: [String: String] = [:]
+        for match in tags.matches(in: html, range: NSRange(html.startIndex..., in: html)) {
+            guard let range = Range(match.range, in: html) else { continue }
+            let tag = String(html[range])
+            var fields: [String: String] = [:]
+            for attribute in attributes.matches(in: tag, range: NSRange(tag.startIndex..., in: tag)) {
+                guard let nameRange = Range(attribute.range(at: 1), in: tag),
+                      let valueRange = Range(attribute.range(at: 2), in: tag) else { continue }
+                fields[String(tag[nameRange]).lowercased()] = String(tag[valueRange])
+            }
+            guard let property = (fields["property"] ?? fields["name"])?.lowercased(),
+                  let content = fields["content"], !content.isEmpty else { continue }
+            values[property] = content
+        }
+
+        // Prefer the HTTPS-specific OG image, then regular OG and Twitter cards.
+        for key in ["og:image:secure_url", "og:image", "twitter:image", "twitter:image:src"] {
+            guard let raw = values[key] else { continue }
+            let decoded = raw.replacingOccurrences(of: "&amp;", with: "&")
+                .replacingOccurrences(of: "&quot;", with: "\"")
+                .replacingOccurrences(of: "&#39;", with: "'")
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            guard let imageURL = URL(string: decoded, relativeTo: pageURL)?.absoluteURL,
+                  ["https", "http"].contains(imageURL.scheme?.lowercased() ?? ""),
+                  imageURL.host != nil else { continue }
+            return imageURL.absoluteString
+        }
+        return nil
+    }
+
+    private static func fetchOpenGraphImage(for url: URL) async -> String? {
+        var request = URLRequest(url: url)
+        request.timeoutInterval = 6
+        request.setValue("text/html, application/xhtml+xml", forHTTPHeaderField: "Accept")
+        do {
+            let (bytes, response) = try await URLSession.shared.bytes(for: request)
+            guard let http = response as? HTTPURLResponse,
+                  (200..<300).contains(http.statusCode),
+                  response.mimeType?.lowercased().contains("html") == true else { return nil }
+
+            // OG meta tags normally appear near the beginning of the HTML.
+            var data = Data()
+            for try await byte in bytes {
+                data.append(byte)
+                if data.count >= 512_000 { break }
+            }
+            return openGraphImage(in: String(decoding: data, as: UTF8.self),
+                                  relativeTo: response.url ?? url)
+        } catch {
+            return nil // Missing OG metadata must never block saving.
+        }
     }
 
     static func analyze(
