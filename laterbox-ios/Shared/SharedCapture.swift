@@ -792,6 +792,31 @@ enum LaterAISharedAnalyzer {
         }
     }
 
+    /// Instant, offline suggestions. Never requires a model or network access.
+    static func quickSuggestions(content: String, collections: [String]) -> (category: String, returnAt: Date?) {
+        let lower = content.lowercased()
+        let url = detectURL(content)?.lowercased() ?? ""
+        let isVideo = url.contains("youtube.com/") || url.contains("youtu.be/") ||
+            url.contains("vimeo.com/") || url.contains("tiktok.com/")
+        let isTask = ["remind me", "todo", "to-do", "need to", "don't forget", "buy ", "submit ", "finish "]
+            .contains { lower.contains($0) }
+        let isArticle = !url.isEmpty && !isVideo
+        let names = isVideo ? ["Watch Later", "Videos"] :
+            isTask ? ["Tasks", "To-Do"] :
+            isArticle ? ["Reading", "Articles", "Read Later"] : ["Inbox"]
+        let category = names.compactMap { preferred in
+            collections.first { $0.caseInsensitiveCompare(preferred) == .orderedSame }
+        }.first ?? names[0]
+
+        guard isVideo || isTask || isArticle else { return (category, nil) }
+        let calendar = Calendar.current
+        let hour = isTask ? 9 : 18
+        let days = isArticle ? 2 : 1
+        let targetDay = calendar.date(byAdding: .day, value: days, to: Date()) ?? Date()
+        let time = calendar.date(bySettingHour: hour, minute: 0, second: 0, of: targetDay)
+        return (category, time)
+    }
+
     static func analyze(
         content: String,
         detectedUrl: String? = nil,
