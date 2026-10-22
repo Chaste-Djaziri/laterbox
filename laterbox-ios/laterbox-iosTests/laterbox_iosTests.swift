@@ -917,6 +917,49 @@ extension LaterAITests {
         }
     }
 
+    @Test func aiModelManagerByokAndPersistence() async throws {
+        let modelManager = LaterAIModelManager.shared
+
+        // Local and On-Device never require an API key
+        #expect(modelManager.hasApiKey(for: .local) == true)
+        #expect(modelManager.hasApiKey(for: .onDevice) == true)
+        #expect(AIProviderType.local.isCustomKey == false)
+        #expect(AIProviderType.onDevice.isCustomKey == false)
+
+        // Remote models require custom API keys
+        #expect(AIProviderType.bazaarlink.isCustomKey == true)
+        #expect(AIProviderType.gemini.isCustomKey == true)
+        #expect(AIProviderType.openai.isCustomKey == true)
+        #expect(AIProviderType.claude.isCustomKey == true)
+
+        let prevProvider = modelManager.selectedProvider
+        let prevOpenAIKey = modelManager.openaiApiKey
+        let prevClaudeKey = modelManager.claudeApiKey
+
+        defer {
+            modelManager.selectedProvider = prevProvider
+            modelManager.openaiApiKey = prevOpenAIKey
+            modelManager.claudeApiKey = prevClaudeKey
+        }
+
+        modelManager.openaiApiKey = ""
+        #expect(modelManager.hasApiKey(for: .openai) == false)
+        modelManager.openaiApiKey = "sk-test-openai-12345"
+        #expect(modelManager.hasApiKey(for: .openai) == true)
+
+        modelManager.claudeApiKey = ""
+        #expect(modelManager.hasApiKey(for: .claude) == false)
+        modelManager.claudeApiKey = "sk-ant-test-claude-67890"
+        #expect(modelManager.hasApiKey(for: .claude) == true)
+
+        // Fallback test: even when OpenAI is selected with an empty key, capture analysis succeeds via local deduction
+        modelManager.selectedProvider = .openai
+        modelManager.openaiApiKey = ""
+        let analysis = await modelManager.analyzeCapture(content: "- Buy groceries\n- Call mom")
+        #expect(analysis.contentType == "task")
+        #expect(analysis.title?.isEmpty == false)
+    }
+
     @Test
     func syncConflictEqualTimestampDeleteWins() async throws {
         let coordinator = SyncCoordinator.shared
