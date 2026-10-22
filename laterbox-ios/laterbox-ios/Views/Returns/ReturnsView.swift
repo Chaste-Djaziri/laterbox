@@ -247,6 +247,7 @@ public struct ReturnsView: View {
                     },
                     onUnsnooze: {
                         targetItem.status = ItemStatus.inbox.rawValue
+                        targetItem.inboxEnteredAt = Date()
                         targetItem.returnAt = nil
                         targetItem.updatedAt = Date()
                         targetItem.isSyncPending = true
