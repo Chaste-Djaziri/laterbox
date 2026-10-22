@@ -140,6 +140,7 @@ struct BackupRestoreView: View {
                             .background(AppTheme.accent, in: RoundedRectangle(cornerRadius: 14))
                         }
                         .disabled(importing || exportPassword.isEmpty)
+                        if importing { ProgressView(value: progressValue).tint(AppTheme.accent) }
                     }
                 }
                 .padding(18)
@@ -233,8 +234,10 @@ struct BackupRestoreView: View {
                 preview = try await LibraryBackup.inspectImport(from: file, password: exportPassword, context: modelContext)
                 return
             }
-            let result = try LibraryBackup.importArchive(
-                from: file, context: modelContext, password: exportPassword, replaceIDs: selectedReplacements)
+            progressValue = 0
+            let result = try await LibraryBackup.importArchive(
+                from: file, context: modelContext, password: exportPassword, replaceIDs: selectedReplacements,
+                progress: { value in progressValue = value })
             pendingImport = nil
             preview = nil
             selectedReplacements = []
