@@ -114,33 +114,45 @@ struct OnDeviceLaterAIProvider: LaterAIProvider {
 enum AIProviderType: String, CaseIterable, Identifiable, Codable {
     case local
     case onDevice
+    case bazaarlink
+    case gemini
 
     var id: String { rawValue }
     var displayName: String {
         switch self {
         case .local: return "Local responses"
         case .onDevice: return "On-Device Model"
+        case .bazaarlink: return "BazaarLink (Free AI)"
+        case .gemini: return "Google Gemini"
         }
     }
     var shortName: String {
         switch self {
         case .local: return "Local"
         case .onDevice: return "On-Device"
+        case .bazaarlink: return "BazaarLink"
+        case .gemini: return "Gemini"
         }
     }
     var subtitle: String {
         switch self {
         case .local: return "Offline deterministic capture assistant"
         case .onDevice: return "Apple Intelligence on-device neural processing"
+        case .bazaarlink: return "Free models (Qwen 3.7 Flash, DeepSeek V4) · No card needed"
+        case .gemini: return "Google Gemini 2.5 / 3.5 Flash intelligence"
         }
     }
     var iconName: String {
         switch self {
         case .local: return "wand.and.stars"
         case .onDevice: return "cpu"
+        case .bazaarlink: return "bolt.shield.fill"
+        case .gemini: return "sparkles"
         }
     }
-    var isCustomKey: Bool { false }
+    var isCustomKey: Bool {
+        self == .bazaarlink || self == .gemini
+    }
 }
 
 // MARK: - Model Manager
@@ -149,12 +161,29 @@ enum AIProviderType: String, CaseIterable, Identifiable, Codable {
 final class LaterAIModelManager: ObservableObject {
     static let shared = LaterAIModelManager()
 
-    @Published var selectedProvider: AIProviderType = .local
+    @Published var selectedProvider: AIProviderType = .local {
+        didSet {
+            UserDefaults.standard.set(selectedProvider.rawValue, forKey: "laterbox_selected_ai_provider")
+        }
+    }
     @Published var enableSearchRefine: Bool = true
     @Published var isOnDeviceModelEnabled: Bool {
         didSet {
             UserDefaults.standard.set(isOnDeviceModelEnabled, forKey: "laterbox_enable_on_device_model")
         }
+    }
+
+    @Published var bazaarlinkApiKey: String {
+        didSet { UserDefaults.standard.set(bazaarlinkApiKey, forKey: "laterbox_bazaarlink_api_key") }
+    }
+    @Published var geminiApiKey: String {
+        didSet { UserDefaults.standard.set(geminiApiKey, forKey: "laterbox_gemini_api_key") }
+    }
+    @Published var bazaarlinkModel: String {
+        didSet { UserDefaults.standard.set(bazaarlinkModel, forKey: "laterbox_bazaarlink_model") }
+    }
+    @Published var geminiModel: String {
+        didSet { UserDefaults.standard.set(geminiModel, forKey: "laterbox_gemini_model") }
     }
 
     var isOnDeviceModelSupported: Bool {
@@ -183,6 +212,10 @@ final class LaterAIModelManager: ObservableObject {
             return "Local assistant"
         case .onDevice:
             return "On-Device Neural Engine"
+        case .bazaarlink:
+            return "BazaarLink (\(bazaarlinkModel))"
+        case .gemini:
+            return "Gemini (\(geminiModel))"
         }
     }
 
@@ -193,8 +226,17 @@ final class LaterAIModelManager: ObservableObject {
         if UserDefaults.standard.object(forKey: "laterbox_enable_on_device_model") != nil {
             self.isOnDeviceModelEnabled = isSupported && UserDefaults.standard.bool(forKey: "laterbox_enable_on_device_model")
         } else {
-            // Enable by default on iPhones that support it
             self.isOnDeviceModelEnabled = isSupported
+        }
+
+        self.bazaarlinkApiKey = UserDefaults.standard.string(forKey: "laterbox_bazaarlink_api_key") ?? ""
+        self.geminiApiKey = UserDefaults.standard.string(forKey: "laterbox_gemini_api_key") ?? ""
+        self.bazaarlinkModel = UserDefaults.standard.string(forKey: "laterbox_bazaarlink_model") ?? "qwen/qwen3.7-flash"
+        self.geminiModel = UserDefaults.standard.string(forKey: "laterbox_gemini_model") ?? "gemini-2.5-flash"
+
+        if let saved = UserDefaults.standard.string(forKey: "laterbox_selected_ai_provider"),
+           let prov = AIProviderType(rawValue: saved) {
+            self.selectedProvider = prov
         }
     }
 
@@ -204,6 +246,8 @@ final class LaterAIModelManager: ObservableObject {
             return DeterministicLaterAIProvider()
         case .onDevice:
             return OnDeviceLaterAIProvider()
+        case .bazaarlink, .gemini:
+            return DeterministicLaterAIProvider()
         }
     }
 
@@ -221,10 +265,62 @@ final class LaterAIModelManager: ObservableObject {
             } else {
                 return "On-device foundation models are not supported on this device."
             }
+        case .bazaarlink:
+            let key = bazaarlinkApiKey.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !key.isEmpty else { return "Add your BazaarLink API key to test." }
+            return try await testBazaarlinkConnection(key: key, model: bazaarlinkModel)
+        case .gemini:
+            let key = geminiApiKey.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !key.isEmpty else { return "Add your Gemini API key to test." }
+            return try await testGeminiConnection(key: key, model: geminiModel)
         }
     }
 
-    // MARK: - On-Device Capture Analysis & Link Enrichment
+    private func testBazaarlinkConnection(key: String, model: String) async throws -> String {
+        guard let url = URL(string: "https://api.bazaarlink.ai/v1/chat/completions") else { throw URLError(.badURL) }
+        var req = URLRequest(url: url)
+        req.httpMethod = "POST"
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.setValue("Bearer \(key)", forHTTPHeaderField: "Authorization")
+        req.timeoutInterval = 12
+
+        let payload: [String: Any] = [
+            "model": model,
+            "messages": [["role": "user", "content": "Respond with OK"]],
+            "max_tokens": 10
+        ]
+        req.httpBody = try JSONSerialization.data(withJSONObject: payload)
+
+        let (_, response) = try await URLSession.shared.data(for: req)
+        guard let http = response as? HTTPURLResponse, (200...299).contains(http.statusCode) else {
+            let code = (response as? HTTPURLResponse)?.statusCode ?? -1
+            throw NSError(domain: "BazaarLink", code: code, userInfo: [NSLocalizedDescriptionKey: "BazaarLink returned status \(code). Check API key."])
+        }
+        return "Connected to BazaarLink (\(model)) successfully!"
+    }
+
+    private func testGeminiConnection(key: String, model: String) async throws -> String {
+        guard let url = URL(string: "https://generativelanguage.googleapis.com/v1beta/models/\(model):generateContent?key=\(key)") else { throw URLError(.badURL) }
+        var req = URLRequest(url: url)
+        req.httpMethod = "POST"
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.timeoutInterval = 12
+
+        let payload: [String: Any] = [
+            "contents": [["parts": [["text": "ping"]]]],
+            "generationConfig": ["maxOutputTokens": 10]
+        ]
+        req.httpBody = try JSONSerialization.data(withJSONObject: payload)
+
+        let (_, response) = try await URLSession.shared.data(for: req)
+        guard let http = response as? HTTPURLResponse, (200...299).contains(http.statusCode) else {
+            let code = (response as? HTTPURLResponse)?.statusCode ?? -1
+            throw NSError(domain: "Gemini", code: code, userInfo: [NSLocalizedDescriptionKey: "Gemini returned status \(code). Check API key."])
+        }
+        return "Connected to Google Gemini (\(model)) successfully!"
+    }
+
+    // MARK: - On-Device & Remote Capture Analysis
     func analyzeCapture(
         content: String,
         attachments: [SharedAttachment] = [],
@@ -242,6 +338,7 @@ final class LaterAIModelManager: ObservableObject {
         var enrichedTags: [String] = []
         var isLinkEnriched = false
 
+        // 1. Fetch link metadata if URL is present
         if let detectedUrl, let url = URL(string: detectedUrl) {
             do {
                 let metadata = try await withThrowingTaskGroup(of: LinkMetadata.self) { group in
@@ -275,114 +372,50 @@ final class LaterAIModelManager: ObservableObject {
             }
         }
 
-        var userTextWithoutUrl = trimmedContent
-        if let detectedUrl {
-            userTextWithoutUrl = userTextWithoutUrl.replacingOccurrences(of: detectedUrl, with: "").trimmingCharacters(in: .whitespacesAndNewlines)
-        }
-
-        // Run Task vs Note classifier to identify to-dos, shopping lists, and future actions
-        let taskAnalysis = Self.classifyTaskOrNotes(content: trimmedContent)
-        var formattedTaskContent: String? = nil
-
-        // Title Extraction
-        var finalTitle = enrichedTitle
-        if finalTitle == nil || finalTitle?.isEmpty == true || LinkMetadataLoader.isGenericTitle(finalTitle) {
-            if taskAnalysis.isTask, let taskTitle = taskAnalysis.title, !taskTitle.isEmpty {
-                finalTitle = taskTitle
-            } else if !userTextWithoutUrl.isEmpty {
-                let firstLine = userTextWithoutUrl.components(separatedBy: .newlines).first(where: { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }) ?? userTextWithoutUrl
-                let cleaned = firstLine
-                    .trimmingCharacters(in: CharacterSet(charactersIn: "-*#• \t\r\n"))
-                    .replacingOccurrences(of: "(?i)^(todo:|task:|\\[ \\]|-\\[ \\]|\\* \\[ \\])\\s*", with: "", options: .regularExpression)
-                    .trimmingCharacters(in: .whitespacesAndNewlines)
-                if !cleaned.isEmpty {
-                    finalTitle = String(cleaned.prefix(90))
-                }
-            } else if let att = attachments.first {
-                let name = att.name
-                let withoutExt = (name as NSString).deletingPathExtension
-                finalTitle = withoutExt.replacingOccurrences(of: "_", with: " ").replacingOccurrences(of: "-", with: " ")
-            } else if let detectedUrl, let host = URL(string: detectedUrl)?.host {
-                finalTitle = host.replacingOccurrences(of: "www.", with: "")
+        // 2. If remote AI provider (BazaarLink or Gemini) is active and configured, query it first
+        if selectedProvider == .bazaarlink || selectedProvider == .gemini {
+            if let remoteAnalysis = await queryRemoteCaptureAnalysis(
+                content: trimmedContent,
+                detectedUrl: detectedUrl,
+                attachments: attachments,
+                availableCollections: availableCollections,
+                enrichedTitle: enrichedTitle,
+                enrichedSummary: enrichedSummary,
+                enrichedContentType: enrichedContentType,
+                provider: selectedProvider
+            ) {
+                var finalAnalysis = remoteAnalysis
+                if finalAnalysis.previewImageUrl == nil { finalAnalysis.previewImageUrl = enrichedImage }
+                if finalAnalysis.faviconUrl == nil { finalAnalysis.faviconUrl = enrichedFavicon }
+                if finalAnalysis.siteName == nil { finalAnalysis.siteName = enrichedSite }
+                finalAnalysis.isLinkEnriched = isLinkEnriched
+                return finalAnalysis
             }
         }
 
-        // Summary / Notes Formulation
-        var finalSummary = enrichedSummary ?? ""
-        if taskAnalysis.isTask && !taskAnalysis.taskLines.isEmpty {
-            formattedTaskContent = taskAnalysis.taskLines.map { line -> String in
-                if line.hasPrefix("- [ ]") || line.hasPrefix("- [x]") { return line }
-                return "- [ ] \(line)"
-            }.joined(separator: "\n")
-            finalSummary = formattedTaskContent ?? finalSummary
-        } else if !userTextWithoutUrl.isEmpty {
-            if !finalSummary.isEmpty && !finalSummary.localizedCaseInsensitiveContains(userTextWithoutUrl) {
-                finalSummary = "\(userTextWithoutUrl)\n\n\(finalSummary)"
-            } else if finalSummary.isEmpty {
-                let lines = userTextWithoutUrl.components(separatedBy: .newlines).filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
-                if lines.count > 1 {
-                    finalSummary = lines.dropFirst().joined(separator: "\n")
-                } else {
-                    finalSummary = userTextWithoutUrl
-                }
-            }
-        } else if finalSummary.isEmpty, let att = attachments.first {
-            finalSummary = "Attached: \(att.name)"
-        }
+        // 3. High-Accuracy Generalized On-Device Semantic Deduction Engine
+        let deduction = Self.deduceCaptureIntent(
+            content: trimmedContent,
+            detectedUrl: detectedUrl,
+            attachments: attachments,
+            enrichedTitle: enrichedTitle,
+            enrichedSummary: enrichedSummary,
+            enrichedContentType: enrichedContentType
+        )
 
-        // Content Type
-        var finalContentType = enrichedContentType ?? ""
-        let lower = trimmedContent.lowercased()
-        if finalContentType.isEmpty {
-            if taskAnalysis.isTask && detectedUrl == nil && attachments.isEmpty {
-                finalContentType = "task"
-            } else if lower.hasPrefix("todo:") || lower.hasPrefix("task:") || lower.hasPrefix("[ ]") || lower.contains("remind me to") || lower.contains("don't forget to") {
-                finalContentType = "task"
-            } else if lower.contains("func ") || lower.contains("import ") || lower.contains("class ") || lower.contains("const ") || lower.contains("```") || lower.contains("def ") {
-                finalContentType = "code"
-            } else if let att = attachments.first {
-                let n = att.name.lowercased()
-                if n.hasSuffix(".jpg") || n.hasSuffix(".png") || n.hasSuffix(".heic") || n.hasSuffix(".webp") {
-                    finalContentType = "image"
-                } else {
-                    finalContentType = "document"
-                }
-            } else if detectedUrl != nil {
-                if lower.contains("youtube.com") || lower.contains("youtu.be") || lower.contains("vimeo.com") {
-                    finalContentType = "video"
-                } else if lower.contains("spotify.com") || lower.contains("music.apple.com") || lower.contains("soundcloud.com") {
-                    finalContentType = "music"
-                } else if lower.hasSuffix(".pdf") || lower.contains("/pdf") {
-                    finalContentType = "document"
-                } else if lower.contains("medium.com") || lower.contains("substack.com") || lower.contains("blog") || lower.contains("article") {
-                    finalContentType = "article"
-                } else {
-                    finalContentType = "link"
-                }
-            } else {
-                finalContentType = "note"
-            }
-        }
-
-        // Tags Extraction (Hashtags, Link keywords, Domain, NaturalLanguage NER & Topic taxonomy)
+        // Tags Extraction
         var allTags = Set<String>()
-
-        // 1. Hashtags in text
         let hashtags = trimmedContent.split(whereSeparator: \.isWhitespace)
             .filter { $0.hasPrefix("#") && $0.count > 1 }
             .map { String($0.dropFirst()).trimmingCharacters(in: CharacterSet.alphanumerics.inverted).lowercased() }
             .filter { !$0.isEmpty }
         allTags.formUnion(hashtags)
 
-        // 2. Link keywords
         for kw in enrichedTags {
             let clean = kw.lowercased().trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
-            if clean.count >= 2 && clean.count <= 25 {
-                allTags.insert(clean)
-            }
+            if clean.count >= 2 && clean.count <= 25 { allTags.insert(clean) }
         }
 
-        // 3. Domain tag
         if let detectedUrl, let host = URL(string: detectedUrl)?.host {
             let domain = host.replacingOccurrences(of: "www.", with: "")
             if let primary = domain.split(separator: ".").first, primary.count >= 3 {
@@ -390,8 +423,11 @@ final class LaterAIModelManager: ObservableObject {
             }
         }
 
-        // 4. On-Device NaturalLanguage NER
-        let textToTag = "\(finalTitle ?? "") \(trimmedContent) \(finalSummary)"
+        for actionTag in deduction.actionTags {
+            allTags.insert(actionTag)
+        }
+
+        let textToTag = "\(deduction.suggestedTitle ?? "") \(trimmedContent) \(deduction.suggestedNotes ?? "")"
         if !textToTag.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             let tagger = NLTagger(tagSchemes: [.nameType])
             tagger.string = textToTag
@@ -408,7 +444,7 @@ final class LaterAIModelManager: ObservableObject {
             }
         }
 
-        // 5. Taxonomy matching
+        // Topic mapping
         let lowerCorpus = textToTag.lowercased()
         let topicMap: [(keyword: String, tag: String)] = [
             ("design", "design"), ("figma", "design"), ("ui", "ui"), ("ux", "ux"),
@@ -423,15 +459,8 @@ final class LaterAIModelManager: ObservableObject {
             ("idea", "ideas"), ("startup", "startup"), ("ai", "ai"), ("llm", "ai")
         ]
         for item in topicMap {
-            if lowerCorpus.contains(item.keyword) {
-                allTags.insert(item.tag)
-            }
+            if lowerCorpus.contains(item.keyword) { allTags.insert(item.tag) }
         }
-
-        if finalContentType == "task" { allTags.insert("task") }
-        if finalContentType == "code" { allTags.insert("code") }
-        if finalContentType == "video" { allTags.insert("video") }
-        if finalContentType == "document" { allTags.insert("document") }
 
         // Smart Collection Matching
         var suggestedCollection: String? = nil
@@ -444,45 +473,469 @@ final class LaterAIModelManager: ObservableObject {
                 break
             }
         }
-
-        // Date / Return Schedule Detection
-        var detectedReturnAt: Date? = nil
-        if lower.contains("tomorrow") || lower.contains("tmrw") {
-            detectedReturnAt = Calendar.current.date(bySettingHour: 9, minute: 0, second: 0, of: Date().addingTimeInterval(86400))
-        } else if lower.contains("tonight") {
-            detectedReturnAt = Calendar.current.date(bySettingHour: 20, minute: 0, second: 0, of: Date())
-        } else if lower.contains("this weekend") || lower.contains("saturday") || lower.contains("sunday") {
-            detectedReturnAt = CaptureDraft.weekend()
-        } else if lower.contains("next week") {
-            detectedReturnAt = Calendar.current.date(byAdding: .day, value: 7, to: Date())
+        if suggestedCollection == nil {
+            if deduction.dominantType == "task" {
+                if allTags.contains("shopping") {
+                    suggestedCollection = availableCollections.first { $0.localizedCaseInsensitiveCompare("Shopping") == .orderedSame }
+                } else {
+                    suggestedCollection = availableCollections.first { $0.localizedCaseInsensitiveCompare("To-Do") == .orderedSame || $0.localizedCaseInsensitiveCompare("Tasks") == .orderedSame }
+                }
+            } else if deduction.dominantType == "video" {
+                suggestedCollection = availableCollections.first { $0.localizedCaseInsensitiveCompare("Videos") == .orderedSame || $0.localizedCaseInsensitiveCompare("Watch Later") == .orderedSame }
+            } else if deduction.dominantType == "article" {
+                suggestedCollection = availableCollections.first { $0.localizedCaseInsensitiveCompare("Reading") == .orderedSame || $0.localizedCaseInsensitiveCompare("Articles") == .orderedSame }
+            }
         }
 
         let sourceDesc = isLinkEnriched ? "Auto-filled from link" : (isOnDeviceModelEnabled ? "Auto-filled by On-Device AI" : "Auto-filled by Local AI")
 
-        if finalContentType == "task" {
-            allTags.insert("task")
-            allTags.insert("todo")
-            let lowerContent = trimmedContent.lowercased()
-            if lowerContent.contains("buy") || lowerContent.contains("grocer") || lowerContent.contains("shop") || lowerContent.contains("order") || lowerContent.contains("store") {
-                allTags.insert("shopping")
-            }
-        }
-
         return OnDeviceCaptureAnalysis(
-            title: finalTitle,
-            summary: finalSummary.isEmpty ? nil : finalSummary,
-            contentType: finalContentType.isEmpty ? nil : finalContentType,
+            title: deduction.suggestedTitle,
+            summary: deduction.suggestedNotes,
+            contentType: deduction.dominantType,
             tags: Array(allTags).sorted(),
             collectionName: suggestedCollection,
-            returnAt: detectedReturnAt,
+            returnAt: deduction.bestReturnDate,
             detectedUrl: detectedUrl,
             previewImageUrl: enrichedImage,
             siteName: enrichedSite,
             faviconUrl: enrichedFavicon,
             isLinkEnriched: isLinkEnriched,
             sourceDescription: sourceDesc,
-            formattedTaskContent: formattedTaskContent
+            formattedTaskContent: deduction.formattedTask
         )
+    }
+
+    // MARK: - Remote Capture Analysis (BazaarLink / Gemini)
+    private func queryRemoteCaptureAnalysis(
+        content: String,
+        detectedUrl: String?,
+        attachments: [SharedAttachment],
+        availableCollections: [String],
+        enrichedTitle: String?,
+        enrichedSummary: String?,
+        enrichedContentType: String?,
+        provider: AIProviderType
+    ) async -> OnDeviceCaptureAnalysis? {
+        let collectionsPrompt = availableCollections.isEmpty ? "none" : availableCollections.joined(separator: ", ")
+        let userPrompt = """
+        User capture: "\(content)"
+        Detected URL: \(detectedUrl ?? "none")
+        Enriched title: \(enrichedTitle ?? "none")
+        Enriched description: \(enrichedSummary ?? "none")
+        Enriched type: \(enrichedContentType ?? "none")
+        Attachment names: \(attachments.map(\.name).joined(separator: ", "))
+        Available collections: \(collectionsPrompt)
+
+        Analyze user phrasing and mixed content (tasks with links/videos/images). Deduce what the user wants most out of it:
+        - If action phrasing implies doing, buying, reviewing, watching, or reading later, classify as "task", generate an action title, format task items as "- [ ] item" in formattedTaskContent, and provide best returnDateISO.
+        - Otherwise classify as video, article, link, document, image, or note.
+        Respond in JSON:
+        {
+          "title": "...",
+          "contentType": "task"|"video"|"article"|"link"|"document"|"image"|"note",
+          "summary": "...",
+          "formattedTaskContent": "...",
+          "tags": ["..."],
+          "collectionName": "...",
+          "returnDateISO": "..."
+        }
+        """
+
+        if provider == .bazaarlink {
+            let key = bazaarlinkApiKey.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !key.isEmpty, let url = URL(string: "https://api.bazaarlink.ai/v1/chat/completions") else { return nil }
+            var req = URLRequest(url: url)
+            req.httpMethod = "POST"
+            req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            req.setValue("Bearer \(key)", forHTTPHeaderField: "Authorization")
+            req.timeoutInterval = 15
+
+            let payload: [String: Any] = [
+                "model": bazaarlinkModel,
+                "messages": [
+                    ["role": "system", "content": "You are Later AI. Always output valid JSON."],
+                    ["role": "user", "content": userPrompt]
+                ],
+                "response_format": ["type": "json_object"],
+                "temperature": 0.2
+            ]
+            guard let bodyData = try? JSONSerialization.data(withJSONObject: payload) else { return nil }
+            req.httpBody = bodyData
+
+            guard let (data, resp) = try? await URLSession.shared.data(for: req),
+                  let http = resp as? HTTPURLResponse, (200...299).contains(http.statusCode),
+                  let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  let choices = json["choices"] as? [[String: Any]],
+                  let msg = choices.first?["message"] as? [String: Any],
+                  let contentStr = msg["content"] as? String,
+                  let parsed = try? JSONSerialization.jsonObject(with: contentStr.data(using: .utf8) ?? Data()) as? [String: Any]
+            else { return nil }
+
+            return parseRemoteJSONToAnalysis(parsed: parsed, detectedUrl: detectedUrl, source: "Auto-filled by BazaarLink (\(bazaarlinkModel))")
+        } else if provider == .gemini {
+            let key = geminiApiKey.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !key.isEmpty, let url = URL(string: "https://generativelanguage.googleapis.com/v1beta/models/\(geminiModel):generateContent?key=\(key)") else { return nil }
+            var req = URLRequest(url: url)
+            req.httpMethod = "POST"
+            req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            req.timeoutInterval = 15
+
+            let payload: [String: Any] = [
+                "contents": [["parts": [["text": userPrompt]]]],
+                "generationConfig": ["responseMimeType": "application/json", "maxOutputTokens": 1024]
+            ]
+            guard let bodyData = try? JSONSerialization.data(withJSONObject: payload) else { return nil }
+            req.httpBody = bodyData
+
+            guard let (data, resp) = try? await URLSession.shared.data(for: req),
+                  let http = resp as? HTTPURLResponse, (200...299).contains(http.statusCode),
+                  let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  let candidates = json["candidates"] as? [[String: Any]],
+                  let contentObj = candidates.first?["content"] as? [String: Any],
+                  let parts = contentObj["parts"] as? [[String: Any]],
+                  let text = parts.first?["text"] as? String,
+                  let parsed = try? JSONSerialization.jsonObject(with: text.data(using: .utf8) ?? Data()) as? [String: Any]
+            else { return nil }
+
+            return parseRemoteJSONToAnalysis(parsed: parsed, detectedUrl: detectedUrl, source: "Auto-filled by Gemini (\(geminiModel))")
+        }
+        return nil
+    }
+
+    private func parseRemoteJSONToAnalysis(parsed: [String: Any], detectedUrl: String?, source: String) -> OnDeviceCaptureAnalysis {
+        let title = (parsed["title"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let ct = (parsed["contentType"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let summary = (parsed["summary"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let formattedTask = (parsed["formattedTaskContent"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let tags = (parsed["tags"] as? [String]) ?? []
+        let coll = (parsed["collectionName"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        var retDate: Date? = nil
+        if let iso = parsed["returnDateISO"] as? String, !iso.isEmpty {
+            retDate = ISO8601DateFormatter().date(from: iso)
+        }
+        if retDate == nil, let dateStr = parsed["returnDate"] as? String, !dateStr.isEmpty {
+            retDate = Self.deduceBestReturnDate(from: dateStr, contentType: ct ?? "")
+        }
+
+        return OnDeviceCaptureAnalysis(
+            title: title?.isEmpty == false ? title : nil,
+            summary: summary?.isEmpty == false ? summary : nil,
+            contentType: ct?.isEmpty == false ? ct : nil,
+            tags: tags,
+            collectionName: coll?.isEmpty == false ? coll : nil,
+            returnAt: retDate,
+            detectedUrl: detectedUrl,
+            sourceDescription: source,
+            formattedTaskContent: formattedTask?.isEmpty == false ? formattedTask : nil
+        )
+    }
+
+    // MARK: - Generalized Intent Deduction for Mixed Content
+    public static func deduceCaptureIntent(
+        content: String,
+        detectedUrl: String?,
+        attachments: [SharedAttachment],
+        enrichedTitle: String?,
+        enrichedSummary: String?,
+        enrichedContentType: String?
+    ) -> (
+        dominantType: String,
+        suggestedTitle: String?,
+        suggestedNotes: String?,
+        formattedTask: String?,
+        actionTags: [String],
+        bestReturnDate: Date?
+    ) {
+        let trimmed = content.trimmingCharacters(in: .whitespacesAndNewlines)
+        var userTextWithoutUrl = trimmed
+        if let detectedUrl {
+            userTextWithoutUrl = userTextWithoutUrl.replacingOccurrences(of: detectedUrl, with: "").trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+
+        let lower = trimmed.lowercased()
+        let lowerUrl = (detectedUrl ?? "").lowercased()
+
+        // 1. Detect media characteristics
+        let hasVideo = lowerUrl.contains("youtube.com") || lowerUrl.contains("youtu.be") || lowerUrl.contains("vimeo.com") || lowerUrl.contains("tiktok.com") || lowerUrl.contains("twitch.tv") ||
+            attachments.contains { $0.name.lowercased().hasSuffix(".mp4") || $0.name.lowercased().hasSuffix(".mov") } ||
+            enrichedContentType == "video"
+
+        let hasArticle = lowerUrl.contains("medium.com") || lowerUrl.contains("substack.com") || lowerUrl.contains("blog") || lowerUrl.contains("article") || lowerUrl.contains(".pdf") ||
+            attachments.contains { $0.name.lowercased().hasSuffix(".pdf") || $0.name.lowercased().hasSuffix(".doc") } ||
+            enrichedContentType == "article"
+
+        let hasMusic = lowerUrl.contains("spotify.com") || lowerUrl.contains("music.apple.com") || lowerUrl.contains("soundcloud.com") ||
+            attachments.contains { $0.name.lowercased().hasSuffix(".mp3") || $0.name.lowercased().hasSuffix(".m4a") } ||
+            enrichedContentType == "music"
+
+        // 2. Classify tasks / action lists in user text
+        let taskAnalysis = classifyTaskOrNotes(content: trimmed)
+
+        // 3. Action phrasing keywords
+        let watchPhrases = ["watch", "watch later", "see video", "check out video", "tutorial", "stream"]
+        let readPhrases = ["read", "read later", "check article", "finish reading", "study", "skim"]
+        let buyPhrases = ["buy", "order", "groceries", "grocery", "shopping", "pick up", "purchase", "store list", "supermarket"]
+        let reviewPhrases = ["review", "feedback", "inspect", "prepare", "sign", "fill out", "check", "fix", "update", "finish", "test", "submit"]
+
+        let hasWatchPhrasing = watchPhrases.contains { lower.contains($0) }
+        let hasReadPhrasing = readPhrases.contains { lower.contains($0) }
+        let hasBuyPhrasing = buyPhrases.contains { lower.contains($0) }
+        let hasReviewPhrasing = reviewPhrases.contains { lower.contains($0) }
+
+        var dominantType = "note"
+        var title: String? = nil
+        var notes: String? = nil
+        var formattedTask: String? = nil
+        var actionTags: [String] = []
+
+        // DEDUCE DOMINANT INTENT:
+        // A. Multi-line to-do or checklist present
+        if taskAnalysis.isTask && !taskAnalysis.taskLines.isEmpty {
+            dominantType = "task"
+            actionTags.append("task")
+            actionTags.append("todo")
+            if hasBuyPhrasing { actionTags.append("shopping") }
+
+            var lines = taskAnalysis.taskLines.map { line -> String in
+                if line.hasPrefix("- [ ]") || line.hasPrefix("- [x]") { return line }
+                return "- [ ] \(line)"
+            }
+            if let detectedUrl {
+                lines.append("Source: \(detectedUrl)")
+            }
+            formattedTask = lines.joined(separator: "\n")
+            notes = formattedTask
+
+            if let taskTitle = taskAnalysis.title, !taskTitle.isEmpty {
+                title = taskTitle
+            } else if let enriched = enrichedTitle, !LinkMetadataLoader.isGenericTitle(enriched) {
+                title = enriched
+            }
+        }
+        // B. Action intent on video (e.g., "Watch this tutorial tonight: https://...")
+        else if hasVideo && (hasWatchPhrasing || taskAnalysis.isTask || !userTextWithoutUrl.isEmpty) {
+            dominantType = "task"
+            actionTags.append(contentsOf: ["task", "video", "watch-later"])
+
+            let cleanTitle = enrichedTitle ?? "Video"
+            if !userTextWithoutUrl.isEmpty && !userTextWithoutUrl.localizedCaseInsensitiveContains(cleanTitle) {
+                let firstLine = userTextWithoutUrl.components(separatedBy: .newlines).first?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                title = firstLine.prefix(60).isEmpty ? "Watch: \(cleanTitle)" : String(firstLine.prefix(60))
+            } else {
+                title = "Watch: \(cleanTitle)"
+            }
+
+            var taskItems: [String] = ["- [ ] Watch \(cleanTitle)"]
+            if let url = detectedUrl { taskItems.append("Video: \(url)") }
+            if !userTextWithoutUrl.isEmpty { taskItems.append("\nNote: \(userTextWithoutUrl)") }
+            formattedTask = taskItems.joined(separator: "\n")
+            notes = formattedTask
+        }
+        // C. Action intent on reading (e.g., "Read this article over the weekend: https://...")
+        else if (hasArticle || detectedUrl != nil) && (hasReadPhrasing || hasReviewPhrasing) {
+            dominantType = "task"
+            actionTags.append(contentsOf: ["task", "reading", "read-later"])
+
+            let cleanTitle = enrichedTitle ?? "Article"
+            title = "Read: \(cleanTitle)"
+
+            var taskItems: [String] = ["- [ ] Read \(cleanTitle)"]
+            if let url = detectedUrl { taskItems.append("Link: \(url)") }
+            if !userTextWithoutUrl.isEmpty { taskItems.append("\nNote: \(userTextWithoutUrl)") }
+            formattedTask = taskItems.joined(separator: "\n")
+            notes = formattedTask
+        }
+        // D. Action intent on shopping / purchasing
+        else if hasBuyPhrasing {
+            dominantType = "task"
+            actionTags.append(contentsOf: ["task", "shopping", "todo"])
+
+            let cleanTitle = enrichedTitle ?? (userTextWithoutUrl.isEmpty ? "Shopping List" : userTextWithoutUrl)
+            title = enrichedTitle != nil ? "Buy items for \(cleanTitle)" : (userTextWithoutUrl.isEmpty ? "Shopping List" : String(userTextWithoutUrl.prefix(60)))
+
+            var taskItems: [String] = []
+            if !userTextWithoutUrl.isEmpty {
+                let lines = userTextWithoutUrl.components(separatedBy: .newlines).filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
+                for l in lines { taskItems.append("- [ ] \(l)") }
+            } else {
+                taskItems.append("- [ ] Purchase \(cleanTitle)")
+            }
+            if let url = detectedUrl { taskItems.append("Ref: \(url)") }
+            formattedTask = taskItems.joined(separator: "\n")
+            notes = formattedTask
+        }
+        // E. Action intent on documents/attachments (e.g. "Review pitch deck before Monday")
+        else if !attachments.isEmpty && (hasReviewPhrasing || taskAnalysis.isTask) {
+            dominantType = "task"
+            actionTags.append(contentsOf: ["task", "review", "work"])
+
+            let attName = attachments.first?.name ?? "Attachment"
+            title = !userTextWithoutUrl.isEmpty ? String(userTextWithoutUrl.prefix(60)) : "Review \(attName)"
+            formattedTask = "- [ ] Review \(attName)\nAttached file: \(attName)"
+            notes = formattedTask
+        }
+        // F. Single line explicit to-do task (e.g. "Call John tomorrow", "Schedule dentist")
+        else if taskAnalysis.isTask {
+            dominantType = "task"
+            actionTags.append(contentsOf: ["task", "todo"])
+
+            let taskText = taskAnalysis.title ?? userTextWithoutUrl
+            title = taskText
+            formattedTask = "- [ ] \(taskText)"
+            notes = formattedTask
+        }
+        // G. Pure reference media / resource (no action phrasing)
+        else {
+            if hasVideo {
+                dominantType = "video"
+                actionTags.append("video")
+            } else if hasMusic {
+                dominantType = "music"
+                actionTags.append("music")
+            } else if hasArticle {
+                dominantType = "article"
+                actionTags.append("reading")
+            } else if !attachments.isEmpty {
+                let name = attachments.first!.name.lowercased()
+                dominantType = (name.hasSuffix(".jpg") || name.hasSuffix(".png") || name.hasSuffix(".heic")) ? "image" : "document"
+            } else if detectedUrl != nil {
+                dominantType = enrichedContentType ?? "link"
+            } else {
+                dominantType = "note"
+            }
+
+            title = enrichedTitle ?? (userTextWithoutUrl.isEmpty ? (attachments.first?.name ?? "Saved Item") : String(userTextWithoutUrl.prefix(70)))
+            notes = enrichedSummary ?? (!userTextWithoutUrl.isEmpty ? userTextWithoutUrl : nil)
+        }
+
+        // Return Date Deduction
+        let bestDate = deduceBestReturnDate(
+            from: trimmed,
+            contentType: dominantType,
+            hasVideo: hasVideo,
+            hasArticle: hasArticle
+        )
+
+        return (
+            dominantType: dominantType,
+            suggestedTitle: title,
+            suggestedNotes: notes,
+            formattedTask: formattedTask,
+            actionTags: actionTags,
+            bestReturnDate: bestDate
+        )
+    }
+
+    // MARK: - Natural Language & Contextual Return Date Deduction
+    public static func deduceBestReturnDate(
+        from text: String,
+        contentType: String,
+        hasVideo: Bool = false,
+        hasArticle: Bool = false
+    ) -> Date? {
+        let lower = text.lowercased()
+        let calendar = Calendar.current
+        let now = Date()
+
+        // 1. Explicit Relative Numbers (e.g. "in 2 hours", "in 30 mins", "in 3 days")
+        if let match = try? NSRegularExpression(pattern: #"(?i)\bin\s+(\d+)\s*(hours?|hrs?|h)\b"#).firstMatch(in: lower, range: NSRange(location: 0, length: (lower as NSString).length)), match.numberOfRanges >= 2 {
+            let numStr = (lower as NSString).substring(with: match.range(at: 1))
+            if let h = Double(numStr) { return now.addingTimeInterval(h * 3600) }
+        }
+        if let match = try? NSRegularExpression(pattern: #"(?i)\bin\s+(\d+)\s*(minutes?|mins?|m)\b"#).firstMatch(in: lower, range: NSRange(location: 0, length: (lower as NSString).length)), match.numberOfRanges >= 2 {
+            let numStr = (lower as NSString).substring(with: match.range(at: 1))
+            if let m = Double(numStr) { return now.addingTimeInterval(m * 60) }
+        }
+        if let match = try? NSRegularExpression(pattern: #"(?i)\bin\s+(\d+)\s*(days?|d)\b"#).firstMatch(in: lower, range: NSRange(location: 0, length: (lower as NSString).length)), match.numberOfRanges >= 2 {
+            let numStr = (lower as NSString).substring(with: match.range(at: 1))
+            if let d = Int(numStr) {
+                let target = calendar.date(byAdding: .day, value: d, to: now) ?? now
+                return calendar.date(bySettingHour: 9, minute: 0, second: 0, of: target) ?? target
+            }
+        }
+        if let match = try? NSRegularExpression(pattern: #"(?i)\bin\s+(\d+)\s*(weeks?|w)\b"#).firstMatch(in: lower, range: NSRange(location: 0, length: (lower as NSString).length)), match.numberOfRanges >= 2 {
+            let numStr = (lower as NSString).substring(with: match.range(at: 1))
+            if let w = Int(numStr) {
+                let target = calendar.date(byAdding: .day, value: w * 7, to: now) ?? now
+                return calendar.date(bySettingHour: 9, minute: 0, second: 0, of: target) ?? target
+            }
+        }
+
+        // 2. Specific Named Time Frames
+        if lower.contains("tonight") || lower.contains("this evening") {
+            let hour = calendar.component(.hour, from: now)
+            if hour < 20 {
+                return calendar.date(bySettingHour: 20, minute: 0, second: 0, of: now)
+            } else {
+                return now.addingTimeInterval(7200)
+            }
+        } else if lower.contains("tomorrow morning") || lower.contains("tomorrow am") {
+            return calendar.date(bySettingHour: 9, minute: 0, second: 0, of: now.addingTimeInterval(86400))
+        } else if lower.contains("tomorrow afternoon") || lower.contains("tomorrow pm") {
+            return calendar.date(bySettingHour: 14, minute: 0, second: 0, of: now.addingTimeInterval(86400))
+        } else if lower.contains("tomorrow night") || lower.contains("tomorrow evening") {
+            return calendar.date(bySettingHour: 20, minute: 0, second: 0, of: now.addingTimeInterval(86400))
+        } else if lower.contains("tomorrow") || lower.contains("tmrw") {
+            return calendar.date(bySettingHour: 9, minute: 0, second: 0, of: now.addingTimeInterval(86400))
+        } else if lower.contains("this weekend") || lower.contains("over the weekend") {
+            return nextWeekday(7, hour: 10) // Saturday 10 AM
+        } else if lower.contains("saturday") || lower.contains("sat") {
+            return nextWeekday(7, hour: 10)
+        } else if lower.contains("sunday") || lower.contains("sun") {
+            return nextWeekday(1, hour: 10)
+        } else if lower.contains("next week") || lower.contains("next monday") {
+            return nextWeekday(2, hour: 9) // Monday 9 AM
+        } else if lower.contains("monday") || lower.contains("mon") {
+            return nextWeekday(2, hour: 9)
+        } else if lower.contains("tuesday") || lower.contains("tue") {
+            return nextWeekday(3, hour: 9)
+        } else if lower.contains("wednesday") || lower.contains("wed") {
+            return nextWeekday(4, hour: 9)
+        } else if lower.contains("thursday") || lower.contains("thu") {
+            return nextWeekday(5, hour: 9)
+        } else if lower.contains("friday") || lower.contains("fri") {
+            return nextWeekday(6, hour: 9)
+        } else if lower.contains("later today") || lower.contains("after work") {
+            return calendar.date(bySettingHour: 18, minute: 0, second: 0, of: now)
+        }
+
+        // 3. Implicit Contextual Return Dates
+        if lower.contains("urgent") || lower.contains("asap") || lower.contains("right now") || lower.contains("today") {
+            return now.addingTimeInterval(7200)
+        }
+
+        if contentType == "task" {
+            if lower.contains("buy") || lower.contains("grocer") || lower.contains("shop") || lower.contains("order") {
+                return calendar.date(bySettingHour: 9, minute: 0, second: 0, of: now.addingTimeInterval(86400))
+            } else if hasVideo || lower.contains("watch") {
+                return nextWeekday(7, hour: 11)
+            } else if hasArticle || lower.contains("read") {
+                let hour = calendar.component(.hour, from: now)
+                if hour < 20 {
+                    return calendar.date(bySettingHour: 20, minute: 30, second: 0, of: now)
+                } else {
+                    return calendar.date(bySettingHour: 9, minute: 0, second: 0, of: now.addingTimeInterval(86400))
+                }
+            } else {
+                return calendar.date(bySettingHour: 9, minute: 0, second: 0, of: now.addingTimeInterval(86400))
+            }
+        }
+
+        return nil
+    }
+
+    private static func nextWeekday(_ targetWeekday: Int, hour: Int = 9) -> Date {
+        let calendar = Calendar.current
+        let now = Date()
+        let currentWeekday = calendar.component(.weekday, from: now)
+        var daysToAdd = targetWeekday - currentWeekday
+        if daysToAdd <= 0 {
+            daysToAdd += 7
+        }
+        let targetDate = calendar.date(byAdding: .day, value: daysToAdd, to: now) ?? now
+        return calendar.date(bySettingHour: hour, minute: 0, second: 0, of: targetDate) ?? targetDate
     }
 
     // MARK: - Task & To-Do Classification
