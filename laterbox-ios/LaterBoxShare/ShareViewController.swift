@@ -64,6 +64,18 @@ struct ShareChatMessage: Identifiable, Equatable {
               let url = match.url, ["http", "https"].contains(url.scheme?.lowercased() ?? "") else { return nil }
         return url.absoluteString
     }
+    static func webLink(in data: Data) -> String? {
+        if let text = String(data: data, encoding: .utf8), let link = webLink(in: text) { return link }
+        guard let plist = try? PropertyListSerialization.propertyList(from: data, format: nil),
+              let dictionary = plist as? [String: Any],
+              dictionary["$archiver"] as? String == "NSKeyedArchiver",
+              let objects = dictionary["$objects"] as? [Any] else { return nil }
+        for object in objects {
+            if let text = object as? String, let link = webLink(in: text) { return link }
+        }
+        return nil
+    }
+
     func load() async {
         loading = true
         defer { loading = false }
