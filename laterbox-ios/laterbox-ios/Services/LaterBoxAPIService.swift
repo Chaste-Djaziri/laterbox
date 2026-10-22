@@ -41,10 +41,12 @@ public nonisolated struct RemoteItemDTO: Codable, Sendable {
     public let url: String?
     public let title: String?
     public let text_content: String?
+    public let text_selector: String?
     public let type: String?
     public let favorite: Bool?
     public let status: String?
     public let return_at: String?
+    public let inbox_entered_at: String?
     public let created_at: String?
     public let updated_at: String?
 }

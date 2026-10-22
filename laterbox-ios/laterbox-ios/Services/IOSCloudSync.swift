@@ -9,10 +9,12 @@ struct CloudItemSnapshot: Codable {
     var url: String?
     var title: String?
     var text_content: String?
+    var text_selector: String? = nil
     var type: String?
     var favorite: Bool?
     var status: String?
     var return_at: String?
+    var inbox_entered_at: String? = nil
     var created_at: String?
     var updated_at: String?
     var deleted_at: String?
@@ -484,9 +486,13 @@ extension SyncCoordinator {
                 if let norm = normSnapUrl { byURL[norm] = item }
             }
             item.userId = uid; item.title = snapshot.title ?? snapshot.url ?? "Untitled"; item.url = snapshot.url
-            item.textContent = snapshot.text_content; item.type = snapshot.type ?? "link"; item.favorite = snapshot.favorite ?? false
+            item.textContent = snapshot.text_content; item.textSelector = snapshot.text_selector
+            item.type = snapshot.type ?? "link"; item.favorite = snapshot.favorite ?? false
+            let priorInboxEntry = existingMatch?.status == "inbox" ? existingMatch?.inboxEnteredAt : nil
             item.status = snapshot.deleted_at == nil ? (snapshot.status ?? "inbox") : "deleted"
             item.returnAt = snapshot.return_at.flatMap(Self.cloudDate)
+            item.inboxEnteredAt = snapshot.inbox_entered_at.flatMap(Self.cloudDate)
+                ?? (item.status == "inbox" ? priorInboxEntry : nil)
             item.createdAt = snapshot.created_at.flatMap(Self.cloudDate) ?? remoteDate; item.updatedAt = remoteDate
             if let metadata = snapshot.item_metadata {
                 item.domain = metadata.domain; item.siteName = metadata.site_name; item.metadataDescription = metadata.description
@@ -605,8 +611,10 @@ extension SyncCoordinator {
             let stamp = revision.ISO8601Format()
             let null = NSNull()
             let body: [String: Any] = ["id": item.id, "user_id": uid, "title": item.title, "url": item.url as Any? ?? null,
-                "text_content": item.textContent as Any? ?? null, "type": item.type, "favorite": item.favorite,
+                "text_content": item.textContent as Any? ?? null, "text_selector": item.textSelector as Any? ?? null,
+                "type": item.type, "favorite": item.favorite,
                 "status": item.status, "return_at": item.returnAt?.ISO8601Format() as Any? ?? null,
+                "inbox_entered_at": item.inboxEnteredAt?.ISO8601Format() as Any? ?? null,
                 "created_at": item.createdAt.ISO8601Format(), "updated_at": stamp, "deleted_at": item.status == "deleted" ? stamp as Any : null]
             let metadata: [String: Any] = ["item_id": item.id, "user_id": uid, "domain": item.domain as Any? ?? null,
                 "site_name": item.siteName as Any? ?? null, "description": item.metadataDescription as Any? ?? null,
@@ -777,10 +785,14 @@ extension SyncCoordinator {
                 item.title = snapshot.title ?? snapshot.url ?? "Untitled"
                 item.url = snapshot.url
                 item.textContent = snapshot.text_content
+                item.textSelector = snapshot.text_selector
                 item.type = snapshot.type ?? "link"
                 item.favorite = snapshot.favorite ?? false
+                let priorInboxEntry = existingMatch?.status == "inbox" ? existingMatch?.inboxEnteredAt : nil
                 item.status = snapshot.deleted_at == nil ? (snapshot.status ?? "inbox") : "deleted"
                 item.returnAt = snapshot.return_at.flatMap(Self.cloudDate)
+                item.inboxEnteredAt = snapshot.inbox_entered_at.flatMap(Self.cloudDate)
+                    ?? (item.status == "inbox" ? priorInboxEntry : nil)
                 item.createdAt = snapshot.created_at.flatMap(Self.cloudDate) ?? date
                 item.updatedAt = date
 
