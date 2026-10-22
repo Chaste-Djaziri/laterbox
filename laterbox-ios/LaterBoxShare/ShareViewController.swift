@@ -178,21 +178,29 @@ struct ShareChatMessage: Identifiable, Equatable {
                     }
                 }
                 guard let type = provider.registeredTypeIdentifiers.first else { continue }
-                let attachment: SharedAttachment? = await withCheckedContinuation { continuation in
+                let loaded: (SharedAttachment?, String?) = await withCheckedContinuation { continuation in
                     provider.loadFileRepresentation(forTypeIdentifier: type) { url, error in
                         guard let url, error == nil else {
-                            continuation.resume(returning: nil)
+                            continuation.resume(returning: (nil, nil))
+                            return
+                        }
+                        if let data = try? Data(contentsOf: url),
+                           let link = Self.webLink(in: data) {
+                            continuation.resume(returning: (nil, link))
                             return
                         }
                         do {
                             let copied = try SharedCaptureStore.copyFile(url, type: type)
-                            continuation.resume(returning: copied)
+                            continuation.resume(returning: (copied, nil))
                         } catch {
-                            continuation.resume(returning: nil)
+                            continuation.resume(returning: (nil, nil))
                         }
                     }
                 }
-                if let attachment {
+                if let link = loaded.1 {
+                    detectedUrl = link
+                    capture.content += link + "\n"
+                } else if let attachment = loaded.0 {
                     capture.attachments.append(attachment)
                 }
             }
