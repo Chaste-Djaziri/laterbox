@@ -447,19 +447,19 @@ public enum RelativeDateParser {
 }
 
 // MARK: - Shared AI Settings Model
-public struct SharedAISettings: Codable, Sendable {
-    public var selectedProvider: String = "local"
-    public var isOnDeviceModelEnabled: Bool = true
-    public var bazaarlinkApiKey: String = ""
-    public var geminiApiKey: String = ""
-    public var openaiApiKey: String = ""
-    public var claudeApiKey: String = ""
-    public var bazaarlinkModel: String = "qwen/qwen3.7-flash"
-    public var geminiModel: String = "gemini-2.5-flash"
-    public var openaiModel: String = "gpt-4o-mini"
-    public var claudeModel: String = "claude-3-5-haiku-20241022"
+nonisolated struct SharedAISettings: Codable, Sendable {
+    var selectedProvider: String = "local"
+    var isOnDeviceModelEnabled: Bool = true
+    var bazaarlinkApiKey: String = ""
+    var geminiApiKey: String = ""
+    var openaiApiKey: String = ""
+    var claudeApiKey: String = ""
+    var bazaarlinkModel: String = "qwen/qwen3.7-flash"
+    var geminiModel: String = "gemini-2.5-flash"
+    var openaiModel: String = "gpt-4o-mini"
+    var claudeModel: String = "claude-3-5-haiku-20241022"
 
-    public init(
+    init(
         selectedProvider: String = "local",
         isOnDeviceModelEnabled: Bool = true,
         bazaarlinkApiKey: String = "",
@@ -483,11 +483,11 @@ public struct SharedAISettings: Codable, Sendable {
         self.claudeModel = claudeModel
     }
 
-    public var isCustomKeyProvider: Bool {
+    var isCustomKeyProvider: Bool {
         selectedProvider != "local" && selectedProvider != "onDevice"
     }
 
-    public var hasApiKey: Bool {
+    var hasApiKey: Bool {
         switch selectedProvider {
         case "local", "onDevice":
             return true
@@ -504,7 +504,7 @@ public struct SharedAISettings: Codable, Sendable {
         }
     }
 
-    public var providerDisplayName: String {
+    var providerDisplayName: String {
         switch selectedProvider {
         case "local": return "Local responses"
         case "onDevice": return "On-Device Neural Engine"
@@ -516,7 +516,7 @@ public struct SharedAISettings: Codable, Sendable {
         }
     }
 
-    public var providerShortName: String {
+    var providerShortName: String {
         switch selectedProvider {
         case "local": return "Local AI"
         case "onDevice": return "On-Device AI"
@@ -530,22 +530,22 @@ public struct SharedAISettings: Codable, Sendable {
 }
 
 // MARK: - On-Device & Remote Capture Analysis DTO
-public struct OnDeviceCaptureAnalysis: Sendable {
-    public var title: String?
-    public var summary: String?
-    public var contentType: String?
-    public var tags: [String]
-    public var collectionName: String?
-    public var returnAt: Date?
-    public var detectedUrl: String?
-    public var previewImageUrl: String?
-    public var siteName: String?
-    public var faviconUrl: String?
-    public var isLinkEnriched: Bool
-    public var sourceDescription: String
-    public var formattedTaskContent: String?
+nonisolated struct OnDeviceCaptureAnalysis: Sendable {
+    var title: String?
+    var summary: String?
+    var contentType: String?
+    var tags: [String]
+    var collectionName: String?
+    var returnAt: Date?
+    var detectedUrl: String?
+    var previewImageUrl: String?
+    var siteName: String?
+    var faviconUrl: String?
+    var isLinkEnriched: Bool
+    var sourceDescription: String
+    var formattedTaskContent: String?
 
-    public init(
+    init(
         title: String? = nil,
         summary: String? = nil,
         contentType: String? = nil,
@@ -577,8 +577,8 @@ public struct OnDeviceCaptureAnalysis: Sendable {
 }
 
 // MARK: - LaterAI Shared Unified Analyzer
-public enum LaterAISharedAnalyzer {
-    public static func detectURL(_ text: String) -> String? {
+enum LaterAISharedAnalyzer {
+    static func detectURL(_ text: String) -> String? {
         guard let detector = try? NSDataDetector(types: NSTextCheckingResult.CheckingType.link.rawValue) else { return nil }
         let matches = detector.matches(in: text, options: [], range: NSRange(location: 0, length: text.utf16.count))
         for match in matches {
@@ -589,7 +589,7 @@ public enum LaterAISharedAnalyzer {
         return nil
     }
 
-    public static func isGenericTitle(_ title: String?) -> Bool {
+    static func isGenericTitle(_ title: String?) -> Bool {
         guard let raw = title?.trimmingCharacters(in: .whitespacesAndNewlines), !raw.isEmpty else { return true }
         let stripped = raw.trimmingCharacters(in: CharacterSet(charactersIn: "-–—|: •\t\n\r"))
         let lower = stripped.lowercased()
@@ -723,13 +723,14 @@ public enum LaterAISharedAnalyzer {
         return (finalTitle, finalSite, finalDesc, finalImg, finalKeywords, detectedType)
     }
 
-    public static func analyze(
+    static func analyze(
         content: String,
-        detectedUrl: String?,
+        detectedUrl: String? = nil,
         attachments: [SharedAttachment] = [],
         availableCollections: [String] = [],
-        settings: SharedAISettings = SharedCaptureStore.loadAISettings()
+        settings: SharedAISettings? = nil
     ) async -> OnDeviceCaptureAnalysis {
+        let aiSettings = settings ?? SharedCaptureStore.loadAISettings()
         let trimmedContent = content.trimmingCharacters(in: .whitespacesAndNewlines)
         let resolvedUrl = detectedUrl ?? detectURL(trimmedContent)
 
@@ -755,7 +756,7 @@ public enum LaterAISharedAnalyzer {
         }
 
         // 1. If remote AI provider with custom key is chosen, query remote API first
-        if settings.isCustomKeyProvider && settings.hasApiKey {
+        if aiSettings.isCustomKeyProvider && aiSettings.hasApiKey {
             if let remoteAnalysis = await queryRemoteCaptureAnalysis(
                 content: trimmedContent,
                 detectedUrl: resolvedUrl,
@@ -764,7 +765,7 @@ public enum LaterAISharedAnalyzer {
                 enrichedTitle: enrichedTitle,
                 enrichedSummary: enrichedSummary,
                 enrichedContentType: enrichedContentType,
-                settings: settings
+                settings: aiSettings
             ) {
                 var finalAnalysis = remoteAnalysis
                 if finalAnalysis.previewImageUrl == nil { finalAnalysis.previewImageUrl = enrichedImage }
@@ -869,7 +870,7 @@ public enum LaterAISharedAnalyzer {
             }
         }
 
-        let sourceDesc = isLinkEnriched ? "Auto-filled from link" : (settings.selectedProvider == "onDevice" ? "Auto-filled by On-Device AI" : "Auto-filled by Local AI")
+        let sourceDesc = isLinkEnriched ? "Auto-filled from link" : (aiSettings.selectedProvider == "onDevice" ? "Auto-filled by On-Device AI" : "Auto-filled by Local AI")
 
         return OnDeviceCaptureAnalysis(
             title: deduction.suggestedTitle,
@@ -1085,7 +1086,7 @@ public enum LaterAISharedAnalyzer {
         )
     }
 
-    public static func classifyTaskOrNotes(content: String) -> (isTask: Bool, title: String?, taskLines: [String]) {
+    static func classifyTaskOrNotes(content: String) -> (isTask: Bool, title: String?, taskLines: [String]) {
         let trimmed = content.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return (false, nil, []) }
         let lines = trimmed.components(separatedBy: .newlines).map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
@@ -1130,7 +1131,7 @@ public enum LaterAISharedAnalyzer {
         return (false, nil, [])
     }
 
-    public static func deduceCaptureIntent(
+    static func deduceCaptureIntent(
         content: String,
         detectedUrl: String?,
         attachments: [SharedAttachment],
@@ -1307,7 +1308,7 @@ public enum LaterAISharedAnalyzer {
         )
     }
 
-    public static func deduceBestReturnDate(
+    static func deduceBestReturnDate(
         from text: String,
         contentType: String,
         hasVideo: Bool = false,
