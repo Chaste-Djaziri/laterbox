@@ -290,6 +290,10 @@ struct TodayFocusList: View {
             }
             if !overdue.isEmpty { group("Overdue", items: overdue) }
             if !dueToday.isEmpty { group("Returning today", items: dueToday) }
+            Text("Dismiss moves an item to Archive, not Trash.")
+                .font(.caption2)
+                .foregroundStyle(AppTheme.textSecondary)
+                .opacity(items.isEmpty ? 0 : 1)
         }
         .padding(.horizontal, 12)
     }
