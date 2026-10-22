@@ -18,6 +18,9 @@ struct ContentView: View {
     @StateObject private var aiManager = LaterAIManager.shared
     @ObservedObject private var clipboardManager = ClipboardDetectionManager.shared
     @State private var itemToPresent: LBItem? = nil
+    @State private var isLaunching = true
+    @State private var launchStarted = false
+    @State private var launchStatus = "Preparing your vault"
     @State private var showingSyncReport = false
     @State private var syncReportMessage = ""
 
@@ -62,6 +65,12 @@ struct ContentView: View {
                     .transition(.opacity)
             }
 
+            if isLaunching {
+                launchSplash
+                    .transition(.opacity)
+                    .zIndex(1000)
+            }
+
             // In-App Top Slide-Down Notification Banner for Copied Items
             if clipboardManager.isShowingBanner, let item = clipboardManager.detectedItem, coordinator.hasAccess {
                 VStack {
@@ -93,6 +102,11 @@ struct ContentView: View {
         }
         .onAppear {
             StatusBarStyleModifier.apply(activeColorScheme == .dark ? .dark : .light)
+        }
+        .task {
+            guard !launchStarted else { return }
+            launchStarted = true
+            await prepareLaunch()
         }
         .alert("Sync failed", isPresented: $coordinator.showingSyncFailureAlert) {
             if coordinator.sessionExpired {
@@ -190,6 +204,65 @@ struct ContentView: View {
             }
         }
     }
+    private var launchSplash: some View {
+        ZStack {
+            Color(hex: "171711").ignoresSafeArea()
+
+            VStack(spacing: 22) {
+                Image("LaterboxLogo")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 104, height: 104)
+                    .accessibilityHidden(true)
+
+                Text("LaterBox")
+                    .font(.system(size: 30, weight: .bold, design: .rounded))
+                    .foregroundStyle(Color(hex: "E6EDB0"))
+
+                ProgressView()
+                    .tint(Color(hex: "E6EDB0"))
+                    .padding(.top, 14)
+
+                Text(launchStatus)
+                    .font(.subheadline)
+                    .foregroundStyle(.white.opacity(0.65))
+                    .accessibilityAddTraits(.updatesFrequently)
+            }
+            .padding(28)
+        }
+        .preferredColorScheme(.dark)
+        .accessibilityElement(children: .combine)
+    }
+
+    @MainActor
+    private func prepareLaunch() async {
+        // Local content must be imported before showing the inbox.
+        launchStatus = "Loading saved items"
+        try? SharedCaptureImporter.refresh(context: modelContext)
+
+        launchStatus = "Checking your account"
+        // Complete as soon as checks finish; a timeout keeps offline startup usable.
+        Task {
+            await StoreKitManager.shared.updatePurchasedProducts()
+            await coordinator.refreshEntitlement()
+            finishLaunch()
+        }
+        Task {
+            try? await Task.sleep(for: .seconds(8))
+            finishLaunch()
+        }
+    }
+
+    @MainActor
+    private func finishLaunch() {
+        guard isLaunching else { return }
+        launchStatus = "Opening LaterBox"
+        withAnimation(.easeOut(duration: 0.3)) {
+            isLaunching = false
+        }
+        openPendingQuickSaveControl()
+    }
+
     private func openPendingQuickSaveControl() {
         guard coordinator.hasAccess,
               let defaults = UserDefaults(suiteName: "group.pro.micorp.laterbox"),
