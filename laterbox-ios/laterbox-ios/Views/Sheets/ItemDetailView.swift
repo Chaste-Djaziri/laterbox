@@ -83,7 +83,9 @@ public struct ItemDetailView: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 14) {
                         // Return Schedule Banner (if scheduled)
-                        if let ret = item.returnAt {
+                        if item.status == ItemStatus.inbox.rawValue {
+                            inboxAgeBanner
+                        } else if let ret = item.returnAt {
                             returnScheduleBanner(ret: ret)
                         }
 
@@ -414,6 +416,46 @@ public struct ItemDetailView: View {
     }
 
     // MARK: - 2. Return Schedule Banner
+    private var inboxAgeBanner: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "tray.full.fill")
+                .font(.system(size: 16))
+                .foregroundStyle(AppTheme.textPrimary)
+                .frame(width: 30, height: 30)
+                .background(AppTheme.accent, in: Circle())
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text("In Inbox")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(AppTheme.textPrimary)
+                HStack(spacing: 3) {
+                    Text("Saved")
+                    Text(item.createdAt, style: .relative)
+                }
+                .font(.system(size: 11))
+                .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+
+            if item.returnAt == nil {
+                Button("Reschedule") {
+                    scheduledDate = SnoozePreset.oneDay.calculateDate() ?? Date().addingTimeInterval(86400)
+                    showingSchedulePicker = true
+                    LBHaptic.light()
+                }
+                .font(.system(size: 11, weight: .bold))
+                .foregroundStyle(AppTheme.textPrimary)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 5)
+                .background(Color.black.opacity(0.04), in: Capsule())
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(Color.white, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+    }
+
     private func returnScheduleBanner(ret: Date) -> some View {
         let isTodayOrOverdue = Calendar.current.isDateInToday(ret) || ret < Date()
         return HStack(spacing: 10) {
