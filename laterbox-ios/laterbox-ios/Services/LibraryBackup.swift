@@ -29,6 +29,7 @@ enum LibraryBackup {
         var status: String
         var returnAt: Date?
         var createdAt: Date
+        var inboxEnteredAt: Date?
         var updatedAt: Date
         var domain: String?
         var siteName: String?
@@ -57,6 +58,7 @@ enum LibraryBackup {
             status = source.status
             returnAt = source.returnAt
             createdAt = source.createdAt
+            inboxEnteredAt = source.inboxEnteredAt
             updatedAt = source.updatedAt
             domain = source.domain
             siteName = source.siteName
@@ -229,7 +231,8 @@ enum LibraryBackup {
                               textContent: entry.textContent, textSelector: entry.textSelector,
                               type: ItemContentType(rawValue: entry.type) ?? .link,
                               favorite: entry.favorite, status: ItemStatus(rawValue: entry.status) ?? .inbox,
-                              returnAt: entry.returnAt, createdAt: entry.createdAt, updatedAt: entry.updatedAt,
+                              returnAt: entry.returnAt, createdAt: entry.createdAt,
+                              inboxEnteredAt: entry.inboxEnteredAt, updatedAt: entry.updatedAt,
                               domain: entry.domain, siteName: entry.siteName,
                               metadataDescription: entry.metadataDescription, faviconUrl: entry.faviconUrl,
                               previewImageUrl: entry.previewImageUrl, enrichmentStatus: entry.enrichmentStatus,
