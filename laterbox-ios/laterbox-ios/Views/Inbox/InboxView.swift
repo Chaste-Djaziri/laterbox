@@ -633,7 +633,14 @@ public struct InboxView: View {
                             .padding(.top, 14)
                             .padding(.bottom, 8)
 
-                            if rawInboxItems.isEmpty {
+                            if selectedCollection == nil && selectedMailbox == .today {
+                                TodayFocusList(
+                                    items: rawInboxItems,
+                                    onKeep: { coordinator.markDone(item: $0, context: modelContext) },
+                                    onReschedule: { snoozeTargetItem = $0 },
+                                    onDismiss: { coordinator.dismissReturn(item: $0, context: modelContext) }
+                                )
+                            } else if rawInboxItems.isEmpty {
                                 VStack(spacing: 14) {
                                     Image(systemName: selectedCollection != nil ? "tag.fill" : selectedMailbox.systemIcon)
                                         .font(.system(size: 40))
