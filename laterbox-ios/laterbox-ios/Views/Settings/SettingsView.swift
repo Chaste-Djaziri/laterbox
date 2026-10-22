@@ -192,25 +192,10 @@ public struct SettingsView: View {
                     }
                     .liquidGlassCard(cornerRadius: 18)
 
-                    // Group 3: Data & Intelligence
+                    // Technical settings live one level below everyday preferences.
                     VStack(spacing: 0) {
-                        NavigationLink(destination: StorageManagementView()) {
-                            groupedRow(
-                                icon: "internaldrive",
-                                title: "Storage",
-                                badge: storageManager.breakdown.formattedTotal
-                            )
-                        }
-                        .buttonStyle(.plain)
-
-                        rowDivider
-
-                        NavigationLink(destination: AIModelSettingsView()) {
-                            groupedRow(
-                                icon: "sparkles",
-                                title: "AI Assistant",
-                                badge: modelManager.isOnDeviceModelSupported ? (modelManager.isOnDeviceModelEnabled ? "On-Device" : "Local") : "Local"
-                            )
+                        NavigationLink(destination: AdvancedSettingsView()) {
+                            groupedRow(icon: "gearshape.2", title: "Advanced", badge: nil)
                         }
                         .buttonStyle(.plain)
                     }
