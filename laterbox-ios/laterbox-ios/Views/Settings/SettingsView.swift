@@ -89,6 +89,11 @@ public struct SettingsView: View {
                             }
 
                             VStack(alignment: .leading, spacing: 3) {
+                                Text("ACCOUNT")
+                                    .font(.system(size: 10, weight: .bold))
+                                    .tracking(0.8)
+                                    .foregroundStyle(AppTheme.textSecondary)
+
                                 if let email = coordinator.currentUserEmail {
                                     Text(email)
                                         .font(.system(size: 16, weight: .bold))
