@@ -217,8 +217,19 @@ public struct SettingsView: View {
                     }
                     .liquidGlassCard(cornerRadius: 18)
 
-                    // Support and app information
+                    // Learning, support and app information
                     VStack(spacing: 0) {
+                        NavigationLink(destination: LearnLaterBoxView()) {
+                            groupedRow(
+                                icon: "graduationcap",
+                                title: "Learn LaterBox",
+                                badge: "Quick Save guide"
+                            )
+                        }
+                        .buttonStyle(.plain)
+
+                        rowDivider
+
                         NavigationLink(destination: SupportRequestView()) {
                             groupedRow(
                                 icon: "questionmark.circle",
