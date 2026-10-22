@@ -13,6 +13,33 @@ public struct ShortcutsSettingsView: View {
 
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(spacing: 20) {
+                    NavigationLink(destination: LearnLaterBoxView()) {
+                        HStack(spacing: 14) {
+                            Image(systemName: "house.fill")
+                                .font(.system(size: 21, weight: .semibold))
+                                .foregroundStyle(AppTheme.textPrimary)
+                                .frame(width: 48, height: 48)
+                                .background(AppTheme.accent, in: RoundedRectangle(cornerRadius: 14))
+
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text("Add Quick Save to Home Screen")
+                                    .font(.system(size: 16, weight: .bold))
+                                Text("Save without opening LaterBox · Guided setup")
+                                    .font(.caption)
+                                    .foregroundStyle(AppTheme.textSecondary)
+                                    .multilineTextAlignment(.leading)
+                            }
+                            Spacer(minLength: 0)
+                            Image(systemName: "chevron.right")
+                                .foregroundStyle(AppTheme.textTertiary)
+                        }
+                        .padding(18)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Color.white, in: RoundedRectangle(cornerRadius: 18))
+                    }
+                    .foregroundStyle(AppTheme.textPrimary)
+                    .buttonStyle(.plain)
+
                     // Hero Card
                     VStack(alignment: .leading, spacing: 12) {
                         HStack(spacing: 12) {
@@ -26,16 +53,16 @@ public struct ShortcutsSettingsView: View {
                             }
 
                             VStack(alignment: .leading, spacing: 2) {
-                                Text("Control Center Capture")
+                                Text("Control Center Quick Save")
                                     .font(.system(size: 16, weight: .bold))
                                     .foregroundColor(AppTheme.textPrimary)
-                                Text("Instant access from tools top")
+                                Text("Opens the in-app Quick Save composer")
                                     .font(.caption)
                                     .foregroundColor(AppTheme.textSecondary)
                             }
                         }
 
-                        Text("Add the LaterBox Quick Save control directly to your iOS Control Center. Capture thoughts, notes, and links fast with nothing attached without opening the app.")
+                        Text("Add LaterBox to Control Center for quick access to the in-app composer. For a Home Screen shortcut that saves without opening LaterBox, use the guided setup above.")
                             .font(.system(size: 13))
                             .foregroundColor(AppTheme.textSecondary)
                             .lineSpacing(3)
@@ -53,7 +80,7 @@ public struct ShortcutsSettingsView: View {
                         instructionStep(
                             number: "1",
                             title: "Open Control Center",
-                            description: "Swipe down from the top-right corner of your screen (tools top)."
+                            description: "Swipe down from the top-right corner of your iPhone."
                         )
 
                         Divider().opacity(0.12)
@@ -76,8 +103,8 @@ public struct ShortcutsSettingsView: View {
 
                         instructionStep(
                             number: "4",
-                            title: "Select LaterBox Quick Save",
-                            description: "Scroll or search for LaterBox and tap Quick Save to place it in your Control Center."
+                            title: "Select the LaterBox control",
+                            description: "Search for LaterBox and select its Quick Save control. This one opens the app composer."
                         )
                     }
                     .padding(18)
@@ -110,7 +137,7 @@ public struct ShortcutsSettingsView: View {
                         HStack(spacing: 8) {
                             Image(systemName: "bolt.fill")
                                 .font(.system(size: 14, weight: .bold))
-                            Text("Test Quick Save Composer")
+                            Text("Preview In-App Quick Save")
                                 .font(.system(size: 15, weight: .bold))
                         }
                         .foregroundColor(.black)
