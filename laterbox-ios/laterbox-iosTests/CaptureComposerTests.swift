@@ -38,6 +38,37 @@ struct CaptureComposerTests {
         #expect(draft.type == .link)
     }
 
+    @Test func openGraphRelativeImageAndEntities() {
+        let html = #"""
+        <html><head>
+          <meta content="/images/social.png?first=1&amp;second=2" property="og:image" />
+        </head></html>
+        """#
+        let page = URL(string: "https://example.org/blog/post")!
+        #expect(LaterAISharedAnalyzer.openGraphImage(in: html, relativeTo: page) ==
+                "https://example.org/images/social.png?first=1&second=2")
+    }
+
+    @Test func openGraphPrefersSecureImageRegardlessOfTagOrder() {
+        let html = #"""
+        <meta property="og:image" content="http://example.org/default.jpg">
+        <meta content="https://example.org/secure.jpg" property="og:image:secure_url">
+        """#
+        let page = URL(string: "https://example.org/article")!
+        #expect(LaterAISharedAnalyzer.openGraphImage(in: html, relativeTo: page) ==
+                "https://example.org/secure.jpg")
+    }
+
+    @Test func openGraphRejectsUnsafeImageAndFallsBackToTwitter() {
+        let html = #"""
+        <meta property="og:image" content="javascript:alert(1)">
+        <meta name="twitter:image" content="https://cdn.example.org/preview.jpg">
+        """#
+        let page = URL(string: "https://example.org/article")!
+        #expect(LaterAISharedAnalyzer.openGraphImage(in: html, relativeTo: page) ==
+                "https://cdn.example.org/preview.jpg")
+    }
+
     @Test func fileOnlySharesAreValidAndKeepTheirType() {
         var shared = SharedCapture()
         shared.attachments = [
