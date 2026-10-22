@@ -1,5 +1,11 @@
 # Free extension and local library
 
+- **[iOS / Settings]** Harmonize the remaining settings screens with the About/Profile canvas, scroll surfaces, and Liquid Glass status hero cards without changing settings behavior.
+
+- **[iOS / Subscription]** Center the Compare plans action within the subscription management card.
+
+- **[iOS / Subscription]** Align subscription settings identity, membership, and management cards with the About and Profile Liquid Glass design while preserving billing actions and purchase restoration.
+
 - **[iOS / Profile]** Refresh the account settings screen with About-style Liquid Glass identity, account details, connected accounts, and session cards while retaining existing authentication actions.
 
 - **[iOS / Settings]** Add a native About page with LaterBox app information, live version metadata, developer attribution, and official website, privacy, and terms links.
