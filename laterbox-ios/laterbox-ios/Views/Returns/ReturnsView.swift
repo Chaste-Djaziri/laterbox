@@ -172,7 +172,14 @@ public struct ReturnsView: View {
                             .padding(.horizontal, 18)
                             .padding(.top, 4)
 
-                            if itemsForSegment.isEmpty {
+                            if selectedSegment == .today {
+                                TodayFocusList(
+                                    items: itemsForSegment,
+                                    onKeep: { coordinator.markDone(item: $0, context: modelContext) },
+                                    onReschedule: { snoozeTargetItem = $0 },
+                                    onDismiss: { coordinator.dismissReturn(item: $0, context: modelContext) }
+                                )
+                            } else if itemsForSegment.isEmpty {
                                 VStack(spacing: 14) {
                                     Image(systemName: "calendar.badge.clock")
                                         .font(.system(size: 40))
