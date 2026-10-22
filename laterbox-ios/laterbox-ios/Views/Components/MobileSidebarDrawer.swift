@@ -115,7 +115,6 @@ public struct MobileSidebarDrawer: View {
         return deduplicatedItems.filter {
             $0.status == ItemStatus.deferred.rawValue &&
             $0.returnAt != nil &&
-            $0.returnAt! > now &&
             $0.returnAt! <= endOfToday
         }.count
     }
