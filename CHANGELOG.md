@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[iOS / Profile]** Refresh the account settings screen with About-style Liquid Glass identity, account details, connected accounts, and session cards while retaining existing authentication actions.
+
 - **[iOS / Settings]** Add a native About page with LaterBox app information, live version metadata, developer attribution, and official website, privacy, and terms links.
 
 - **[iOS / Share Extension]** Connect external iOS share extension ("Save to LaterBox") to use the user's active AI engine from Settings (On-Device Apple Intelligence, Google Gemini, OpenAI GPT, Anthropic Claude, BazaarLink, or Local responses) for intelligent intent deduction, smart collection auto-categorization, checklist formatting, tags, and suggested return dates.
