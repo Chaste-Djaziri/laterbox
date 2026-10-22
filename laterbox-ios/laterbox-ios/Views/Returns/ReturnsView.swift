@@ -254,3 +254,80 @@ public struct ReturnsView: View {
         }
     }
 }
+ 
+struct TodayFocusList: View {
+    let items: [LBItem]
+    let onKeep: (LBItem) -> Void
+    let onReschedule: (LBItem) -> Void
+    let onDismiss: (LBItem) -> Void
+
+    private var overdue: [LBItem] {
+        let start = Calendar.current.startOfDay(for: Date())
+        return items.filter { ($0.returnAt ?? .distantFuture) < start }
+    }
+
+    private var dueToday: [LBItem] {
+        items.filter { $0.returnAt.map { Calendar.current.isDateInToday($0) } ?? false }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("A moment for what you saved.")
+                .font(.subheadline)
+                .foregroundStyle(AppTheme.textSecondary)
+            if items.isEmpty {
+                ContentUnavailableView("All caught up", systemImage: "checkmark.circle",
+                                       description: Text("Nothing overdue or returning today."))
+            }
+            if !overdue.isEmpty { group("Overdue", items: overdue) }
+            if !dueToday.isEmpty { group("Returning today", items: dueToday) }
+        }
+        .padding(.horizontal, 12)
+    }
+
+    private func group(_ title: String, items: [LBItem]) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title + " (" + String(items.count) + ")")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(AppTheme.textPrimary)
+            ForEach(items, id: \.id) { item in
+                VStack(alignment: .leading, spacing: 12) {
+                    NavigationLink(destination: ItemDetailView(item: item)) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(item.title.isEmpty ? "Untitled item" : item.title)
+                                .font(.subheadline.weight(.semibold))
+                            if let date = item.returnAt {
+                                Text(date.formatted(date: .abbreviated, time: .shortened))
+                                    .font(.caption)
+                                    .foregroundStyle(AppTheme.textSecondary)
+                            }
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    .buttonStyle(.plain)
+                    HStack(spacing: 8) {
+                        action("Keep", icon: "checkmark") { onKeep(item) }
+                        action("Reschedule", icon: "calendar") { onReschedule(item) }
+                        action("Dismiss", icon: "xmark") { onDismiss(item) }
+                    }
+                }
+                .foregroundStyle(AppTheme.textPrimary)
+                .padding(14)
+                .background(Color.white, in: RoundedRectangle(cornerRadius: 16))
+            }
+        }
+    }
+
+    private func action(_ title: String, icon: String, perform: @escaping () -> Void) -> some View {
+        Button(action: perform) {
+            Label(title, systemImage: icon)
+                .font(.caption.weight(.semibold))
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 10)
+                .background(AppTheme.canvasBackground, in: RoundedRectangle(cornerRadius: 10))
+        }
+        .buttonStyle(.plain)
+    }
+}
