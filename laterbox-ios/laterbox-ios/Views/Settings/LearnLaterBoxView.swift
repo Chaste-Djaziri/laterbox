@@ -15,18 +15,18 @@ public struct LearnLaterBoxView: View {
 
     private let steps: [GuideStep] = [
         GuideStep(
-            title: "Create a new shortcut",
-            detail: "Tap Create in Shortcuts below. Apple's Shortcuts editor will open with a new, empty shortcut.",
-            icon: "plus.square.on.square"
-        ),
-        GuideStep(
-            title: "Choose the correct LaterBox action",
-            detail: "Tap Add Action or Search Actions, search for LaterBox, then select Quick Save to LaterBox.",
+            title: "Find LaterBox in Shortcuts",
+            detail: "Open Shortcuts and search for LaterBox. Choose Quick Save to LaterBox. If you see its blue Add button, tap it to add the shortcut. If not, choose Start a new shortcut below.",
             icon: "magnifyingglass"
         ),
         GuideStep(
+            title: "Add the right action",
+            detail: "If you started with a blank shortcut, tap Add Action (or Search Actions), search for LaterBox, and choose Quick Save to LaterBox. If you already tapped Add for the correct shortcut, move to the next step.",
+            icon: "plus.square.on.square"
+        ),
+        GuideStep(
             title: "Keep it ready for anything",
-            detail: "Leave Note or URL unfilled so the shortcut asks what to save each time. Title and When to Return are optional. Rename the shortcut to Quick Save, then tap Done.",
+            detail: "Leave Note or URL unfilled so the shortcut asks what to save each time. Title and When to Return are optional. You can rename the shortcut Quick Save, then tap Done.",
             icon: "slider.horizontal.3"
         ),
         GuideStep(
@@ -116,7 +116,7 @@ public struct LearnLaterBoxView: View {
                             }
                         }
 
-                        if safeStep == 1 {
+                        if safeStep == 0 || safeStep == 1 {
                             actionComparison
                         }
                         if safeStep == 2 {
@@ -126,8 +126,11 @@ public struct LearnLaterBoxView: View {
                         }
 
                         if safeStep == 0 {
+                            shortcutButton("Open Shortcuts", systemImage: "arrow.up.right.square", create: false)
+                            shortcutButton("Start a new shortcut", systemImage: "plus.circle", create: true)
+                        } else if safeStep == 1 {
                             shortcutButton("Create in Shortcuts", systemImage: "plus.circle.fill", create: true)
-                        } else if safeStep == 1 || safeStep == 3 {
+                        } else if safeStep == 3 {
                             shortcutButton("Open Shortcuts", systemImage: "arrow.up.right.square", create: false)
                         }
 
