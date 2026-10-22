@@ -24,3 +24,12 @@ This is the release contract for product parity. macOS entries are verification 
 - **Parity target** means its behavior must match the data contract before it is promoted or marketed.
 - A platform-specific permission must be disclosed in onboarding and System Status before the feature is enabled.
 - Changes to a capability update this file, `CHANGELOG.md`, and the applicable release checklist in the same logical change.
+
+## October 2026 cloud compatibility audit
+
+See [the current cloud sync rollout checklist](cloud-sync-rollout.md) and the
+[machine-readable platform sync contract](platform-sync-contract.json).
+The iOS `inbox_entered_at` and `text_selector` cloud mappings are implemented;
+Web and Android remain on the older Inbox timestamp contract and must be
+updated separately. A passing local build does not certify that the database
+migration has reached the hosted environment or that a platform is release-ready.

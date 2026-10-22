@@ -1,0 +1,114 @@
+{
+  "as_of": "2026-10-23",
+  "cloud_contract_version": 2,
+  "database": {
+    "migration": "supabase/migrations/202610230001_inbox_entry_timestamp.sql",
+    "last_preexisting_migration": "20261017233000_delete_account_data",
+    "deployed_to_hosted_database": "unverified",
+    "strategy": "expand-only: nullable column + legacy-upsert-safe trigger"
+  },
+  "platform_contracts": {
+    "ios": {
+      "version": 2,
+      "files": [
+        "laterbox-ios/laterbox-ios/Services/IOSCloudSync.swift"
+      ],
+      "status": "implemented; requires migration before release"
+    },
+    "web": {
+      "version": 1,
+      "files": [
+        "laterbox-web/src/lib/utils/pending-captures.ts"
+      ],
+      "status": "legacy compatible; inbox entry time not yet exposed"
+    },
+    "android": {
+      "version": 1,
+      "files": [
+        "laterbox-android/app/src/main/java/com/example/laterbox/data/sync/SyncCoordinator.kt"
+      ],
+      "status": "legacy compatible; inbox entry time not yet exposed"
+    }
+  },
+  "shared_fields": [
+    {
+      "name": "return_at",
+      "ios": "read_write",
+      "web": "read_write",
+      "android": "read_write",
+      "requires_migration": false
+    },
+    {
+      "name": "text_selector",
+      "ios": "read_write",
+      "web": "read_write",
+      "android": "read_only",
+      "requires_migration": false
+    },
+    {
+      "name": "inbox_entered_at",
+      "ios": "read_write",
+      "web": "not_implemented",
+      "android": "not_implemented",
+      "requires_migration": true
+    }
+  ],
+  "feature_statuses": [
+    {
+      "feature": "Unified chat capture",
+      "ios": "implemented",
+      "web": "requires UX parity review",
+      "android": "requires UX parity review",
+      "cloud_change": "none"
+    },
+    {
+      "feature": "Focused Today and overdue review",
+      "ios": "implemented",
+      "web": "requires UX parity review",
+      "android": "requires UX parity review",
+      "cloud_change": "none; relies on return_at"
+    },
+    {
+      "feature": "Inbox-entered elapsed time",
+      "ios": "implemented",
+      "web": "pending",
+      "android": "pending",
+      "cloud_change": "inbox_entered_at"
+    },
+    {
+      "feature": "AI/offline capture suggestions",
+      "ios": "implemented",
+      "web": "requires algorithm parity review",
+      "android": "requires algorithm parity review",
+      "cloud_change": "existing structured_data"
+    },
+    {
+      "feature": "Encrypted portable .laterbox backup",
+      "ios": "implemented",
+      "web": "format compatibility not verified",
+      "android": "format compatibility not verified",
+      "cloud_change": "none"
+    },
+    {
+      "feature": "Social preview metadata",
+      "ios": "implemented",
+      "web": "existing metadata support; visual parity not verified",
+      "android": "existing metadata support; visual parity not verified",
+      "cloud_change": "existing item_metadata"
+    },
+    {
+      "feature": "Opt-in clipboard detection",
+      "ios": "implemented",
+      "web": "not applicable",
+      "android": "requires privacy review",
+      "cloud_change": "none"
+    },
+    {
+      "feature": "Control Center Quick Save",
+      "ios": "implemented",
+      "web": "not applicable",
+      "android": "not applicable",
+      "cloud_change": "none"
+    }
+  ]
+}
