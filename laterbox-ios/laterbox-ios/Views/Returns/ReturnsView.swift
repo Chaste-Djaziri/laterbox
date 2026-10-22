@@ -42,7 +42,7 @@ public struct ReturnsView: View {
             return deduplicatedItems.filter {
                 guard $0.status == ItemStatus.deferred.rawValue else { return false }
                 guard let ret = $0.returnAt else { return false }
-                return ret > now && ret <= endOfToday
+                return ret < endOfToday
             }
         case .upcoming:
             return deduplicatedItems.filter {
@@ -68,7 +68,7 @@ public struct ReturnsView: View {
             return deduplicatedItems.filter {
                 guard $0.status == ItemStatus.deferred.rawValue else { return false }
                 guard let ret = $0.returnAt else { return false }
-                return ret > now && ret <= endOfToday
+                return ret < endOfToday
             }.count
         case .upcoming:
             return deduplicatedItems.filter {
