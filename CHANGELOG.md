@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[iOS / AI]** Generalize capture intelligence across mixed content (tasks with links, videos, images, or documents) to deduce user intent from phrasing, formulate tailored titles and checklist notes, calculate optimal return dates, and provide fallback to Gemini API and BazaarLink free LLM models (Qwen 3.7 Flash, DeepSeek V4).
+
 - **[iOS / Tasks]** Add task/to-do format support with on-device classification for shopping and action lists (bulleted, numbered, or checklists), and interactive checklist completion directly within item details.
 
 - **[iOS / AI]** Automatically enrich captured web links and leverage on-device Apple Intelligence NLP to pre-fill titles, notes, content types, smart collections, and interactive tags across all capture types.
