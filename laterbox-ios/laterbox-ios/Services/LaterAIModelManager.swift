@@ -116,6 +116,8 @@ enum AIProviderType: String, CaseIterable, Identifiable, Codable {
     case onDevice
     case bazaarlink
     case gemini
+    case openai
+    case claude
 
     var id: String { rawValue }
     var displayName: String {
@@ -124,6 +126,8 @@ enum AIProviderType: String, CaseIterable, Identifiable, Codable {
         case .onDevice: return "On-Device Model"
         case .bazaarlink: return "BazaarLink (Free AI)"
         case .gemini: return "Google Gemini"
+        case .openai: return "OpenAI GPT"
+        case .claude: return "Anthropic Claude"
         }
     }
     var shortName: String {
@@ -132,14 +136,18 @@ enum AIProviderType: String, CaseIterable, Identifiable, Codable {
         case .onDevice: return "On-Device"
         case .bazaarlink: return "BazaarLink"
         case .gemini: return "Gemini"
+        case .openai: return "OpenAI"
+        case .claude: return "Claude"
         }
     }
     var subtitle: String {
         switch self {
-        case .local: return "Offline deterministic capture assistant"
+        case .local: return "Offline deterministic capture assistant · 100% private"
         case .onDevice: return "Apple Intelligence on-device neural processing"
-        case .bazaarlink: return "Free models (Qwen 3.7 Flash, DeepSeek V4) · No card needed"
-        case .gemini: return "Google Gemini 2.5 / 3.5 Flash intelligence"
+        case .bazaarlink: return "Free models (Qwen 3.7 Flash, DeepSeek V4) · Own key"
+        case .gemini: return "Google Gemini 2.5 / 3.5 Flash · Own API key"
+        case .openai: return "GPT-4o / GPT-4o-mini · Own OpenAI API key"
+        case .claude: return "Claude 3.5 Sonnet / Haiku · Own Anthropic key"
         }
     }
     var iconName: String {
@@ -148,10 +156,12 @@ enum AIProviderType: String, CaseIterable, Identifiable, Codable {
         case .onDevice: return "cpu"
         case .bazaarlink: return "bolt.shield.fill"
         case .gemini: return "sparkles"
+        case .openai: return "brain.head.profile"
+        case .claude: return "bubble.left.and.text.bubble.right.fill"
         }
     }
     var isCustomKey: Bool {
-        self == .bazaarlink || self == .gemini
+        self != .local && self != .onDevice
     }
 }
 
@@ -179,11 +189,39 @@ final class LaterAIModelManager: ObservableObject {
     @Published var geminiApiKey: String {
         didSet { UserDefaults.standard.set(geminiApiKey, forKey: "laterbox_gemini_api_key") }
     }
+    @Published var openaiApiKey: String {
+        didSet { UserDefaults.standard.set(openaiApiKey, forKey: "laterbox_openai_api_key") }
+    }
+    @Published var claudeApiKey: String {
+        didSet { UserDefaults.standard.set(claudeApiKey, forKey: "laterbox_claude_api_key") }
+    }
+
     @Published var bazaarlinkModel: String {
         didSet { UserDefaults.standard.set(bazaarlinkModel, forKey: "laterbox_bazaarlink_model") }
     }
     @Published var geminiModel: String {
         didSet { UserDefaults.standard.set(geminiModel, forKey: "laterbox_gemini_model") }
+    }
+    @Published var openaiModel: String {
+        didSet { UserDefaults.standard.set(openaiModel, forKey: "laterbox_openai_model") }
+    }
+    @Published var claudeModel: String {
+        didSet { UserDefaults.standard.set(claudeModel, forKey: "laterbox_claude_model") }
+    }
+
+    func hasApiKey(for provider: AIProviderType) -> Bool {
+        switch provider {
+        case .local, .onDevice:
+            return true
+        case .bazaarlink:
+            return !bazaarlinkApiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        case .gemini:
+            return !geminiApiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        case .openai:
+            return !openaiApiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        case .claude:
+            return !claudeApiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        }
     }
 
     var isOnDeviceModelSupported: Bool {
@@ -216,6 +254,10 @@ final class LaterAIModelManager: ObservableObject {
             return "BazaarLink (\(bazaarlinkModel))"
         case .gemini:
             return "Gemini (\(geminiModel))"
+        case .openai:
+            return "OpenAI (\(openaiModel))"
+        case .claude:
+            return "Claude (\(claudeModel))"
         }
     }
 
@@ -231,8 +273,13 @@ final class LaterAIModelManager: ObservableObject {
 
         self.bazaarlinkApiKey = UserDefaults.standard.string(forKey: "laterbox_bazaarlink_api_key") ?? ""
         self.geminiApiKey = UserDefaults.standard.string(forKey: "laterbox_gemini_api_key") ?? ""
+        self.openaiApiKey = UserDefaults.standard.string(forKey: "laterbox_openai_api_key") ?? ""
+        self.claudeApiKey = UserDefaults.standard.string(forKey: "laterbox_claude_api_key") ?? ""
+
         self.bazaarlinkModel = UserDefaults.standard.string(forKey: "laterbox_bazaarlink_model") ?? "qwen/qwen3.7-flash"
         self.geminiModel = UserDefaults.standard.string(forKey: "laterbox_gemini_model") ?? "gemini-2.5-flash"
+        self.openaiModel = UserDefaults.standard.string(forKey: "laterbox_openai_model") ?? "gpt-4o-mini"
+        self.claudeModel = UserDefaults.standard.string(forKey: "laterbox_claude_model") ?? "claude-3-5-haiku-20241022"
 
         if let saved = UserDefaults.standard.string(forKey: "laterbox_selected_ai_provider"),
            let prov = AIProviderType(rawValue: saved) {
@@ -246,7 +293,7 @@ final class LaterAIModelManager: ObservableObject {
             return DeterministicLaterAIProvider()
         case .onDevice:
             return OnDeviceLaterAIProvider()
-        case .bazaarlink, .gemini:
+        case .bazaarlink, .gemini, .openai, .claude:
             return DeterministicLaterAIProvider()
         }
     }
@@ -273,6 +320,14 @@ final class LaterAIModelManager: ObservableObject {
             let key = geminiApiKey.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !key.isEmpty else { return "Add your Gemini API key to test." }
             return try await testGeminiConnection(key: key, model: geminiModel)
+        case .openai:
+            let key = openaiApiKey.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !key.isEmpty else { return "Add your OpenAI API key to test." }
+            return try await testOpenAIConnection(key: key, model: openaiModel)
+        case .claude:
+            let key = claudeApiKey.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !key.isEmpty else { return "Add your Anthropic API key to test." }
+            return try await testClaudeConnection(key: key, model: claudeModel)
         }
     }
 
@@ -318,6 +373,53 @@ final class LaterAIModelManager: ObservableObject {
             throw NSError(domain: "Gemini", code: code, userInfo: [NSLocalizedDescriptionKey: "Gemini returned status \(code). Check API key."])
         }
         return "Connected to Google Gemini (\(model)) successfully!"
+    }
+
+    private func testOpenAIConnection(key: String, model: String) async throws -> String {
+        guard let url = URL(string: "https://api.openai.com/v1/chat/completions") else { throw URLError(.badURL) }
+        var req = URLRequest(url: url)
+        req.httpMethod = "POST"
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.setValue("Bearer \(key)", forHTTPHeaderField: "Authorization")
+        req.timeoutInterval = 12
+
+        let payload: [String: Any] = [
+            "model": model,
+            "messages": [["role": "user", "content": "Respond with OK"]],
+            "max_tokens": 10
+        ]
+        req.httpBody = try JSONSerialization.data(withJSONObject: payload)
+
+        let (_, response) = try await URLSession.shared.data(for: req)
+        guard let http = response as? HTTPURLResponse, (200...299).contains(http.statusCode) else {
+            let code = (response as? HTTPURLResponse)?.statusCode ?? -1
+            throw NSError(domain: "OpenAI", code: code, userInfo: [NSLocalizedDescriptionKey: "OpenAI returned status \(code). Check API key."])
+        }
+        return "Connected to OpenAI (\(model)) successfully!"
+    }
+
+    private func testClaudeConnection(key: String, model: String) async throws -> String {
+        guard let url = URL(string: "https://api.anthropic.com/v1/messages") else { throw URLError(.badURL) }
+        var req = URLRequest(url: url)
+        req.httpMethod = "POST"
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.setValue(key, forHTTPHeaderField: "x-api-key")
+        req.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
+        req.timeoutInterval = 12
+
+        let payload: [String: Any] = [
+            "model": model,
+            "max_tokens": 10,
+            "messages": [["role": "user", "content": "Respond with OK"]]
+        ]
+        req.httpBody = try JSONSerialization.data(withJSONObject: payload)
+
+        let (_, response) = try await URLSession.shared.data(for: req)
+        guard let http = response as? HTTPURLResponse, (200...299).contains(http.statusCode) else {
+            let code = (response as? HTTPURLResponse)?.statusCode ?? -1
+            throw NSError(domain: "Claude", code: code, userInfo: [NSLocalizedDescriptionKey: "Anthropic returned status \(code). Check API key."])
+        }
+        return "Connected to Anthropic Claude (\(model)) successfully!"
     }
 
     // MARK: - On-Device & Remote Capture Analysis
@@ -372,8 +474,8 @@ final class LaterAIModelManager: ObservableObject {
             }
         }
 
-        // 2. If remote AI provider (BazaarLink or Gemini) is active and configured, query it first
-        if selectedProvider == .bazaarlink || selectedProvider == .gemini {
+        // 2. If remote AI provider (BazaarLink, Gemini, OpenAI, Claude) is active and configured with custom key, query it first
+        if selectedProvider.isCustomKey && hasApiKey(for: selectedProvider) {
             if let remoteAnalysis = await queryRemoteCaptureAnalysis(
                 content: trimmedContent,
                 detectedUrl: detectedUrl,
@@ -599,6 +701,79 @@ final class LaterAIModelManager: ObservableObject {
             else { return nil }
 
             return parseRemoteJSONToAnalysis(parsed: parsed, detectedUrl: detectedUrl, source: "Auto-filled by Gemini (\(geminiModel))")
+        } else if provider == .openai {
+            let key = openaiApiKey.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !key.isEmpty, let url = URL(string: "https://api.openai.com/v1/chat/completions") else { return nil }
+            var req = URLRequest(url: url)
+            req.httpMethod = "POST"
+            req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            req.setValue("Bearer \(key)", forHTTPHeaderField: "Authorization")
+            req.timeoutInterval = 15
+
+            let payload: [String: Any] = [
+                "model": openaiModel,
+                "messages": [
+                    ["role": "system", "content": "You are Later AI. Always output valid JSON."],
+                    ["role": "user", "content": userPrompt]
+                ],
+                "response_format": ["type": "json_object"],
+                "temperature": 0.2
+            ]
+            guard let bodyData = try? JSONSerialization.data(withJSONObject: payload) else { return nil }
+            req.httpBody = bodyData
+
+            guard let (data, resp) = try? await URLSession.shared.data(for: req),
+                  let http = resp as? HTTPURLResponse, (200...299).contains(http.statusCode),
+                  let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  let choices = json["choices"] as? [[String: Any]],
+                  let msg = choices.first?["message"] as? [String: Any],
+                  let contentStr = msg["content"] as? String,
+                  let parsed = try? JSONSerialization.jsonObject(with: contentStr.data(using: .utf8) ?? Data()) as? [String: Any]
+            else { return nil }
+
+            return parseRemoteJSONToAnalysis(parsed: parsed, detectedUrl: detectedUrl, source: "Auto-filled by OpenAI (\(openaiModel))")
+        } else if provider == .claude {
+            let key = claudeApiKey.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !key.isEmpty, let url = URL(string: "https://api.anthropic.com/v1/messages") else { return nil }
+            var req = URLRequest(url: url)
+            req.httpMethod = "POST"
+            req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            req.setValue(key, forHTTPHeaderField: "x-api-key")
+            req.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
+            req.timeoutInterval = 15
+
+            let payload: [String: Any] = [
+                "model": claudeModel,
+                "max_tokens": 1024,
+                "system": "You are Later AI. Respond ONLY with a valid JSON object matching the requested schema without any markdown formatting or commentary.",
+                "messages": [
+                    ["role": "user", "content": userPrompt]
+                ]
+            ]
+            guard let bodyData = try? JSONSerialization.data(withJSONObject: payload) else { return nil }
+            req.httpBody = bodyData
+
+            guard let (data, resp) = try? await URLSession.shared.data(for: req),
+                  let http = resp as? HTTPURLResponse, (200...299).contains(http.statusCode),
+                  let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  let contentArray = json["content"] as? [[String: Any]],
+                  let firstText = contentArray.first?["text"] as? String
+            else { return nil }
+
+            var cleanedText = firstText.trimmingCharacters(in: .whitespacesAndNewlines)
+            if cleanedText.hasPrefix("```json") {
+                cleanedText = String(cleanedText.dropFirst(7))
+            } else if cleanedText.hasPrefix("```") {
+                cleanedText = String(cleanedText.dropFirst(3))
+            }
+            if cleanedText.hasSuffix("```") {
+                cleanedText = String(cleanedText.dropLast(3))
+            }
+            cleanedText = cleanedText.trimmingCharacters(in: .whitespacesAndNewlines)
+
+            guard let parsed = try? JSONSerialization.jsonObject(with: cleanedText.data(using: .utf8) ?? Data()) as? [String: Any] else { return nil }
+
+            return parseRemoteJSONToAnalysis(parsed: parsed, detectedUrl: detectedUrl, source: "Auto-filled by Claude (\(claudeModel))")
         }
         return nil
     }
