@@ -106,7 +106,14 @@ struct CaptureComposerScreen: View {
     }
 
     private func saveCapture() {
-        guard savedItem == nil else { return }
+        if let savedItem {
+            // Post-save Change Return updates the existing SwiftData item,
+            // rather than trying to create another capture.
+            guard let date = capture.returnAt else { return }
+            SyncCoordinator.shared.scheduleItem(item: savedItem, date: date, context: modelContext)
+            capture.returnAt = savedItem.returnAt
+            return
+        }
 
         var draft = CaptureDraft.fromShared(capture)
         if draft.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
