@@ -51,6 +51,7 @@ public final class ClipboardDetectionManager: ObservableObject {
     @Published public var isShowingBanner: Bool = false
 
     private let userDefaults: UserDefaults
+    public static let suggestionsEnabledKey = "LB_ClipboardSuggestionsEnabled"
     private let changeCountKey = "LB_LastHandledClipboardChangeCount"
     private let contentHashKey = "LB_LastHandledClipboardHash"
 
@@ -86,6 +87,7 @@ public final class ClipboardDetectionManager: ObservableObject {
 
     /// Checks the pasteboard when the user enters or switches to the app.
     public func checkForCopiedItem() {
+        guard userDefaults.bool(forKey: Self.suggestionsEnabledKey) else { return }
         #if canImport(UIKit)
         let pasteboard = UIPasteboard.general
         let currentChangeCount = pasteboard.changeCount
