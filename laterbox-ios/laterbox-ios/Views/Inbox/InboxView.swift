@@ -35,6 +35,7 @@ public struct InboxView: View {
     @State private var isRefreshingInbox: Bool = false
     @State private var showingExitGuestConfirm: Bool = false
     @State private var showingSignOutConfirm: Bool = false
+    @State private var showingProfileMenu: Bool = false
     @State private var collectionTargetItem: LBItem? = nil
     @State private var snoozeTargetItem: LBItem? = nil
     @State private var newCollectionName: String = ""
@@ -48,6 +49,25 @@ public struct InboxView: View {
     @State private var searchHasAttachmentOnly: Bool = false
 
     public init() {}
+
+    private func profileMenuRow(_ title: String, icon: String, destructive: Bool = false, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 14) {
+                Image(systemName: icon)
+                    .font(.system(size: 17, weight: .medium))
+                    .frame(width: 24)
+                Text(title)
+                    .font(.system(size: 15, weight: .medium))
+                    .multilineTextAlignment(.leading)
+                Spacer(minLength: 0)
+            }
+            .foregroundStyle(destructive ? Color.red : AppTheme.textPrimary)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
 
     private var rawInboxItems: [LBItem] {
         let items: [LBItem]
@@ -240,39 +260,8 @@ public struct InboxView: View {
                                 .buttonStyle(.plain)
                                 .accessibilityLabel("Search inbox")
 
-                                Menu {
-                                    Section {
-                                        Button {
-                                            navigateToSettings = true
-                                        } label: {
-                                            Label("Settings", systemImage: "gearshape.fill")
-                                        }
-                                    }
-
-                                    if let email = coordinator.currentUserEmail, !email.isEmpty {
-                                        Section(email) {
-                                            Button(role: .destructive) {
-                                                showingSignOutConfirm = true
-                                            } label: {
-                                                Label("Log Out", systemImage: "rectangle.portrait.and.arrow.right.fill")
-                                            }
-                                        }
-                                    } else {
-                                        Section("Guest Mode") {
-                                            Button {
-                                                coordinator.showingAuthSheet = true
-                                                LBHaptic.medium()
-                                            } label: {
-                                                Label("Log In", systemImage: "person.crop.circle.badge.plus")
-                                            }
-
-                                            Button(role: .destructive) {
-                                                showingExitGuestConfirm = true
-                                            } label: {
-                                                Label("Exit Guest & Clear Data", systemImage: "door.left.hand.open")
-                                            }
-                                        }
-                                    }
+                                Button {
+                                    showingProfileMenu = true
                                 } label: {
                                     ZStack {
                                         Circle()
@@ -285,6 +274,48 @@ public struct InboxView: View {
                                     .overlay(
                                         Circle().stroke(Color(hex: "1A73E8"), lineWidth: 2)
                                     )
+                                }
+                                .buttonStyle(.plain)
+                                .popover(isPresented: $showingProfileMenu, arrowEdge: .top) {
+                                    VStack(alignment: .leading, spacing: 0) {
+                                        profileMenuRow("Settings", icon: "gearshape.fill") {
+                                            showingProfileMenu = false
+                                            navigateToSettings = true
+                                        }
+
+                                        Divider().padding(.vertical, 6)
+
+                                        if let email = coordinator.currentUserEmail, !email.isEmpty {
+                                            Text(email)
+                                                .font(.caption)
+                                                .foregroundStyle(.secondary)
+                                                .lineLimit(1)
+                                                .padding(.horizontal, 16)
+                                                .padding(.bottom, 6)
+                                            profileMenuRow("Log Out", icon: "rectangle.portrait.and.arrow.right", destructive: true) {
+                                                showingProfileMenu = false
+                                                showingSignOutConfirm = true
+                                            }
+                                        } else {
+                                            Text("Guest Mode")
+                                                .font(.caption.weight(.semibold))
+                                                .foregroundStyle(.secondary)
+                                                .padding(.horizontal, 16)
+                                                .padding(.bottom, 6)
+                                            profileMenuRow("Log In", icon: "person.crop.circle.badge.plus") {
+                                                showingProfileMenu = false
+                                                coordinator.showingAuthSheet = true
+                                                LBHaptic.medium()
+                                            }
+                                            profileMenuRow("Exit Guest & Clear Data", icon: "rectangle.portrait.and.arrow.right", destructive: true) {
+                                                showingProfileMenu = false
+                                                showingExitGuestConfirm = true
+                                            }
+                                        }
+                                    }
+                                    .padding(.vertical, 10)
+                                    .frame(width: 285)
+                                    .presentationCompactAdaptation(.popover)
                                 }
                                 .accessibilityLabel("Profile menu")
                             }
