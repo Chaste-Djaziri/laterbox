@@ -255,24 +255,6 @@ public struct ItemDetailView: View {
                 // 2. Keep / Archive / Move to Inbox Status Action Pill
                 statusActionButton
 
-                // 3. Snooze / Return Schedule Button
-                Button {
-                    scheduledDate = item.returnAt ?? (SnoozePreset.oneDay.calculateDate() ?? Date().addingTimeInterval(86400))
-                    showingSchedulePicker = true
-                    LBHaptic.light()
-                } label: {
-                    Image(systemName: item.returnAt != nil ? "clock.fill" : "clock")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(item.returnAt != nil ? Color(hex: "F59E0B") : Color(hex: "6C6B63"))
-                        .frame(width: 34, height: 34)
-                        .background(item.returnAt != nil ? Color(hex: "FEF3C7") : Color.white, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                .strokeBorder(Color.black.opacity(0.08), lineWidth: 1)
-                        )
-                }
-                .buttonStyle(.plain)
-
                 // 4. Collections Button
                 Button {
                     showingCollectionSheet = true
