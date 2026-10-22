@@ -158,6 +158,7 @@ struct ContentView: View {
         }
         .onAppear {
             clipboardManager.checkForCopiedItem()
+            openPendingQuickSaveControl()
         }
         .onOpenURL { url in
             if url.scheme == "laterbox" && (url.host == "quick-save" || url.host == "capture") {
@@ -166,6 +167,9 @@ struct ContentView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("OpenQuickSaveModal"))) { _ in
             coordinator.showingQuickCapture = true
+        }
+        .onChange(of: coordinator.hasAccess) { _, hasAccess in
+            if hasAccess { openPendingQuickSaveControl() }
         }
         .onChange(of: coordinator.isProUser) { _, active in
             if active { Task { await coordinator.syncPendingItems(context: modelContext, announceFailure: false) } }
@@ -179,12 +183,21 @@ struct ContentView: View {
                     await coordinator.syncPendingItems(context: modelContext, announceFailure: false)
                 }
                 clipboardManager.checkForCopiedItem()
+                openPendingQuickSaveControl()
             }
             if newPhase == .background {
                 lockManager.lockAppIfNeeded()
             }
         }
     }
+    private func openPendingQuickSaveControl() {
+        guard coordinator.hasAccess,
+              let defaults = UserDefaults(suiteName: "group.pro.micorp.laterbox"),
+              defaults.bool(forKey: "openQuickSaveFromControl") else { return }
+        defaults.removeObject(forKey: "openQuickSaveFromControl")
+        coordinator.showingQuickCapture = true
+    }
+
 }
 
 #Preview {

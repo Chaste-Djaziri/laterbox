@@ -17,11 +17,23 @@ struct LaterBoxQuickSaveControl: ControlWidget {
 
     var body: some ControlWidgetConfiguration {
         StaticControlConfiguration(kind: Self.kind) {
-            ControlWidgetButton(action: QuickSaveIntent()) {
+            ControlWidgetButton(action: OpenQuickSaveControlIntent()) {
                 Label("Quick Save to LaterBox", systemImage: "plus.square.fill.on.square.fill")
             }
         }
         .displayName("Quick Save to LaterBox")
-        .description("Prompt to save a note or link to LaterBox without opening the app.")
+        .description("Open the Quick Save composer in LaterBox.")
+    }
+}
+
+@available(iOS 18.0, *)
+struct OpenQuickSaveControlIntent: AppIntent {
+    static var title: LocalizedStringResource = "Open LaterBox Quick Save"
+    static var openAppWhenRun: Bool = true
+
+    func perform() async throws -> some IntentResult {
+        UserDefaults(suiteName: "group.pro.micorp.laterbox")?
+            .set(true, forKey: "openQuickSaveFromControl")
+        return .result()
     }
 }
