@@ -126,56 +126,73 @@ struct AuthView: View {
 
     var body: some View {
         ZStack {
-            AppTheme.canvasBackground.ignoresSafeArea()
+            // Same photographic canvas as Welcome: no visual jump after Sign In.
+            GeometryReader { proxy in
+                Image("WelcomeBackground")
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: proxy.size.width, height: proxy.size.height)
+                    .clipped()
+            }
+            .ignoresSafeArea()
 
-            // Keep the form scrollable on small devices and when the keyboard appears.
+            LinearGradient(
+                colors: [
+                    Color.black.opacity(0.35),
+                    Color.black.opacity(0.15),
+                    Color.black.opacity(0.62),
+                    Color.black.opacity(0.94)
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .ignoresSafeArea()
+
+            // All steps remain scrollable when the keyboard or Dynamic Type expands.
             GeometryReader { geometry in
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 0) {
-                        // Top Bar
+                        // Same white logo and glass control placement as Welcome.
                         HStack(alignment: .center) {
-                            Button(action: handleNavigationBack) {
-                                Image(systemName: step == .enterEmail ? "xmark" : "chevron.left")
-                                    .font(.system(size: 15, weight: .semibold))
-                                    .foregroundStyle(AppTheme.textPrimary)
-                                    .frame(width: 44, height: 44)
-                                    .background(Color.white, in: Circle())
-                                    .overlay(Circle().strokeBorder(AppTheme.cardBorder, lineWidth: 1))
-                            }
-                            .accessibilityLabel(step == .enterEmail ? "Close sign in" : "Back")
+                            Image("LaterboxLogoWhite")
+                                .resizable()
+                                .scaledToFit()
+                                .frame(height: 38)
+                                .accessibilityLabel("LaterBox")
 
                             Spacer()
 
-                            Image("LaterboxLogo")
-                                .resizable()
-                                .scaledToFit()
-                                .frame(height: 48)
-                                .accessibilityLabel("LaterBox")
+                            Button(action: handleNavigationBack) {
+                                Image(systemName: step == .enterEmail ? "xmark" : "chevron.left")
+                                    .font(.system(size: 16, weight: .semibold))
+                                    .foregroundStyle(.white)
+                                    .frame(width: 44, height: 44)
+                                    .background(Color.white.opacity(0.20), in: Circle())
+                                    .overlay(Circle().strokeBorder(Color.white.opacity(0.40), lineWidth: 1))
+                            }
+                            .accessibilityLabel(step == .enterEmail ? "Close sign in" : "Back")
                         }
-                        .padding(.horizontal, 22)
-                        .padding(.top, 14)
+                        .padding(.horizontal, 24)
+                        .padding(.top, 12)
 
-                        Spacer(minLength: 32)
+                        Spacer(minLength: 40)
 
-                        // One light surface for every authentication step.
+                        // Photo-backed, integrated bottom form: no detached card.
                         VStack(alignment: .leading, spacing: 0) {
-                        Label("YOUR SPACE FOR LATER", systemImage: "bookmark.fill")
-                            .font(.system(size: 11, weight: .bold))
-                            .tracking(1)
-                            .foregroundStyle(AppTheme.textSecondary)
-                            .padding(.bottom, 12)
                         // Title: Left-aligned
                         Text(headerTitle)
-                            .font(.system(size: 30, weight: .bold))
-                            .foregroundStyle(AppTheme.textPrimary)
+                            .font(.system(size: 36, weight: .bold))
+                            .foregroundStyle(.white)
+                            .minimumScaleFactor(0.82)
+                            .shadow(color: .black.opacity(0.20), radius: 6, y: 2)
                             .multilineTextAlignment(.leading)
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .padding(.bottom, 6)
 
                         // Subtitle: Left-aligned
                         Text(headerSubtitle)
-                            .font(.system(size: 15, weight: .regular))
-                            .foregroundStyle(AppTheme.textSecondary)
+                            .font(.system(size: 16))
+                            .foregroundStyle(Color.white.opacity(0.87))
                             .multilineTextAlignment(.leading)
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .padding(.bottom, 16)
@@ -190,11 +207,11 @@ struct AuthView: View {
                                         .frame(width: 7, height: 7)
                                     Text("Dev Simulator")
                                         .font(.system(size: 11, weight: .bold, design: .monospaced))
-                                        .foregroundColor(AppTheme.textSecondary)
+                                        .foregroundColor(Color.white.opacity(0.82))
                                     Spacer()
                                     Text(LaterBoxAPIService.shared.supabaseUrl.replacingOccurrences(of: "http://", with: ""))
                                         .font(.system(size: 10, design: .monospaced))
-                                        .foregroundColor(AppTheme.textSecondary)
+                                        .foregroundColor(Color.white.opacity(0.82))
                                 }
 
                                 ScrollView(.horizontal, showsIndicators: false) {
@@ -266,8 +283,8 @@ struct AuthView: View {
                             }
                             .padding(.horizontal, 12)
                             .padding(.vertical, 8)
-                            .background(AppTheme.canvasBackground, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-                            .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(AppTheme.cardBorder, lineWidth: 1))
+                            .background(Color.black.opacity(0.45), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                            .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(Color.white.opacity(0.20), lineWidth: 1))
                             .padding(.bottom, 16)
                         }
                         #endif
@@ -301,11 +318,7 @@ struct AuthView: View {
                             }
                             .padding(.horizontal, 16)
                             .frame(height: 54)
-                            .background(AppTheme.canvasBackground, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                    .strokeBorder(AppTheme.cardBorder, lineWidth: 1)
-                            )
+                            .background(Color.white, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
                             .environment(\.colorScheme, .light)
 
                         case .enterPassword(let isSignUp):
@@ -350,11 +363,7 @@ struct AuthView: View {
                             }
                             .padding(.horizontal, 16)
                             .frame(height: 54)
-                            .background(AppTheme.canvasBackground, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                    .strokeBorder(AppTheme.cardBorder, lineWidth: 1)
-                            )
+                            .background(Color.white, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
                             .environment(\.colorScheme, .light)
 
                         case .verifyOTP:
@@ -394,21 +403,17 @@ struct AuthView: View {
                             }
                             .padding(.horizontal, 16)
                             .frame(height: 54)
-                            .background(AppTheme.canvasBackground, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                    .strokeBorder(AppTheme.cardBorder, lineWidth: 1)
-                            )
+                            .background(Color.white, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
                             .environment(\.colorScheme, .light)
 
                             #if DEBUG
                             VStack(alignment: .leading, spacing: 8) {
                                 HStack(spacing: 6) {
                                     Image(systemName: "envelope.badge.shield.half.filled")
-                                        .foregroundColor(AppTheme.textPrimary)
+                                        .foregroundColor(.white)
                                     Text("Dev Mode · Local Mailpit")
                                         .font(.caption.weight(.semibold))
-                                        .foregroundColor(AppTheme.textSecondary)
+                                        .foregroundColor(Color.white.opacity(0.82))
                                 }
                                 HStack(spacing: 12) {
                                     Button(action: { fetchMailpitCode() }) {
@@ -438,7 +443,7 @@ struct AuthView: View {
                                                 Image(systemName: "arrow.up.right")
                                                     .font(.system(size: 10))
                                             }
-                                            .foregroundColor(AppTheme.textSecondary)
+                                            .foregroundColor(Color.white.opacity(0.82))
                                         }
                                     }
                                 }
@@ -451,31 +456,28 @@ struct AuthView: View {
                                 HStack(spacing: 14) {
                                     ZStack {
                                         Circle()
-                                            .fill(AppTheme.accent)
+                                            .fill(Color.white.opacity(0.20))
                                             .frame(width: 48, height: 48)
                                         Image(systemName: "arrow.triangle.2.circlepath")
                                             .font(.system(size: 20, weight: .semibold))
-                                            .foregroundColor(AppTheme.textPrimary)
+                                            .foregroundColor(.white)
                                     }
 
                                     VStack(alignment: .leading, spacing: 4) {
                                         Text("\(count) Local Item\(count == 1 ? "" : "s")")
                                             .font(.system(size: 17, weight: .semibold))
-                                            .foregroundColor(AppTheme.textPrimary)
+                                            .foregroundColor(.white)
                                         Text("Merge them with your account or discard them to download your cloud catalog.")
                                             .font(.system(size: 13, weight: .regular))
-                                            .foregroundColor(AppTheme.textSecondary)
+                                            .foregroundColor(Color.white.opacity(0.82))
                                             .fixedSize(horizontal: false, vertical: true)
                                     }
                                 }
                                 .padding(16)
                                 .frame(maxWidth: .infinity, alignment: .leading)
-                                .background(AppTheme.canvasBackground)
-                                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                        .stroke(AppTheme.cardBorder, lineWidth: 1)
-                                )
+                                .background(Color.white.opacity(0.14), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                                .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                    .strokeBorder(Color.white.opacity(0.26), lineWidth: 1))
 
                                 Button(action: {
                                     resolveData(merge: true, token: token, refreshToken: refreshToken, userId: userId)
@@ -493,7 +495,7 @@ struct AuthView: View {
                                     .foregroundColor(.black)
                                     .frame(maxWidth: .infinity)
                                     .frame(height: 54)
-                                    .background(AppTheme.accent)
+                                    .background(Color.white)
                                     .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                                 }
                                 .disabled(isLoading)
@@ -507,10 +509,10 @@ struct AuthView: View {
                                         Text("Remove Local Data")
                                             .font(.system(size: 15, weight: .medium))
                                     }
-                                    .foregroundColor(Color.red)
+                                    .foregroundColor(Color(red: 1, green: 0.68, blue: 0.65))
                                     .frame(maxWidth: .infinity)
                                     .frame(height: 48)
-                                    .background(Color.red.opacity(0.15))
+                                    .background(Color.red.opacity(0.18))
                                     .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                                 }
                                 .disabled(isLoading)
@@ -521,14 +523,14 @@ struct AuthView: View {
                         if let error = errorMessage {
                             Text(error)
                                 .font(.footnote.weight(.medium))
-                                .foregroundColor(Color.red)
+                                .foregroundColor(Color(red: 1, green: 0.72, blue: 0.69))
                                 .multilineTextAlignment(.leading)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .padding(.top, 8)
                         } else if let info = infoMessage {
                             Text(info)
                                 .font(.footnote)
-                                .foregroundColor(AppTheme.textSecondary)
+                                .foregroundColor(Color.white.opacity(0.82))
                                 .multilineTextAlignment(.leading)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .padding(.top, 8)
@@ -559,7 +561,7 @@ struct AuthView: View {
                                 }
                                 .frame(maxWidth: .infinity)
                                 .frame(height: 54)
-                                .background(AppTheme.accent)
+                                .background(Color.white)
                                 .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                             }
                             .disabled(isButtonDisabled)
@@ -570,9 +572,9 @@ struct AuthView: View {
                         // Apple OAuth for Email Step
                         if step == .enterEmail {
                             HStack(spacing: 12) {
-                                Rectangle().fill(AppTheme.cardBorder).frame(height: 1)
-                                Text("OR").font(.caption.weight(.semibold)).foregroundColor(AppTheme.textSecondary)
-                                Rectangle().fill(AppTheme.cardBorder).frame(height: 1)
+                                Rectangle().fill(Color.white.opacity(0.25)).frame(height: 1)
+                                Text("OR").font(.caption.weight(.semibold)).foregroundStyle(Color.white.opacity(0.80))
+                                Rectangle().fill(Color.white.opacity(0.25)).frame(height: 1)
                             }
                             .padding(.top, 16)
                             .padding(.bottom, 14)
@@ -581,9 +583,11 @@ struct AuthView: View {
                                 request.requestedScopes = [.fullName, .email]
                             }, onCompletion: handleAppleResult)
                             .signInWithAppleButtonStyle(.black)
-                            .frame(maxWidth: 375)
+                            .frame(maxWidth: .infinity)
                             .frame(height: 54)
                             .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                            .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                .strokeBorder(Color.white.opacity(0.28), lineWidth: 1))
                             .disabled(isLoading)
                         }
 
@@ -595,8 +599,8 @@ struct AuthView: View {
                                 dismiss()
                             }) {
                                 Text("Continue without account")
-                                    .font(.system(size: 14, weight: .medium))
-                                    .foregroundColor(AppTheme.textSecondary)
+                                    .font(.system(size: 15, weight: .semibold))
+                                    .foregroundStyle(.white)
                                     .frame(maxWidth: .infinity, alignment: .center)
                                     .padding(.top, 16)
                             }
@@ -610,7 +614,7 @@ struct AuthView: View {
                                 }
                             }
                             .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(AppTheme.textSecondary)
+                            .foregroundColor(Color.white.opacity(0.82))
                             .frame(maxWidth: .infinity, alignment: .center)
                             .padding(.top, 16)
                         } else if case .verifyOTP(let type) = step {
@@ -623,10 +627,10 @@ struct AuthView: View {
                                     }
                                 }
                                 .font(.system(size: 14, weight: .medium))
-                                .foregroundColor(AppTheme.textSecondary)
+                                .foregroundColor(Color.white.opacity(0.82))
 
                                 Text("•")
-                                    .foregroundColor(AppTheme.textTertiary)
+                                    .foregroundColor(Color.white.opacity(0.48))
 
                                 Button("Use different email") {
                                     withAnimation {
@@ -638,7 +642,7 @@ struct AuthView: View {
                                     }
                                 }
                                 .font(.system(size: 14, weight: .medium))
-                                .foregroundColor(AppTheme.textSecondary)
+                                .foregroundColor(Color.white.opacity(0.82))
                             }
                             .frame(maxWidth: .infinity, alignment: .center)
                             .padding(.top, 16)
@@ -647,29 +651,24 @@ struct AuthView: View {
                         // Legal Disclaimer
                         VStack(spacing: 4) {
                             Text("By continuing, you agree to our")
-                                .foregroundStyle(AppTheme.textSecondary)
+                                .foregroundStyle(Color.white.opacity(0.73))
                             HStack(spacing: 5) {
                                 Button("Terms") { activeLegalDocument = .terms }
                                     .underline()
                                 Text("and")
-                                    .foregroundStyle(AppTheme.textSecondary)
+                                    .foregroundStyle(Color.white.opacity(0.73))
                                 Button("Privacy Policy") { activeLegalDocument = .privacy }
                                     .underline()
                             }
-                            .foregroundStyle(AppTheme.textPrimary)
+                            .foregroundStyle(.white)
                             .buttonStyle(.plain)
                         }
                         .font(.caption2)
                         .frame(maxWidth: .infinity)
                         .padding(.top, 18)
                     }
-                    .padding(22)
-                    .background(Color.white, in: RoundedRectangle(cornerRadius: 26, style: .continuous))
-                    .overlay(RoundedRectangle(cornerRadius: 26, style: .continuous)
-                        .strokeBorder(AppTheme.cardBorder, lineWidth: 1))
-                    .shadow(color: Color.black.opacity(0.04), radius: 18, y: 6)
-                    .padding(.horizontal, 18)
-                    .padding(.bottom, 26)
+                    .padding(.horizontal, 24)
+                    .padding(.bottom, 28)
                 }
                 .frame(minHeight: geometry.size.height)
             }
@@ -677,8 +676,8 @@ struct AuthView: View {
         }
         .navigationBarBackButtonHidden(true)
         .navigationBarTitleDisplayMode(.inline)
-        .preferredColorScheme(.light)
-        .darkStatusBar()
+        .preferredColorScheme(.dark)
+        .whiteStatusBar()
         .sheet(item: $activeLegalDocument) { doc in
             SFSafariViewWrapper(url: doc.url, entersReaderIfAvailable: false)
                 .ignoresSafeArea()
@@ -1005,11 +1004,11 @@ private struct AuthSimulatorPillStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(.system(size: 11, weight: isSelected ? .bold : .medium, design: .monospaced))
-            .foregroundStyle(AppTheme.textPrimary)
+            .foregroundStyle(isSelected ? Color.black : Color.white)
             .padding(.horizontal, 10)
             .padding(.vertical, 5)
-            .background(isSelected ? AppTheme.accent : Color.white, in: Capsule())
-            .overlay(Capsule().strokeBorder(AppTheme.cardBorder, lineWidth: 1))
+            .background(isSelected ? Color.white : Color.white.opacity(0.16), in: Capsule())
+            .overlay(Capsule().strokeBorder(Color.white.opacity(0.25), lineWidth: 1))
             .scaleEffect(configuration.isPressed ? 0.94 : 1.0)
     }
 }
