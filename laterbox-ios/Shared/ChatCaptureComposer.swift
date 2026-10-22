@@ -396,7 +396,7 @@ struct ChatCaptureComposer: View {
             title: "When would you like to return?",
             options: reviewOptions
         )
-        .disabled(!canSave || isSaving || isWorking)
+        .disabled(!canSave || isSaving)
     }
 
     private var reviewOptions: [LaterAIOptionItem] {
