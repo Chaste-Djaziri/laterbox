@@ -885,6 +885,7 @@ public struct InboxView: View {
                     },
                     onUnsnooze: {
                         targetItem.status = ItemStatus.inbox.rawValue
+                        targetItem.inboxEnteredAt = Date()
                         targetItem.returnAt = nil
                         targetItem.updatedAt = Date()
                         targetItem.isSyncPending = true
@@ -1008,6 +1009,7 @@ public struct InboxView: View {
 
     private func restoreItem(item: LBItem) {
         item.status = ItemStatus.inbox.rawValue
+        item.inboxEnteredAt = Date()
         item.updatedAt = Date()
         item.isSyncPending = true
         try? modelContext.save()
