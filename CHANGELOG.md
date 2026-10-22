@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[iOS / Settings]** Add a native About page with LaterBox app information, live version metadata, developer attribution, and official website, privacy, and terms links.
+
 - **[iOS / Share Extension]** Connect external iOS share extension ("Save to LaterBox") to use the user's active AI engine from Settings (On-Device Apple Intelligence, Google Gemini, OpenAI GPT, Anthropic Claude, BazaarLink, or Local responses) for intelligent intent deduction, smart collection auto-categorization, checklist formatting, tags, and suggested return dates.
 
 - **[iOS / AI]** Require users to provide their own API key when selecting external AI providers (BazaarLink, Google Gemini, OpenAI GPT, Anthropic Claude) with dedicated model selection, test validation, and persistence, while On-Device Apple Intelligence and Local responses remain fully functional without keys.
