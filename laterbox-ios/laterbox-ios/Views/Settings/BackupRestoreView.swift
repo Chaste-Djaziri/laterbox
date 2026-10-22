@@ -4,6 +4,7 @@ import UniformTypeIdentifiers
 import LocalAuthentication
 
 struct BackupRestoreView: View {
+    var recoveryOnly = false
     @Environment(\.modelContext) private var modelContext
     @State private var backupURL: URL?
     @State private var showingImporter = false
@@ -21,24 +22,28 @@ struct BackupRestoreView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 VStack(alignment: .leading, spacing: 8) {
-                    Label("Your library, your data", systemImage: "externaldrive.fill")
+                    Label(recoveryOnly ? "Restore your library" : "Your library, your data", systemImage: "externaldrive.fill")
+                        .foregroundStyle(AppTheme.textPrimary)
                         .font(.title2.bold())
-                    Text("Securely move your saved items, collections, reminders, and available attachments between devices.")
+                    Text(recoveryOnly ? "Have a LaterBox backup? Import your saved items and collections before continuing." : "Securely move your saved items, collections, reminders, and available attachments between devices.")
                         .font(.subheadline)
                         .foregroundStyle(AppTheme.textSecondary)
                 }
                 .padding(.top, 10)
 
+                if !recoveryOnly {
                 VStack(alignment: .leading, spacing: 13) {
                     Label("Encrypted export", systemImage: "lock.shield.fill")
                         .font(.headline)
+                        .foregroundStyle(AppTheme.textPrimary)
                     Text("Create a backup protected by your own recovery password. Device authentication is required before exporting.")
                         .font(.subheadline)
                         .foregroundStyle(AppTheme.textSecondary)
                     SecureField("Recovery password (8+ characters)", text: $password)
                         .textContentType(.newPassword)
+                        .foregroundStyle(AppTheme.textPrimary)
                         .padding(13)
-                        .background(AppTheme.canvasBackground, in: RoundedRectangle(cornerRadius: 12))
+                        .background(Color.white, in: RoundedRectangle(cornerRadius: 12))
                     SecureField("Confirm recovery password", text: $confirmation)
                         .textContentType(.newPassword)
                         .padding(13)
@@ -65,16 +70,19 @@ struct BackupRestoreView: View {
                                 .font(.subheadline.bold())
                                 .frame(maxWidth: .infinity)
                                 .padding(15)
-                                .background(AppTheme.canvasBackground, in: RoundedRectangle(cornerRadius: 14))
+                                .background(Color.white, in: RoundedRectangle(cornerRadius: 14))
                         }
                     }
                 }
                 .padding(18)
                 .liquidGlassCard(cornerRadius: 20)
 
+                }
+
                 VStack(alignment: .leading, spacing: 13) {
                     Label("Restore from backup", systemImage: "arrow.down.doc.fill")
                         .font(.headline)
+                        .foregroundStyle(AppTheme.textPrimary)
                     Text("Choose a .laterbox file and enter its recovery password. Existing items are kept; missing items are merged.")
                         .font(.subheadline)
                         .foregroundStyle(AppTheme.textSecondary)
@@ -87,6 +95,7 @@ struct BackupRestoreView: View {
                     }
                     if pendingImport != nil {
                         SecureField("Backup recovery password", text: $exportPassword)
+                            .foregroundStyle(AppTheme.textPrimary)
                             .padding(13)
                             .background(AppTheme.canvasBackground, in: RoundedRectangle(cornerRadius: 12))
                         Button {
@@ -114,15 +123,19 @@ struct BackupRestoreView: View {
                         .foregroundStyle(AppTheme.textPrimary)
                         .font(.subheadline)
                 }
+                if !recoveryOnly {
                 Text("Keep your password somewhere safe: LaterBox cannot recover it. Backups left only inside the app are lost if the app is deleted. Save a copy to Files, iCloud Drive, or another storage provider.")
                     .font(.caption)
                     .foregroundStyle(AppTheme.textSecondary)
+                }
             }
             .padding(20)
         }
         .background(AppTheme.canvasBackground.ignoresSafeArea())
-        .navigationTitle("Backup & Restore")
+        .tint(Color.blue)
+        .navigationTitle(recoveryOnly ? "Restore Backup" : "Backup & Restore")
         .navigationBarTitleDisplayMode(.inline)
+        .environment(\.colorScheme, .light)
         .fileImporter(isPresented: $showingImporter, allowedContentTypes: [.data, .json, .item]) { result in
             switch result {
             case .success(let file):
