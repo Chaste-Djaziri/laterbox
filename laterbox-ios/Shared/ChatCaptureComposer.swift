@@ -227,6 +227,33 @@ struct ChatCaptureComposer: View {
                 .foregroundStyle(accent)
             }
 
+            if let imageURL = previewImageURL {
+                AsyncImage(url: imageURL) { phase in
+                    switch phase {
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .scaledToFill()
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 180)
+                            .clipped()
+                            .clipShape(RoundedRectangle(cornerRadius: 14))
+                            .accessibilityLabel("Social preview image")
+                    case .empty:
+                        RoundedRectangle(cornerRadius: 14)
+                            .fill(Color.white.opacity(0.06))
+                            .frame(height: 180)
+                            .overlay {
+                                ProgressView().tint(accent)
+                            }
+                    case .failure:
+                        EmptyView() // Keep text preview when a remote image fails.
+                    @unknown default:
+                        EmptyView()
+                    }
+                }
+            }
+
             Text(capture.title.isEmpty ? inferredTitle : capture.title)
                 .font(.headline)
                 .foregroundStyle(.white)
@@ -267,6 +294,14 @@ struct ChatCaptureComposer: View {
         .background(panel, in: RoundedRectangle(cornerRadius: 18))
         .overlay(RoundedRectangle(cornerRadius: 18)
             .strokeBorder(Color.white.opacity(0.10), lineWidth: 1))
+    }
+
+    private var previewImageURL: URL? {
+        guard let raw = capture.previewImageUrl?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !raw.isEmpty, let url = URL(string: raw),
+              ["https", "http"].contains(url.scheme?.lowercased() ?? ""),
+              url.host != nil else { return nil }
+        return url
     }
 
     private var inferredTitle: String {
