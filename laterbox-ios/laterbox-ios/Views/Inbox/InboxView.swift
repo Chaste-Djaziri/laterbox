@@ -544,6 +544,8 @@ public struct InboxView: View {
                                                     )
                                                 }
                                                 .buttonStyle(.plain)
+                                        // Reset UIKit swipe state when an item moves between mailboxes.
+                                        .id("\(item.status)-search-\(item.id)")
                                             }
                                         }
                                         .padding(.horizontal, 12)
@@ -648,6 +650,8 @@ public struct InboxView: View {
                                             )
                                         }
                                         .buttonStyle(.plain)
+                                        // Reset UIKit swipe state when an item moves between mailboxes.
+                                        .id("\(selectedMailbox.rawValue)-\(selectedCollection ?? "")-\(item.id)")
                                     }
                                 }
                                 .padding(.horizontal, 12)
