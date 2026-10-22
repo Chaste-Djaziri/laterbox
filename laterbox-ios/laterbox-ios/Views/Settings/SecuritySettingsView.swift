@@ -12,6 +12,7 @@ public struct SecuritySettingsView: View {
     @Environment(\.modelContext) private var modelContext
     @ObservedObject private var lockManager = AppLockManager.shared
     @ObservedObject private var coordinator = SyncCoordinator.shared
+    @AppStorage(ClipboardDetectionManager.suggestionsEnabledKey) private var clipboardSuggestionsEnabled = false
     @State private var showingDeleteAccountAlert = false
     @State private var isDeletingAccount = false
     @State private var deletionError: String?
@@ -137,9 +138,30 @@ public struct SecuritySettingsView: View {
                         )
                     }
 
+                    VStack(alignment: .leading, spacing: 12) {
+                        Label("Clipboard Suggestions", systemImage: "doc.on.clipboard")
+                            .font(.headline)
+                            .foregroundStyle(AppTheme.textPrimary)
+                        Toggle(isOn: $clipboardSuggestionsEnabled) {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Check clipboard on app open")
+                                    .font(.subheadline.weight(.semibold))
+                                Text("Off by default. When enabled, LaterBox checks for copied content when you open or return to the app.")
+                                    .font(.caption)
+                                    .foregroundStyle(AppTheme.textSecondary)
+                            }
+                        }
+                        .tint(AppTheme.accent)
+                        .onChange(of: clipboardSuggestionsEnabled) { _, enabled in
+                            if !enabled { ClipboardDetectionManager.shared.dismiss() }
+                        }
+                    }
+                    .padding(16)
+                    .liquidGlassCard(cornerRadius: 18)
+
                     // Privacy Architecture
                     VStack(alignment: .leading, spacing: 10) {
-                        Text("Zero-Tracking Privacy Guarantee")
+                        Text("Your Data & Privacy")
                             .font(.headline)
                             .foregroundStyle(AppTheme.textPrimary)
 
@@ -150,10 +172,10 @@ public struct SecuritySettingsView: View {
                                     .foregroundColor(AppTheme.textPrimary)
                                     .padding(.top, 2)
                                 VStack(alignment: .leading, spacing: 2) {
-                                    Text("Encrypted Local Vault")
+                                    Text("On-Device Storage")
                                         .font(.subheadline.weight(.semibold))
                                         .foregroundColor(AppTheme.textPrimary)
-                                    Text("Items, highlights, and offline attachments are stored securely in Apple SwiftData and Keychain-protected sandboxes.")
+                                    Text("Saved items use the app's local SwiftData storage. A separately encrypted database has not been verified; password-encrypted backup exports are a different protection.")
                                         .font(.caption)
                                         .foregroundColor(AppTheme.textSecondary)
                                 }
@@ -167,10 +189,10 @@ public struct SecuritySettingsView: View {
                                     .foregroundColor(AppTheme.textPrimary)
                                     .padding(.top, 2)
                                 VStack(alignment: .leading, spacing: 2) {
-                                    Text("No Third-Party Trackers")
+                                    Text("Privacy Choices")
                                         .font(.subheadline.weight(.semibold))
                                         .foregroundColor(AppTheme.textPrimary)
-                                    Text("LaterBox never sells your data, embeds ad libraries, or monitors your browsing habits.")
+                                    Text("Automatic clipboard suggestions are optional and disabled by default. You control whether LaterBox checks copied content when opening the app.")
                                         .font(.caption)
                                         .foregroundColor(AppTheme.textSecondary)
                                 }
