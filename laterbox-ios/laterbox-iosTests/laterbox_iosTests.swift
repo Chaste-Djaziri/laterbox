@@ -398,6 +398,81 @@ extension LaterAITests {
         #expect(remote.noteContent == "Remote note" && remote.textContent == "Remote original")
         #expect(remote.formattedContent == "Formatted")
     }
+    @Test func inboxEntryTimestampSyncsAcrossDevicesAndHandlesLegacySnapshots() async throws {
+        let coordinator = SyncCoordinator.shared
+        let previous = (coordinator.currentUserId, coordinator.currentUserEmail,
+                        coordinator.authToken, coordinator.isProUser, coordinator.isGuestMode)
+        let uid = "00000000-0000-4000-8000-000000000123"
+        coordinator.currentUserId = uid
+        coordinator.currentUserEmail = "inbox-timestamp@example.com"
+        coordinator.authToken = "test-token"
+        coordinator.isGuestMode = false
+        coordinator.setProForTesting(true)
+        defer {
+            coordinator.currentUserId = previous.0
+            coordinator.currentUserEmail = previous.1
+            coordinator.authToken = previous.2
+            coordinator.setProForTesting(previous.3)
+            coordinator.isGuestMode = previous.4
+        }
+
+        let container = try ModelContainer(for: LBItem.self, LBCollection.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+        let context = container.mainContext
+        let initialDate = Date(timeIntervalSince1970: 1_740_000_000)
+        let enteredDate = Date(timeIntervalSince1970: 1_760_000_000)
+        let remoteUpdate = Date(timeIntervalSince1970: 1_780_000_000)
+        let item = LBItem(title: "Resurfaced article", status: .inbox,
+                          createdAt: initialDate, inboxEnteredAt: enteredDate,
+                          updatedAt: Date(timeIntervalSince1970: 1_770_000_000))
+        item.userId = uid
+        item.textSelector = "exact highlighted passage"
+        context.insert(item)
+        try context.save()
+
+        let transport = MockCloudTransport()
+        _ = try await coordinator.performCloudPush(context: context, transport: transport)
+        #expect(transport.uploads.count == 1)
+        #expect(transport.uploads[0]["inbox_entered_at"] as? String == enteredDate.ISO8601Format())
+        #expect(transport.uploads[0]["text_selector"] as? String == "exact highlighted passage")
+
+        let cloudID = UUID().uuidString
+        transport.snapshots = [CloudItemSnapshot(
+            id: cloudID, user_id: uid, title: "Cloud return",
+            text_selector: "cloud quote", type: "note",
+            favorite: false, status: "inbox",
+            inbox_entered_at: enteredDate.ISO8601Format(),
+            created_at: initialDate.ISO8601Format(),
+            updated_at: remoteUpdate.ISO8601Format())]
+        _ = try await coordinator.performCloudPull(context: context, transport: transport)
+        let imported = try #require(context.fetch(FetchDescriptor<LBItem>())
+            .first { $0.id == cloudID })
+        #expect(imported.inboxEnteredAt == enteredDate)
+        #expect(imported.textSelector == "cloud quote")
+
+        // A legacy snapshot has no timestamp. Preserve the known local value
+        // when its item remains in Inbox rather than fabricating a new time.
+        let newer = Date(timeIntervalSince1970: 1_790_000_000)
+        transport.snapshots = [CloudItemSnapshot(
+            id: cloudID, user_id: uid, title: "Legacy client edit", type: "note",
+            favorite: false, status: "inbox",
+            created_at: initialDate.ISO8601Format(),
+            updated_at: newer.ISO8601Format())]
+        _ = try await coordinator.performCloudPull(context: context, transport: transport)
+        #expect(imported.inboxEnteredAt == enteredDate)
+
+        let oldID = UUID().uuidString
+        transport.snapshots = [CloudItemSnapshot(
+            id: oldID, user_id: uid, title: "Unknown historical age", type: "note",
+            favorite: false, status: "inbox",
+            created_at: initialDate.ISO8601Format(),
+            updated_at: newer.ISO8601Format())]
+        _ = try await coordinator.performCloudPull(context: context, transport: transport)
+        let historical = try #require(context.fetch(FetchDescriptor<LBItem>())
+            .first { $0.id == oldID })
+        #expect(historical.inboxEnteredAt == nil)
+    }
+
     @Test func failedUploadRemainsPending() async throws {
         try await Task.sleep(for: .milliseconds(100))
         let coordinator = SyncCoordinator.shared
