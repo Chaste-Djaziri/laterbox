@@ -12,6 +12,7 @@ public struct QuickCaptureSheet: View {
     @State private var savedItem: LBItem?
     @State private var error: String?
     @State private var editing = false
+    @State private var assistantReply = ""
 
     public init() {}
 
@@ -46,41 +47,23 @@ public struct QuickCaptureSheet: View {
                                     .foregroundStyle(.black)
                             }
 
-                            VStack(alignment: .leading, spacing: 12) {
-                                Label(savedItem == nil ? "Ready to save" : "Saved to LaterBox", systemImage: savedItem == nil ? "square.and.arrow.down" : "checkmark.circle.fill")
-                                    .font(.headline)
+                            VStack(alignment: .leading, spacing: 10) {
+                                Label("LaterBox", systemImage: "sparkles")
+                                    .font(.caption.weight(.bold))
                                     .foregroundStyle(AppTheme.accent)
-                                Text(savedItem?.title ?? draft.title)
-                                    .font(.subheadline.weight(.semibold))
-                                    .lineLimit(3)
+                                Text(assistantReply)
+                                    .font(.subheadline)
+                                    .foregroundStyle(.white)
+                                    .fixedSize(horizontal: false, vertical: true)
                                 if let url = draft.url {
                                     Label(url, systemImage: "link")
                                         .font(.caption)
                                         .foregroundStyle(.white.opacity(0.6))
                                         .lineLimit(2)
                                 }
-                                if let item = savedItem {
-                                    HStack(spacing: 18) {
-                                        Button("Edit") { editing = true }
-                                        Button("Undo") { undo(item) }
-                                        Button("Done") { dismiss() }
-                                    }
-                                    .font(.subheadline.weight(.semibold))
-                                    .foregroundStyle(AppTheme.accent)
-                                } else {
-                                    Button(action: save) {
-                                        Label("Save to LaterBox", systemImage: "arrow.down.circle.fill")
-                                            .font(.subheadline.weight(.bold))
-                                            .frame(maxWidth: .infinity)
-                                            .padding(.vertical, 13)
-                                            .foregroundStyle(.black)
-                                            .background(AppTheme.accent, in: RoundedRectangle(cornerRadius: 13))
-                                    }
-                                    .buttonStyle(.plain)
-                                }
                             }
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(18)
+                            .padding(16)
                             .background(Color(white: 0.09), in: RoundedRectangle(cornerRadius: 18))
                         }
 
@@ -95,7 +78,31 @@ public struct QuickCaptureSheet: View {
                 }
                 .scrollDismissesKeyboard(.interactively)
 
-                if !hasSubmitted {
+                if hasSubmitted {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text(savedItem == nil ? "SAVE OPTIONS" : "SAVED ITEM")
+                            .font(.caption2.weight(.bold))
+                            .tracking(0.7)
+                            .foregroundStyle(.white.opacity(0.55))
+                        if let item = savedItem {
+                            HStack(spacing: 10) {
+                                optionButton("Edit", icon: "pencil") { editing = true }
+                                optionButton("Undo", icon: "arrow.uturn.backward") { undo(item) }
+                                optionButton("Done", icon: "checkmark", primary: true) { dismiss() }
+                            }
+                        } else {
+                            optionButton("Save to LaterBox", icon: "arrow.down.circle.fill", primary: true) { save() }
+                            optionButton("Change message", icon: "pencil") {
+                                message = draft.content
+                                hasSubmitted = false
+                                assistantReply = ""
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 14)
+                    .background(Color(white: 0.06))
+                } else {
                     HStack(alignment: .bottom, spacing: 10) {
                         TextField("Type a note or paste a link...", text: $message, axis: .vertical)
                             .lineLimit(1...5)
@@ -143,11 +150,24 @@ public struct QuickCaptureSheet: View {
         }
     }
 
+    private func optionButton(_ title: String, icon: String, primary: Bool = false, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Label(title, systemImage: icon)
+                .font(.subheadline.weight(.semibold))
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 13)
+                .foregroundStyle(primary ? Color.black : Color.white)
+                .background(primary ? AppTheme.accent : Color(white: 0.16), in: RoundedRectangle(cornerRadius: 13))
+        }
+        .buttonStyle(.plain)
+    }
+
     private func submit() {
         let text = message.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return }
         draft = CaptureDraft.manual(text)
         hasSubmitted = true
+        assistantReply = draft.url == nil ? "I have your note ready. Save it to your LaterBox inbox, or change the message below." : "I found a link in your message. Save it to your LaterBox inbox, or change the message below."
         error = nil
         LBHaptic.light()
     }
@@ -156,6 +176,7 @@ public struct QuickCaptureSheet: View {
         do {
             savedItem = try SyncCoordinator.shared.saveDraft(draft, context: context)
             error = nil
+            assistantReply = "Saved ‘\\(savedItem?.title ?? draft.title)’ to your LaterBox inbox. You can edit it, undo the save, or finish."
             LBHaptic.medium()
         } catch {
             self.error = error.localizedDescription
@@ -172,6 +193,7 @@ public struct QuickCaptureSheet: View {
             hasSubmitted = false
             message = ""
             draft = CaptureDraft()
+            assistantReply = ""
             Task { await SyncCoordinator.shared.syncPendingItems(context: context) }
         } catch {
             item.status = "inbox"
