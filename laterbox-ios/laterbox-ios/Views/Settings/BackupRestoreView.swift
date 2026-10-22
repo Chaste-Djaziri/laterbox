@@ -133,7 +133,14 @@ struct BackupRestoreView: View {
         }
         .background(AppTheme.canvasBackground.ignoresSafeArea())
         .tint(Color.blue)
-        .navigationTitle(recoveryOnly ? "Restore Backup" : "Backup & Restore")
+        .navigationTitle("")
+        .toolbar {
+            ToolbarItem(placement: .principal) {
+                Text(recoveryOnly ? "Restore Backup" : "Backup & Restore")
+                    .font(.headline.weight(.bold))
+                    .foregroundStyle(AppTheme.textPrimary)
+            }
+        }
         .navigationBarTitleDisplayMode(.inline)
         .environment(\.colorScheme, .light)
         .fileImporter(isPresented: $showingImporter, allowedContentTypes: [.data, .json, .item]) { result in
