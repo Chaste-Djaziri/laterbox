@@ -623,6 +623,7 @@ public final class SyncCoordinator: ObservableObject {
 
     public func scheduleItem(item: LBItem, date: Date, context: ModelContext) {
         item.status = ItemStatus.deferred.rawValue
+        item.inboxEnteredAt = nil
         item.returnAt = date
         item.updatedAt = Date()
         item.isSyncPending = true
