@@ -420,18 +420,16 @@ public struct ItemDetailView: View {
 
             Spacer()
 
-            if item.returnAt == nil {
-                Button("Reschedule") {
-                    scheduledDate = SnoozePreset.oneDay.calculateDate() ?? Date().addingTimeInterval(86400)
-                    showingSchedulePicker = true
-                    LBHaptic.light()
-                }
-                .font(.system(size: 11, weight: .bold))
-                .foregroundStyle(AppTheme.textPrimary)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 5)
-                .background(Color.black.opacity(0.04), in: Capsule())
+            Button("Reschedule") {
+                scheduledDate = item.returnAt ?? (SnoozePreset.oneDay.calculateDate() ?? Date().addingTimeInterval(86400))
+                showingSchedulePicker = true
+                LBHaptic.light()
             }
+            .font(.system(size: 11, weight: .bold))
+            .foregroundStyle(AppTheme.textPrimary)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 5)
+            .background(Color.black.opacity(0.04), in: Capsule())
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
