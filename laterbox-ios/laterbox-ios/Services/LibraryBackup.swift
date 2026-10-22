@@ -232,13 +232,17 @@ enum LibraryBackup {
     }
 
     @MainActor
-    static func importArchive(from file: URL, context: ModelContext, password: String, replaceIDs: Set<String> = []) throws -> Result {
-        let access = file.startAccessingSecurityScopedResource()
-        defer { if access { file.stopAccessingSecurityScopedResource() } }
-        let data = try decrypt(Data(contentsOf: file), password: password)
-        guard let archive = try? JSONDecoder().decode(Archive.self, from: data) else {
-            throw BackupError.invalidArchive
-        }
+    static func importArchive(from file: URL, context: ModelContext, password: String, replaceIDs: Set<String> = [], progress: @escaping @MainActor (Double) -> Void = { _ in }) async throws -> Result {
+        let archive = try await Task.detached(priority: .userInitiated) {
+            let access = file.startAccessingSecurityScopedResource()
+            defer { if access { file.stopAccessingSecurityScopedResource() } }
+            let data = try decrypt(Data(contentsOf: file), password: password)
+            guard let decoded = try? JSONDecoder().decode(Archive.self, from: data) else {
+                throw BackupError.invalidArchive
+            }
+            return decoded
+        }.value
+        progress(0.25)
         guard archive.version == 1 else { throw BackupError.unsupportedVersion }
         let existingItems = try context.fetch(FetchDescriptor<LBItem>())
         let existingCollections = try context.fetch(FetchDescriptor<LBCollection>())
@@ -269,7 +273,11 @@ enum LibraryBackup {
             result.collections += 1
         }
 
-        for entry in archive.items {
+        for (index, entry) in archive.items.enumerated() {
+            if index % 10 == 0 {
+                progress(0.25 + Double(index) / Double(max(archive.items.count, 1)) * 0.7)
+                await Task.yield()
+            }
             if itemIDs.contains(entry.id) {
                 guard replaceIDs.contains(entry.id),
                       let existing = existingItems.first(where: { $0.id == entry.id }) else {
@@ -327,6 +335,7 @@ enum LibraryBackup {
             result.items += 1
         }
         try context.save()
+        progress(1)
         // Notification recovery is best-effort and never rolls back a successful import.
         // Do not prompt for permission implicitly during data restoration.
         if !importedReminders.isEmpty {
