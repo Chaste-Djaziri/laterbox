@@ -235,8 +235,8 @@ final class LaterAIModelManager: ObservableObject {
         }
     }
 
-    private func syncToSharedSettings() {
-        let settings = SharedAISettings(
+    func currentSharedSettings() -> SharedAISettings {
+        SharedAISettings(
             selectedProvider: selectedProvider.rawValue,
             isOnDeviceModelEnabled: isOnDeviceModelEnabled,
             bazaarlinkApiKey: bazaarlinkApiKey,
@@ -248,7 +248,10 @@ final class LaterAIModelManager: ObservableObject {
             openaiModel: openaiModel,
             claudeModel: claudeModel
         )
-        SharedCaptureStore.saveAISettings(settings)
+    }
+
+    private func syncToSharedSettings() {
+        SharedCaptureStore.saveAISettings(currentSharedSettings())
     }
 
     func hasApiKey(for provider: AIProviderType) -> Bool {
