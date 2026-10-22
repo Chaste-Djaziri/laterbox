@@ -271,10 +271,12 @@ struct TodayFocusList: View {
     private var overdue: [LBItem] {
         let start = Calendar.current.startOfDay(for: Date())
         return items.filter { ($0.returnAt ?? .distantFuture) < start }
+            .sorted { ($0.returnAt ?? .distantPast) < ($1.returnAt ?? .distantPast) }
     }
 
     private var dueToday: [LBItem] {
         items.filter { $0.returnAt.map { Calendar.current.isDateInToday($0) } ?? false }
+            .sorted { ($0.returnAt ?? .distantPast) < ($1.returnAt ?? .distantPast) }
     }
 
     var body: some View {
