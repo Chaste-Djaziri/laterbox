@@ -11,6 +11,7 @@ struct WelcomeView: View {
     @StateObject private var coordinator = SyncCoordinator.shared
     @State private var showingAuthView: Bool = false
     @State private var showingPlans = false
+    @State private var showingRestore = false
 
     var body: some View {
         NavigationStack {
@@ -106,6 +107,15 @@ struct WelcomeView: View {
                                 .shadow(color: Color.black.opacity(0.25), radius: 8, x: 0, y: 3)
                         }
 
+                        Button {
+                            showingRestore = true
+                        } label: {
+                            Label("Restore an existing library", systemImage: "arrow.down.doc.fill")
+                                .font(.system(size: 15, weight: .semibold))
+                                .foregroundColor(.white)
+                        }
+                        .accessibilityIdentifier("welcome.restore")
+
                         Button("View Pro plans · Purchase or restore") {
                             showingPlans = true
                         }
@@ -124,6 +134,9 @@ struct WelcomeView: View {
                             ? AnyShapeStyle(.ultraThinMaterial)
                             : AnyShapeStyle(Color.black.opacity(0.92))
                     )
+            }
+            .sheet(isPresented: $showingRestore) {
+                NavigationStack { BackupRestoreView() }
             }
             .navigationDestination(isPresented: $showingAuthView) {
                 AuthView()
