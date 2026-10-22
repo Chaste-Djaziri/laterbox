@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[iOS / Capture]** Show social-preview images above chat capture cards when available. Resolve `og:image:secure_url`, `og:image` and Twitter image metadata from linked pages when the enrichment service has no preview; retain text-only fallback when images cannot load.
+
 - **[iOS / Capture]** Standardize full Capture, Quick Save and the iOS Share Extension on the original conversational review interface: shared chat chrome, item previews, actionable review choices, attachments, scheduling, save and undo; retain a common capture draft and import pipeline.
 
 - **[iOS / Settings]** Harmonize the remaining settings screens with the About/Profile canvas, scroll surfaces, and Liquid Glass status hero cards without changing settings behavior.
