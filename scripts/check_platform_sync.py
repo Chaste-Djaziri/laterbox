@@ -17,6 +17,7 @@ read_write = {
     "android": (ROOT / "laterbox-android/app/src/main/java/com/example/laterbox/data/sync/SyncCoordinator.kt", None),
 }
 errors = []
+observed_versions = {platform: 1 for platform in read_write}
 if not migration.is_file():
     errors.append(f"Missing migration: {migration}")
 else:
@@ -35,20 +36,24 @@ for entry in manifest["shared_fields"]:
             read = "var " + field in code and ("snapshot." + field) in code
             write = '"' + field + '":' in code
         elif platform == "web":
-            read = field != "inbox_entered_at" and (field in (ROOT / "laterbox-web/src/lib/supabase/types.ts").read_text() or "return_at" == field)
+            read = field in (ROOT / "laterbox-web/src/lib/supabase/types.ts").read_text() or field == "return_at"
             write = field + ":" in code
         else:
             read = '"' + field + '"' in code
             write = '.put("' + field + '"' in code
         actual = "read/write" if read and write else "read-only" if read else "write-only" if write else "not yet"
-        expected = entry[platform].replace("_", "/")
+        expected = {"read_write": "read/write", "read_only": "read-only",
+                    "not_implemented": "not yet"}[entry[platform]]
         statuses.append(actual)
-        expected_rw = entry[platform] == "read_write"
-        if expected_rw and not (read and write):
-            errors.append(f"{platform} must read and write {field}; observed {actual}")
+        if actual != expected:
+            errors.append(f"{platform}: {field} is {actual}, but contract declares {expected}; update source or manifest")
+        if field == "inbox_entered_at" and read and write:
+            observed_versions[platform] = 2
     print(f"{field:25} {statuses[0]:15} {statuses[1]:15} {statuses[2]}")
 for platform, p in manifest["platform_contracts"].items():
-    print(f"{platform}: declared contract v{p['version']} ({p['status']})")
+    print(f"{platform}: declared contract v{p['version']} / detected v{observed_versions[platform]} ({p['status']})")
+    if p["version"] != observed_versions[platform]:
+        errors.append(f"{platform}: detected contract v{observed_versions[platform]} differs from declared v{p['version']}")
 print("Database migration deployment is intentionally not inferred from local files.")
 if errors:
     print("\nERRORS:")

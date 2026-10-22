@@ -9,7 +9,9 @@ Source of truth: [platform-sync-contract.json](platform-sync-contract.json).
 Run `python3 scripts/check_platform_sync.py` at the repository root to compare
 declared cloud-field support with current iOS, Web and Android source files.
 The checker deliberately reports older clients as `not yet`: this is an
-upgrade backlog, not a reason to block current users. A passing checker does
+upgrade backlog, not a reason to block current users. CI runs the same checker
+when relevant schemas or client sync code change. If a client is upgraded,
+update its declared field status and contract version in the JSON manifest. A passing checker does
 **not** verify migration deployment or end-to-end sync.
 
 | Data field / behavior | iOS current | Web current | Android current | Supabase |

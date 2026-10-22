@@ -1,0 +1,28 @@
+name: Platform cloud contract
+on:
+  pull_request:
+    paths:
+      - "supabase/migrations/**"
+      - "laterbox-ios/laterbox-ios/Services/IOSCloudSync.swift"
+      - "laterbox-web/src/lib/supabase/types.ts"
+      - "laterbox-web/src/lib/utils/pending-captures.ts"
+      - "laterbox-android/app/src/main/java/com/example/laterbox/data/sync/SyncCoordinator.kt"
+      - "docs/platform-sync-contract.json"
+      - "scripts/check_platform_sync.py"
+  push:
+    branches: [main]
+    paths:
+      - "supabase/migrations/**"
+      - "laterbox-ios/laterbox-ios/Services/IOSCloudSync.swift"
+      - "laterbox-web/src/lib/supabase/types.ts"
+      - "laterbox-web/src/lib/utils/pending-captures.ts"
+      - "laterbox-android/app/src/main/java/com/example/laterbox/data/sync/SyncCoordinator.kt"
+      - "docs/platform-sync-contract.json"
+      - "scripts/check_platform_sync.py"
+jobs:
+  verify-client-contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check field parity and declared platform versions
+        run: python3 scripts/check_platform_sync.py
