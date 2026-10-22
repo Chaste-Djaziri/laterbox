@@ -30,7 +30,7 @@ import UniformTypeIdentifiers
         }
         let items = try context.fetch(FetchDescriptor<LBItem>())
         for item in items where item.status == "deferred" && item.returnAt.map({ $0 <= now }) == true {
-            item.status = "inbox"; item.updatedAt = now; item.isSyncPending = true
+            item.status = "inbox"; item.inboxEnteredAt = now; item.updatedAt = now; item.isSyncPending = true
             let id = item.id
             let title = item.title
             let desc = item.notificationDescription
