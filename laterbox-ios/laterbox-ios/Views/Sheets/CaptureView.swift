@@ -59,6 +59,9 @@ struct CaptureComposerScreen: View {
         guard !isAnalyzing, savedItem == nil else { return }
         let snapshot = capture
         let names = collections.map(\.name)
+        let suggestion = LaterAISharedAnalyzer.quickSuggestions(content: snapshot.content, collections: names)
+        if capture.category.isEmpty { capture.category = suggestion.category }
+        if capture.returnAt == nil { capture.returnAt = suggestion.returnAt }
         errorMessage = nil
         isAnalyzing = true
 
