@@ -438,7 +438,7 @@ struct CaptureComposerScreen: View {
             item.status = originalStatus
             item.updatedAt = oldDate
             item.isSyncPending = pending
-            error = error.localizedDescription
+            self.error = error.localizedDescription
         }
     }
 
