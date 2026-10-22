@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[iOS / YouTube Share]** Decode the binary NSKeyedArchiver URL payload supplied as text.txt by YouTube's share sheet, including data, file URL, and file-representation inputs, so video links receive normal metadata instead of appearing as file attachments.
+
 - **[iOS / Share Extension]** Detect URL payloads shared as plain text or text files, including YouTube app shares, before treating them as document attachments. Keep video metadata enrichment and social preview behavior available.
 
 - **[iOS / Today]** Add a focused review for overdue and returning-today items, ordered by return date, with Keep, Reschedule and Dismiss actions. Dismiss archives content safely and cancels its reminder; sidebar counts include overdue items.
