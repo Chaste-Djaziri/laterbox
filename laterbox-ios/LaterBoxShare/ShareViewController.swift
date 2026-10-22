@@ -3,6 +3,7 @@ import SwiftUI
 import UniformTypeIdentifiers
 import UserNotifications
 import PDFKit
+import PhotosUI
 
 @objc(ShareViewController)
 final class ShareViewController: UIViewController {
@@ -10,7 +11,7 @@ final class ShareViewController: UIViewController {
         super.viewDidLoad()
         overrideUserInterfaceStyle = .dark
         let model = ShareCaptureModel(context: extensionContext)
-        let host = UIHostingController(rootView: ShareCaptureView(model: model).preferredColorScheme(.dark))
+        let host = UIHostingController(rootView: ShareChatCaptureScreen(model: model).preferredColorScheme(.dark))
         addChild(host)
         view.addSubview(host.view)
         host.view.translatesAutoresizingMaskIntoConstraints = false
@@ -449,6 +450,42 @@ struct ShareChatMessage: Identifiable, Equatable {
         await save()
     }
 
+    /// Analyze a message from the shared chat composer without saving it yet.
+    func analyzeComposerDraft() async {
+        let snapshot = capture.content
+        let id = capture.id
+        loading = true
+        defer { loading = false }
+        let analysis = await LaterAISharedAnalyzer.analyze(
+            content: snapshot,
+            attachments: capture.attachments,
+            availableCollections: SharedCaptureStore.loadAvailableCollections(),
+            settings: SharedCaptureStore.loadAISettings()
+        )
+        guard capture.id == id, capture.content == snapshot else { return }
+        if capture.title.isEmpty {
+            capture.title = analysis.title ?? capture.attachments.first?.name ?? ""
+        }
+        if capture.category.isEmpty {
+            capture.category = analysis.collectionName ?? ""
+        }
+        if capture.tags.isEmpty {
+            capture.tags = analysis.tags
+        }
+        if capture.metadataDescription == nil {
+            capture.metadataDescription = analysis.summary
+        }
+        if capture.previewImageUrl == nil {
+            capture.previewImageUrl = analysis.previewImageUrl
+        }
+        if capture.siteName == nil {
+            capture.siteName = analysis.siteName
+        }
+        if capture.returnAt == nil {
+            capture.returnAt = analysis.returnAt
+        }
+    }
+
     func save() async {
         if capture.content.isEmpty && !capture.title.isEmpty {
             capture.content = capture.title
@@ -483,6 +520,42 @@ struct ShareChatMessage: Identifiable, Equatable {
         }
     }
 
+    /// Blank share-extension entry uses the same message -> review -> return-choice
+    /// workflow as an item arriving through the iOS share sheet.
+    func prepareBlankMessage(_ text: String) async {
+        let clean = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !loading, !clean.isEmpty || !capture.attachments.isEmpty else { return }
+        loading = true
+        defer { loading = false }
+        if !clean.isEmpty { capture.content = clean }
+        messages.append(ShareChatMessage(
+            text: clean.isEmpty ? capture.attachments.map(\.name).joined(separator: ", ") : clean,
+            isUser: true))
+        let settings = SharedCaptureStore.loadAISettings()
+        let analysis = await LaterAISharedAnalyzer.analyze(
+            content: capture.content,
+            attachments: capture.attachments,
+            availableCollections: SharedCaptureStore.loadAvailableCollections(),
+            settings: settings
+        )
+        if capture.title.isEmpty {
+            capture.title = analysis.title ?? capture.attachments.first?.name ?? "Saved note"
+        }
+        if let summary = analysis.summary { capture.metadataDescription = summary }
+        if capture.category.isEmpty, let collection = analysis.collectionName {
+            capture.category = collection
+        }
+        if capture.tags.isEmpty { capture.tags = analysis.tags }
+        if let site = analysis.siteName { capture.siteName = site }
+        if let image = analysis.previewImageUrl { capture.previewImageUrl = image }
+        recommendedReturnDate = analysis.returnAt
+        isBlankMode = false
+        needsReturnDate = true
+        messages.append(ShareChatMessage(
+            text: "I've prepared ‘\(capture.title)’ for LaterBox. When would you like to see it again?",
+            isUser: false))
+    }
+
     func saveBlankItem(title: String, content: String, category: String, tags: [String], returnAt: Date?) async {
         let cleanContent = content.trimmingCharacters(in: .whitespacesAndNewlines)
         var cleanTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -491,13 +564,13 @@ struct ShareChatMessage: Identifiable, Equatable {
         let availableCollections = SharedCaptureStore.loadAvailableCollections()
         let analysis = await LaterAISharedAnalyzer.analyze(
             content: cleanContent.isEmpty ? cleanTitle : cleanContent,
-            attachments: [],
+            attachments: capture.attachments,
             availableCollections: availableCollections,
             settings: aiSettings
         )
 
         if cleanTitle.isEmpty {
-            cleanTitle = analysis.title ?? "Quick Note"
+            cleanTitle = analysis.title ?? capture.attachments.first?.name ?? "Quick Note"
         }
 
         capture.title = cleanTitle
@@ -519,7 +592,7 @@ struct ShareChatMessage: Identifiable, Equatable {
         for t in analysis.tags { allTags.insert(t) }
         capture.tags = Array(allTags).sorted()
 
-        capture.returnAt = returnAt ?? analysis.returnAt
+        capture.returnAt = returnAt
         if let previewImage = analysis.previewImageUrl, !previewImage.isEmpty {
             capture.previewImageUrl = previewImage
         }
@@ -653,263 +726,16 @@ private struct ShareAttachmentPreviewCard: View {
     }
 }
 
-// MARK: - Quick Save Composer Card
-struct QuickSaveComposerCard: View {
-    @ObservedObject var model: ShareCaptureModel
-    @Binding var chooseReturnDate: Bool
-    @Binding var selectedReturnDate: Date
-
-    @State private var noteContent: String = ""
-    @State private var noteTitle: String = ""
-    @State private var selectedCategory: String = "Inbox"
-    @State private var selectedReturnOption: String = "inbox"
-    @State private var customReturnDate: Date? = nil
-
-    private let categories = ["Inbox", "Reading", "Watch Later", "Listen Later", "Ideas", "Work"]
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            // Header badge
-            HStack(spacing: 8) {
-                Image(systemName: "bolt.fill")
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundColor(LaterAIStyle.accent)
-                Text("QUICK SAVE")
-                    .font(.system(size: 11, weight: .bold))
-                    .foregroundColor(LaterAIStyle.accent)
-                    .tracking(0.6)
-                Spacer()
-                Text("Vault")
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundColor(.white.opacity(0.45))
-            }
-
-            // Note or URL input
-            VStack(alignment: .leading, spacing: 6) {
-                Text("NOTE OR LINK")
-                    .font(.system(size: 10, weight: .bold))
-                    .foregroundColor(.white.opacity(0.45))
-                    .tracking(0.5)
-
-                ZStack(alignment: .topLeading) {
-                    if noteContent.isEmpty {
-                        Text("Type a note, idea, or paste a link...")
-                            .font(.system(size: 14))
-                            .foregroundColor(.white.opacity(0.30))
-                            .padding(.top, 8)
-                            .padding(.leading, 4)
-                    }
-
-                    TextEditor(text: $noteContent)
-                        .font(.system(size: 14))
-                        .foregroundColor(.white)
-                        .scrollContentBackground(.hidden)
-                        .frame(minHeight: 80, maxHeight: 130)
-                        .onChange(of: noteContent) { _, newValue in
-                            detectLink(newValue)
-                        }
-                }
-                .padding(10)
-                .background(Color(white: 22.0/255), in: RoundedRectangle(cornerRadius: 12))
-                .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(Color.white.opacity(0.12), lineWidth: 1))
-            }
-
-            // Title field
-            VStack(alignment: .leading, spacing: 6) {
-                Text("TITLE (OPTIONAL)")
-                    .font(.system(size: 10, weight: .bold))
-                    .foregroundColor(.white.opacity(0.45))
-                    .tracking(0.5)
-
-                TextField("", text: $noteTitle, prompt: Text("Auto-generated if empty").foregroundColor(.white.opacity(0.30)))
-                    .font(.system(size: 14))
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 10)
-                    .background(Color(white: 22.0/255), in: RoundedRectangle(cornerRadius: 12))
-                    .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(Color.white.opacity(0.12), lineWidth: 1))
-            }
-
-            // Category picker
-            VStack(alignment: .leading, spacing: 6) {
-                Text("CATEGORY")
-                    .font(.system(size: 10, weight: .bold))
-                    .foregroundColor(.white.opacity(0.45))
-                    .tracking(0.5)
-
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 8) {
-                        ForEach(categories, id: \.self) { cat in
-                            Button(action: {
-                                selectedCategory = cat
-                                UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                            }) {
-                                Text(cat)
-                                    .font(.system(size: 12, weight: selectedCategory == cat ? .bold : .medium))
-                                    .foregroundColor(selectedCategory == cat ? .black : .white.opacity(0.80))
-                                    .padding(.horizontal, 12)
-                                    .padding(.vertical, 6)
-                                    .background(
-                                        selectedCategory == cat ? LaterAIStyle.accent : Color(white: 26.0/255),
-                                        in: Capsule()
-                                    )
-                                    .overlay(
-                                        Capsule().strokeBorder(
-                                            selectedCategory == cat ? Color.clear : Color.white.opacity(0.10),
-                                            lineWidth: 1
-                                        )
-                                    )
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-                }
-            }
-
-            // Return Schedule selector
-            VStack(alignment: .leading, spacing: 6) {
-                Text("RETURN SCHEDULE")
-                    .font(.system(size: 10, weight: .bold))
-                    .foregroundColor(.white.opacity(0.45))
-                    .tracking(0.5)
-
-                let returnPresets: [(id: String, label: String, icon: String)] = [
-                    ("10m", "In 10m", "timer"),
-                    ("1h", "In 1h", "clock.arrow.circlepath"),
-                    ("tomorrow", "Tomorrow", "calendar.badge.clock"),
-                    ("weekend", "Weekend", "sun.max.fill"),
-                    ("custom", "Pick Date", "slider.horizontal.3"),
-                    ("inbox", "No reminder", "tray")
-                ]
-
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 8) {
-                        ForEach(returnPresets, id: \.id) { preset in
-                            Button(action: {
-                                selectedReturnOption = preset.id
-                                UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                                if preset.id == "custom" {
-                                    chooseReturnDate = true
-                                }
-                            }) {
-                                HStack(spacing: 5) {
-                                    Image(systemName: preset.icon)
-                                        .font(.system(size: 10, weight: .bold))
-                                    Text(preset.id == "custom" && customReturnDate != nil ? customReturnDate!.formatted(date: .abbreviated, time: .shortened) : preset.label)
-                                        .font(.system(size: 12, weight: selectedReturnOption == preset.id ? .bold : .medium))
-                                }
-                                .foregroundColor(selectedReturnOption == preset.id ? .black : .white.opacity(0.85))
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 7)
-                                .background(
-                                    selectedReturnOption == preset.id ? LaterAIStyle.accent : Color(white: 26.0/255),
-                                    in: RoundedRectangle(cornerRadius: 10)
-                                )
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 10).strokeBorder(
-                                        selectedReturnOption == preset.id ? Color.clear : Color.white.opacity(0.12),
-                                        lineWidth: 1
-                                    )
-                                )
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-                }
-            }
-
-            // Save Action Button
-            Button(action: performSave) {
-                HStack(spacing: 8) {
-                    if model.saving {
-                        ProgressView()
-                            .tint(.black)
-                    } else {
-                        Image(systemName: "arrow.down.circle.fill")
-                            .font(.system(size: 16, weight: .bold))
-                    }
-                    Text(model.saving ? "Saving..." : "Save to LaterBox")
-                        .font(.system(size: 15, weight: .bold))
-                }
-                .foregroundColor(.black)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 14)
-                .background(
-                    canSave ? LaterAIStyle.accent : Color(white: 35.0/255),
-                    in: RoundedRectangle(cornerRadius: 14)
-                )
-            }
-            .buttonStyle(.plain)
-            .disabled(!canSave || model.saving)
-        }
-        .padding(18)
-        .background(Color(white: 18.0 / 255), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).strokeBorder(Color.white.opacity(0.12), lineWidth: 1))
-        .onChange(of: selectedReturnDate) { _, newDate in
-            if selectedReturnOption == "custom" {
-                customReturnDate = newDate
-            }
-        }
-    }
-
-    private var canSave: Bool {
-        !noteContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
-        !noteTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-    }
-
-    private func detectLink(_ text: String) {
-        if let detector = try? NSDataDetector(types: NSTextCheckingResult.CheckingType.link.rawValue),
-           let match = detector.firstMatch(in: text, range: NSRange(text.startIndex..., in: text)),
-           let matchUrl = match.url {
-            let urlString = matchUrl.absoluteString
-            if selectedCategory == "Inbox" {
-                let lower = urlString.lowercased()
-                if lower.contains("youtube") || lower.contains("vimeo") {
-                    selectedCategory = "Watch Later"
-                } else if lower.contains("spotify") || lower.contains("soundcloud") {
-                    selectedCategory = "Listen Later"
-                } else {
-                    selectedCategory = "Reading"
-                }
-            }
-        }
-    }
-
-    private func performSave() {
-        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-        let computedReturnDate: Date?
-        switch selectedReturnOption {
-        case "10m":
-            computedReturnDate = Date().addingTimeInterval(600)
-        case "1h":
-            computedReturnDate = Date().addingTimeInterval(3600)
-        case "tomorrow":
-            computedReturnDate = Calendar.current.date(bySettingHour: 9, minute: 0, second: 0, of: Date().addingTimeInterval(86400)) ?? Date().addingTimeInterval(86400)
-        case "weekend":
-            computedReturnDate = Calendar.current.nextDate(after: Date(), matching: DateComponents(hour: 9, weekday: 7), matchingPolicy: .nextTime) ?? Date().addingTimeInterval(86400 * 2)
-        case "custom":
-            computedReturnDate = customReturnDate ?? selectedReturnDate
-        default:
-            computedReturnDate = nil
-        }
-
-        Task {
-            await model.saveBlankItem(
-                title: noteTitle,
-                content: noteContent,
-                category: selectedCategory,
-                tags: [],
-                returnAt: computedReturnDate
-            )
-        }
-    }
-}
-
 struct ShareCaptureView: View {
     @ObservedObject var model: ShareCaptureModel
     @State private var chooseReturnDate = false
     @State private var selectedReturnDate = Date().addingTimeInterval(86400)
     @State private var showEditSheet = false
+    @State private var messageInput = ""
+    @State private var showingAttachmentActions = false
+    @State private var showingFilePicker = false
+    @State private var showingPhotoPicker = false
+    @State private var selectedPhoto: PhotosPickerItem?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -927,18 +753,18 @@ struct ShareCaptureView: View {
             ScrollViewReader { proxy in
                 ScrollView {
                     VStack(alignment: .leading, spacing: 18) {
-                        if model.isBlankMode && !model.saved {
-                            QuickSaveComposerCard(
-                                model: model,
-                                chooseReturnDate: $chooseReturnDate,
-                                selectedReturnDate: $selectedReturnDate
-                            )
-                        } else {
+                        if !model.isBlankMode {
                             sharedPreviewCard
-
-                            ForEach(model.messages) { message in
-                                LaterAIChatRow(text: message.text, isUser: message.isUser, timestamp: message.timestamp)
+                        } else if !model.capture.attachments.isEmpty {
+                            ForEach(model.capture.attachments) { attachment in
+                                ShareAttachmentPreviewCard(attachment: attachment)
                             }
+                        }
+
+                        ForEach(model.messages) { message in
+                            LaterAIChatRow(text: message.text,
+                                           isUser: message.isUser,
+                                           timestamp: message.timestamp)
                         }
 
                         if model.loading {
@@ -977,14 +803,25 @@ struct ShareCaptureView: View {
                 }
             }
 
-            // Bottom Area: Options Dock with multiple-choice buttons
-            if !activeOptions.isEmpty {
+            if model.isBlankMode && !model.saved {
+                LaterAIComposer(
+                    text: $messageInput,
+                    thinking: model.loading,
+                    attach: { showingAttachmentActions = true },
+                    send: { sendBlankMessage() }
+                )
+                if !model.capture.attachments.isEmpty {
+                    Button("Review attached files") { sendBlankMessage() }
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(LaterAIStyle.accent)
+                        .padding(.bottom, 10)
+                }
+            } else if !model.loading && !activeOptions.isEmpty {
                 LaterAIOptionsDock(
                     title: optionsTitle,
                     options: activeOptions,
                     onManualType: nil
                 )
-                .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
         .background(Color.black.ignoresSafeArea())
@@ -1048,6 +885,20 @@ struct ShareCaptureView: View {
             }
             .preferredColorScheme(.dark)
             .presentationDetents([.medium, .large])
+        }
+        .confirmationDialog("Add to LaterBox", isPresented: $showingAttachmentActions) {
+            Button("Document or File", systemImage: "doc") { showingFilePicker = true }
+            Button("Photo", systemImage: "photo") { showingPhotoPicker = true }
+        }
+        .fileImporter(isPresented: $showingFilePicker,
+                      allowedContentTypes: [.item],
+                      allowsMultipleSelection: true,
+                      onCompletion: importSharedFiles)
+        .photosPicker(isPresented: $showingPhotoPicker,
+                      selection: $selectedPhoto,
+                      matching: .images)
+        .onChange(of: selectedPhoto) { _, photo in
+            importSharedPhoto(photo)
         }
         .sheet(isPresented: $showEditSheet) {
             ShareEditSheet(capture: $model.capture) {
@@ -1374,6 +1225,46 @@ struct ShareCaptureView: View {
         action()
     }
 
+
+    private func sendBlankMessage() {
+        let text = messageInput
+        guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
+              !model.capture.attachments.isEmpty else { return }
+        messageInput = ""
+        Task { await model.prepareBlankMessage(text) }
+    }
+
+    private func importSharedFiles(_ result: Result<[URL], Error>) {
+        guard case .success(let urls) = result else { return }
+        for url in urls {
+            do {
+                let kind = UTType(filenameExtension: url.pathExtension)?.identifier ?? UTType.item.identifier
+                model.capture.attachments.append(try SharedCaptureStore.copyFile(url, type: kind))
+            } catch {
+                model.error = error.localizedDescription
+            }
+        }
+    }
+
+    private func importSharedPhoto(_ photo: PhotosPickerItem?) {
+        guard let photo else { return }
+        Task {
+            guard let bytes = try? await photo.loadTransferable(type: Data.self) else { return }
+            let kind = photo.supportedContentTypes.first ?? .jpeg
+            let ext = kind.preferredFilenameExtension ?? "jpg"
+            let url = FileManager.default.temporaryDirectory
+                .appendingPathComponent("share-\(UUID().uuidString).\(ext)")
+            do {
+                try bytes.write(to: url)
+                defer { try? FileManager.default.removeItem(at: url) }
+                model.capture.attachments.append(try SharedCaptureStore.copyFile(url, type: kind.identifier))
+            } catch {
+                model.error = error.localizedDescription
+            }
+            selectedPhoto = nil
+        }
+    }
+
     private func close() {
         model.context?.completeRequest(returningItems: nil)
     }
@@ -1487,5 +1378,48 @@ struct ShareEditSheet: View {
             .filter { !$0.isEmpty }
         onSaved?()
         dismiss()
+    }
+}
+
+// MARK: - Shared Chat Capture Entry
+// Both this extension and the iOS app display ChatCaptureComposer from Shared/.
+private struct ShareChatCaptureScreen: View {
+    @ObservedObject var model: ShareCaptureModel
+
+    var body: some View {
+        Group {
+            if model.loading && model.capture.content.isEmpty && model.capture.attachments.isEmpty {
+                ProgressView("Preparing capture…")
+                    .tint(Color(red: 230.0 / 255.0, green: 237.0 / 255.0, blue: 176.0 / 255.0))
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(Color.black)
+            } else {
+                ChatCaptureComposer(
+                    capture: $model.capture,
+                    title: "Save to LaterBox",
+                    saved: model.saved,
+                    isSaving: model.saving,
+                    isWorking: model.loading,
+                    errorMessage: model.error,
+                    onClose: {
+                        model.context?.completeRequest(returningItems: nil)
+                    },
+                    onReview: {
+                        Task { await model.analyzeComposerDraft() }
+                    },
+                    onSave: {
+                        Task { await model.save() }
+                    },
+                    onUndo: {
+                        model.undo()
+                    },
+                    onEditSaved: {
+                        // The saved share is still in the group staging area.
+                        // Editing then saving overwrites the staged payload.
+                        model.saved = false
+                    }
+                )
+            }
+        }
     }
 }
