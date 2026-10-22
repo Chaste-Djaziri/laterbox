@@ -106,7 +106,7 @@ struct CaptureComposerScreen: View {
     }
 
     private func saveCapture() {
-        guard savedItem == nil, !isAnalyzing else { return }
+        guard savedItem == nil else { return }
 
         var draft = CaptureDraft.fromShared(capture)
         if draft.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
