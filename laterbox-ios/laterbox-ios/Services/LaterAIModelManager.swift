@@ -280,10 +280,16 @@ final class LaterAIModelManager: ObservableObject {
             userTextWithoutUrl = userTextWithoutUrl.replacingOccurrences(of: detectedUrl, with: "").trimmingCharacters(in: .whitespacesAndNewlines)
         }
 
+        // Run Task vs Note classifier to identify to-dos, shopping lists, and future actions
+        let taskAnalysis = Self.classifyTaskOrNotes(content: trimmedContent)
+        var formattedTaskContent: String? = nil
+
         // Title Extraction
         var finalTitle = enrichedTitle
         if finalTitle == nil || finalTitle?.isEmpty == true || LinkMetadataLoader.isGenericTitle(finalTitle) {
-            if !userTextWithoutUrl.isEmpty {
+            if taskAnalysis.isTask, let taskTitle = taskAnalysis.title, !taskTitle.isEmpty {
+                finalTitle = taskTitle
+            } else if !userTextWithoutUrl.isEmpty {
                 let firstLine = userTextWithoutUrl.components(separatedBy: .newlines).first(where: { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }) ?? userTextWithoutUrl
                 let cleaned = firstLine
                     .trimmingCharacters(in: CharacterSet(charactersIn: "-*#• \t\r\n"))
@@ -303,7 +309,13 @@ final class LaterAIModelManager: ObservableObject {
 
         // Summary / Notes Formulation
         var finalSummary = enrichedSummary ?? ""
-        if !userTextWithoutUrl.isEmpty {
+        if taskAnalysis.isTask && !taskAnalysis.taskLines.isEmpty {
+            formattedTaskContent = taskAnalysis.taskLines.map { line -> String in
+                if line.hasPrefix("- [ ]") || line.hasPrefix("- [x]") { return line }
+                return "- [ ] \(line)"
+            }.joined(separator: "\n")
+            finalSummary = formattedTaskContent ?? finalSummary
+        } else if !userTextWithoutUrl.isEmpty {
             if !finalSummary.isEmpty && !finalSummary.localizedCaseInsensitiveContains(userTextWithoutUrl) {
                 finalSummary = "\(userTextWithoutUrl)\n\n\(finalSummary)"
             } else if finalSummary.isEmpty {
@@ -322,7 +334,9 @@ final class LaterAIModelManager: ObservableObject {
         var finalContentType = enrichedContentType ?? ""
         let lower = trimmedContent.lowercased()
         if finalContentType.isEmpty {
-            if lower.hasPrefix("todo:") || lower.hasPrefix("task:") || lower.hasPrefix("[ ]") || lower.contains("remind me to") || lower.contains("don't forget to") {
+            if taskAnalysis.isTask && detectedUrl == nil && attachments.isEmpty {
+                finalContentType = "task"
+            } else if lower.hasPrefix("todo:") || lower.hasPrefix("task:") || lower.hasPrefix("[ ]") || lower.contains("remind me to") || lower.contains("don't forget to") {
                 finalContentType = "task"
             } else if lower.contains("func ") || lower.contains("import ") || lower.contains("class ") || lower.contains("const ") || lower.contains("```") || lower.contains("def ") {
                 finalContentType = "code"
@@ -445,6 +459,15 @@ final class LaterAIModelManager: ObservableObject {
 
         let sourceDesc = isLinkEnriched ? "Auto-filled from link" : (isOnDeviceModelEnabled ? "Auto-filled by On-Device AI" : "Auto-filled by Local AI")
 
+        if finalContentType == "task" {
+            allTags.insert("task")
+            allTags.insert("todo")
+            let lowerContent = trimmedContent.lowercased()
+            if lowerContent.contains("buy") || lowerContent.contains("grocer") || lowerContent.contains("shop") || lowerContent.contains("order") || lowerContent.contains("store") {
+                allTags.insert("shopping")
+            }
+        }
+
         return OnDeviceCaptureAnalysis(
             title: finalTitle,
             summary: finalSummary.isEmpty ? nil : finalSummary,
@@ -457,8 +480,96 @@ final class LaterAIModelManager: ObservableObject {
             siteName: enrichedSite,
             faviconUrl: enrichedFavicon,
             isLinkEnriched: isLinkEnriched,
-            sourceDescription: sourceDesc
+            sourceDescription: sourceDesc,
+            formattedTaskContent: formattedTaskContent
         )
+    }
+
+    // MARK: - Task & To-Do Classification
+    public static func classifyTaskOrNotes(content: String) -> (isTask: Bool, title: String?, taskLines: [String]) {
+        let lines = content.components(separatedBy: .newlines).map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
+        guard !lines.isEmpty else { return (false, nil, []) }
+
+        let lowerContent = content.lowercased()
+
+        // 1. Explicit task markers in lines
+        let checkboxRegex = try? NSRegularExpression(pattern: #"^[-*•+]?\s*\[([ xX])\]\s*(.*)$"#)
+        let bulletRegex = try? NSRegularExpression(pattern: #"^[-*•+]\s+(.*)$"#)
+        let numberedRegex = try? NSRegularExpression(pattern: #"^\d+[\.\)]\s+(.*)$"#)
+
+        var listItems: [String] = []
+        var checkboxCount = 0
+        var bulletCount = 0
+        var numberedCount = 0
+
+        for line in lines {
+            let fullRange = NSRange(location: 0, length: (line as NSString).length)
+            if let match = checkboxRegex?.firstMatch(in: line, range: fullRange), match.numberOfRanges >= 3 {
+                let itemText = (line as NSString).substring(with: match.range(at: 2)).trimmingCharacters(in: .whitespaces)
+                listItems.append(itemText)
+                checkboxCount += 1
+            } else if let match = bulletRegex?.firstMatch(in: line, range: fullRange), match.numberOfRanges >= 2 {
+                let itemText = (line as NSString).substring(with: match.range(at: 1)).trimmingCharacters(in: .whitespaces)
+                listItems.append(itemText)
+                bulletCount += 1
+            } else if let match = numberedRegex?.firstMatch(in: line, range: fullRange), match.numberOfRanges >= 2 {
+                let itemText = (line as NSString).substring(with: match.range(at: 1)).trimmingCharacters(in: .whitespaces)
+                listItems.append(itemText)
+                numberedCount += 1
+            }
+        }
+
+        // 2. Buying keywords
+        let buyingPhrases = [
+            "buy", "buying", "shopping list", "groceries", "grocery list", "grocery",
+            "order", "purchase", "pick up", "get from", "store list", "target list",
+            "costco list", "supermarket", "items to buy"
+        ]
+        let hasBuyingPhrasing = buyingPhrases.contains { lowerContent.contains($0) }
+
+        // 3. Future action phrasing
+        let futureActionPhrases = [
+            "todo", "task", "to-do", "to do", "things to do", "action items", "tasks for",
+            "remind me to", "remember to", "don't forget to", "need to", "must do",
+            "have to", "due by", "will do", "plan to", "planning to", "in the future",
+            "follow up", "checklist", "errands"
+        ]
+        let hasFutureActionPhrasing = futureActionPhrases.contains { lowerContent.contains($0) }
+
+        // 4. Action verbs at start of lines
+        let actionVerbs = [
+            "call", "email", "send", "schedule", "prepare", "submit", "review",
+            "meet", "clean", "fix", "organize", "pay", "cancel", "book", "renew",
+            "file", "check", "pack", "finish", "start", "complete", "write", "update"
+        ]
+        let startsWithActionVerb = actionVerbs.contains { verb in
+            lines.first?.lowercased().hasPrefix(verb + " ") == true ||
+            lines.first?.lowercased() == verb
+        }
+
+        // 5. Short lines heuristic (e.g. multi-line shopping/item list without explicit bullets)
+        let isShortLinesList = lines.count >= 2 && lines.allSatisfy { $0.count < 60 && !$0.hasSuffix(".") }
+
+        // Decision logic:
+        let isList = checkboxCount > 0 || (bulletCount + numberedCount) >= 2 || (lines.count >= 2 && isShortLinesList && (hasBuyingPhrasing || hasFutureActionPhrasing))
+        let isExplicitTask = checkboxCount > 0 || hasFutureActionPhrasing || hasBuyingPhrasing || startsWithActionVerb
+
+        if isList && (hasBuyingPhrasing || hasFutureActionPhrasing || startsWithActionVerb || checkboxCount > 0 || isShortLinesList) {
+            let title: String
+            if hasBuyingPhrasing && !lines.first!.lowercased().hasPrefix("buy") && !lines.first!.lowercased().contains("list") {
+                title = "Shopping List"
+            } else {
+                title = lines.first?.replacingOccurrences(of: "(?i)^(todo:|task:|\\[ \\]|-\\[ \\]|\\* \\[ \\])\\s*", with: "", options: .regularExpression) ?? "Tasks"
+            }
+            return (true, title, listItems.isEmpty ? Array(lines.dropFirst()) : listItems)
+        }
+
+        if isExplicitTask && !lowerContent.contains("http://") && !lowerContent.contains("https://") {
+            let title = lines.first?.replacingOccurrences(of: "(?i)^(todo:|task:|\\[ \\]|-\\[ \\]|\\* \\[ \\])\\s*", with: "", options: .regularExpression)
+            return (true, title, listItems)
+        }
+
+        return (false, nil, [])
     }
 }
 
@@ -475,6 +586,7 @@ public struct OnDeviceCaptureAnalysis: Sendable {
     public var faviconUrl: String?
     public var isLinkEnriched: Bool
     public var sourceDescription: String
+    public var formattedTaskContent: String?
 
     public init(
         title: String? = nil,
@@ -488,7 +600,8 @@ public struct OnDeviceCaptureAnalysis: Sendable {
         siteName: String? = nil,
         faviconUrl: String? = nil,
         isLinkEnriched: Bool = false,
-        sourceDescription: String = "On-Device AI"
+        sourceDescription: String = "On-Device AI",
+        formattedTaskContent: String? = nil
     ) {
         self.title = title
         self.summary = summary
@@ -502,6 +615,7 @@ public struct OnDeviceCaptureAnalysis: Sendable {
         self.faviconUrl = faviconUrl
         self.isLinkEnriched = isLinkEnriched
         self.sourceDescription = sourceDescription
+        self.formattedTaskContent = formattedTaskContent
     }
 }
 
