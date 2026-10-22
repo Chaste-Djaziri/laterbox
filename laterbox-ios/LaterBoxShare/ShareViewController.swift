@@ -120,6 +120,16 @@ struct ShareChatMessage: Identifiable, Equatable {
                     }
                     if let url = loadedUrl {
                         if url.isFileURL {
+                            if ["txt", "text", "url", "webloc"].contains(url.pathExtension.lowercased()),
+                               let text = try? String(contentsOf: url, encoding: .utf8),
+                               let detector = try? NSDataDetector(types: NSTextCheckingResult.CheckingType.link.rawValue),
+                               let match = detector.firstMatch(in: text, range: NSRange(text.startIndex..., in: text)),
+                               let webURL = match.url,
+                               ["https", "http"].contains(webURL.scheme?.lowercased() ?? "") {
+                                detectedUrl = webURL.absoluteString
+                                capture.content += webURL.absoluteString + "\n"
+                                continue
+                            }
                             let ext = url.pathExtension.isEmpty ? "data" : url.pathExtension
                             let typeId = UTType(filenameExtension: ext)?.identifier ?? UTType.item.identifier
                             if let attachment = try? SharedCaptureStore.copyFile(url, type: typeId) {
