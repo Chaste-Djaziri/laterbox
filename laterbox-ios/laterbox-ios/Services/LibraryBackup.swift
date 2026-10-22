@@ -193,6 +193,7 @@ enum LibraryBackup {
         var collectionNames = Set(existingCollections.map { $0.name.lowercased() })
         var result = Result(items: 0, collections: 0, attachments: 0, skipped: 0)
         var collectionRemap: [String: String] = [:]
+        var importedReminders: [(id: String, title: String, description: String?, date: Date)] = []
 
         for collection in archive.collections {
             if collectionIDs.contains(collection.id) {
@@ -259,10 +260,27 @@ enum LibraryBackup {
             }
             if !restored.isEmpty { item.attachmentsData = try JSONEncoder().encode(restored) }
             context.insert(item)
+            if item.status == ItemStatus.deferred.rawValue,
+               let returnAt = item.returnAt, returnAt > Date() {
+                importedReminders.append((item.id, item.title, item.notificationDescription, returnAt))
+            }
             itemIDs.insert(entry.id)
             result.items += 1
         }
         try context.save()
+        // Notification recovery is best-effort and never rolls back a successful import.
+        // Do not prompt for permission implicitly during data restoration.
+        if !importedReminders.isEmpty {
+            Task { @MainActor in
+                let authorization = await ReturnNotification.currentAuthorizationStatus()
+                guard authorization == .authorized || authorization == .provisional else { return }
+                for reminder in importedReminders where reminder.date > Date() {
+                    _ = try? await ReturnNotification.update(
+                        id: reminder.id, title: reminder.title,
+                        description: reminder.description, date: reminder.date)
+                }
+            }
+        }
         return result
     }
 }
