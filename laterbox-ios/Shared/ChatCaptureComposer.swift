@@ -182,7 +182,7 @@ struct ChatCaptureComposer: View {
                         showingReturnDate = false
                         onSave()
                     } label: {
-                        Text("Schedule & Save")
+                        Text(saved ? "Update Return" : "Schedule & Save")
                             .font(.headline)
                             .frame(maxWidth: .infinity)
                             .padding(14)
