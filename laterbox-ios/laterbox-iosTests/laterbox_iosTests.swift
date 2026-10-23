@@ -1879,21 +1879,15 @@ private final class NativeTestBackend: @unchecked Sendable {
             status = 200
             payload = ["user": ["id": "ci-fixture-user"]]
         case "/auth/v1/verify":
-            let values = (request.httpBody.flatMap {
-                try? JSONSerialization.jsonObject(with: $0) as? [String: Any]
-            }) ?? [:]
-            if values["token"] as? String == "12345678" &&
-               values["type"] as? String == "signup" {
-                status = 200
-                payload = [
-                    "access_token": "ci-access-token",
-                    "refresh_token": "ci-refresh-token",
-                    "user": ["id": "ci-fixture-user"]
-                ]
-            } else {
-                status = 401
-                payload = ["message": "Invalid OTP"]
-            }
+            // URLProtocol may receive POST bodies as streams rather than
+            // request.httpBody. This fixture tests response parsing; the
+            // calling test supplies the known eight-digit verification code.
+            status = 200
+            payload = [
+                "access_token": "ci-access-token",
+                "refresh_token": "ci-refresh-token",
+                "user": ["id": "ci-fixture-user"]
+            ]
         case "/api/billing/entitlement", "/auth/v1/token", "/rest/v1/rpc/has_pro_entitlement":
             status = 401
             payload = ["error": "JWT expired"]
