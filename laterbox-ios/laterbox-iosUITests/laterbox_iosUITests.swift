@@ -50,8 +50,11 @@ final class laterbox_iosUITests: XCTestCase {
         }
         XCTAssertTrue(settings.isHittable)
         settings.tap()
-        let subscriptions = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Plans")).firstMatch
-        XCTAssertTrue(subscriptions.waitForExistence(timeout: 5))
+        // Settings was reorganized: the destination is now Subscription,
+        // while Plans is a separate shortcut in the sidebar.
+        let subscriptions = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Subscription")).firstMatch
+        XCTAssertTrue(subscriptions.waitForExistence(timeout: 10))
+        XCTAssertTrue(subscriptions.isHittable)
         subscriptions.tap()
         let upgrade = app.buttons["Upgrade to LaterBox Pro"]
         XCTAssertTrue(upgrade.waitForExistence(timeout: 5))
@@ -164,11 +167,12 @@ final class laterbox_iosUITests: XCTestCase {
         attachment.lifetime = .keepAlways
         add(attachment)
 
-        // The horizontal action dock can place Undo offscreen; swipe its
-        // scroll area rather than relying on the deprecated guided flow.
-        for _ in 0..<7 {
-            if undo.isHittable { break }
-            (app.scrollViews.allElementsBoundByIndex.last ?? app.scrollViews.firstMatch).swipeLeft()
+        // Scroll the horizontal actions dock, not the chat's vertical
+        // transcript; scrolling the wrong container leaves Undo offscreen.
+        let dock = app.scrollViews["capture.options"]
+        XCTAssertTrue(dock.waitForExistence(timeout: 5))
+        for _ in 0..<7 where !undo.isHittable {
+            dock.swipeLeft()
         }
         XCTAssertTrue(undo.isHittable)
         undo.tap()
