@@ -7,25 +7,17 @@
 
 import Foundation
 
-#if DEBUG
-public nonisolated enum LaterBoxDevConfig: Sendable {
-    public static let localHost = "172.20.10.3"
-    public static let defaultSupabaseUrl = "http://\(localHost):54321"
-    public static let defaultAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0"
-    public static let defaultWebUrl = "http://\(localHost):3000"
-    public static let defaultBillingUrl = "http://\(localHost):3000"
-    public static let defaultMailpitUrl = "http://\(localHost):54324"
-}
-#endif
-
 private nonisolated enum LaterBoxRuntimeConfiguration: Sendable {
     nonisolated static func value(for environmentKey: String, devDefault: String, prodFallback: String) -> String {
         #if DEBUG
-        if let env = ProcessInfo.processInfo.environment[environmentKey]?.trimmingCharacters(in: .whitespacesAndNewlines), !env.isEmpty {
-            // Strictly forbid remote hosted Supabase in dev mode
-            if env.contains("supabase.co") {
-                return devDefault
-            }
+        // Debug builds use the same hosted endpoints as releases unless an
+        // explicit HTTPS staging endpoint is supplied by the developer.
+        if let env = ProcessInfo.processInfo.environment[environmentKey]?.trimmingCharacters(in: .whitespacesAndNewlines),
+           let url = URL(string: env),
+           url.scheme == "https",
+           let host = url.host,
+           !host.isEmpty,
+           !["localhost", "127.0.0.1", "::1"].contains(host.lowercased()) {
             return env
         }
         return devDefault
@@ -86,11 +78,9 @@ public actor LaterBoxAPIService {
     public nonisolated static let defaultSupabaseUrl = "https://ltjisrgldssqskcylcbj.supabase.co"
     #if DEBUG
     public nonisolated static let isDevMode = true
-    public nonisolated let mailpitUrl: String = LaterBoxRuntimeConfiguration.value(
-        for: "LATERBOX_MAILPIT_URL",
-        devDefault: LaterBoxDevConfig.defaultMailpitUrl,
-        prodFallback: ""
-    )
+    // Mailpit is only for optional development integration tests; it is
+    // deliberately not configured by the normal app or CI scheme.
+    public nonisolated let mailpitUrl: String = ""
     #else
     public nonisolated static let isDevMode = false
     public nonisolated let mailpitUrl: String = ""
@@ -100,7 +90,7 @@ public actor LaterBoxAPIService {
         for: "LATERBOX_SUPABASE_URL",
         devDefault: {
             #if DEBUG
-            return LaterBoxDevConfig.defaultSupabaseUrl
+            return defaultSupabaseUrl
             #else
             return defaultSupabaseUrl
             #endif
@@ -111,7 +101,7 @@ public actor LaterBoxAPIService {
         for: "LATERBOX_SUPABASE_ANON_KEY",
         devDefault: {
             #if DEBUG
-            return LaterBoxDevConfig.defaultAnonKey
+            return "sb_publishable_Rc4e_ik2LE4SR0UrfX-OEQ_5Mu_lw9p"
             #else
             return "sb_publishable_Rc4e_ik2LE4SR0UrfX-OEQ_5Mu_lw9p"
             #endif
@@ -122,7 +112,7 @@ public actor LaterBoxAPIService {
         for: "LATERBOX_WEB_URL",
         devDefault: {
             #if DEBUG
-            return LaterBoxDevConfig.defaultWebUrl
+            return "https://laterbox.dev"
             #else
             return "https://laterbox.dev"
             #endif
@@ -133,7 +123,7 @@ public actor LaterBoxAPIService {
         for: "LATERBOX_BILLING_URL",
         devDefault: {
             #if DEBUG
-            return LaterBoxDevConfig.defaultBillingUrl
+            return "https://app.laterbox.dev"
             #else
             return "https://app.laterbox.dev"
             #endif
@@ -149,6 +139,14 @@ public actor LaterBoxAPIService {
         config.timeoutIntervalForResource = 30
         self.session = URLSession(configuration: config)
     }
+
+    #if DEBUG
+    /// Isolated in-memory protocol transports for native tests. Does not
+    /// change the shared API client or direct requests to hosted services.
+    public init(testSession: URLSession) {
+        self.session = testSession
+    }
+    #endif
 
     // MARK: - Headers Helper
     private func headers(token: String? = nil) -> [String: String] {
