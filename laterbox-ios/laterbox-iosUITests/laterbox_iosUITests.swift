@@ -171,16 +171,16 @@ final class laterbox_iosUITests: XCTestCase {
         // transcript; scrolling the wrong container leaves Undo offscreen.
         let dock = app.scrollViews["capture.options"]
         XCTAssertTrue(dock.waitForExistence(timeout: 5))
-        for _ in 0..<7 where !undo.isHittable {
-            dock.swipeLeft()
-        }
-        XCTAssertTrue(undo.isHittable)
+        // iOS 27's accessibility server can throw while computing
+        // isHittable for an offscreen element. Scroll explicitly first.
+        for _ in 0..<3 { dock.swipeLeft() }
+        XCTAssertTrue(undo.exists)
         undo.tap()
 
         // Undo retains the draft in the review screen and removes Save Undo.
         XCTAssertTrue(app.staticTexts["UI capture test #ideas"].waitForExistence(timeout: 10))
         XCTAssertTrue(noReminder.waitForExistence(timeout: 10))
-        XCTAssertFalse(undo.isHittable)
+        XCTAssertFalse(undo.exists)
     }
 
 }
