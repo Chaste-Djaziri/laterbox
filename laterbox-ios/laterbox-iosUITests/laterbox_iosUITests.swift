@@ -37,9 +37,19 @@ final class laterbox_iosUITests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments = ["-lb_guest_mode", "YES", "-lb_user_email", ""]
         app.launch()
-        XCTAssertTrue(app.buttons["Profile menu"].waitForExistence(timeout: 15))
-        app.buttons["Profile menu"].tap()
-        app.buttons["Settings"].firstMatch.tap()
+        // The profile popover can be placed outside the viewport on compact
+        // simulator layouts. Navigate via the real, scrollable sidebar.
+        let sidebar = app.buttons["Open sidebar"]
+        XCTAssertTrue(sidebar.waitForExistence(timeout: 15))
+        sidebar.tap()
+        let settings = app.buttons["Settings"].firstMatch
+        XCTAssertTrue(settings.waitForExistence(timeout: 5))
+        for _ in 0..<8 where !settings.isHittable {
+            let drawerScroll = app.scrollViews.allElementsBoundByIndex.last
+            if let drawerScroll { drawerScroll.swipeUp() } else { app.swipeUp() }
+        }
+        XCTAssertTrue(settings.isHittable)
+        settings.tap()
         let subscriptions = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Plans")).firstMatch
         XCTAssertTrue(subscriptions.waitForExistence(timeout: 5))
         subscriptions.tap()
@@ -107,20 +117,22 @@ final class laterbox_iosUITests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments = ["-lb_guest_mode", "YES", "-lb_user_email", ""]
         app.launch()
-        let openButton = app.buttons["Capture Item"].exists ? app.buttons["Capture Item"] : app.buttons["Open Later AI"]
+        let openButton = app.buttons["Capture Item"]
         XCTAssertTrue(openButton.waitForExistence(timeout: 15))
         openButton.tap()
-        let editor = app.textViews.firstMatch
-        if editor.waitForExistence(timeout: 5) {
-            editor.tap()
-            editor.typeText("Keep this draft")
-            XCTAssertEqual(editor.value as? String, "Keep this draft")
-        }
-        let closeButton = app.buttons["Close Later AI"].exists ? app.buttons["Close Later AI"] : (app.buttons["Close Capture"].exists ? app.buttons["Close Capture"] : app.buttons["Inbox"])
-        if closeButton.waitForExistence(timeout: 5) {
-            closeButton.tap()
-        }
-        XCTAssertTrue(openButton.waitForExistence(timeout: 5))
+
+        // The unified chat composer replaces the former guided wizard.
+        let message = app.descendants(matching: .any)["capture.message"].firstMatch
+        XCTAssertTrue(message.waitForExistence(timeout: 10))
+        message.tap()
+        message.typeText("Keep this draft")
+        XCTAssertEqual(message.value as? String, "Keep this draft")
+
+        let close = app.buttons["Close"]
+        XCTAssertTrue(close.waitForExistence(timeout: 5))
+        close.tap()
+        XCTAssertTrue(openButton.waitForExistence(timeout: 10))
+        XCTAssertTrue(openButton.isHittable)
     }
 
     @MainActor
@@ -128,47 +140,43 @@ final class laterbox_iosUITests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments = ["-lb_guest_mode", "YES", "-lb_user_email", ""]
         app.launch()
-        let openButton = app.buttons["Capture Item"].exists ? app.buttons["Capture Item"] : app.buttons["Open Later AI"]
+        let openButton = app.buttons["Capture Item"]
         XCTAssertTrue(openButton.waitForExistence(timeout: 15))
         openButton.tap()
-        let guided = app.buttons["laterai.mode.guided"]
-        if guided.waitForExistence(timeout: 3) {
-            guided.tap()
-        }
-        let content = app.descendants(matching: .any)["capture.content"].firstMatch
-        XCTAssertTrue(content.waitForExistence(timeout: 5))
-        XCTAssertFalse(app.textFields["Message Later AI..."].exists)
-        content.tap()
-        content.typeText("UI capture test #ideas")
-        app.buttons["Continue"].tap()
-        XCTAssertTrue(app.descendants(matching: .any)["capture.title"].firstMatch.waitForExistence(timeout: 5))
-        app.buttons["Continue"].tap()
-        XCTAssertTrue(app.descendants(matching: .any)["capture.tags"].firstMatch.waitForExistence(timeout: 5))
-        app.buttons["Continue"].tap()
+
+        let message = app.descendants(matching: .any)["capture.message"].firstMatch
+        XCTAssertTrue(message.waitForExistence(timeout: 10))
+        message.tap()
+        message.typeText("UI capture test #ideas")
+
+        let review = app.buttons["capture.send"]
+        XCTAssertTrue(review.waitForExistence(timeout: 5))
+        review.tap()
+
         let noReminder = app.buttons.matching(NSPredicate(format: "label CONTAINS[c] %@", "No Reminder")).firstMatch
-        XCTAssertTrue(noReminder.waitForExistence(timeout: 5))
+        XCTAssertTrue(noReminder.waitForExistence(timeout: 10))
         noReminder.tap()
-        XCTAssertTrue(app.buttons["Save to Vault"].waitForExistence(timeout: 5))
-        app.buttons["Save to Vault"].tap()
-        let savedNoReminder = app.buttons.matching(NSPredicate(format: "label CONTAINS[c] %@", "No Reminder")).firstMatch
-        if savedNoReminder.waitForExistence(timeout: 3) {
-            reveal(savedNoReminder, in: app)
-            savedNoReminder.tap()
-        }
-        let guidedUndo = app.buttons["Undo"]
-        if guidedUndo.waitForExistence(timeout: 2) {
-            guidedUndo.tap()
-            XCTAssertTrue(content.waitForExistence(timeout: 5))
-            return
-        }
+
         let undo = app.buttons.matching(NSPredicate(format: "label CONTAINS[c] %@", "Undo Save")).firstMatch
-        XCTAssertTrue(undo.waitForExistence(timeout: 5))
+        XCTAssertTrue(undo.waitForExistence(timeout: 10))
         let attachment = XCTAttachment(screenshot: app.screenshot())
-        attachment.name = "Guided capture saved item"
+        attachment.name = "Chat capture saved item"
         attachment.lifetime = .keepAlways
         add(attachment)
-        reveal(undo, in: app)
+
+        // The horizontal action dock can place Undo offscreen; swipe its
+        // scroll area rather than relying on the deprecated guided flow.
+        for _ in 0..<7 {
+            if undo.isHittable { break }
+            (app.scrollViews.allElementsBoundByIndex.last ?? app.scrollViews.firstMatch).swipeLeft()
+        }
+        XCTAssertTrue(undo.isHittable)
         undo.tap()
-        XCTAssertTrue(app.descendants(matching: .any)["capture.content"].firstMatch.waitForExistence(timeout: 5))
+
+        // Undo retains the draft in the review screen and removes Save Undo.
+        XCTAssertTrue(app.staticTexts["UI capture test #ideas"].waitForExistence(timeout: 10))
+        XCTAssertTrue(noReminder.waitForExistence(timeout: 10))
+        XCTAssertFalse(undo.isHittable)
     }
+
 }
