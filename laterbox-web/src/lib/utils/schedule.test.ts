@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { isDue, migrateSchedule, resolveReturnPreset, scheduleItems, transitionItemStatus, restoreItemToInbox, scheduleItemReturn } from './schedule';
+import { isDue, migrateSchedule, resolveReturnPreset, scheduleItems, todayFocusItems, formatInboxAge, transitionItemStatus, restoreItemToInbox, scheduleItemReturn } from './schedule';
 import { itemRow, queueCapture } from './pending-captures';
 import type { LaterBoxItem } from '../supabase/types';
 
@@ -30,7 +30,45 @@ test('Today, Upcoming and Someday use the same active lifecycle', () => {
   assert.deepEqual(scheduleItems(items, 'today', now).map(i => i.id), ['today']);
   assert.deepEqual(scheduleItems(items, 'upcoming', now).map(i => i.id), ['tomorrow']);
   assert.deepEqual(scheduleItems(items, 'someday', now).map(i => i.id), ['someday']);
-  assert.deepEqual(scheduleItems(items, 'today', new Date(2026, 8, 17)).map(i => i.id), ['tomorrow']);
+  assert.deepEqual(scheduleItems(items, 'today', new Date(2026, 8, 17)).map(i => i.id), ['today', 'tomorrow']);
+});
+test('Today divides overdue and returning today at local-midnight boundaries', () => {
+  const localNow = new Date(2026, 9, 25, 8, 15);
+  const items = [
+    item('old', new Date(2026, 9, 23, 23, 59)),
+    item('yesterday', new Date(2026, 9, 24, 23, 59)),
+    item('midnight', new Date(2026, 9, 25, 0, 0)),
+    item('later-today', new Date(2026, 9, 25, 20, 30)),
+    item('tomorrow', new Date(2026, 9, 26, 0, 0)),
+    item('unplanned', null),
+    item('legacy-inbox', null, 'inbox'),
+    item('kept', new Date(2026, 9, 24), 'saved'),
+    { ...item('deleted', new Date(2026, 9, 24)), deleted_at: localNow.toISOString() },
+    item('invalid-date', null),
+  ];
+  items[9].return_at = 'not-a-date';
+  const focus = todayFocusItems(items, localNow);
+  assert.deepEqual(focus.overdue.map(i => i.id), ['old', 'yesterday']);
+  assert.deepEqual(focus.returningToday.map(i => i.id), ['midnight', 'later-today']);
+  assert.deepEqual(scheduleItems(items, 'today', localNow).map(i => i.id), ['old', 'yesterday', 'midnight', 'later-today']);
+  assert.deepEqual(scheduleItems(items, 'upcoming', localNow).map(i => i.id), ['later-today', 'tomorrow']);
+});
+test('Today uses calendar boundaries even on daylight saving transition', () => {
+  const now = new Date(2026, 9, 25, 12);
+  const nextDay = new Date(2026, 9, 26, 0);
+  const before = new Date(nextDay.getTime() - 1000);
+  const focus = todayFocusItems([item('last-second', before), item('next-day', nextDay)], now);
+  assert.deepEqual(focus.returningToday.map(i => i.id), ['last-second']);
+});
+test('Inbox age is only displayed for known current Inbox history', () => {
+  const current = new Date('2026-10-23T09:10:00Z');
+  const inbox = { ...item('recent', null, 'inbox'), inbox_entered_at: '2026-10-23T07:00:00Z' };
+  assert.equal(formatInboxAge(inbox, current), 'In Inbox for 2 hrs, 10 min');
+  assert.equal(formatInboxAge({ ...inbox, inbox_entered_at: '2026-10-23T09:09:45Z' }, current), 'Just entered Inbox');
+  assert.equal(formatInboxAge({ ...inbox, inbox_entered_at: null }, current), null);
+  assert.equal(formatInboxAge({ ...inbox, inbox_entered_at: 'bad-date' }, current), null);
+  assert.equal(formatInboxAge({ ...inbox, inbox_entered_at: '2026-10-24T00:00:00Z' }, current), null);
+  assert.equal(formatInboxAge({ ...inbox, status: 'deferred' }, current), null);
 });
 test('legacy Inbox without return schedule is never silently rewritten', () => {
   const legacy = item('legacy', null, 'inbox');
