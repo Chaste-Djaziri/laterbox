@@ -25,6 +25,18 @@ else:
     for required in ("ADD COLUMN IF NOT EXISTS inbox_entered_at", "BEFORE INSERT OR UPDATE"):
         if required not in sql:
             errors.append(f"Migration missing safety contract: {required}")
+correction_path = manifest["database"].get("corrective_migration")
+if correction_path:
+    correction = ROOT / correction_path
+    if not correction.is_file():
+        errors.append(f"Missing corrective migration: {correction}")
+    else:
+        correction_sql = correction.read_text()
+        for required in ("OLD.status IS DISTINCT FROM 'inbox'",
+                         "NEW.inbox_entered_at IS NOT DISTINCT FROM OLD.inbox_entered_at",
+                         "OLD.deleted_at IS NOT NULL"):
+            if required not in correction_sql:
+                errors.append(f"Corrective migration missing behavior: {required}")
 print(f"Cloud contract v{manifest['cloud_contract_version']} / hosted DB deployment: NOT VERIFIED")
 print("Field                     iOS             Web             Android")
 for entry in manifest["shared_fields"]:
@@ -36,7 +48,8 @@ for entry in manifest["shared_fields"]:
             read = "var " + field in code and ("snapshot." + field) in code
             write = '"' + field + '":' in code
         elif platform == "web":
-            read = field in (ROOT / "laterbox-web/src/lib/supabase/types.ts").read_text() or field == "return_at"
+            web_types = (ROOT / "laterbox-web/src/lib/supabase/types.ts").read_text()
+            read = field in web_types and (field != "inbox_entered_at" or "row.inbox_entered_at" in code)
             write = field + ":" in code
         else:
             read = '"' + field + '"' in code
