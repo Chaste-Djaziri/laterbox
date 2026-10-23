@@ -10,6 +10,7 @@ import { AppleSubscriptionDetails } from '@/components/billing/AppleSubscription
 import { ConnectedSignIns } from '@/components/account/ConnectedSignIns';
 import { presentEntitlement } from '@/lib/billing/types';
 import { CloudSyncIndicator } from '@/components/ui/CloudSyncIndicator';
+import { BackupRestorePanel } from '@/components/settings/BackupRestorePanel';
 import {
   User,
   LogOut,
@@ -259,13 +260,16 @@ export default function SettingsPage() {
   };
 
   const handleExportData = () => {
-    const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(items, null, 2));
-    const downloadAnchor = document.createElement('a');
-    downloadAnchor.setAttribute('href', dataStr);
-    downloadAnchor.setAttribute('download', `laterbox-export-${new Date().toISOString().slice(0, 10)}.json`);
-    document.body.appendChild(downloadAnchor);
-    downloadAnchor.click();
-    downloadAnchor.remove();
+    // A readable data snapshot, NOT an attachment backup or a restorable archive.
+    const blob = new Blob([JSON.stringify(items, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = `laterbox-item-records-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 30_000);
   };
 
   return (
@@ -752,20 +756,20 @@ export default function SettingsPage() {
           </div>
         </section>
 
-        {/* Local-First SQLite Core & Privacy ("Your things stay where they belong") */}
+        {/* Local browser storage, privacy and synchronization */}
         <section className="p-6 sm:p-7 rounded-3xl bg-white border border-[#e4e0d5] space-y-5">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="space-y-1">
               <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#e6edb0] border border-[#d0db84] text-[10px] font-black text-[#171711] uppercase tracking-wider">
                 <Shield className="w-3 h-3 text-[#171711]" />
-                <span>100% Offline Core • Zero Telemetry</span>
+                <span>Local-first web storage</span>
               </div>
               <h2 className="text-base font-extrabold text-[#171711] flex items-center gap-2">
                 <Database className="w-4 h-4 text-[#171711]" />
                 <span>Your things stay where they belong.</span>
               </h2>
               <p className="text-xs text-[#6c6b63] leading-relaxed max-w-xl">
-                Your data is stored in a private local SQLite / IndexedDB database on your computer. Zero trackers, zero surveillance, and complete exportability anytime.
+                Items and collections are cached in this browser's local storage; attachment files are stored in IndexedDB. Signed-in users can sync eligible data using cloud services. Clearing site data may erase local-only copies. Use Backup &amp; Restore below to save an encrypted copy of available records and file bytes.
               </p>
             </div>
             <CloudSyncIndicator />
@@ -789,9 +793,9 @@ export default function SettingsPage() {
             <div className="p-4 rounded-2xl bg-[#faf8f5] border border-[#e4e0d5]">
               <p className="text-xs font-extrabold text-[#171711] flex items-center gap-1 mt-1">
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                <span>Local SQLite</span>
+                <span>Browser storage</span>
               </p>
-              <p className="text-xs text-[#9e9b92] font-semibold mt-1">Zero Cloud Tracking</p>
+              <p className="text-xs text-[#9e9b92] font-semibold mt-1">Cloud sync when enabled</p>
             </div>
           </div>
 
@@ -868,10 +872,15 @@ export default function SettingsPage() {
               className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#171711] hover:bg-[#282723] text-white text-xs font-bold transition-colors cursor-pointer shadow-2xs"
             >
               <FileSpreadsheet className="w-3.5 h-3.5" />
-              <span>Export Full Library (JSON)</span>
+              <span>Export item records (JSON)</span>
             </button>
           </div>
+          <p className="text-[11px] leading-relaxed text-[#77756d]">
+            JSON export is readable but unencrypted and contains item records only. It does not include recoverable file bytes, a complete deleted-items history, or a guided restore.
+          </p>
         </section>
+
+        <BackupRestorePanel />
 
         {/* Extensions & Native Apps */}
         <section className="p-6 sm:p-7 rounded-3xl bg-white border border-[#e4e0d5] space-y-4">
