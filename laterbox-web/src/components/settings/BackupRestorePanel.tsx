@@ -65,7 +65,7 @@ export function BackupRestorePanel() {
     setPreview(null);
     setBusy(true);
     try {
-      if (file.size > 60 * 1024 * 1024) throw new Error('The selected file is over the 60 MB safety limit.');
+      if (file.size > Math.ceil(60 * 1024 * 1024 * 4 / 3) + 4096) throw new Error('The encrypted backup exceeds the browser safety limit.');
       const archive = await decryptWebBackup(await file.arrayBuffer(), importPassword);
       setPreview(archive);
     } catch (err) {
