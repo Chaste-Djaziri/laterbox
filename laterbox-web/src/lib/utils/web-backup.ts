@@ -3,6 +3,8 @@ import type { Attachment, Collection, LaterBoxItem } from '../supabase/types';
 const FORMAT = 'laterbox-web-encrypted-v1';
 const PAYLOAD = 'laterbox-web-backup-v1';
 const MAX_BYTES = 60 * 1024 * 1024;
+// Ciphertext and base64 envelope are larger than the decrypted JSON payload.
+const MAX_ENVELOPE_BYTES = Math.ceil(MAX_BYTES * 4 / 3) + 4096;
 const ROUNDS = 250_000;
 
 export interface WebBackup {
@@ -90,7 +92,7 @@ export async function encryptWebBackup(archive: WebBackup, password: string): Pr
 }
 
 export async function decryptWebBackup(data: ArrayBuffer, password: string): Promise<WebBackup> {
-  assertSize(data.byteLength);
+  if (data.byteLength > MAX_ENVELOPE_BYTES) throw new Error('The encrypted backup exceeds the browser safety limit.');
   let envelope: Envelope;
   try {
     envelope = JSON.parse(decoder.decode(data)) as Envelope;
@@ -102,7 +104,7 @@ export async function decryptWebBackup(data: ArrayBuffer, password: string): Pro
   let plain: ArrayBuffer;
   try {
     const combined = unbase64(envelope.sealed);
-    if (combined.length < 29) throw new Error('Invalid archive');
+    if (combined.length < 29 || combined.length > MAX_BYTES + 32) throw new Error('Invalid archive');
     const key = await derive(password, unbase64(envelope.salt), envelope.rounds);
     plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: asBuffer(combined.slice(0, 12)) }, key, asBuffer(combined.slice(12)));
   } catch { throw new Error('Incorrect password or damaged backup.'); }
@@ -116,7 +118,7 @@ function isItem(item: unknown): item is LaterBoxItem {
   if (!item || typeof item !== 'object') return false;
   const o = item as Record<string, unknown>;
   return typeof o.id === 'string' && o.id.length > 0 && o.id.length < 256 &&
-    typeof o.title === 'string' && typeof o.created_at === 'string' &&
+    (o.title == null || typeof o.title === 'string') && typeof o.created_at === 'string' &&
     typeof o.updated_at === 'string' && typeof o.type === 'string' &&
     ['inbox', 'deferred', 'saved', 'archived'].includes(String(o.status)) &&
     (!o.attachments || (Array.isArray(o.attachments) && o.attachments.every(a =>
