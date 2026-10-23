@@ -11,6 +11,7 @@ import {
   getPendingQueue,
   countIncomingItemChanges,
   collectRemoteItemPages,
+  itemRow,
 } from './pending-captures';
 import type { LaterBoxItem } from '../supabase/types';
 
@@ -28,6 +29,7 @@ function createMockItem(overrides: Partial<LaterBoxItem>): LaterBoxItem {
     seen: overrides.seen ?? false,
     status: overrides.status || 'inbox',
     return_at: overrides.return_at !== undefined ? overrides.return_at : null,
+    inbox_entered_at: overrides.inbox_entered_at !== undefined ? overrides.inbox_entered_at : null,
     created_at: overrides.created_at || '2026-10-11T01:00:00.000Z',
     updated_at: overrides.updated_at || '2026-10-11T01:00:00.000Z',
     deleted_at: overrides.deleted_at !== undefined ? overrides.deleted_at : null,
@@ -35,6 +37,41 @@ function createMockItem(overrides: Partial<LaterBoxItem>): LaterBoxItem {
     metadata: overrides.metadata || null,
   };
 }
+
+test('iOS Inbox-entry timestamp survives web pull, offline edit, upload and next device pull', () => {
+  const entered = '2026-10-22T08:00:00.000Z';
+  const iosRemote = createMockItem({
+    status: 'inbox',
+    return_at: null,
+    inbox_entered_at: entered,
+    updated_at: '2026-10-22T08:01:00.000Z',
+  });
+  const staleWebCache = createMockItem({
+    status: 'deferred',
+    return_at: null,
+    inbox_entered_at: undefined,
+    updated_at: '2026-10-21T20:00:00.000Z',
+  });
+
+  const pulled = reconcileItemsWithRemote({
+    remoteActive: [iosRemote], remoteDeleted: [], localCached: [staleWebCache],
+    localDeleted: [], pendingQueue: {},
+  });
+  assert.equal(pulled.reconciledActive[0].status, 'inbox');
+  assert.equal(pulled.reconciledActive[0].return_at, null);
+  assert.equal(pulled.reconciledActive[0].inbox_entered_at, entered);
+
+  const edited = { ...pulled.reconciledActive[0], title: 'Edited on the web', updated_at: '2026-10-22T09:00:00.000Z' };
+  const uploaded = itemRow(edited);
+  assert.equal(uploaded.inbox_entered_at, entered);
+  assert.equal(uploaded.text_selector, null);
+  const nextDevice = reconcileItemsWithRemote({
+    remoteActive: [uploaded as LaterBoxItem], remoteDeleted: [], localCached: [],
+    localDeleted: [], pendingQueue: {},
+  });
+  assert.equal(nextDevice.reconciledActive[0].inbox_entered_at, entered);
+  assert.equal(nextDevice.reconciledActive[0].title, 'Edited on the web');
+});
 
 test('incoming badge clears for acknowledged items and unknown historical deletions', () => {
   const local = createMockItem({});
