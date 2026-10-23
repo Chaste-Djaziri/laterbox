@@ -31,11 +31,34 @@ export function scheduleItems(items: LaterBoxItem[], view: ScheduleView, now: Da
   }).sort((a, b) => view === 'someday' ? b.created_at.localeCompare(a.created_at)
     : new Date(a.return_at!).getTime() - new Date(b.return_at!).getTime());
 }
+/** Legacy records must preserve their explicit lifecycle state.
+ * Rewriting Inbox/null-return records as Deferred is not a safe migration.
+ */
 export function migrateSchedule(item: LaterBoxItem): LaterBoxItem {
-  if (item.status === 'inbox' && !item.return_at) {
-    return { ...item, status: 'deferred', return_at: item.created_at };
-  }
   return item;
+}
+
+/** Centralized lifecycle transition used by web and cloud reconciliation. */
+export function transitionItemStatus(
+  item: LaterBoxItem,
+  status: LaterBoxItem['status'],
+  timestamp: string,
+): LaterBoxItem {
+  const enteringInbox = status === 'inbox' && (item.status !== 'inbox' || !!item.deleted_at);
+  return {
+    ...item,
+    status,
+    inbox_entered_at: enteringInbox ? timestamp : (item.inbox_entered_at ?? null),
+    updated_at: timestamp,
+  };
+}
+
+export function restoreItemToInbox(item: LaterBoxItem, timestamp: string): LaterBoxItem {
+  return { ...transitionItemStatus(item, 'inbox', timestamp), deleted_at: null };
+}
+
+export function scheduleItemReturn(item: LaterBoxItem, returnAt: string | null, timestamp: string): LaterBoxItem {
+  return { ...transitionItemStatus(item, 'deferred', timestamp), return_at: returnAt };
 }
 export function returnLabel(value?: string | null): string {
   return value ? new Date(value).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }) : 'Someday';
