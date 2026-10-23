@@ -3,41 +3,86 @@ import SwiftUI
 /// Practical, device-guided tutorials for getting started with LaterBox.
 public struct LearnLaterBoxView: View {
     @Environment(\.openURL) private var openURL
-    @AppStorage("laterbox.learn.homeQuickSave.step") private var currentStep = 0
-    @AppStorage("laterbox.learn.homeQuickSave.complete") private var completed = false
+    @AppStorage("laterbox.learn.homeQuickSave.imageGuide.step.v2") private var currentStep = 0
+    @AppStorage("laterbox.learn.homeQuickSave.imageGuide.complete.v2") private var completed = false
     @State private var cannotOpenShortcuts = false
 
     private struct GuideStep {
         let title: String
         let detail: String
         let icon: String
+        let arrowStart: CGPoint
+        let arrowTip: CGPoint
+        var secondaryHighlights: [CGPoint] = []
     }
 
+    // One screen for each of the nine original, user-supplied Shortcuts screenshots.
+    // Hotspot positions are normalized to the 1320 × 2868 originals.
     private let steps: [GuideStep] = [
         GuideStep(
-            title: "Find LaterBox in Shortcuts",
-            detail: "Open Shortcuts and search for LaterBox. Choose Quick Save to LaterBox. If you see its blue Add button, tap it to add the shortcut. If not, choose Start a new shortcut below.",
-            icon: "magnifyingglass"
+            title: "Create a shortcut",
+            detail: "Open Apple's Shortcuts app. On the Shortcuts screen, tap the plus (+) button in the bottom center to start a new shortcut.",
+            icon: "plus.circle.fill",
+            arrowStart: CGPoint(x: 0.75, y: 0.75),
+            arrowTip: CGPoint(x: 0.50, y: 0.94)
         ),
         GuideStep(
-            title: "Add the right action",
-            detail: "If you started with a blank shortcut, tap Add Action (or Search Actions), search for LaterBox, and choose Quick Save to LaterBox. If you already tapped Add for the correct shortcut, move to the next step.",
-            icon: "plus.square.on.square"
+            title: "Find LaterBox in the actions",
+            detail: "In the new shortcut editor, browse or scroll the available apps in the action picker. Find LaterBox. You can also use Search Actions to locate it.",
+            icon: "list.bullet",
+            arrowStart: CGPoint(x: 0.75, y: 0.55),
+            arrowTip: CGPoint(x: 0.48, y: 0.78)
         ),
         GuideStep(
-            title: "Keep it ready for anything",
-            detail: "Leave Note or URL unfilled so the shortcut asks what to save each time. Title and When to Return are optional. You can rename the shortcut Quick Save, then tap Done.",
-            icon: "slider.horizontal.3"
+            title: "Choose LaterBox",
+            detail: "Tap LaterBox in the app list to see the actions it offers to Apple Shortcuts.",
+            icon: "cube.box",
+            arrowStart: CGPoint(x: 0.76, y: 0.54),
+            arrowTip: CGPoint(x: 0.44, y: 0.39)
         ),
         GuideStep(
-            title: "Put it on your Home Screen",
-            detail: "Open your saved Quick Save shortcut for editing. Open Details (the ⓘ or details menu), choose Add to Home Screen, customize the name or icon if you like, then tap Add.",
-            icon: "house"
+            title: "Select Quick Save to LaterBox",
+            detail: "Tap Quick Save to LaterBox. Do NOT choose Open LaterBox Quick Save: that other action opens the app instead of saving directly from Shortcuts.",
+            icon: "checkmark.circle.fill",
+            arrowStart: CGPoint(x: 0.77, y: 0.40),
+            arrowTip: CGPoint(x: 0.48, y: 0.22)
         ),
         GuideStep(
-            title: "Try your new shortcut",
-            detail: "Tap Quick Save on your Home Screen. Enter a note or link when asked, optionally provide a title or return time, then confirm. It saves without first opening the LaterBox app.",
-            icon: "checkmark.circle"
+            title: "Open shortcut details",
+            detail: "Once the action has been added, tap the small ⓘ information icon at the bottom center of the shortcut editor. It opens the shortcut Details panel.",
+            icon: "info.circle.fill",
+            arrowStart: CGPoint(x: 0.76, y: 0.74),
+            arrowTip: CGPoint(x: 0.50, y: 0.955)
+        ),
+        GuideStep(
+            title: "Add it to your Home Screen",
+            detail: "In the shortcut Details panel, tap Add to Home Screen. This creates an icon for the shortcut, not a second copy of the LaterBox app.",
+            icon: "house",
+            arrowStart: CGPoint(x: 0.75, y: 0.67),
+            arrowTip: CGPoint(x: 0.52, y: 0.48)
+        ),
+        GuideStep(
+            title: "Personalize the shortcut icon",
+            detail: "Choose an icon design and color, and edit the Home Screen name to something easy to recognize, like Quick Save. Review the preview, then tap Done in the top-right corner.",
+            icon: "paintpalette.fill",
+            arrowStart: CGPoint(x: 0.57, y: 0.28),
+            arrowTip: CGPoint(x: 0.91, y: 0.08),
+            secondaryHighlights: [CGPoint(x: 0.43, y: 0.55), CGPoint(x: 0.46, y: 0.73)]
+        ),
+        GuideStep(
+            title: "Use it from your Home Screen",
+            detail: "Return to the Home Screen, locate the new LaterBox Quick Save icon, and tap it. You won't need to open LaterBox first.",
+            icon: "house.fill",
+            arrowStart: CGPoint(x: 0.69, y: 0.44),
+            arrowTip: CGPoint(x: 0.19, y: 0.24)
+        ),
+        GuideStep(
+            title: "Type your note or link and save",
+            detail: "The shortcut asks for a Note or URL. Type the content you want to save; Title and When to Return are optional. Tap Done to finish and save it to LaterBox.",
+            icon: "square.and.pencil",
+            arrowStart: CGPoint(x: 0.52, y: 0.55),
+            arrowTip: CGPoint(x: 0.81, y: 0.38),
+            secondaryHighlights: [CGPoint(x: 0.44, y: 0.26)]
         )
     ]
 
@@ -116,59 +161,29 @@ public struct LearnLaterBoxView: View {
                             }
                         }
 
-                        if safeStep == 0 || safeStep == 1 {
+                        ShortcutGuideScreenshotView(
+                            stepNumber: safeStep + 1,
+                            arrowStart: steps[safeStep].arrowStart,
+                            arrowTip: steps[safeStep].arrowTip,
+                            secondaryHighlights: steps[safeStep].secondaryHighlights
+                        )
+
+                        HStack(spacing: 8) {
+                            Image(systemName: "hand.tap")
+                            Text("Follow the red arrow. Tap the screenshot to enlarge.")
+                        }
+                        .font(.caption)
+                        .foregroundStyle(AppTheme.textSecondary)
+
+                        if safeStep == 3 {
                             actionComparison
                         }
-                        if safeStep == 2 {
-                            Label("No need to add the separate Open App action or Ask for Input action.", systemImage: "lightbulb")
-                                .font(.caption)
-                                .foregroundStyle(AppTheme.textSecondary)
-                        }
 
-                        if safeStep == 0 {
-                            shortcutButton("Open Shortcuts", systemImage: "arrow.up.right.square", create: false)
-                            shortcutButton("Start a new shortcut", systemImage: "plus.circle", create: true)
-                        } else if safeStep == 1 {
-                            shortcutButton("Create in Shortcuts", systemImage: "plus.circle.fill", create: true)
-                        } else if safeStep == 3 {
+                        if safeStep <= 6 {
                             shortcutButton("Open Shortcuts", systemImage: "arrow.up.right.square", create: false)
                         }
 
-                        HStack(spacing: 12) {
-                            if safeStep > 0 {
-                                Button {
-                                    LBHaptic.light()
-                                    currentStep = safeStep - 1
-                                } label: {
-                                    Text("Back")
-                                        .frame(maxWidth: .infinity)
-                                        .frame(height: 48)
-                                        .background(AppTheme.canvasBackground, in: RoundedRectangle(cornerRadius: 13))
-                                }
-                                .foregroundStyle(AppTheme.textPrimary)
-                                .buttonStyle(.plain)
-                            }
-                            Button {
-                                LBHaptic.light()
-                                if safeStep == steps.count - 1 {
-                                    completed = true
-                                } else {
-                                    currentStep = safeStep + 1
-                                }
-                            } label: {
-                                HStack(spacing: 8) {
-                                    Text(safeStep == steps.count - 1 ? (completed ? "All set" : "Finish guide") : "Next step")
-                                    Image(systemName: safeStep == steps.count - 1 ? "checkmark" : "arrow.right")
-                                }
-                                .font(.subheadline.weight(.bold))
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 48)
-                                .background(AppTheme.accent, in: RoundedRectangle(cornerRadius: 13))
-                            }
-                            .foregroundStyle(AppTheme.textPrimary)
-                            .buttonStyle(.plain)
-                            .disabled(safeStep == steps.count - 1 && completed)
-                        }
+
                     }
                     .padding(18)
                     .background(Color.white, in: RoundedRectangle(cornerRadius: 20))
@@ -207,6 +222,10 @@ public struct LearnLaterBoxView: View {
                 .padding(.vertical, 16)
                 .padding(.bottom, 24)
             }
+            .id(safeStep)
+        }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            navigationControls
         }
         .navigationTitle("Learn LaterBox")
         .navigationBarTitleDisplayMode(.inline)
@@ -217,6 +236,50 @@ public struct LearnLaterBoxView: View {
         }
     }
 
+    private var navigationControls: some View {
+        HStack(spacing: 12) {
+            if safeStep > 0 {
+                Button {
+                    LBHaptic.light()
+                    currentStep = safeStep - 1
+                    completed = false
+                } label: {
+                    Label("Back", systemImage: "chevron.left")
+                        .font(.subheadline.weight(.semibold))
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 48)
+                        .background(AppTheme.canvasBackground, in: RoundedRectangle(cornerRadius: 13))
+                }
+                .foregroundStyle(AppTheme.textPrimary)
+                .buttonStyle(.plain)
+            }
+
+            Button {
+                LBHaptic.light()
+                if safeStep == steps.count - 1 {
+                    completed = true
+                } else {
+                    currentStep = safeStep + 1
+                }
+            } label: {
+                HStack(spacing: 8) {
+                    Text(safeStep == steps.count - 1 ? (completed ? "Guide complete" : "Finish guide") : "Next step")
+                    Image(systemName: safeStep == steps.count - 1 ? "checkmark" : "arrow.right")
+                }
+                .font(.subheadline.weight(.bold))
+                .frame(maxWidth: .infinity)
+                .frame(height: 48)
+                .background(AppTheme.accent, in: RoundedRectangle(cornerRadius: 13))
+            }
+            .foregroundStyle(AppTheme.textPrimary)
+            .buttonStyle(.plain)
+            .disabled(safeStep == steps.count - 1 && completed)
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 12)
+        .background(.regularMaterial)
+    }
+
     private var safeStep: Int { min(max(currentStep, 0), steps.count - 1) }
 
     private var header: some View {
@@ -224,7 +287,7 @@ public struct LearnLaterBoxView: View {
             Text("Make LaterBox yours")
                 .font(.system(size: 28, weight: .bold))
                 .foregroundStyle(AppTheme.textPrimary)
-            Text("A guided setup for the fastest ways to save. Start with a one-tap Home Screen shortcut.")
+            Text("A visual walkthrough to create and use a Home Screen shortcut for saving without launching the app.")
                 .font(.subheadline)
                 .foregroundStyle(AppTheme.textSecondary)
         }
