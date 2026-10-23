@@ -1,5 +1,24 @@
 import type { Attachment } from '../supabase/types';
 
+interface StoredLocalAttachment {
+  id: string;
+  userId: string | null;
+  file: Blob;
+  // File.name is not reliably preserved by every structured-clone runtime
+  // (including Node 22's IndexedDB test environment).
+  fileName?: string;
+  fileType?: string;
+}
+
+function restoreFile(record: StoredLocalAttachment): File {
+  const file = record.file as File;
+  if (!record.fileName) return file; // Keep older IndexedDB records readable.
+  if (file.name === record.fileName && file instanceof File) return file;
+  return new File([record.file], record.fileName, {
+    type: record.fileType || record.file.type || 'application/octet-stream',
+  });
+}
+
 function openFiles(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     const request = indexedDB.open('laterbox-files', 1);
@@ -17,7 +36,7 @@ export async function storeLocalAttachment(file: File, itemId: string, userId: s
   try {
     await new Promise<void>((resolve, reject) => {
       const transaction = db.transaction('files', 'readwrite');
-      transaction.objectStore('files').put({ id: record.id, userId, file });
+      transaction.objectStore('files').put({ id: record.id, userId, file, fileName: file.name, fileType: file.type });
       transaction.oncomplete = () => resolve();
       transaction.onerror = () => reject(new Error('Could not store this file locally. Check browser storage space.'));
       transaction.onabort = () => reject(new Error('Local file storage was interrupted. Try again.'));
@@ -31,7 +50,7 @@ export async function localAttachmentUrl(id: string, ownerId: string | null): Pr
     return await new Promise((resolve, reject) => {
       const request = db.transaction('files').objectStore('files').get(id);
       request.onsuccess = () => {
-        const record = request.result as { userId: string | null; file: File } | undefined;
+        const record = request.result as StoredLocalAttachment | undefined;
         const matches = record && (record.userId === ownerId || (ownerId !== null && record.userId === null));
         resolve(matches && record ? URL.createObjectURL(record.file) : null);
       };
@@ -46,9 +65,9 @@ export async function readLocalAttachment(id: string, ownerId: string | null): P
     return await new Promise((resolve, reject) => {
       const request = db.transaction('files').objectStore('files').get(id);
       request.onsuccess = () => {
-        const record = request.result as { userId: string | null; file: File } | undefined;
+        const record = request.result as StoredLocalAttachment | undefined;
         const matches = record && (record.userId === ownerId || (ownerId !== null && record.userId === null));
-        resolve(matches && record ? record.file : null);
+        resolve(matches && record ? restoreFile(record) : null);
       };
       request.onerror = () => reject(request.error);
     });
