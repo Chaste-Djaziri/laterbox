@@ -769,7 +769,7 @@ export default function SettingsPage() {
                 <span>Your things stay where they belong.</span>
               </h2>
               <p className="text-xs text-[#6c6b63] leading-relaxed max-w-xl">
-                Items and collections are cached in this browser's local storage; attachment files are stored in IndexedDB. Signed-in users can sync eligible data using cloud services. Clearing site data may erase local-only copies. Use Backup &amp; Restore below to save an encrypted copy of available records and file bytes.
+                Items and collections are cached in this browser&apos;s local storage; attachment files are stored in IndexedDB. Signed-in users can sync eligible data using cloud services. Clearing site data may erase local-only copies. Use Backup &amp; Restore below to save an encrypted copy of available records and file bytes.
               </p>
             </div>
             <CloudSyncIndicator />
