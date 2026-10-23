@@ -21,7 +21,7 @@ import {
   isAuthError,
 } from '../utils/pending-captures';
 import { uploadWithNotificationHandoff } from '../notifications/client';
-import { isActive, isDue, migrateSchedule } from '../utils/schedule';
+import { isActive, isDue, transitionItemStatus, restoreItemToInbox, scheduleItemReturn } from '../utils/schedule';
 import { createQueryRecovery } from '../utils/query-recovery';
 
 const LOCAL_ITEMS_KEY = 'laterbox_local_items';
@@ -107,7 +107,7 @@ export function ItemProvider({ children }: { children: ReactNode }) {
         const parsed = (JSON.parse(stored) as LaterBoxItem[])
           .filter(item => (item.user_id || null) === (user?.id || null))
           .filter(item => !item.id.startsWith('guest-item-'));
-        setItems(parsed.map(migrateSchedule));
+        setItems(parsed);
       } else {
         setItems([]);
       }
@@ -498,6 +498,7 @@ export function ItemProvider({ children }: { children: ReactNode }) {
       favorite: false,
       status: 'deferred',
       return_at: options?.returnAt ?? null,
+      inbox_entered_at: null,
       created_at: now,
       updated_at: now,
       attachments: [],
@@ -685,7 +686,8 @@ export function ItemProvider({ children }: { children: ReactNode }) {
   };
 
   const setStatus = async (id: string, status: ItemStatus) => {
-    const updated = items.map((i) => (i.id === id ? { ...i, status, updated_at: new Date().toISOString() } : i));
+    const timestamp = new Date().toISOString();
+    const updated = items.map((i) => i.id === id ? transitionItemStatus(i, status, timestamp) : i);
     setItems(updated);
     saveLocalData(updated);
     const changed = updated.find(item => item.id === id);
@@ -699,7 +701,7 @@ export function ItemProvider({ children }: { children: ReactNode }) {
   const reschedule = async (id: string, returnAt: string | null) => {
     const timestamp = new Date().toISOString();
     const updated = items.map(item => item.id === id
-      ? { ...item, status: 'deferred' as ItemStatus, return_at: returnAt, updated_at: timestamp } : item);
+      ? scheduleItemReturn(item, returnAt, timestamp) : item);
     setItems(updated); saveLocalData(updated);
 
     const changed = updated.find(item => item.id === id);
@@ -780,7 +782,7 @@ export function ItemProvider({ children }: { children: ReactNode }) {
     const itemToRestore = deletedItems.find(i => i.id === id);
     if (!itemToRestore) return;
     const now = new Date().toISOString();
-    const restored: LaterBoxItem = { ...itemToRestore, deleted_at: null, status: 'inbox', updated_at: now };
+    const restored = restoreItemToInbox(itemToRestore, now);
 
     setDeletedItems(prev => {
       const next = prev.filter(i => i.id !== id);
