@@ -60,7 +60,7 @@ def release_numbers(metadata, builds, store_versions):
         highest_approved = max(approved)
         if selected <= highest_approved:
             selected = (highest_approved[0], highest_approved[1], highest_approved[2] + 1)
-    # Marketing versions change only when explicitly edited in version.json (or required by App Store history).
+    # Marketing versions change only when explicitly edited in laterbox-ios/version.json (or required by App Store history).
     # TestFlight uploads advance CFBundleVersion independently.
     baseline = max([int(metadata["buildNumber"])] + [version(b["attributes"]["version"])[0] for b in builds])
     if baseline >= 9999: raise ValueError("Build number requires a new numbering scheme")
@@ -82,7 +82,7 @@ def existing_app():
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("mode", choices=["prepare", "verify"])
-    parser.add_argument("--metadata", default="version.json")
+    parser.add_argument("--metadata", default=str(Path(__file__).resolve().parents[1] / "version.json"))
     args = parser.parse_args()
     app = existing_app()
     path = f"/v1/builds?filter[app]={app}&limit=200"
