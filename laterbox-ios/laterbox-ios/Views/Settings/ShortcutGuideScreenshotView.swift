@@ -7,6 +7,8 @@ struct ShortcutGuideScreenshotView: View {
     let arrowStart: CGPoint  // Normalized 0...1, relative to the original screenshot
     let arrowTip: CGPoint
     var secondaryHighlights: [CGPoint] = []
+    var targetArea: CGRect? = nil
+    var showsTargetRing = true
 
     @State private var showingEnlarged = false
 
@@ -56,26 +58,31 @@ struct ShortcutGuideScreenshotView: View {
                     .scaledToFill()
                     .frame(width: size.width, height: size.height)
 
+                if let targetArea {
+                    RoundedRectangle(cornerRadius: 9, style: .continuous)
+                        .strokeBorder(Color(red: 0.95, green: 0.20, blue: 0.16), lineWidth: 2)
+                        .frame(width: size.width * targetArea.width,
+                               height: size.height * targetArea.height)
+                        .position(x: size.width * targetArea.midX,
+                                  y: size.height * targetArea.midY)
+                        .shadow(color: .black.opacity(0.55), radius: 2)
+                }
+
+                // Short pointers never sweep across other actions or obscure labels.
                 TutorialArrowShape(start: arrowStart, tip: arrowTip)
-                    .stroke(Color.white, style: StrokeStyle(lineWidth: 8, lineCap: .round, lineJoin: .round))
-                    .shadow(color: .black.opacity(0.6), radius: 3, y: 1)
+                    .stroke(Color.white, style: StrokeStyle(lineWidth: 5, lineCap: .round, lineJoin: .round))
+                    .shadow(color: .black.opacity(0.6), radius: 2, y: 1)
 
                 TutorialArrowShape(start: arrowStart, tip: arrowTip)
                     .stroke(Color(red: 0.95, green: 0.20, blue: 0.16),
-                            style: StrokeStyle(lineWidth: 5, lineCap: .round, lineJoin: .round))
+                            style: StrokeStyle(lineWidth: 3, lineCap: .round, lineJoin: .round))
 
                 ForEach(secondaryHighlights.indices, id: \.self) { index in
                     targetRing(in: size, at: secondaryHighlights[index], prominent: false)
                 }
-                targetRing(in: size, at: arrowTip, prominent: true)
-
-                Text("\(stepNumber)")
-                    .font(.system(size: 15, weight: .heavy, design: .rounded))
-                    .foregroundStyle(.white)
-                    .frame(width: 32, height: 32)
-                    .background(Color(red: 0.95, green: 0.20, blue: 0.16), in: Circle())
-                    .overlay(Circle().strokeBorder(.white, lineWidth: 2))
-                    .position(x: size.width * 0.10, y: size.height * 0.10)
+                if showsTargetRing {
+                    targetRing(in: size, at: arrowTip, prominent: true)
+                }
             }
             .frame(width: size.width, height: size.height)
             .clipped()
@@ -85,9 +92,9 @@ struct ShortcutGuideScreenshotView: View {
 
     private func targetRing(in size: CGSize, at point: CGPoint, prominent: Bool) -> some View {
         Circle()
-            .strokeBorder(.white, lineWidth: prominent ? 3 : 2)
-            .overlay(Circle().strokeBorder(Color(red: 0.95, green: 0.20, blue: 0.16), lineWidth: prominent ? 2 : 1))
-            .frame(width: prominent ? 37 : 29, height: prominent ? 37 : 29)
+            .strokeBorder(.white, lineWidth: prominent ? 2 : 1.5)
+            .overlay(Circle().strokeBorder(Color(red: 0.95, green: 0.20, blue: 0.16), lineWidth: 2))
+            .frame(width: prominent ? 26 : 21, height: prominent ? 26 : 21)
             .position(x: size.width * point.x, y: size.height * point.y)
             .shadow(color: .black.opacity(0.5), radius: 3)
     }
@@ -103,17 +110,22 @@ private struct TutorialArrowShape: Shape {
         let dx = b.x - a.x
         let dy = b.y - a.y
         let length = max(hypot(dx, dy), 1)
-        let bend = min(rect.width * 0.06, length * 0.12)
+        // Limit the arrow to a small pointer near its target even if the
+        // normalized tail is far away in a tall screenshot.
+        let shaft = min(length, rect.width * 0.14)
+        let tail = CGPoint(x: b.x - dx / length * shaft,
+                           y: b.y - dy / length * shaft)
+        let bend = min(rect.width * 0.025, shaft * 0.10)
         let control = CGPoint(
-            x: (a.x + b.x) / 2 - (dy / length) * bend,
-            y: (a.y + b.y) / 2 + (dx / length) * bend
+            x: (tail.x + b.x) / 2 - (dy / length) * bend,
+            y: (tail.y + b.y) / 2 + (dx / length) * bend
         )
         let angle = atan2(b.y - control.y, b.x - control.x)
-        let head = min(rect.width * 0.075, 24.0)
+        let head = min(rect.width * 0.035, 12.0)
         let spread: CGFloat = .pi / 5
 
         var path = Path()
-        path.move(to: a)
+        path.move(to: tail)
         path.addQuadCurve(to: b, control: control)
         path.move(to: CGPoint(
             x: b.x - head * cos(angle - spread),
