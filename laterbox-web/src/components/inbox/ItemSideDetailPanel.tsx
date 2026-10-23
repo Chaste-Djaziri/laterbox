@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { LaterBoxItem } from '@/lib/supabase/types';
 import { useItems } from '@/lib/store/ItemContext';
+import { formatInboxAge } from '@/lib/utils/schedule';
 import { useAuth } from '@/lib/store/AuthContext';
 import { getEmailSender, formatEmailDate } from '@/lib/utils/emailFormatters';
 import {
@@ -327,7 +328,7 @@ interface ItemSideDetailPanelProps {
 
 export function ItemSideDetailPanel({ item, onClose }: ItemSideDetailPanelProps) {
   const router = useRouter();
-  const { setFavorite, archiveItem, deleteItem, saveNote, attachFilesToItem, markSeen } = useItems();
+  const { setFavorite, archiveItem, deleteItem, saveNote, attachFilesToItem, markSeen, now } = useItems();
   const { userName, user } = useAuth();
 
   useEffect(() => {
@@ -701,6 +702,11 @@ export function ItemSideDetailPanel({ item, onClose }: ItemSideDetailPanelProps)
             <h2 className="text-base sm:text-lg font-black text-[#171711] tracking-tight line-clamp-2 leading-snug">
               {title}
             </h2>
+            {item.status === 'inbox' && (
+              <p className="mt-1 text-xs text-[#6c6b63]">
+                {formatInboxAge(item, now) ?? 'Inbox entry time unavailable for this older item'}
+              </p>
+            )}
             {/* Collection tags if any */}
             {item.collections && item.collections.length > 0 && (
               <div className="flex flex-wrap items-center gap-1.5 pt-1.5">
