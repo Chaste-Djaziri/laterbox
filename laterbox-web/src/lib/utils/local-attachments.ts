@@ -54,3 +54,17 @@ export async function readLocalAttachment(id: string, ownerId: string | null): P
     });
   } finally { db.close(); }
 }
+
+/** Used to undo a partially restored encrypted backup. */
+export async function deleteLocalAttachment(id: string): Promise<void> {
+  const db = await openFiles();
+  try {
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction('files', 'readwrite');
+      tx.objectStore('files').delete(id);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(new Error('Could not clean up an incomplete attachment restore.'));
+      tx.onabort = () => reject(new Error('Attachment cleanup was interrupted.'));
+    });
+  } finally { db.close(); }
+}
