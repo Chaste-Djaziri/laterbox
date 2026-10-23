@@ -8,7 +8,8 @@ import { LaterBoxItem, ItemStatus, InboxFilterType, Collection, Attachment, Item
 import { useAuth } from './AuthContext';
 import { useBilling } from './BillingContext';
 import { normalizeUrl, isUrl, extractDomain } from '../utils/url';
-import { storeLocalAttachment } from '../utils/local-attachments';
+import { storeLocalAttachment, deleteLocalAttachment } from '../utils/local-attachments';
+import { restoredAttachmentFile, isWebBackup, type WebBackup } from '../utils/web-backup';
 import {
   itemRow,
   queueCapture,
@@ -47,6 +48,7 @@ interface ItemContextType {
   pendingPushCount: number;
   isPulling: boolean;
   isPushing: boolean;
+  restoreWebBackup: (backup: WebBackup) => Promise<{ restored: number; skipped: number; restoredFiles: number; missingFiles: number; restoredCollections: number }>;
   saveItem: (value: string, options?: { id?: string; textSelector?: string; files?: File[]; returnAt?: string | null; type?: string; title?: string; tags?: string[] }) => Promise<LaterBoxItem>;
   now: Date;
   reschedule: (id: string, returnAt: string | null) => Promise<void>;
@@ -394,6 +396,94 @@ export function ItemProvider({ children }: { children: ReactNode }) {
       window.removeEventListener('online', onFocus);
     };
   }, [user?.id, isPro, checkRemoteChanges]);
+
+  /** Apply only new IDs, after a verified archive preview. Existing records are never overwritten. */
+  const restoreWebBackup = async (backup: WebBackup) => {
+    if (!isWebBackup(backup)) throw new Error('The selected backup is invalid.');
+    const owner = user?.id || null;
+    const ids = new Set([...items, ...deletedItems].map(item => item.id));
+    const newCollections: Collection[] = [];
+    const byName = new Map(collections.map(c => [c.name.trim().toLowerCase(), c]));
+    const bySourceId = new Map<string, Collection>();
+    const timestamp = new Date().toISOString();
+    for (const source of backup.collections) {
+      const name = source.name.trim();
+      if (!name) continue;
+      const normalized = name.toLowerCase();
+      let mapped = byName.get(normalized);
+      if (!mapped) {
+        mapped = { id: crypto.randomUUID(), user_id: owner, name, created_at: timestamp, updated_at: timestamp };
+        newCollections.push(mapped);
+        byName.set(normalized, mapped);
+      }
+      bySourceId.set(source.id, mapped);
+    }
+
+    const newActive: LaterBoxItem[] = [];
+    const newDeleted: LaterBoxItem[] = [];
+    const storedAttachmentIds: string[] = [];
+    let skipped = 0, restoredFiles = 0, missingFiles = 0;
+    const activeKey = `${LOCAL_ITEMS_KEY}_${owner || 'guest'}`;
+    const deletedKey = `${LOCAL_DELETED_ITEMS_KEY}_${owner || 'guest'}`;
+    const collectionsKey = `${LOCAL_COLLECTIONS_KEY}_${owner || 'guest'}`;
+    const oldValues = [activeKey, deletedKey, collectionsKey].map(key => localStorage.getItem(key));
+
+    try {
+      for (const original of [...backup.items, ...backup.deletedItems]) {
+        if (ids.has(original.id)) { skipped++; continue; }
+        ids.add(original.id);
+        const restoredAttachments: Attachment[] = [];
+        for (const ref of original.attachments ?? []) {
+          const file = restoredAttachmentFile(backup, ref.id);
+          if (!file) { missingFiles++; continue; }
+          const attached = await storeLocalAttachment(file, original.id, owner);
+          storedAttachmentIds.push(attached.id);
+          restoredFiles++;
+          restoredAttachments.push(attached);
+        }
+        const restored: LaterBoxItem = {
+          ...original, user_id: owner,
+          attachments: restoredAttachments,
+          collections: (original.collections ?? [])
+            .map(c => bySourceId.get(c.id)).filter((c): c is Collection => !!c),
+          metadata: original.metadata ? {
+            ...original.metadata, item_id: original.id, user_id: owner,
+          } : null,
+          note: original.note ? { ...original.note, item_id: original.id, user_id: owner } : null,
+          content: original.content
+            ? { ...original.content, item_id: original.id, user_id: owner || '' } : null,
+        };
+        if (original.deleted_at) newDeleted.push(restored);
+        else newActive.push(restored);
+      }
+      // Fail closed if browser storage is full, before exposing an imported library.
+      localStorage.setItem(activeKey, JSON.stringify([...newActive, ...items]));
+      localStorage.setItem(deletedKey, JSON.stringify([...newDeleted, ...deletedItems]));
+      localStorage.setItem(collectionsKey, JSON.stringify([...collections, ...newCollections]));
+      setItems(prev => [...newActive, ...prev]);
+      setDeletedItems(prev => [...newDeleted, ...prev]);
+      setCollections(prev => [...prev, ...newCollections]);
+    } catch (err) {
+      for (const [index, key] of [activeKey, deletedKey, collectionsKey].entries()) {
+        try {
+          if (oldValues[index] === null) localStorage.removeItem(key);
+          else localStorage.setItem(key, oldValues[index]!);
+        } catch { /* Storage is unavailable; do not hide the original error. */ }
+      }
+      await Promise.allSettled(storedAttachmentIds.map(id => deleteLocalAttachment(id)));
+      throw err;
+    }
+
+    // Account-associated items use the existing, retryable cloud outbox. No
+    // synchronous network request can make a local backup restore destructive.
+    if (owner && isPro) {
+      for (const item of newActive) queueCapture(item);
+    }
+    return {
+      restored: newActive.length + newDeleted.length, skipped,
+      restoredFiles, missingFiles, restoredCollections: newCollections.length,
+    };
+  };
 
   // Save Item (URL, text, or file attachments)
   const saveItem = async (
@@ -1127,6 +1217,7 @@ export function ItemProvider({ children }: { children: ReactNode }) {
         loading,
         syncStatus,
         saveItem,
+        restoreWebBackup,
         setFavorite,
         setStatus,
         keepItem,
