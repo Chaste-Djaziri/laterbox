@@ -5,7 +5,8 @@
     "migration": "supabase/migrations/202610230001_inbox_entry_timestamp.sql",
     "last_preexisting_migration": "20261017233000_delete_account_data",
     "deployed_to_hosted_database": "unverified",
-    "strategy": "expand-only: nullable column + legacy-upsert-safe trigger"
+    "strategy": "expand-only nullable column; corrected legacy-upsert and Inbox transition trigger",
+    "corrective_migration": "supabase/migrations/202610230002_correct_inbox_entry_transitions.sql"
   },
   "platform_contracts": {
     "ios": {
@@ -16,11 +17,11 @@
       "status": "implemented; requires migration before release"
     },
     "web": {
-      "version": 1,
+      "version": 2,
       "files": [
         "laterbox-web/src/lib/utils/pending-captures.ts"
       ],
-      "status": "legacy compatible; inbox entry time not yet exposed"
+      "status": "implemented in repository; deploy migrations first and verify against iOS"
     },
     "android": {
       "version": 1,
@@ -48,7 +49,7 @@
     {
       "name": "inbox_entered_at",
       "ios": "read_write",
-      "web": "not_implemented",
+      "web": "read_write",
       "android": "not_implemented",
       "requires_migration": true
     }
@@ -71,7 +72,7 @@
     {
       "feature": "Inbox-entered elapsed time",
       "ios": "implemented",
-      "web": "pending",
+      "web": "cloud contract supported; Inbox-age UI pending",
       "android": "pending",
       "cloud_change": "inbox_entered_at"
     },
