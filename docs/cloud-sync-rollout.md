@@ -57,9 +57,10 @@ contract. Do not advertise parity merely because a backend field exists.
    **202610230001 then 202610230002** to staging; verify table, trigger and
    existing client writes. The repository PGlite regression test executes
    both migrations but does not replace a full hosted staging test.
-2. Test Web and Android **unchanged** against staging: create an item, update
-   its title, schedule it, return it to Inbox, and restore from Trash.
-   Verify older upserts don't erase a known Inbox timestamp.
+2. Test an **older pre-v2 web client and Android unchanged** against
+   staging, then test the updated v2 web client: create, edit, reschedule,
+   return to Inbox, restore from Trash and sync an iOS-created item.
+   Verify older upserts never erase or reuse an obsolete Inbox timestamp.
 3. Deploy **both migrations to production before shipping web contract v2 or
    the new iOS cloud-payload client** (using the approved Supabase migration
    workflow), and confirm both recorded versions. No hosted deployment has
