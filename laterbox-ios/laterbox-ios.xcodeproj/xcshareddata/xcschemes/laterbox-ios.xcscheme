@@ -64,13 +64,6 @@
       debugDocumentVersioning = "YES"
       debugServiceExtension = "internal"
       allowLocationSimulation = "YES">
-      <EnvironmentVariables>
-         <EnvironmentVariable key = "LATERBOX_SUPABASE_URL" value = "http://172.20.10.3:54321" isEnabled = "YES"/>
-         <EnvironmentVariable key = "LATERBOX_SUPABASE_ANON_KEY" value = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0" isEnabled = "YES"/>
-         <EnvironmentVariable key = "LATERBOX_WEB_URL" value = "http://172.20.10.3:3000" isEnabled = "YES"/>
-         <EnvironmentVariable key = "LATERBOX_BILLING_URL" value = "http://172.20.10.3:3000" isEnabled = "YES"/>
-         <EnvironmentVariable key = "LATERBOX_MAILPIT_URL" value = "http://172.20.10.3:54324" isEnabled = "YES"/>
-      </EnvironmentVariables>
       <BuildableProductRunnable
          runnableDebuggingMode = "0">
          <BuildableReference
