@@ -32,7 +32,7 @@ export async function localAttachmentUrl(id: string, ownerId: string | null): Pr
       const request = db.transaction('files').objectStore('files').get(id);
       request.onsuccess = () => {
         const record = request.result as { userId: string | null; file: File } | undefined;
-        const matches = record && (record.userId === ownerId || !record.userId || !ownerId);
+        const matches = record && (record.userId === ownerId || (ownerId !== null && record.userId === null));
         resolve(matches && record ? URL.createObjectURL(record.file) : null);
       };
       request.onerror = () => reject(request.error);
@@ -47,7 +47,7 @@ export async function readLocalAttachment(id: string, ownerId: string | null): P
       const request = db.transaction('files').objectStore('files').get(id);
       request.onsuccess = () => {
         const record = request.result as { userId: string | null; file: File } | undefined;
-        const matches = record && (record.userId === ownerId || !record.userId || !ownerId);
+        const matches = record && (record.userId === ownerId || (ownerId !== null && record.userId === null));
         resolve(matches && record ? record.file : null);
       };
       request.onerror = () => reject(request.error);
