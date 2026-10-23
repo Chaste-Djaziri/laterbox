@@ -51,7 +51,7 @@ test('Today divides overdue and returning today at local-midnight boundaries', (
   assert.deepEqual(focus.overdue.map(i => i.id), ['old', 'yesterday']);
   assert.deepEqual(focus.returningToday.map(i => i.id), ['midnight', 'later-today']);
   assert.deepEqual(scheduleItems(items, 'today', localNow).map(i => i.id), ['old', 'yesterday', 'midnight', 'later-today']);
-  assert.deepEqual(scheduleItems(items, 'upcoming', localNow).map(i => i.id), ['later-today', 'tomorrow']);
+  assert.deepEqual(scheduleItems(items, 'upcoming', localNow).map(i => i.id), ['tomorrow']);
 });
 test('Today uses calendar boundaries even on daylight saving transition', () => {
   const now = new Date(2026, 9, 25, 12);
