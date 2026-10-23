@@ -86,8 +86,24 @@ export function transitionItemStatus(
 }
 
 export function moveItemToInbox(item: LaterBoxItem, timestamp: string): LaterBoxItem {
+  let metadata = item.metadata;
+  if (metadata) {
+    try {
+      const parsed: unknown = metadata.structured_data ? JSON.parse(metadata.structured_data) : {};
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+        metadata = {
+          ...metadata,
+          structured_data: JSON.stringify({ ...parsed, seen: false }),
+          updated_at: timestamp,
+        };
+      }
+    } catch {
+      // Keep malformed legacy metadata intact; the item-level flag is still reset.
+    }
+  }
   return {
     ...transitionItemStatus(item, 'inbox', timestamp),
+    metadata,
     return_at: null,
     seen: false,
   };
