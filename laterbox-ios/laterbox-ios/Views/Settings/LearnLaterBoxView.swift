@@ -14,6 +14,8 @@ public struct LearnLaterBoxView: View {
         let arrowStart: CGPoint
         let arrowTip: CGPoint
         var secondaryHighlights: [CGPoint] = []
+        var targetArea: CGRect? = nil
+        var showsTargetRing = true
     }
 
     // One screen for each of the nine original, user-supplied Shortcuts screenshots.
@@ -23,66 +25,76 @@ public struct LearnLaterBoxView: View {
             title: "Create a shortcut",
             detail: "Open Apple's Shortcuts app. On the Shortcuts screen, tap the plus (+) button in the bottom center to start a new shortcut.",
             icon: "plus.circle.fill",
-            arrowStart: CGPoint(x: 0.75, y: 0.75),
+            arrowStart: CGPoint(x: 0.70, y: 0.83),
             arrowTip: CGPoint(x: 0.50, y: 0.94)
         ),
         GuideStep(
             title: "Find LaterBox in the actions",
-            detail: "In the new shortcut editor, browse or scroll the available apps in the action picker. Find LaterBox. You can also use Search Actions to locate it.",
+            detail: "Swipe upward through the action picker to browse apps until you reach LaterBox. You can also tap Search Actions and type LaterBox. The app isn't visible in this screenshot yet.",
             icon: "list.bullet",
-            arrowStart: CGPoint(x: 0.75, y: 0.55),
-            arrowTip: CGPoint(x: 0.48, y: 0.78)
+            arrowStart: CGPoint(x: 0.86, y: 0.86),
+            arrowTip: CGPoint(x: 0.86, y: 0.73),
+            showsTargetRing: false
         ),
         GuideStep(
             title: "Choose LaterBox",
             detail: "Tap LaterBox in the app list to see the actions it offers to Apple Shortcuts.",
             icon: "cube.box",
-            arrowStart: CGPoint(x: 0.76, y: 0.54),
-            arrowTip: CGPoint(x: 0.44, y: 0.39)
+            arrowStart: CGPoint(x: 0.96, y: 0.56),
+            arrowTip: CGPoint(x: 0.84, y: 0.49),
+            targetArea: CGRect(x: 0.09, y: 0.457, width: 0.83, height: 0.075),
+            showsTargetRing: false
         ),
         GuideStep(
             title: "Select Quick Save to LaterBox",
             detail: "Tap Quick Save to LaterBox. Do NOT choose Open LaterBox Quick Save: that other action opens the app instead of saving directly from Shortcuts.",
             icon: "checkmark.circle.fill",
-            arrowStart: CGPoint(x: 0.77, y: 0.40),
-            arrowTip: CGPoint(x: 0.48, y: 0.22)
+            arrowStart: CGPoint(x: 0.95, y: 0.35),
+            arrowTip: CGPoint(x: 0.85, y: 0.253),
+            targetArea: CGRect(x: 0.10, y: 0.224, width: 0.82, height: 0.063),
+            showsTargetRing: false
         ),
         GuideStep(
             title: "Open shortcut details",
             detail: "Once the action has been added, tap the small ⓘ information icon at the bottom center of the shortcut editor. It opens the shortcut Details panel.",
             icon: "info.circle.fill",
-            arrowStart: CGPoint(x: 0.76, y: 0.74),
-            arrowTip: CGPoint(x: 0.50, y: 0.955)
+            arrowStart: CGPoint(x: 0.67, y: 0.89),
+            arrowTip: CGPoint(x: 0.50, y: 0.957)
         ),
         GuideStep(
             title: "Add it to your Home Screen",
             detail: "In the shortcut Details panel, tap Add to Home Screen. This creates an icon for the shortcut, not a second copy of the LaterBox app.",
             icon: "house",
-            arrowStart: CGPoint(x: 0.75, y: 0.67),
-            arrowTip: CGPoint(x: 0.52, y: 0.48)
+            arrowStart: CGPoint(x: 0.96, y: 0.26),
+            arrowTip: CGPoint(x: 0.86, y: 0.178),
+            targetArea: CGRect(x: 0.10, y: 0.146, width: 0.82, height: 0.065),
+            showsTargetRing: false
         ),
         GuideStep(
             title: "Personalize the shortcut icon",
             detail: "Choose an icon design and color, and edit the Home Screen name to something easy to recognize, like Quick Save. Review the preview, then tap Done in the top-right corner.",
             icon: "paintpalette.fill",
-            arrowStart: CGPoint(x: 0.57, y: 0.28),
-            arrowTip: CGPoint(x: 0.91, y: 0.08),
-            secondaryHighlights: [CGPoint(x: 0.43, y: 0.55), CGPoint(x: 0.46, y: 0.73)]
+            arrowStart: CGPoint(x: 0.73, y: 0.17),
+            arrowTip: CGPoint(x: 0.89, y: 0.10),
+            secondaryHighlights: [CGPoint(x: 0.44, y: 0.27), CGPoint(x: 0.48, y: 0.47)]
         ),
         GuideStep(
             title: "Use it from your Home Screen",
             detail: "Return to the Home Screen, locate the new LaterBox Quick Save icon, and tap it. You won't need to open LaterBox first.",
             icon: "house.fill",
-            arrowStart: CGPoint(x: 0.69, y: 0.44),
-            arrowTip: CGPoint(x: 0.19, y: 0.24)
+            arrowStart: CGPoint(x: 0.70, y: 0.32),
+            arrowTip: CGPoint(x: 0.47, y: 0.22),
+            targetArea: CGRect(x: 0.34, y: 0.16, width: 0.21, height: 0.13),
+            showsTargetRing: false
         ),
         GuideStep(
             title: "Type your note or link and save",
             detail: "The shortcut asks for a Note or URL. Type the content you want to save; Title and When to Return are optional. Tap Done to finish and save it to LaterBox.",
             icon: "square.and.pencil",
-            arrowStart: CGPoint(x: 0.52, y: 0.55),
-            arrowTip: CGPoint(x: 0.81, y: 0.38),
-            secondaryHighlights: [CGPoint(x: 0.44, y: 0.26)]
+            arrowStart: CGPoint(x: 0.96, y: 0.31),
+            arrowTip: CGPoint(x: 0.84, y: 0.22),
+            targetArea: CGRect(x: 0.52, y: 0.192, width: 0.39, height: 0.062),
+            showsTargetRing: false
         )
     ]
 
@@ -165,7 +177,9 @@ public struct LearnLaterBoxView: View {
                             stepNumber: safeStep + 1,
                             arrowStart: steps[safeStep].arrowStart,
                             arrowTip: steps[safeStep].arrowTip,
-                            secondaryHighlights: steps[safeStep].secondaryHighlights
+                            secondaryHighlights: steps[safeStep].secondaryHighlights,
+                            targetArea: steps[safeStep].targetArea,
+                            showsTargetRing: steps[safeStep].showsTargetRing
                         )
 
                         HStack(spacing: 8) {
