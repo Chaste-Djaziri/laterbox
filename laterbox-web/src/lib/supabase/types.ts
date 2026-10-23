@@ -107,6 +107,8 @@ export interface LaterBoxItem {
   seen?: boolean;
   status: ItemStatus;
   return_at?: string | null;
+  /** Last confirmed entry into Inbox. Null for historical records without this data. */
+  inbox_entered_at?: string | null;
   created_at: string;
   updated_at: string;
   deleted_at?: string | null;
