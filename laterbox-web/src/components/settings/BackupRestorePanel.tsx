@@ -79,18 +79,23 @@ export function BackupRestorePanel() {
     if (!preview || busy) return;
     const ids = new Set([...items, ...deletedItems].map(item => item.id));
     const plan = backupPreview(preview, ids);
-    if (plan.newItems === 0) {
+    const newCollectionCount = preview.collections.filter(c =>
+      !collections.some(existing => existing.name.trim().toLowerCase() === c.name.trim().toLowerCase())
+    ).length;
+    if (plan.newItems === 0 && newCollectionCount === 0) {
       setMessage('Everything in this backup is already present. No changes made.');
       return;
     }
-    if (!window.confirm('Restore ' + plan.newItems + ' new item(s) to this browser? Existing items are never replaced.')) return;
+    if (!window.confirm('Restore ' + plan.newItems + ' new item(s) and ' + newCollectionCount +
+      ' collection(s) to this browser? Existing items are never replaced.')) return;
     setBusy(true);
     setError(null);
     setMessage(null);
     try {
       const result = await restoreWebBackup(preview);
-      setMessage('Restored ' + result.restored + ' items and ' + result.restoredFiles +
-        ' attachment files. Skipped ' + result.skipped + ' existing IDs.' +
+      setMessage('Restored ' + result.restored + ' items, ' + result.restoredCollections +
+        ' collections and ' + result.restoredFiles + ' attachment files. Skipped ' +
+        result.skipped + ' existing IDs.' +
         (result.missingFiles ? ' ' + result.missingFiles + ' attachment(s) had no recoverable file bytes.' : '') +
         ' Review collections and cloud sync before removing the original backup.');
       setPreview(null);
@@ -104,6 +109,9 @@ export function BackupRestorePanel() {
   };
 
   const plan = preview ? backupPreview(preview, new Set([...items, ...deletedItems].map(i => i.id))) : null;
+  const newCollections = preview?.collections.filter(c =>
+    !collections.some(existing => existing.name.trim().toLowerCase() === c.name.trim().toLowerCase())
+  ).length ?? 0;
   return (
     <section className="rounded-3xl border border-[#e4e0d5] bg-white p-6 sm:p-7 space-y-5" aria-label="Backup and restore">
       <div className="space-y-1">
@@ -162,9 +170,9 @@ export function BackupRestorePanel() {
         {plan && (
           <div className="space-y-2 rounded-xl border border-[#d0db84] bg-[#f3f7d9] p-3 text-xs text-[#171711]" role="status">
             <p className="font-bold">Preview: {plan.total} items, {plan.newItems} new, {plan.conflicts.length} existing IDs skipped</p>
-            <p>{preview?.collections.length} collections · {Object.keys(preview?.attachmentFiles || {}).length} file(s) available · {plan.unavailableAttachments} missing at export</p>
+            <p>{preview?.collections.length} collections ({newCollections} new) · {Object.keys(preview?.attachmentFiles || {}).length} file(s) available · {plan.unavailableAttachments} missing at export</p>
             {plan.conflicts.length > 0 && <p className="text-[#6c6b63]">Existing titles include: {plan.conflicts.slice(0, 3).join(', ')}</p>}
-            <button type="button" onClick={() => void restore()} disabled={busy || !plan.newItems}
+            <button type="button" onClick={() => void restore()} disabled={busy || (!plan.newItems && !newCollections)}
               className="rounded-xl bg-[#171711] px-4 py-2.5 font-bold text-white disabled:opacity-50">
               {busy ? 'Restoring…' : 'Restore new items'}
             </button>
