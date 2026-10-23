@@ -57,10 +57,9 @@ export function scheduleItems(items: LaterBoxItem[], view: ScheduleView, now: Da
     if (view === 'someday') return !item.return_at && !isDue(item, now);
     if (!item.return_at) return false;
     const time = new Date(item.return_at);
-    if (view === 'today') return item.status === 'deferred' &&
-      Number.isFinite(time.getTime()) &&
-      time < new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
-    return time > now;
+    if (!Number.isFinite(time.getTime()) || item.status !== 'deferred') return false;
+    const nextDay = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+    return view === 'today' ? time < nextDay : time >= nextDay;
   }).sort((a, b) => view === 'someday' ? b.created_at.localeCompare(a.created_at)
     : new Date(a.return_at!).getTime() - new Date(b.return_at!).getTime());
 }
