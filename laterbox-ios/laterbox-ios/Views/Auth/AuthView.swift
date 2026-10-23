@@ -754,7 +754,7 @@ struct AuthView: View {
                     isLoading = false
                     #if DEBUG
                     if let urlErr = error as? URLError, urlErr.code == .timedOut || urlErr.code == .cannotConnectToHost {
-                        errorMessage = "Request timed out connecting to local backend at \(LaterBoxAPIService.shared.supabaseUrl). Ensure your iPhone is on the same network as your Mac (\(LaterBoxDevConfig.localHost))."
+                        errorMessage = "Could not connect to LaterBox. Check your internet connection and try again."
                     } else {
                         errorMessage = "Failed to send code: \(error.localizedDescription)"
                     }
