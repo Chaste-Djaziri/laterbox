@@ -21,7 +21,7 @@ import {
   isAuthError,
 } from '../utils/pending-captures';
 import { uploadWithNotificationHandoff } from '../notifications/client';
-import { isActive, isDue, transitionItemStatus, restoreItemToInbox, scheduleItemReturn } from '../utils/schedule';
+import { isActive, isDue, transitionItemStatus, moveItemToInbox, restoreItemToInbox, scheduleItemReturn } from '../utils/schedule';
 import { createQueryRecovery } from '../utils/query-recovery';
 
 const LOCAL_ITEMS_KEY = 'laterbox_local_items';
@@ -713,7 +713,15 @@ export function ItemProvider({ children }: { children: ReactNode }) {
 
   const keepItem = (id: string) => setStatus(id, 'saved');
   const archiveItem = (id: string) => setStatus(id, 'archived');
-  const markUnseen = (id: string) => reschedule(id, new Date().toISOString());
+  const markUnseen = async (id: string) => {
+    const timestamp = new Date().toISOString();
+    const updated = items.map(item => item.id === id ? moveItemToInbox(item, timestamp) : item);
+    setItems(updated);
+    saveLocalData(updated);
+    const changed = updated.find(item => item.id === id);
+    if (changed) queueCapture(changed);
+    if (user) await safeSyncPending(user.id);
+  };
 
   const markSeen = async (id: string) => {
     const item = items.find(i => i.id === id);
