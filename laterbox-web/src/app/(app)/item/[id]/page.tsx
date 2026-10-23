@@ -9,7 +9,7 @@ import { NoteEditor } from '@/components/item/NoteEditor';
 import { ArticleReader } from '@/components/item/ArticleReader';
 import { AddToCollectionModal } from '@/components/collections/AddToCollectionModal';
 import { ReturnTimePicker } from '@/components/scheduling/ReturnTimePicker';
-import { isDue } from '@/lib/utils/schedule';
+import { isDue, formatInboxAge } from '@/lib/utils/schedule';
 import { useItems } from '@/lib/store/ItemContext';
 import { extractDomain, formatTimeAgo, buildTextFragmentUrl } from '@/lib/utils/url';
 import { fetchAttachmentDownloadUrl } from '@/lib/utils/attachment';
@@ -461,6 +461,18 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
             </button>
           </div>
         </div>
+
+        {item.status === 'inbox' && (
+          <div className="flex items-center gap-2 rounded-2xl border border-[#e4e0d5] bg-white px-4 py-3 text-sm text-[#171711]">
+            <Clock className="h-4 w-4 shrink-0 text-[#6c6b63]" aria-hidden="true" />
+            <div>
+              <span className="font-semibold">In Inbox</span>
+              <p className="mt-0.5 text-xs text-[#6c6b63]">
+                {formatInboxAge(item, now) ?? 'Inbox entry time unavailable for this older item'}
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Reschedule Picker */}
         <div className="bg-[#faf8f5] p-4 rounded-2xl border border-[#e4e0d5]">
