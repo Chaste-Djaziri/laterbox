@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { isDue, migrateSchedule, resolveReturnPreset, scheduleItems, todayFocusItems, formatInboxAge, transitionItemStatus, restoreItemToInbox, scheduleItemReturn } from './schedule';
+import { isDue, migrateSchedule, resolveReturnPreset, scheduleItems, todayFocusItems, formatInboxAge, transitionItemStatus, moveItemToInbox, restoreItemToInbox, scheduleItemReturn } from './schedule';
 import { itemRow, queueCapture } from './pending-captures';
 import type { LaterBoxItem } from '../supabase/types';
 
@@ -107,6 +107,28 @@ test('restore from deleted resets Inbox entry and leaves legacy historical data 
   assert.equal(migrateSchedule(legacy).inbox_entered_at, undefined);
   assert.equal(transitionItemStatus(legacy, 'inbox', restoredAt).inbox_entered_at, null);
 });
+test('Move to Inbox clears old return and seen state without losing metadata', () => {
+  const timestamp = '2026-10-23T09:00:00Z';
+  const deferred = {
+    ...item('archive-return', new Date(2026, 9, 19), 'archived'),
+    seen: true,
+    inbox_entered_at: '2026-09-01T09:00:00Z',
+    metadata: {
+      item_id: 'archive-return', status: 'enriched' as const, attempt_count: 1,
+      created_at: '2026-08-01T09:00:00Z', updated_at: '2026-10-01T09:00:00Z',
+      structured_data: JSON.stringify({ source: 'web', tags: ['science'], seen: true }),
+    },
+  };
+  const moved = moveItemToInbox(deferred, timestamp);
+  assert.equal(moved.status, 'inbox');
+  assert.equal(moved.return_at, null);
+  assert.equal(moved.inbox_entered_at, timestamp);
+  assert.equal(moved.seen, false);
+  assert.deepEqual(JSON.parse(moved.metadata!.structured_data!), { source: 'web', tags: ['science'], seen: false });
+  assert.equal(moved.metadata!.updated_at, timestamp);
+  assert.equal(moveItemToInbox(moved, '2026-10-23T10:00:00Z').inbox_entered_at, timestamp);
+});
+
 test('cloud serialization includes schedule and supports clearing it', () => {
   const row = itemRow(item('timed', now));
   assert.equal(row.return_at, now.toISOString()); assert.equal(row.status, 'deferred');
