@@ -85,8 +85,16 @@ export function transitionItemStatus(
   };
 }
 
+export function moveItemToInbox(item: LaterBoxItem, timestamp: string): LaterBoxItem {
+  return {
+    ...transitionItemStatus(item, 'inbox', timestamp),
+    return_at: null,
+    seen: false,
+  };
+}
+
 export function restoreItemToInbox(item: LaterBoxItem, timestamp: string): LaterBoxItem {
-  return { ...transitionItemStatus(item, 'inbox', timestamp), deleted_at: null };
+  return { ...moveItemToInbox(item, timestamp), deleted_at: null };
 }
 
 export function scheduleItemReturn(item: LaterBoxItem, returnAt: string | null, timestamp: string): LaterBoxItem {
