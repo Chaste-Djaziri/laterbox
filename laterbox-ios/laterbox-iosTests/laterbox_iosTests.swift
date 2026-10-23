@@ -1452,15 +1452,17 @@ extension LaterAITests {
 
     @Test
     func entitlementRefreshAndRetryTracking() async throws {
-        let coordinator = SyncCoordinator.shared
+        // Billing 401, failed token refresh and RPC fallback are simulated
+        // in-memory. No hosted account or developer-run server is needed.
+        let defaults = try #require(UserDefaults(suiteName: "entitlement_\(UUID().uuidString)"))
+        let api = LaterBoxAPIService(testSession: makeNativeTestURLSession())
+        let coordinator = SyncCoordinator(defaults: defaults, api: api)
         coordinator.signOut()
 
-        // Unauthenticated coordinator returns false
         let unauthResult = await coordinator.refreshEntitlement()
         #expect(unauthResult == false)
         #expect(coordinator.billingError == nil)
 
-        // Set session
         coordinator.setSession(
             email: "entitlement-test@example.com",
             userId: "uid-entitle-1",
@@ -1468,16 +1470,12 @@ extension LaterAITests {
             refreshToken: "mock-expired-refresh"
         )
 
-        // Allow any initial background tasks from setSession to settle
-        try? await Task.sleep(nanoseconds: 300_000_000)
-
         let result = await coordinator.refreshEntitlement()
         #expect(coordinator.isCheckingEntitlement == false)
         #expect(result == false)
         #expect(coordinator.billingError != nil)
         #expect(coordinator.sessionExpired == true)
 
-        // Sign out resets billingError
         coordinator.signOut()
         #expect(coordinator.billingError == nil)
         #expect(coordinator.sessionExpired == false)
@@ -1798,41 +1796,115 @@ extension LaterAITests {
 
     @Test
     func authFlowUserNotFoundThenSignUpWithPasswordAndVerifyCode() async throws {
-        let uniqueEmail = "user_\(UUID().uuidString.prefix(8).lowercased())@testbox.local"
-        let testPassword = "Password123!"
+        NativeTestURLProtocol.backend.reset()
+        let api = LaterBoxAPIService(testSession: makeNativeTestURLSession())
+        let email = "user_\(UUID().uuidString.prefix(8).lowercased())@example.invalid"
+        let password = "Password123!"
 
-        // 1. Initial OTP request for non-existent user should indicate userNotFound
-        let otpResult = try await LaterBoxAPIService.shared.requestEmailOTP(email: uniqueEmail)
+        // The same request/response parsing as production, without external
+        // sign-ups, Mailpit, or messages sent to a real email address.
+        let otpResult = try await api.requestEmailOTP(email: email)
         #expect(otpResult == .userNotFound)
 
-        // 2. Sign up with email and password -> requiresConfirmation should be true
-        let (requiresConfirmation, userId) = try await LaterBoxAPIService.shared.signUp(
-            email: uniqueEmail,
-            password: testPassword
-        )
-        #expect(requiresConfirmation == true)
-        #expect(userId != nil)
+        let (requiresConfirmation, userId) = try await api.signUp(email: email, password: password)
+        #expect(requiresConfirmation)
+        #expect(userId == "ci-fixture-user")
 
-        // 3. Wait briefly and fetch the 8-digit verification code from local Mailpit
-        try await Task.sleep(nanoseconds: 800_000_000)
-        let code = await LaterBoxAPIService.shared.fetchLatestMailpitOTP(for: uniqueEmail)
-        let token = try #require(code)
+        // Deterministic 8-digit OTP supplied by the isolated test backend.
+        let token = "12345678"
         #expect(token.count == 8)
-
-        // 4. Verify signup OTP code
-        let (accessToken, refreshToken, verifiedUserId) = try await LaterBoxAPIService.shared.verifyOTP(
-            email: uniqueEmail,
-            token: token,
-            type: "signup"
+        let (accessToken, refreshToken, verifiedUserId) = try await api.verifyOTP(
+            email: email, token: token, type: "signup"
         )
-        #expect(!accessToken.isEmpty)
+        #expect(accessToken == "ci-access-token")
+        #expect(refreshToken == "ci-refresh-token")
         #expect(verifiedUserId == userId)
 
-        // 5. Existing user requesting OTP code should now return .sent
-        let existingUserResult = try await LaterBoxAPIService.shared.requestEmailOTP(email: uniqueEmail)
+        let existingUserResult = try await api.requestEmailOTP(email: email)
         #expect(existingUserResult == .sent)
     }
 }
+// This URLSession intercepts every request in-memory. The app itself continues
+// to use real hosted Supabase URLs; CI never contacts the live services.
+private func makeNativeTestURLSession() -> URLSession {
+    let configuration = URLSessionConfiguration.ephemeral
+    configuration.protocolClasses = [NativeTestURLProtocol.self]
+    return URLSession(configuration: configuration)
+}
+
+private final class NativeTestURLProtocol: URLProtocol, @unchecked Sendable {
+    static let backend = NativeTestBackend()
+
+    override class func canInit(with request: URLRequest) -> Bool { true }
+    override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
+
+    override func startLoading() {
+        let (status, body) = Self.backend.response(for: request)
+        guard let url = request.url,
+              let response = HTTPURLResponse(url: url, statusCode: status,
+                                             httpVersion: "HTTP/1.1",
+                                             headerFields: ["Content-Type": "application/json"]) else {
+            client?.urlProtocol(self, didFailWithError: URLError(.badServerResponse))
+            return
+        }
+        client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
+        client?.urlProtocol(self, didLoad: body)
+        client?.urlProtocolDidFinishLoading(self)
+    }
+    override func stopLoading() {}
+}
+
+private final class NativeTestBackend: @unchecked Sendable {
+    private let lock = NSLock()
+    private var signedUp = false
+
+    func reset() {
+        lock.lock()
+        defer { lock.unlock() }
+        signedUp = false
+    }
+
+    func response(for request: URLRequest) -> (Int, Data) {
+        lock.lock()
+        defer { lock.unlock() }
+        let path = request.url?.path ?? ""
+        let payload: [String: Any]
+        let status: Int
+        switch path {
+        case "/auth/v1/otp":
+            status = signedUp ? 200 : 422
+            payload = signedUp ? [:] : ["error_code": "user_not_found"]
+        case "/auth/v1/signup":
+            signedUp = true
+            status = 200
+            payload = ["user": ["id": "ci-fixture-user"]]
+        case "/auth/v1/verify":
+            let values = (request.httpBody.flatMap {
+                try? JSONSerialization.jsonObject(with: $0) as? [String: Any]
+            }) ?? [:]
+            if values["token"] as? String == "12345678" &&
+               values["type"] as? String == "signup" {
+                status = 200
+                payload = [
+                    "access_token": "ci-access-token",
+                    "refresh_token": "ci-refresh-token",
+                    "user": ["id": "ci-fixture-user"]
+                ]
+            } else {
+                status = 401
+                payload = ["message": "Invalid OTP"]
+            }
+        case "/api/billing/entitlement", "/auth/v1/token", "/rest/v1/rpc/has_pro_entitlement":
+            status = 401
+            payload = ["error": "JWT expired"]
+        default:
+            status = 404
+            payload = ["message": "No fixture for \(path)"]
+        }
+        return (status, (try? JSONSerialization.data(withJSONObject: payload)) ?? Data("{}".utf8))
+    }
+}
+
 @MainActor
 private final class MockCloudTransport: IOSCloudTransport {
     var downloads = 0
