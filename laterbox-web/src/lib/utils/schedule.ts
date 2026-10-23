@@ -21,13 +21,46 @@ export function isActive(item: LaterBoxItem): boolean {
 export function isDue(item: LaterBoxItem, now: Date): boolean {
   return isActive(item) && (item.status === 'inbox' || (!!item.return_at && new Date(item.return_at) <= now));
 }
+/** Calendar-day boundaries use the viewer's local timezone, including DST days. */
+export function todayFocusItems(items: LaterBoxItem[], now: Date): { overdue: LaterBoxItem[]; returningToday: LaterBoxItem[] } {
+  const dayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const nextDay = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).getTime();
+  const candidates = items.filter(item => {
+    if (item.deleted_at || item.status !== 'deferred' || !item.return_at) return false;
+    const timestamp = new Date(item.return_at).getTime();
+    return Number.isFinite(timestamp) && timestamp < nextDay;
+  }).sort((a, b) => new Date(a.return_at!).getTime() - new Date(b.return_at!).getTime());
+
+  return {
+    overdue: candidates.filter(item => new Date(item.return_at!).getTime() < dayStart),
+    returningToday: candidates.filter(item => new Date(item.return_at!).getTime() >= dayStart),
+  };
+}
+
+/** Returns null for missing/invalid history rather than inventing an Inbox entry. */
+export function formatInboxAge(item: LaterBoxItem, now: Date): string | null {
+  if (item.status !== 'inbox' || item.deleted_at || !item.inbox_entered_at) return null;
+  const entered = new Date(item.inbox_entered_at).getTime();
+  if (!Number.isFinite(entered) || entered > now.getTime()) return null;
+  const minutes = Math.floor((now.getTime() - entered) / 60000);
+  if (minutes < 1) return 'Just entered Inbox';
+  if (minutes < 60) return `In Inbox for ${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `In Inbox for ${hours} hr${hours === 1 ? '' : 's'}${minutes % 60 ? `, ${minutes % 60} min` : ''}`;
+  const days = Math.floor(hours / 24);
+  return `In Inbox for ${days} day${days === 1 ? '' : 's'}${hours % 24 ? `, ${hours % 24} hr${hours % 24 === 1 ? '' : 's'}` : ''}`;
+}
+
 export function scheduleItems(items: LaterBoxItem[], view: ScheduleView, now: Date): LaterBoxItem[] {
   return items.filter(item => {
     if (!isActive(item)) return false;
     if (view === 'someday') return !item.return_at && !isDue(item, now);
     if (!item.return_at) return false;
     const time = new Date(item.return_at);
-    return view === 'upcoming' ? time > now : time.toDateString() === now.toDateString();
+    if (view === 'today') return item.status === 'deferred' &&
+      Number.isFinite(time.getTime()) &&
+      time < new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+    return time > now;
   }).sort((a, b) => view === 'someday' ? b.created_at.localeCompare(a.created_at)
     : new Date(a.return_at!).getTime() - new Date(b.return_at!).getTime());
 }
