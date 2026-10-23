@@ -349,7 +349,7 @@ function buildRemoteItem(
 
   const resolvedTextContent = row.text_content || localCached?.text_content || null;
 
-  let remoteSeen = false;
+  let remoteSeen: boolean | undefined;
   if (mergedMeta?.structured_data) {
     try {
       const parsed = typeof mergedMeta.structured_data === 'string'
@@ -360,7 +360,8 @@ function buildRemoteItem(
       }
     } catch {}
   }
-  const resolvedSeen = remoteSeen || (localCached?.seen ?? false);
+  // An explicit remote false must clear a stale local "seen" flag.
+  const resolvedSeen = remoteSeen ?? localCached?.seen ?? false;
 
   return {
     ...migrateSchedule(row),
