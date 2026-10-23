@@ -47,7 +47,7 @@ interface ItemContextType {
   pendingPushCount: number;
   isPulling: boolean;
   isPushing: boolean;
-  saveItem: (value: string, options?: { id?: string; textSelector?: string; files?: File[]; returnAt?: string | null; type?: string }) => Promise<LaterBoxItem>;
+  saveItem: (value: string, options?: { id?: string; textSelector?: string; files?: File[]; returnAt?: string | null; type?: string; title?: string; tags?: string[] }) => Promise<LaterBoxItem>;
   now: Date;
   reschedule: (id: string, returnAt: string | null) => Promise<void>;
   setFavorite: (id: string, favorite: boolean) => Promise<void>;
@@ -398,7 +398,7 @@ export function ItemProvider({ children }: { children: ReactNode }) {
   // Save Item (URL, text, or file attachments)
   const saveItem = async (
     value: string,
-    options?: { id?: string; textSelector?: string; files?: File[]; returnAt?: string | null; type?: string }
+    options?: { id?: string; textSelector?: string; files?: File[]; returnAt?: string | null; type?: string; title?: string; tags?: string[] }
   ): Promise<LaterBoxItem> => {
     const trimmed = value.trim();
     const files = options?.files || [];
@@ -462,6 +462,8 @@ export function ItemProvider({ children }: { children: ReactNode }) {
     const defaultTitle = files.length > 0
       ? files[0].name
       : domain || textContent?.slice(0, 60) || 'New Capture';
+    const userTitle = options?.title?.trim() || null;
+    const initialTags = [...new Set((options?.tags ?? []).map(tag => tag.trim().replace(/^#/, '')).filter(Boolean))].slice(0, 12);
 
     const itemType = files.length > 0
       ? 'file'
@@ -491,7 +493,7 @@ export function ItemProvider({ children }: { children: ReactNode }) {
       id: itemId,
       user_id: user?.id || null,
       url: normalizedUrl,
-      title: defaultTitle,
+      title: userTitle || defaultTitle,
       text_content: textContent,
       text_selector: options?.textSelector || null,
       type: options?.type || itemType,
@@ -502,19 +504,22 @@ export function ItemProvider({ children }: { children: ReactNode }) {
       created_at: now,
       updated_at: now,
       attachments: [],
-      metadata: normalizedUrl
+      metadata: normalizedUrl || initialTags.length > 0 || userTitle
         ? {
             item_id: itemId,
             user_id: user?.id || null,
-            domain: domain,
+            domain,
             site_name: domain,
-            title: domain,
+            title: userTitle || domain,
             favicon_url: initialFavicon,
             status: 'pending',
             attempt_count: 0,
-            content_type: 'link',
+            content_type: normalizedUrl ? 'link' : (options?.type || 'note'),
             classification_source: 'web',
-            structured_data: JSON.stringify({ source: 'web', os: userOs }),
+            structured_data: JSON.stringify({
+              source: 'web', os: userOs,
+              ...(initialTags.length > 0 ? { tags: initialTags } : {}),
+            }),
             created_at: now,
             updated_at: now,
           }
@@ -549,7 +554,7 @@ export function ItemProvider({ children }: { children: ReactNode }) {
         } catch { /* ignore */ }
 
         if (enrichData && typeof enrichData === 'object') {
-          const enrichedTitle = (enrichData.title as string) || defaultTitle;
+          const enrichedTitle = userTitle || (enrichData.title as string) || defaultTitle;
           const description = (enrichData.description as string) || null;
           const siteName = (enrichData.siteName as string) || (enrichData.site_name as string) || domain;
           const faviconUrl = (enrichData.faviconUrl as string) || (enrichData.favicon_url as string) || initialFavicon;
@@ -577,7 +582,8 @@ export function ItemProvider({ children }: { children: ReactNode }) {
           const structuredData = {
             source: 'web',
             os: userOs,
-            ...(keywords.length > 0 ? { tags: keywords } : {}),
+            ...((initialTags.length > 0 || keywords.length > 0)
+              ? { tags: [...new Set([...initialTags, ...keywords])].slice(0, 24) } : {}),
             ...(embedProvider ? { embedProvider, embedUrl, embedHeight } : {}),
             ...(author ? { author } : {}),
             ...(publishedTime ? { publishedTime } : {}),
