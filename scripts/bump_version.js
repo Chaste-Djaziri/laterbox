@@ -12,6 +12,7 @@ const extensionPackageJsonPath = path.join(rootDir, 'laterbox-extension', 'packa
 const extensionChromiumManifestPath = path.join(rootDir, 'laterbox-extension', 'manifests', 'chromium.json');
 const extensionFirefoxManifestPath = path.join(rootDir, 'laterbox-extension', 'manifests', 'firefox.json');
 const extensionSafariManifestPath = path.join(rootDir, 'laterbox-extension', 'manifests', 'safari.json');
+const iosVersionJsonPath = path.join(rootDir, 'laterbox-ios', 'version.json');
 const iosPbxprojPath = path.join(rootDir, 'laterbox-ios', 'laterbox-ios.xcodeproj', 'project.pbxproj');
 const iosAppVersionSwiftPath = path.join(rootDir, 'laterbox-ios', 'laterbox-ios', 'AppVersion.swift');
 const iosShareInfoPlistPath = path.join(rootDir, 'laterbox-ios', 'LaterBoxShare', 'Info.plist');
@@ -182,12 +183,24 @@ export const VERSION_METADATA = {
     }
   }
 
+  // iOS has a separate release train from web and browser extensions.
+  // Do not overwrite its 1.1.x version when syncing the shared web metadata.
+  const iosVersionData = fs.existsSync(iosVersionJsonPath)
+    ? JSON.parse(fs.readFileSync(iosVersionJsonPath, 'utf8'))
+    : versionData;
+  const iosVersionString = iosVersionData.version;
+  const iosBuildNumber = iosVersionData.buildNumber;
+  const iosBuildTime = iosVersionData.buildTime || buildTime;
+  if (!/^\d+\.\d+\.\d+$/.test(iosVersionString) || !Number.isInteger(iosBuildNumber)) {
+    throw new Error('Invalid iOS version metadata: ' + iosVersionJsonPath);
+  }
+
   // 9. laterbox-ios/laterbox-ios.xcodeproj/project.pbxproj (Native iOS app and extension targets)
   if (fs.existsSync(iosPbxprojPath)) {
     try {
       let pbx = fs.readFileSync(iosPbxprojPath, 'utf8');
-      pbx = pbx.replace(/MARKETING_VERSION\s*=\s*[^;]+;/g, `MARKETING_VERSION = ${versionString};`);
-      pbx = pbx.replace(/CURRENT_PROJECT_VERSION\s*=\s*[^;]+;/g, `CURRENT_PROJECT_VERSION = ${buildNumber};`);
+      pbx = pbx.replace(/MARKETING_VERSION\s*=\s*[^;]+;/g, `MARKETING_VERSION = ${iosVersionString};`);
+      pbx = pbx.replace(/CURRENT_PROJECT_VERSION\s*=\s*[^;]+;/g, `CURRENT_PROJECT_VERSION = ${iosBuildNumber};`);
       fs.writeFileSync(iosPbxprojPath, pbx, 'utf8');
     } catch (err) {
       console.warn('[LaterBox Version] Warning: Failed to update project.pbxproj:', err.message);
@@ -213,9 +226,9 @@ import Foundation
 
 /// Provides compile-time version metadata and dynamic bundle introspection for LaterBox iOS.
 public enum AppVersion {
-    public static let marketingVersion = "${versionString}"
-    public static let buildNumber = "${buildNumber}"
-    public static let buildTime = "${buildTime}"
+    public static let marketingVersion = "${iosVersionString}"
+    public static let buildNumber = "${iosBuildNumber}"
+    public static let buildTime = "${iosBuildTime}"
 
     /// Live version string from bundle (CFBundleShortVersionString), falling back to compile-time constant
     public static var currentVersion: String {
@@ -236,7 +249,7 @@ public enum AppVersion {
     fs.writeFileSync(iosAppVersionSwiftPath, swiftContent, 'utf8');
   }
 
-  console.log(`[LaterBox Version] Synchronized version across iOS, Web, Extensions & Desktop: v${versionString} (build #${buildNumber})`);
+  console.log(`[LaterBox Version] Web/extensions: v${versionString} (build #${buildNumber}); iOS: v${iosVersionString} (build #${iosBuildNumber})`);
 }
 
 bumpVersion();
