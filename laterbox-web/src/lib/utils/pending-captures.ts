@@ -20,6 +20,7 @@ export function itemRow(item: LaterBoxItem) {
     favorite: item.favorite,
     status: item.status,
     return_at: item.return_at ?? null,
+    inbox_entered_at: item.inbox_entered_at ?? null,
     created_at: item.created_at,
     updated_at: item.updated_at,
     deleted_at: item.deleted_at ?? null,
@@ -363,6 +364,8 @@ function buildRemoteItem(
 
   return {
     ...migrateSchedule(row),
+    // Missing history must remain unknown; never infer a real Inbox visit from created_at.
+    inbox_entered_at: row.inbox_entered_at ?? null,
     title: resolvedTitle,
     text_content: resolvedTextContent,
     metadata: mergedMeta,
