@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useItems } from '@/lib/store/ItemContext';
 import Link from 'next/link';
 import { resolveReturnPreset, returnLabel, type ReturnPreset } from '@/lib/utils/schedule';
+import { suggestCapture, captureSummary, type CaptureKind } from '@/lib/utils/captureSuggestions';
 import {
   X,
   Link2,
@@ -59,7 +60,7 @@ export function QuickCaptureModal({
 }: QuickCaptureModalProps) {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [returnAt, setReturnAt] = useState<string | null>(null);
-  const [activePreset, setActivePreset] = useState<ReturnPreset | 'custom'>('tomorrow');
+  const [activePreset, setActivePreset] = useState<ReturnPreset | 'custom' | 'auto'>('auto');
   const [customDateTime, setCustomDateTime] = useState<string>('');
   const [isCustomOpen, setIsCustomOpen] = useState(false);
 
@@ -67,7 +68,9 @@ export function QuickCaptureModal({
   const [duplicateId, setDuplicateId] = useState<string | null>(null);
   const { saveItem } = useItems();
   const [content, setContent] = useState('');
+  const [titleOverride, setTitleOverride] = useState<string | null>(null);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [tagsTouched, setTagsTouched] = useState(false);
   const [customTagInput, setCustomTagInput] = useState('');
   const [showAddTag, setShowAddTag] = useState(false);
 
@@ -80,18 +83,28 @@ export function QuickCaptureModal({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const suggestion = useMemo(
+    () => suggestCapture(content, kind as CaptureKind, files.map(file => file.name)),
+    [content, kind, files]
+  );
+  const effectiveReturnAt = activePreset === 'auto' ? suggestion.returnAt : returnAt;
+  const effectiveTitle = titleOverride ?? suggestion.title;
+  const effectiveTags = tagsTouched ? selectedTags : suggestion.tags;
+  const contentSummary = captureSummary(content, files.map(file => file.name));
+
   // Initialize on modal open
   useEffect(() => {
     if (isOpen) {
       setStep(1);
       setContent('');
+      setTitleOverride(null);
       setFiles(initialFiles || []);
-      const defaultReturn = resolveReturnPreset('tomorrow');
-      setReturnAt(defaultReturn);
-      setActivePreset('tomorrow');
+      setReturnAt(null);
+      setActivePreset('auto');
       setIsCustomOpen(false);
       setCustomDateTime('');
       setSelectedTags([]);
+      setTagsTouched(false);
       setCustomTagInput('');
       setShowAddTag(false);
 
@@ -130,11 +143,12 @@ export function QuickCaptureModal({
   const handleContentChange = (text: string) => {
     setContent(text);
     const trimmed = text.trim();
-    if (trimmed.startsWith('http://') || trimmed.startsWith('https://') || trimmed.startsWith('www.')) {
+    if (files.length > 0) return;
+    if (/^(https?:\/\/|www\.)/i.test(trimmed)) {
       setKind('link');
-    } else if (trimmed.startsWith('- [ ]') || trimmed.startsWith('TODO:') || trimmed.startsWith('Todo:')) {
+    } else if (/^(- \[ \]|todo:)/i.test(trimmed)) {
       setKind('task');
-    } else if (trimmed.length > 0 && kind === 'link' && !trimmed.includes('.') && files.length === 0) {
+    } else if (trimmed.length > 0 && kind === 'link') {
       setKind('note');
     }
   };
@@ -192,30 +206,34 @@ export function QuickCaptureModal({
 
   const handleCustomDateSubmit = (dateTimeString: string) => {
     setCustomDateTime(dateTimeString);
+    setActivePreset('custom');
     if (!dateTimeString) {
       setReturnAt(null);
+      setError('Choose a future return time, or pick a preset.');
       return;
     }
     const date = new Date(dateTimeString);
     if (!Number.isFinite(date.getTime()) || date <= new Date()) {
+      setReturnAt(null);
       setError('Choose a future return time, or select Now.');
       return;
     }
     setError(null);
-    setActivePreset('custom');
     setReturnAt(date.toISOString());
   };
 
   const toggleTag = (tag: string) => {
-    setSelectedTags((prev) =>
-      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
-    );
+    setSelectedTags(effectiveTags.includes(tag)
+      ? effectiveTags.filter(t => t !== tag)
+      : [...effectiveTags, tag]);
+    setTagsTouched(true);
   };
 
   const handleAddCustomTag = () => {
     const trimmed = customTagInput.trim().replace(/^#/, '');
-    if (trimmed && !selectedTags.includes(trimmed)) {
-      setSelectedTags((prev) => [...prev, trimmed]);
+    if (trimmed && !effectiveTags.includes(trimmed)) {
+      setSelectedTags([...effectiveTags, trimmed]);
+      setTagsTouched(true);
       setCustomTagInput('');
       setShowAddTag(false);
     }
@@ -226,30 +244,26 @@ export function QuickCaptureModal({
     const hasContent = content.trim().length > 0;
     const hasFiles = files.length > 0;
 
-    if (saving || (!hasContent && !hasFiles)) return;
+    if (saving || success || (!hasContent && !hasFiles)) return;
+    if (activePreset === 'custom' && !returnAt) {
+      setError('Choose a valid return time or select an automatic suggestion.');
+      return;
+    }
 
     setSaving(true);
     setError(null);
 
     try {
       const id = crypto.randomUUID();
-      let payloadContent = content.trim();
-
-      // Append tags as clean tags if present and content is text
-      if (selectedTags.length > 0) {
-        const tagLine = selectedTags.map((t) => `#${t}`).join(' ');
-        if (payloadContent.length > 0) {
-          payloadContent = `${payloadContent}\n\n${tagLine}`;
-        } else {
-          payloadContent = tagLine;
-        }
-      }
-
-      const item = await saveItem(payloadContent, {
+      const item = await saveItem(content.trim(), {
         id,
         files,
-        returnAt,
+        returnAt: effectiveReturnAt,
         type: files.length ? 'file' : kind === 'task' ? 'task' : kind === 'note' ? 'note' : 'link',
+        // Preserve an explicitly edited title, while letting OpenGraph enrichment
+        // provide a better title for untouched URL captures.
+        title: titleOverride === null ? (kind === 'link' ? undefined : effectiveTitle) : effectiveTitle,
+        tags: effectiveTags,
       });
 
       if (item.id !== id) {
@@ -288,7 +302,7 @@ export function QuickCaptureModal({
     >
       {/* Signature One Shortcut Away Card Container */}
       <div
-        className={`relative w-full max-w-[560px] rounded-[28px] sm:rounded-[34px] bg-white border-2 border-[#171711] shadow-[0_24px_70px_rgba(0,0,0,0.22),0_8px_24px_rgba(230,237,176,0.35)] overflow-hidden transition-all duration-200 ${
+        className={`relative w-full max-w-[560px] max-h-[calc(100dvh-2rem)] flex flex-col rounded-[28px] sm:rounded-[34px] bg-white border-2 border-[#171711] shadow-[0_24px_70px_rgba(0,0,0,0.22),0_8px_24px_rgba(230,237,176,0.35)] overflow-hidden transition-all duration-200 ${
           isDragging ? 'ring-4 ring-[#171711]/20 bg-[#f7f5ee]' : 'bg-white'
         }`}
         onClick={(e) => e.stopPropagation()}
@@ -360,7 +374,7 @@ export function QuickCaptureModal({
         )}
 
         {/* Modal Body: Multi-Step Staging */}
-        <div className="p-6 sm:p-7 min-h-[260px] flex flex-col justify-between">
+        <div className="p-6 sm:p-7 min-h-0 overflow-y-auto flex-1 flex flex-col justify-between">
           {/* STEP 1: CAPTURE */}
           {step === 1 && (
             <div className="space-y-4 animate-in fade-in duration-200">
@@ -433,6 +447,20 @@ export function QuickCaptureModal({
                   </span>
                 </button>
               </div>
+
+              {hasSubmitData && activePreset === 'auto' && (
+                <div className="flex items-start gap-3 rounded-2xl border border-[#e4e0d5] bg-[#f7f5ee] px-4 py-3">
+                  <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-[#6c752b]" aria-hidden="true" />
+                  <div className="min-w-0">
+                    <p className="text-xs font-bold text-[#171711]">
+                      Suggested return: {suggestion.returnAt ? returnLabel(suggestion.returnAt) : 'Someday'}
+                    </p>
+                    <p className="mt-0.5 text-[11px] leading-relaxed text-[#6c6b63]">
+                      {suggestion.reason} Save to LaterBox now, or open Schedule to choose a time.
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -446,6 +474,11 @@ export function QuickCaptureModal({
                 </p>
               </div>
 
+              <div className="rounded-xl bg-[#f7f5ee] px-3 py-2.5 text-xs text-[#6c6b63]">
+                <span className="font-bold text-[#171711]">Saving: </span>
+                <span className="break-words">{contentSummary}</span>
+              </div>
+
               {/* Friendly Schedule Preview Banner */}
               <div className="p-4 rounded-2xl bg-[#f7f5ee] border border-[#e4e0d5] flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -454,22 +487,39 @@ export function QuickCaptureModal({
                   </div>
                   <div>
                     <p className="text-xs font-bold text-[#171711]">
-                      {returnAt ? `Returning ${returnLabel(returnAt)}` : 'Someday (no deadline)'}
+                      {effectiveReturnAt ? `Returning ${returnLabel(effectiveReturnAt)}` : 'Someday (no deadline)'}
                     </p>
                     <p className="text-[11px] text-[#6c6b63]">
-                      {returnAt
-                        ? 'Will reappear at the top of your inbox on schedule'
-                        : 'Saved to your Someday archive until you decide'}
+                      {activePreset === 'auto' ? suggestion.reason
+                        : effectiveReturnAt
+                          ? 'Will reappear in your inbox on the selected date'
+                          : 'Saved to Someday until you decide'}
                     </p>
                   </div>
                 </div>
                 <span className="text-[11px] font-mono font-bold px-2.5 py-1 rounded-lg bg-white border border-[#e4e0d5] text-[#171711]">
-                  {activePreset === 'custom' ? 'Custom' : activePreset}
+                  {activePreset === 'auto' ? 'Suggested' : activePreset === 'custom' ? 'Custom' : activePreset}
                 </span>
               </div>
 
               {/* Schedule Options Pills (matching One Shortcut Away Section) */}
               <div className="flex flex-wrap items-center gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActivePreset('auto');
+                    setReturnAt(null);
+                    setIsCustomOpen(false);
+                    setCustomDateTime('');
+                    setError(null);
+                  }}
+                  className={activePreset === 'auto'
+                    ? 'inline-flex items-center gap-1.5 text-xs font-bold px-4 py-2 rounded-full border bg-[#e6edb0] border-[#171711]/25'
+                    : 'inline-flex items-center gap-1.5 text-xs font-semibold px-4 py-2 rounded-full border bg-[#f4f3ed] text-[#4a4940] hover:bg-[#e9e7df] border-transparent'}
+                >
+                  <Sparkles className="h-3.5 w-3.5" />
+                  Suggested
+                </button>
                 {PRESET_OPTIONS.map((opt) => {
                   const isSelected = activePreset === opt.key;
                   return (
@@ -529,6 +579,26 @@ export function QuickCaptureModal({
                 </p>
               </div>
 
+              <div className="rounded-xl bg-[#f7f5ee] px-3 py-2.5 text-xs text-[#6c6b63]">
+                <span className="font-bold text-[#171711]">Captured: </span>
+                <span className="break-words">{contentSummary}</span>
+              </div>
+              <label className="block space-y-1.5">
+                <span className="text-xs font-bold text-[#171711]">Title</span>
+                <input
+                  type="text"
+                  maxLength={200}
+                  value={effectiveTitle}
+                  disabled={saving || success}
+                  onChange={event => setTitleOverride(event.target.value)}
+                  placeholder="Give this item a title (optional)"
+                  className="w-full rounded-xl border border-[#e4e0d5] bg-white px-3 py-2.5 text-sm font-semibold text-[#171711] focus:outline-hidden focus:border-[#171711]"
+                />
+                <span className="block text-[11px] text-[#8c897f]">
+                  Prefilled from your capture. Rename it without changing the original content.
+                </span>
+              </label>
+
               {/* Tags Section */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-xs font-bold text-[#171711]">
@@ -548,9 +618,14 @@ export function QuickCaptureModal({
                   )}
                 </div>
 
+                {suggestion.tags.length > 0 && !tagsTouched && (
+                  <p className="text-[11px] text-[#6c6b63]">
+                    <Sparkles className="inline h-3 w-3 align-text-bottom" /> Suggested tags are selected. Tap any to change.
+                  </p>
+                )}
                 <div className="flex flex-wrap items-center gap-1.5">
                   {SUGGESTED_TAGS.map((tag) => {
-                    const isSelected = selectedTags.includes(tag);
+                    const isSelected = effectiveTags.includes(tag);
                     return (
                       <button
                         key={tag}
@@ -568,7 +643,7 @@ export function QuickCaptureModal({
                   })}
 
                   {/* Any custom selected tags not in suggested */}
-                  {selectedTags
+                  {effectiveTags
                     .filter((t) => !SUGGESTED_TAGS.includes(t))
                     .map((tag) => (
                       <button
@@ -705,7 +780,7 @@ export function QuickCaptureModal({
         </div>
 
         {/* Footer Action Bar */}
-        <div className="flex items-center justify-between px-6 py-4 border-t border-[#f4f3ed] bg-[#faf9f5]">
+        <div className="shrink-0 flex items-center justify-between gap-2 px-4 sm:px-6 py-4 border-t border-[#f4f3ed] bg-[#faf9f5]">
           <div className="flex items-center gap-2">
             {step > 1 ? (
               <button
@@ -772,7 +847,7 @@ export function QuickCaptureModal({
             SAVED.
           </span>
           <p className="text-xs font-semibold text-[#4a4940] mt-1">
-            {returnAt ? `Returning ${returnLabel(returnAt)}` : 'Stored in Someday Vault'}
+            {effectiveReturnAt ? `Returning ${returnLabel(effectiveReturnAt)}` : 'Stored in Someday Vault'}
           </p>
         </div>
       </div>
