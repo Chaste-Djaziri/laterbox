@@ -4,7 +4,7 @@ import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { LaterBoxItem } from '@/lib/supabase/types';
 import { useItems } from '@/lib/store/ItemContext';
-import { resolveReturnPreset, ReturnPreset, scheduleItems } from '@/lib/utils/schedule';
+import { resolveReturnPreset, ReturnPreset, scheduleItems, formatInboxAge } from '@/lib/utils/schedule';
 import {
   Inbox,
   Tag,
@@ -1237,6 +1237,11 @@ export function EmailInboxTable({
                     <p className="text-[11px] text-[#6c6b63] truncate mt-0.5">
                       {snippet}
                     </p>
+                    {formatInboxAge(item, now) && (
+                      <p className="mt-1 text-[10px] font-semibold text-[#6c6b63]">
+                        {formatInboxAge(item, now)}
+                      </p>
+                    )}
                     </div>
                   </div>
                 );
@@ -1550,8 +1555,11 @@ export function EmailInboxTable({
                   </div>
 
                   {/* Date Time (Visible when NOT hovered) */}
-                  <span className="group-hover:hidden text-[11px] sm:text-xs font-semibold text-[#171711] sm:text-[#6c6b63] tabular-nums bg-white/75 backdrop-blur-xs px-2 py-0.5 rounded-md border border-[#e4e0d5]/40 shadow-2xs">
-                    {formatEmailDate(item.created_at)}
+                  <span
+                    title={'Saved ' + formatEmailDate(item.created_at)}
+                    className="group-hover:hidden text-[11px] sm:text-xs font-semibold text-[#171711] sm:text-[#6c6b63] tabular-nums bg-white/75 backdrop-blur-xs px-2 py-0.5 rounded-md border border-[#e4e0d5]/40 shadow-2xs"
+                  >
+                    {formatInboxAge(item, now) ?? formatEmailDate(item.created_at)}
                   </span>
                 </div>
               </div>
