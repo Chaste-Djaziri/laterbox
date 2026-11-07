@@ -24,6 +24,7 @@ import {
 import { uploadWithNotificationHandoff } from '../notifications/client';
 import { isActive, isDue, transitionItemStatus, moveItemToInbox, restoreItemToInbox, scheduleItemReturn } from '../utils/schedule';
 import { createQueryRecovery } from '../utils/query-recovery';
+import { collectionNameKey, planCollectionMerge, remapItemCollections } from '../utils/collection-dedup';
 
 const LOCAL_ITEMS_KEY = 'laterbox_local_items';
 const LOCAL_COLLECTIONS_KEY = 'laterbox_local_collections';
@@ -100,30 +101,35 @@ export function ItemProvider({ children }: { children: ReactNode }) {
   const [isPulling, setIsPulling] = useState(false);
   const [isPushing, setIsPushing] = useState(false);
   const isFetchingRef = React.useRef(false);
+  const pendingCollectionCreates = React.useRef(new Map<string, Promise<Collection>>());
 
   // Load from local storage
   const loadLocalData = useCallback(() => {
     try {
-      const stored = localStorage.getItem(`${LOCAL_ITEMS_KEY}_${user?.id || 'guest'}`) || localStorage.getItem(LOCAL_ITEMS_KEY);
-      if (stored) {
-        const parsed = (JSON.parse(stored) as LaterBoxItem[])
-          .filter(item => (item.user_id || null) === (user?.id || null))
-          .filter(item => !item.id.startsWith('guest-item-'));
-        setItems(parsed);
-      } else {
-        setItems([]);
-      }
-      const storedCols = localStorage.getItem(`${LOCAL_COLLECTIONS_KEY}_${user?.id || 'guest'}`) || localStorage.getItem(LOCAL_COLLECTIONS_KEY);
-      if (storedCols) {
-        setCollections((JSON.parse(storedCols) as Collection[]).filter(collection => (collection.user_id || null) === (user?.id || null)));
-      } else {
-        setCollections([]);
-      }
-      const storedDeleted = localStorage.getItem(`${LOCAL_DELETED_ITEMS_KEY}_${user?.id || 'guest'}`) || localStorage.getItem(LOCAL_DELETED_ITEMS_KEY);
-      if (storedDeleted) {
-        setDeletedItems(JSON.parse(storedDeleted) as LaterBoxItem[]);
-      } else {
-        setDeletedItems([]);
+      const owner = user?.id || 'guest';
+      const stored = localStorage.getItem(`${LOCAL_ITEMS_KEY}_${owner}`) || localStorage.getItem(LOCAL_ITEMS_KEY);
+      const storedCols = localStorage.getItem(`${LOCAL_COLLECTIONS_KEY}_${owner}`) || localStorage.getItem(LOCAL_COLLECTIONS_KEY);
+      const storedDeleted = localStorage.getItem(`${LOCAL_DELETED_ITEMS_KEY}_${owner}`) || localStorage.getItem(LOCAL_DELETED_ITEMS_KEY);
+      const originalItems = stored
+        ? (JSON.parse(stored) as LaterBoxItem[])
+            .filter(item => (item.user_id || null) === (user?.id || null))
+            .filter(item => !item.id.startsWith('guest-item-'))
+        : [];
+      const originalCollections = storedCols
+        ? (JSON.parse(storedCols) as Collection[])
+            .filter(collection => (collection.user_id || null) === (user?.id || null))
+        : [];
+      const originalDeleted = storedDeleted ? (JSON.parse(storedDeleted) as LaterBoxItem[]) : [];
+      const plan = planCollectionMerge(originalCollections);
+      const nextItems = remapItemCollections(originalItems, plan.canonicalById);
+      const nextDeleted = remapItemCollections(originalDeleted, plan.canonicalById);
+      setItems(nextItems);
+      setCollections(plan.collections);
+      setDeletedItems(nextDeleted);
+      if (plan.duplicates.length) {
+        localStorage.setItem(`${LOCAL_ITEMS_KEY}_${owner}`, JSON.stringify(nextItems));
+        localStorage.setItem(`${LOCAL_DELETED_ITEMS_KEY}_${owner}`, JSON.stringify(nextDeleted));
+        localStorage.setItem(`${LOCAL_COLLECTIONS_KEY}_${owner}`, JSON.stringify(plan.collections));
       }
     } catch {
       // ignore
@@ -992,58 +998,80 @@ export function ItemProvider({ children }: { children: ReactNode }) {
       throw new Error('Collection name cannot be empty');
     }
 
-    // 1. Check in-memory/state collections (case-insensitive)
-    const existing = collections.find(
-      (c) => c.name.trim().toLowerCase() === trimmed.toLowerCase() && !c.deleted_at
-    );
-    if (existing) {
-      return existing;
-    }
+    // Sharing one in-flight request stops rapid captures/components from
+    // creating parallel collections before React receives the first update.
+    const key = `${user?.id || 'guest'}:${collectionNameKey(trimmed)}`;
+    const pending = pendingCollectionCreates.current.get(key);
+    if (pending) return pending;
+    const creation = (async (): Promise<Collection> => {
 
-    // 2. Check remote database for matching existing collection
-    if (user) {
-      const supabase = getSupabaseClient();
-      const { data: dbExisting } = await supabase
-        .from('collections')
-        .select('*')
-        .eq('user_id', user.id)
-        .ilike('name', trimmed)
-        .is('deleted_at', null)
-        .maybeSingle();
+      // 1. Check in-memory/state collections (case-insensitive)
+      const existing = collections.find(
+        (c) => collectionNameKey(c.name) === collectionNameKey(trimmed) && !c.deleted_at
+      );
+      if (existing) {
+        return existing;
+      }
 
-      if (dbExisting) {
-        if (!collections.some((c) => c.id === dbExisting.id)) {
-          const merged = [dbExisting, ...collections];
-          setCollections(merged);
-          saveLocalData(items, merged);
+      // 2. Check remote database for matching existing collection
+      if (user) {
+        const supabase = getSupabaseClient();
+        const { data: dbExisting, error: lookupError } = await supabase
+          .from('collections')
+          .select('*')
+          .eq('user_id', user.id)
+          .ilike('name', trimmed)
+          .is('deleted_at', null)
+          .order('created_at', { ascending: true })
+          .limit(1);
+
+        // maybeSingle() fails when legacy duplicates already exist, which used to
+        // cause yet another duplicate to be inserted on every new attempt.
+        if (lookupError) console.warn('[collections] Remote lookup unavailable; keeping a local collection:', lookupError);
+        const existingRemote = dbExisting?.[0];
+        if (existingRemote) {
+          if (!collections.some((c) => c.id === existingRemote.id)) {
+            const merged = planCollectionMerge([existingRemote, ...collections]).collections;
+            setCollections(merged);
+            saveLocalData(items, merged);
+          }
+          return existingRemote;
         }
-        return dbExisting;
+      }
+
+      const now = new Date().toISOString();
+      const newCol: Collection = {
+        id: crypto.randomUUID(),
+        user_id: user?.id || null,
+        name: trimmed,
+        created_at: now,
+        updated_at: now,
+      };
+      const updated = [newCol, ...collections];
+      setCollections(updated);
+      saveLocalData(items, updated);
+
+      if (user) {
+        const supabase = getSupabaseClient();
+        const { error } = await supabase.from('collections').insert({
+          id: newCol.id,
+          user_id: user.id,
+          name: newCol.name,
+          created_at: newCol.created_at,
+          updated_at: newCol.updated_at,
+        });
+        if (error) console.warn('[collections] New collection is local until cloud sync succeeds:', error);
+      }
+      return newCol;
+    })();
+    pendingCollectionCreates.current.set(key, creation);
+    try {
+      return await creation;
+    } finally {
+      if (pendingCollectionCreates.current.get(key) === creation) {
+        pendingCollectionCreates.current.delete(key);
       }
     }
-
-    const now = new Date().toISOString();
-    const newCol: Collection = {
-      id: crypto.randomUUID(),
-      user_id: user?.id || null,
-      name: trimmed,
-      created_at: now,
-      updated_at: now,
-    };
-    const updated = [newCol, ...collections];
-    setCollections(updated);
-    saveLocalData(items, updated);
-
-    if (user) {
-      const supabase = getSupabaseClient();
-      await supabase.from('collections').insert({
-        id: newCol.id,
-        user_id: user.id,
-        name: newCol.name,
-        created_at: newCol.created_at,
-        updated_at: newCol.updated_at,
-      });
-    }
-    return newCol;
   };
 
   const deleteCollection = async (id: string) => {

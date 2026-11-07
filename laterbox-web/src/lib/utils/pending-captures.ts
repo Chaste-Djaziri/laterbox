@@ -1,6 +1,7 @@
 import { getAccessToken, refreshAccessToken } from '../auth/tokens';
 import { installationId, uploadWithNotificationHandoff } from '../notifications/client';
 import type { LaterBoxItem, Attachment, Collection, ItemMetadata, ItemContent } from '../supabase/types';
+import { planCollectionMerge, remapItemCollections } from './collection-dedup';
 import { getSupabaseClient } from '../supabase/client';
 import { readLocalAttachment } from './local-attachments';
 import { uploadAttachmentFile, permanentlyDeleteCloudItem } from './attachment';
@@ -520,19 +521,35 @@ export async function pullCloudChanges(userId: string): Promise<SyncCloudResult 
       client.from('attachments').select('*').eq('user_id', userId).is('deleted_at', null)
     );
 
-    const { data: colRows } = await fetchWithRetry(() =>
-      client.from('collections').select('*').eq('user_id', userId).is('deleted_at', null).order('created_at', { ascending: false })
-    );
+    // Collection and membership results can exceed the default 1,000-row
+    // PostgREST page. Fetch all rows before consolidating anything.
+    const colRows = await collectRemoteItemPages<Collection>(async (offset, limit) => {
+      const { data } = await fetchWithRetry(() => client.from('collections')
+        .select('*').eq('user_id', userId).is('deleted_at', null)
+        .order('created_at', { ascending: false }).order('id')
+        .range(offset, offset + limit - 1));
+      return (data || []) as Collection[];
+    });
+    const colItemRows = await collectRemoteItemPages<{
+      collection_id: string;
+      item_id: string;
+      created_at: string;
+    }>(async (offset, limit) => {
+      const { data } = await fetchWithRetry(() => client.from('collection_items')
+        .select('*').eq('user_id', userId).is('deleted_at', null)
+        .order('collection_id').order('item_id')
+        .range(offset, offset + limit - 1));
+      return (data || []) as { collection_id: string; item_id: string; created_at: string }[];
+    });
 
-    const { data: colItemRows } = await fetchWithRetry(() =>
-      client.from('collection_items').select('*').eq('user_id', userId).is('deleted_at', null)
-    );
+    // Merge legacy duplicate names logically before building memberships.
+    const collectionPlan = planCollectionMerge(colRows || []);
 
     // Build lookup maps
     const contentMap = new Map((contentRows || []).map(c => [c.item_id, c as ItemContent]));
     const metaMap = new Map((metaRows || []).map(m => [m.item_id, m]));
     const noteMap = new Map((noteRows || []).map(n => [n.item_id, n]));
-    const colMap = new Map((colRows || []).map(c => [c.id, c]));
+    const colMap = collectionPlan.canonicalById;
 
     const attachmentMap = new Map<string, Attachment[]>();
     (attachmentRows || []).forEach(att => {
@@ -605,19 +622,54 @@ export async function pullCloudChanges(userId: string): Promise<SyncCloudResult 
       }
     }
 
-    // Step 3: PERSIST authoritative reconciled state locally
-    if (typeof localStorage !== 'undefined') {
-      localStorage.setItem(`laterbox_local_items_${userId}`, JSON.stringify(reconciledActive));
-      localStorage.setItem(`laterbox_local_deleted_items_${userId}`, JSON.stringify(reconciledDeleted));
-      if (colRows) {
-        localStorage.setItem(`laterbox_local_collections_${userId}`, JSON.stringify(colRows));
+    // Keep a single collection in the app even if the server migration is
+    // temporarily blocked. The union preserves every duplicate's items.
+    const unifiedActive = remapItemCollections(reconciledActive, colMap);
+    const unifiedDeleted = remapItemCollections(reconciledDeleted, colMap);
+
+    // Copy all active memberships to the oldest collection, then retire each
+    // alias. Never retire an alias when any membership copy fails.
+    const activeMemberships = new Set(
+      (colItemRows || []).map(row => `${row.collection_id}:${row.item_id}`),
+    );
+    for (const { duplicate, canonical } of collectionPlan.duplicates) {
+      try {
+        const attached = (colItemRows || []).filter(row => row.collection_id === duplicate.id);
+        for (const membership of attached) {
+          const key = `${canonical.id}:${membership.item_id}`;
+          if (activeMemberships.has(key)) continue;
+          const { error } = await client.from('collection_items').upsert({
+            collection_id: canonical.id,
+            item_id: membership.item_id,
+            user_id: userId,
+            created_at: membership.created_at,
+            updated_at: new Date().toISOString(),
+            deleted_at: null,
+          });
+          if (error) throw error;
+          activeMemberships.add(key);
+        }
+        const timestamp = new Date().toISOString();
+        const { error } = await client.from('collections')
+          .update({ deleted_at: timestamp, updated_at: timestamp })
+          .eq('id', duplicate.id).eq('user_id', userId);
+        if (error) throw error;
+      } catch (error) {
+        console.warn('[collections] Could not consolidate duplicate collection:', duplicate.id, error);
       }
     }
 
+    // Step 3: PERSIST authoritative reconciled state locally
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(`laterbox_local_items_${userId}`, JSON.stringify(unifiedActive));
+      localStorage.setItem(`laterbox_local_deleted_items_${userId}`, JSON.stringify(unifiedDeleted));
+      localStorage.setItem(`laterbox_local_collections_${userId}`, JSON.stringify(collectionPlan.collections));
+    }
+
     return {
-      items: reconciledActive,
-      deletedItems: reconciledDeleted,
-      collections: colRows || [],
+      items: unifiedActive,
+      deletedItems: unifiedDeleted,
+      collections: collectionPlan.collections,
     };
   });
 }
