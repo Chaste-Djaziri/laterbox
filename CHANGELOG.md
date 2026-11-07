@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[Web / Analytics]** Install the Whop Pixel site-wide in the Next.js document head for the LaterBox business, including the initial page-view event.
+
 - **[iOS / Data Ownership]** Add portable `.laterbox` JSON backups with library items, metadata, return schedules, collections and available attachment bytes. Storage Management now offers export/share and non-destructive import that skips existing IDs; works offline and in guest mode.
 
 - **[iOS / YouTube Share]** Decode the binary NSKeyedArchiver URL payload supplied as text.txt by YouTube's share sheet, including data, file URL, and file-representation inputs, so video links receive normal metadata instead of appearing as file attachments.
