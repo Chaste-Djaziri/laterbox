@@ -3,7 +3,7 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { InboxExtensionGate } from '@/components/inbox/InboxExtensionGate';
+import { DashboardNotifications } from '@/components/notifications/DashboardNotifications';
 import { useItems } from '@/lib/store/ItemContext';
 import { Collection } from '@/lib/supabase/types';
 import { useAuth } from '@/lib/store/AuthContext';
@@ -220,9 +220,9 @@ export function AppTopHeader() {
 
   return (
     <div className="shrink-0 w-full px-3 sm:px-4 lg:px-5 pt-3 sm:pt-4 pb-1 space-y-3">
-      {/* Top Notification Warning Banner */}
+      {/* General dashboard notice feed (extension, guest and sync notices). */}
       <div className="shrink-0">
-        <InboxExtensionGate userId={user?.id} />
+        <DashboardNotifications />
       </div>
 
       {/* Top Header: Title, Centered Search, AI Organize, Save Item, Settings & Profile */}

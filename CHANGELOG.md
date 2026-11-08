@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[Web / Dashboard Notices]** Replace the single-purpose extension warning with a reusable multi-notice banner module. Rotate active notices on an interval, provide previous/next controls and individually scoped dismissal, support multiple actions per notice, retain the extension setup dialog, warn signed-out guests about device-local data and offer login/signup, and surface authenticated sync problems with a retry action.
+
 - **[Web / Grouped tasks]** Create one named task group with a checklist of 2–40 ordered tasks, an optional description, and a shared LaterBox reminder. Persist individual completion in the item’s synced structured metadata, offer per-task checkboxes plus add/rename/remove and complete/reopen-all controls in item details, automatically archive completed groups, and show group progress in the email-style inbox. Single tasks and notes retain their existing workflows.
 
 - **[App / Item Details]** Give tasks a reversible checkbox on the standalone and embedded detail views, using existing archive/Inbox status transitions; show the Article Reader only for classified articles or substantial captured web pages with reader content; and link OG preview images to safe external HTTP(S) source URLs when present. Align the email-view task toolbar with completion semantics and avoid duplicated text rendering.

@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { ArrowRight, CheckCircle2, Loader2, Puzzle, RefreshCw, X } from 'lucide-react';
 import { CHROME_EXTENSION_URL, cacheExtensionConnected, extensionSessionKey, getCachedExtensionConnected, requestExtension, type ExtensionStatus } from '@/lib/extension/dashboard';
@@ -8,14 +8,25 @@ import { useAuth } from '@/lib/store/AuthContext';
 
 type State = ExtensionStatus & { checking?: boolean };
 
-export function InboxExtensionGate({ userId }: { userId?: string }) {
+export interface ExtensionGateRenderState {
+  disconnected: boolean;
+  openSetup: () => void;
+}
+
+/** Retains connection checks and setup dialog, but delegates notices to a general renderer. */
+export function InboxExtensionGate({
+  userId,
+  children,
+}: {
+  userId?: string;
+  children: (state: ExtensionGateRenderState) => ReactNode;
+}) {
   const { session } = useAuth();
   const cacheKey = extensionSessionKey(userId, session?.access_token);
   const [state, setState] = useState<State>({ installed: false, connected: false, checking: true });
   const [connecting, setConnecting] = useState(false);
   const [error, setError] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
-  const [dismissed, setDismissed] = useState(false);
   const dialog = useRef<HTMLDialogElement>(null);
   const abort = useRef<AbortController | null>(null);
 
@@ -93,47 +104,10 @@ export function InboxExtensionGate({ userId }: { userId?: string }) {
 
   return (
     <>
-      {/* 1. Top Notification Warning Bar */}
-      {!state.connected && !state.checking && !dismissed && (
-        <div
-          role="alert"
-          className="w-full bg-[#fdfaf3] border border-[#f2e7c9] text-[#171711] rounded-2xl p-3 sm:px-4 sm:py-3 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in transition-all"
-        >
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="w-8 h-8 rounded-xl bg-[#e6edb0] text-[#171711] flex items-center justify-center shrink-0">
-              <Puzzle className="w-4 h-4" />
-            </div>
-            <div className="text-xs sm:text-sm min-w-0 leading-relaxed">
-              <span className="font-bold text-[#171711]">
-                LaterBox extension is not connected.
-              </span>{' '}
-              <span className="text-[#6c6b63]">
-                1-click browser capture is disabled — connect the extension to capture articles, videos, and links seamlessly.
-              </span>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
-            <button
-              type="button"
-              onClick={() => setModalOpen(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#171711] text-[#e6edb0] hover:bg-[#2b2a22] text-xs font-bold transition-colors cursor-pointer shadow-2xs"
-            >
-              <span>Set up extension</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setDismissed(true)}
-              title="Dismiss warning"
-              className="p-1.5 rounded-lg text-[#8e8d87] hover:text-[#171711] hover:bg-[#171711]/5 transition-colors cursor-pointer"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-      )}
+      {children({
+        disconnected: !state.connected && !state.checking,
+        openSetup: () => setModalOpen(true),
+      })}
 
       {/* 2. Extension Setup Modal (Opens on Click) */}
       <dialog
