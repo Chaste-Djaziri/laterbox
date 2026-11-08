@@ -29,6 +29,7 @@ public struct InboxView: View {
     @State private var selectedMailbox: MailboxViewType
     private let initialMailbox: MailboxViewType
     private let isTabRoot: Bool
+    private var usesHeaderRefreshLogo: Bool { isTabRoot && initialMailbox == .inbox }
     @Binding private var refreshPull: CGFloat
     @Binding private var refreshIsRunning: Bool
     @State private var selectedCollection: String? = nil
@@ -264,7 +265,7 @@ public struct InboxView: View {
                 VStack(spacing: 0) {
                     ScrollView {
                         VStack(alignment: .leading, spacing: 0) {
-                        if isTabRoot {
+                        if usesHeaderRefreshLogo {
                             LaterBoxPullRefreshMarker(
                                 distance: $refreshPull,
                                 enabled: !refreshIsRunning
@@ -765,22 +766,22 @@ public struct InboxView: View {
                     LBHaptic.medium()
                     await MainActor.run {
                         isRefreshingInbox = true
-                        if isTabRoot { refreshIsRunning = true }
+                        if usesHeaderRefreshLogo { refreshIsRunning = true }
                     }
                     await coordinator.syncPendingItems(context: modelContext, announceFailure: false)
-                    if isTabRoot {
+                    if usesHeaderRefreshLogo {
                         await LaterBoxPullRefresh.holdVisible(since: started)
                     }
                     await MainActor.run {
                         isRefreshingInbox = false
-                        if isTabRoot {
+                        if usesHeaderRefreshLogo {
                             refreshIsRunning = false
                             refreshPull = 0
                         }
                     }
                 }
                 .scrollBounceBehavior(.always)
-                .tint(.clear)
+                .tint(usesHeaderRefreshLogo ? Color.clear : Color.primary)
 
                 if isRefreshingInbox && !isTabRoot {
                     HStack(spacing: 8) {

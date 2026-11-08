@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[iOS / Startup and tabs]** Remove the five-second in-app splash overlay and its foreground replay, load the main UI immediately while keeping startup import, sync, and entitlement refresh independent. Keep only a blank, system-required adaptive native launch canvas. Show the custom top header only on Inbox; restore native pull-to-refresh feedback on Today, Kept, Library, and secondary mailboxes.
+
 - **[iOS / Dark previews and launch]** Fix email-preview image fade overlays so they blend into light or dark card surfaces instead of fading into white in Dark Mode. Replace the static beige native launch storyboard with adaptive white/black named colors and a transparent PDF vector cube in black/white variants, matching the animated SwiftUI splash and avoiding a theme flash on startup.
 
 - **[iOS / Inbox appearance]** Give the main Inbox a pure white canvas in Light Mode and pure black canvas in Dark Mode, allow the signed-in root to follow the device appearance, and adapt search, inbox cards, text, borders, and tab/header chrome to maintain legible contrast.

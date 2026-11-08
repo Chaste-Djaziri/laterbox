@@ -14,17 +14,12 @@ struct MainTabTests {
         #expect(Set(MainTab.allCases.map(\.symbol)).count == 5)
     }
 
-    @Test("Five-second splash replays only after returning from background")
-    func splashReplayTiming() {
-        #expect(LaterBoxSplashTiming.totalDurationSeconds == 5.0)
-        #expect(
-            Double(LaterBoxSplashTiming.leadInMilliseconds + LaterBoxSplashTiming.remainingMilliseconds) / 1_000
-                == LaterBoxSplashTiming.totalDurationSeconds
-        )
-        #expect(LaterBoxSplashTiming.fillDurationSeconds < LaterBoxSplashTiming.totalDurationSeconds)
-        #expect(LaterBoxSplashTiming.shouldReplay(wasBackgrounded: true, phase: .active))
-        #expect(!LaterBoxSplashTiming.shouldReplay(wasBackgrounded: false, phase: .active))
-        #expect(!LaterBoxSplashTiming.shouldReplay(wasBackgrounded: true, phase: .inactive))
+    @Test("Only Inbox owns the custom top header")
+    func headerVisibility() {
+        #expect(MainTab.inbox.showsAppHeader)
+        for tab in MainTab.allCases where tab != .inbox {
+            #expect(!tab.showsAppHeader)
+        }
     }
 
     @Test("Refresh logo grows uniformly on downward overscroll")
@@ -67,19 +62,14 @@ struct MainTabTests {
         #expect(LaterBoxPullRefresh.fillProgress(distance: -20, refreshing: false) == 0)
     }
 
-    @Test("Native launch assets resolve to black-on-white and white-on-black")
-    func nativeLaunchAppearance() {
+    @Test("Minimal system launch canvas follows light and dark appearance")
+    func systemLaunchCanvas() {
         let light = UITraitCollection(userInterfaceStyle: .light)
         let dark = UITraitCollection(userInterfaceStyle: .dark)
         let canvas = UIColor(named: "LaterBoxLaunchCanvas")
-        let ink = UIColor(named: "LaterBoxLaunchInk")
 
         #expect(canvas?.resolvedColor(with: light).isEqual(UIColor.white) == true)
         #expect(canvas?.resolvedColor(with: dark).isEqual(UIColor.black) == true)
-        #expect(ink?.resolvedColor(with: light).isEqual(UIColor.black) == true)
-        #expect(ink?.resolvedColor(with: dark).isEqual(UIColor.white) == true)
-        #expect(UIImage(named: "LaterBoxLaunchMark", in: .main, compatibleWith: light) != nil)
-        #expect(UIImage(named: "LaterBoxLaunchMark", in: .main, compatibleWith: dark) != nil)
     }
 
     @Test("Inbox uses true white and black canvases with contrasting content")
@@ -90,24 +80,6 @@ struct MainTabTests {
         #expect(InboxAppearance.textPrimary(for: .dark) == Color.white)
         #expect(InboxAppearance.surface(for: .light) != InboxAppearance.surface(for: .dark))
         #expect(InboxAppearance.border(for: .light) != InboxAppearance.border(for: .dark))
-    }
-
-    @Test("Splash uses black on white in Light Mode and white on black in Dark Mode")
-    func splashRespectsAppearance() {
-        #expect(LaterBoxLoadingMark.foreground(for: .light) == Color.black)
-        #expect(LaterBoxLoadingMark.background(for: .light) == Color.white)
-        #expect(LaterBoxLoadingMark.foreground(for: .dark) == Color.white)
-        #expect(LaterBoxLoadingMark.background(for: .dark) == Color.black)
-    }
-
-    @Test("Splash fill clamps to the valid loading range")
-    func splashFillProgress() {
-        #expect(LaterBoxLoadingMark.normalizedProgress(-0.2) == 0)
-        #expect(LaterBoxLoadingMark.normalizedProgress(0.32) == 0.32)
-        #expect(LaterBoxLoadingMark.normalizedProgress(0.85) == 0.85)
-        #expect(LaterBoxLoadingMark.normalizedProgress(1.2) == 1)
-        #expect(LaterBoxLoadingMark.normalizedProgress(.nan) == 0)
-        #expect(LaterBoxLoadingMark.normalizedProgress(.infinity) == 0)
     }
 
     @Test("The brand mark is made from three scalable vector faces with open counters")

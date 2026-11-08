@@ -22,20 +22,11 @@ public struct ReturnsView: View {
 
     @State private var selectedSegment: ReturnSegment = .today
     private let isTabRoot: Bool
-    @Binding private var refreshPull: CGFloat
-    @Binding private var refreshIsRunning: Bool
     @State private var snoozeTargetItem: LBItem? = nil
 
-    public init(
-        initialSegment: ReturnSegment = .today,
-        isTabRoot: Bool = false,
-        refreshPull: Binding<CGFloat> = .constant(0),
-        refreshIsRunning: Binding<Bool> = .constant(false)
-    ) {
+    public init(initialSegment: ReturnSegment = .today, isTabRoot: Bool = false) {
         self._selectedSegment = State(initialValue: initialSegment)
         self.isTabRoot = isTabRoot
-        self._refreshPull = refreshPull
-        self._refreshIsRunning = refreshIsRunning
     }
 
     private var deduplicatedItems: [LBItem] {
@@ -178,13 +169,6 @@ public struct ReturnsView: View {
                     // Content Area (Email Table View Cards)
                     ScrollView {
                         VStack(alignment: .leading, spacing: 10) {
-                            if isTabRoot {
-                                LaterBoxPullRefreshMarker(
-                                    distance: $refreshPull,
-                                    enabled: !refreshIsRunning
-                                )
-                                .frame(height: 1)
-                            }
                             HStack {
                                 Text("\(selectedSegment.rawValue) (\(itemsForSegment.count))")
                                     .font(.system(size: 13, weight: .bold))
@@ -254,24 +238,10 @@ public struct ReturnsView: View {
                         .padding(.bottom, 30)
                     }
                     .refreshable {
-                        let started = Date()
                         LBHaptic.medium()
-                        await MainActor.run {
-                            if isTabRoot { refreshIsRunning = true }
-                        }
                         await coordinator.syncPendingItems(context: modelContext)
-                        if isTabRoot {
-                            await LaterBoxPullRefresh.holdVisible(since: started)
-                        }
-                        await MainActor.run {
-                            if isTabRoot {
-                                refreshIsRunning = false
-                                refreshPull = 0
-                            }
-                        }
                     }
                     .scrollBounceBehavior(.always)
-                    .tint(.clear)
                 }
             }
             .navigationBarHidden(true)

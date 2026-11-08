@@ -88,64 +88,6 @@ struct LaterBoxVectorMark: View {
     }
 }
 
-/// Draws the brand ink from bottom to top as a local startup stage completes.
-/// Both copies use the same transparent vector paths; only the colored fill is masked.
-struct LaterBoxLoadingMark: View {
-    @Environment(\.colorScheme) private var colorScheme
-
-    var size: CGFloat = 164
-    var progress: Double
-    /// Override either color for custom presentations, or use the system-adaptive defaults.
-    var emptyInk: Color? = nil
-    var filledInk: Color? = nil
-
-    static func foreground(for scheme: ColorScheme) -> Color {
-        scheme == .dark ? .white : .black
-    }
-
-    static func background(for scheme: ColorScheme) -> Color {
-        scheme == .dark ? .black : .white
-    }
-
-    /// Clamp startup stages so invalid/out-of-order values never escape the logo.
-    static func normalizedProgress(_ progress: Double) -> Double {
-        guard progress.isFinite else { return 0 }
-        return min(1, max(0, progress))
-    }
-
-    private var fillHeight: CGFloat {
-        size * CGFloat(Self.normalizedProgress(progress))
-    }
-
-    var body: some View {
-        ZStack {
-            LaterBoxVectorMark(
-                size: size,
-                ink: emptyInk ?? Self.foreground(for: colorScheme).opacity(0.16),
-                animates: false
-            )
-
-            LaterBoxVectorMark(
-                size: size,
-                ink: filledInk ?? Self.foreground(for: colorScheme),
-                animates: false
-            )
-                .mask {
-                    VStack(spacing: 0) {
-                        Spacer(minLength: 0)
-                        Rectangle()
-                            .frame(height: fillHeight)
-                    }
-                    .frame(width: size, height: size)
-                }
-        }
-        .frame(width: size, height: size)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("LaterBox loading")
-        .accessibilityValue("\(Int(Self.normalizedProgress(progress) * 100)) percent")
-    }
-}
-
 /// The vector has exactly three independent ink pieces, allowing each face to animate.
 /// All coordinates are relative to the cropped 603 x 656 artboard (original x=211, y=167).
 struct LaterBoxMarkShape: Shape {

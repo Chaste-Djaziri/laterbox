@@ -46,12 +46,24 @@ final class laterbox_iosUITests: XCTestCase {
 
         tabBar.buttons["Today"].tap()
         XCTAssertTrue(app.staticTexts["Returns"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["LaterBox home"].exists, "Header is hidden outside Inbox")
+        XCTAssertFalse(app.buttons["Capture Item"].exists, "Header actions are Inbox-only")
+
         tabBar.buttons["Kept"].tap()
         XCTAssertTrue(app.staticTexts["Kept"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["LaterBox home"].exists)
+
         tabBar.buttons["Library"].tap()
         XCTAssertTrue(app.staticTexts["Library"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["LaterBox home"].exists)
+
         tabBar.buttons["Settings"].tap()
         XCTAssertTrue(app.staticTexts["Settings"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["LaterBox home"].exists)
+
+        tabBar.buttons["Inbox"].tap()
+        XCTAssertTrue(app.buttons["LaterBox home"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["Capture Item"].exists)
     }
 
     @MainActor

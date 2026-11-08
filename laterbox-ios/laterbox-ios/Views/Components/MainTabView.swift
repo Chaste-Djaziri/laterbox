@@ -11,6 +11,9 @@ enum MainTab: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
+    /// The custom brand/capture/More header belongs exclusively to Inbox.
+    var showsAppHeader: Bool { self == .inbox }
+
     var symbol: String {
         switch self {
         case .inbox: "tray.full"
@@ -30,38 +33,14 @@ struct MainTabView: View {
     @State private var logoReplayToken = 0
     @State private var inboxPullDistance: CGFloat = 0
     @State private var inboxRefreshing = false
-    @State private var todayPullDistance: CGFloat = 0
-    @State private var todayRefreshing = false
-    @State private var keptPullDistance: CGFloat = 0
-    @State private var keptRefreshing = false
-    @State private var libraryPullDistance: CGFloat = 0
-    @State private var libraryRefreshing = false
-
-    private var visiblePullDistance: CGFloat {
-        switch selectedTab {
-        case .inbox: inboxPullDistance
-        case .today: todayPullDistance
-        case .kept: keptPullDistance
-        case .library: libraryPullDistance
-        case .settings: 0
-        }
-    }
-
-    private var visibleRefreshing: Bool {
-        switch selectedTab {
-        case .inbox: inboxRefreshing
-        case .today: todayRefreshing
-        case .kept: keptRefreshing
-        case .library: libraryRefreshing
-        case .settings: false
-        }
-    }
 
     var body: some View {
         VStack(spacing: 0) {
-            // Keep the stretched mark above scrolling content while pulling.
-            appHeader
-                .zIndex(10)
+            // The header and logo refresh indicator are Inbox-only.
+            if selectedTab.showsAppHeader {
+                appHeader
+                    .zIndex(10)
+            }
 
             TabView(selection: $selectedTab) {
                 InboxView(
@@ -72,29 +51,15 @@ struct MainTabView: View {
                     .tabItem { Label(MainTab.inbox.rawValue, systemImage: MainTab.inbox.symbol) }
                     .tag(MainTab.inbox)
 
-                ReturnsView(
-                    initialSegment: .today,
-                    isTabRoot: true,
-                    refreshPull: $todayPullDistance,
-                    refreshIsRunning: $todayRefreshing
-                )
+                ReturnsView(initialSegment: .today, isTabRoot: true)
                     .tabItem { Label(MainTab.today.rawValue, systemImage: MainTab.today.symbol) }
                     .tag(MainTab.today)
 
-                InboxView(
-                    initialMailbox: .kept,
-                    isTabRoot: true,
-                    refreshPull: $keptPullDistance,
-                    refreshIsRunning: $keptRefreshing
-                )
+                InboxView(initialMailbox: .kept, isTabRoot: true)
                     .tabItem { Label(MainTab.kept.rawValue, systemImage: MainTab.kept.symbol) }
                     .tag(MainTab.kept)
 
-                LibraryView(
-                    isTabRoot: true,
-                    refreshPull: $libraryPullDistance,
-                    refreshIsRunning: $libraryRefreshing
-                )
+                LibraryView()
                     .tabItem { Label(MainTab.library.rawValue, systemImage: MainTab.library.symbol) }
                     .tag(MainTab.library)
 
@@ -131,16 +96,16 @@ struct MainTabView: View {
                 logoReplayToken += 1
             } label: {
                 LaterBoxPullRefreshLogo(
-                    distance: visiblePullDistance,
-                    refreshing: visibleRefreshing,
+                    distance: inboxPullDistance,
+                    refreshing: inboxRefreshing,
                     replayToken: logoReplayToken
                 )
             }
             .buttonStyle(.plain)
             .accessibilityLabel("LaterBox home")
             .accessibilityValue(
-                visibleRefreshing ? "Refreshing" :
-                    visiblePullDistance > 2 ? "Pulling to refresh" : "Ready"
+                inboxRefreshing ? "Refreshing" :
+                    inboxPullDistance > 2 ? "Pulling to refresh" : "Ready"
             )
 
             HStack {

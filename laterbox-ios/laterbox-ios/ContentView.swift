@@ -8,36 +8,16 @@
 import SwiftUI
 import SwiftData
 
-/// A temporary five-second brand animation, shared by cold launches and foreground re-entry.
-enum LaterBoxSplashTiming {
-    static let totalDurationSeconds = 5.0
-    static let fillDurationSeconds = 4.75
-    static let leadInMilliseconds = 50
-    static let remainingMilliseconds = 4_950
-
-    static func shouldReplay(wasBackgrounded: Bool, phase: ScenePhase) -> Bool {
-        wasBackgrounded && phase == .active
-    }
-}
-
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
     @StateObject private var coordinator = SyncCoordinator.shared
     @StateObject private var lockManager = AppLockManager.shared
     @Environment(\.scenePhase) private var scenePhase
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Environment(\.colorScheme) private var systemColorScheme
 
     @ObservedObject private var returnRouter = ReturnNotificationRouter.shared
     @StateObject private var aiManager = LaterAIManager.shared
     @ObservedObject private var clipboardManager = ClipboardDetectionManager.shared
     @State private var itemToPresent: LBItem? = nil
-    @State private var isLaunching = true
-    @State private var launchStarted = false
-    @State private var launchStatus = "Preparing your vault"
-    @State private var launchProgress = 0.0
-    @State private var splashGeneration = 0
-    @State private var wasBackgrounded = false
     @State private var showingSyncReport = false
     @State private var syncReportMessage = ""
 
@@ -78,12 +58,6 @@ struct ContentView: View {
                     .transition(.opacity)
             }
 
-            if isLaunching {
-                launchSplash
-                    .transition(.opacity)
-                    .zIndex(1000)
-            }
-
             // In-App Top Slide-Down Notification Banner for Copied Items
             if clipboardManager.isShowingBanner, let item = clipboardManager.detectedItem, coordinator.hasAccess {
                 VStack {
@@ -109,22 +83,20 @@ struct ContentView: View {
             }
         }
         .animation(.spring(response: 0.45, dampingFraction: 0.85), value: coordinator.hasAccess)
-        // Use the device appearance for the splash and main tabs, while
-        // preserving the existing dark appearance for welcome/auth/capture.
-        .preferredColorScheme(isLaunching ? nil : activeColorScheme)
+        // Render immediately; only welcome/auth/capture request Dark Mode.
+        .preferredColorScheme(activeColorScheme)
         .onChange(of: activeColorScheme) { _, _ in
-            applyCurrentInterfaceStyle()
-        }
-        .onChange(of: isLaunching) { _, _ in
             applyCurrentInterfaceStyle()
         }
         .onAppear {
             applyCurrentInterfaceStyle()
         }
         .task {
-            guard !launchStarted else { return }
-            launchStarted = true
-            await prepareLaunch()
+            // Keep local imports and entitlement state fresh without a blocking
+            // launch animation or delay. MainTabView handles cloud sync.
+            try? SharedCaptureImporter.refresh(context: modelContext)
+            await StoreKitManager.shared.updatePurchasedProducts()
+            await coordinator.refreshEntitlement()
         }
         .alert("Sync failed", isPresented: $coordinator.showingSyncFailureAlert) {
             if coordinator.sessionExpired {
@@ -208,12 +180,6 @@ struct ContentView: View {
         }
         .onChange(of: scenePhase) { _, newPhase in
             if newPhase == .active {
-                if LaterBoxSplashTiming.shouldReplay(wasBackgrounded: wasBackgrounded, phase: newPhase) {
-                    wasBackgrounded = false
-                    if launchStarted {
-                        startSplashAnimation(status: "Welcome back")
-                    }
-                }
                 try? SharedCaptureImporter.refresh(context: modelContext)
                 Task {
                     await StoreKitManager.shared.updatePurchasedProducts()
@@ -224,99 +190,13 @@ struct ContentView: View {
                 openPendingQuickSaveControl()
             }
             if newPhase == .background {
-                wasBackgrounded = true
                 lockManager.lockAppIfNeeded()
             }
         }
     }
-    private var launchSplash: some View {
-        let ink = LaterBoxLoadingMark.foreground(for: systemColorScheme)
-        return ZStack {
-            LaterBoxLoadingMark.background(for: systemColorScheme)
-                .ignoresSafeArea()
-
-            VStack(spacing: 18) {
-                LaterBoxLoadingMark(
-                    size: 168,
-                    progress: launchProgress
-                )
-                .padding(.bottom, 6)
-
-                Text("laterbox")
-                    .font(.system(size: 28, weight: .black, design: .rounded))
-                    .tracking(-1)
-                    .foregroundStyle(ink)
-
-                Text(launchStatus)
-                    .font(.subheadline)
-                    .foregroundStyle(ink.opacity(0.65))
-                    .accessibilityAddTraits(.updatesFrequently)
-            }
-            .padding(28)
-        }
-        .accessibilityElement(children: .combine)
-    }
-
     private func applyCurrentInterfaceStyle() {
-        let style: UIUserInterfaceStyle
-        if isLaunching || activeColorScheme == nil {
-            style = .unspecified
-        } else {
-            style = activeColorScheme == .dark ? .dark : .light
-        }
+        let style: UIUserInterfaceStyle = activeColorScheme == .dark ? .dark : .unspecified
         StatusBarStyleModifier.apply(style)
-    }
-
-    @MainActor
-    private func prepareLaunch() async {
-        // Import saved content locally, then play the five-second visual demo.
-        // Neither networking nor StoreKit can extend the splash duration.
-        launchStatus = "Loading saved items"
-        try? SharedCaptureImporter.refresh(context: modelContext)
-        startSplashAnimation(status: "Opening LaterBox")
-
-        // Refresh cloud and purchase state independently of the animation.
-        Task {
-            await StoreKitManager.shared.updatePurchasedProducts()
-            await coordinator.refreshEntitlement()
-        }
-    }
-
-    @MainActor
-    private func startSplashAnimation(status: String) {
-        // A foreground replay supersedes any pending cold-launch completion.
-        splashGeneration += 1
-        let generation = splashGeneration
-        var reset = Transaction()
-        reset.disablesAnimations = true
-        withTransaction(reset) {
-            launchProgress = 0
-            isLaunching = true
-        }
-        launchStatus = status
-
-        Task { @MainActor in
-            do {
-                // Render the unfilled logo before animating its color.
-                try await Task.sleep(for: .milliseconds(LaterBoxSplashTiming.leadInMilliseconds))
-                guard generation == splashGeneration else { return }
-
-                withAnimation(reduceMotion ? nil : .linear(duration: LaterBoxSplashTiming.fillDurationSeconds)) {
-                    launchProgress = 1
-                }
-
-                // Exactly five seconds of splash visibility for this UI iteration.
-                try await Task.sleep(for: .milliseconds(LaterBoxSplashTiming.remainingMilliseconds))
-                guard generation == splashGeneration else { return }
-                withAnimation(reduceMotion ? nil : .easeOut(duration: 0.2)) {
-                    isLaunching = false
-                }
-                openPendingQuickSaveControl()
-            } catch {
-                // Cancellation should never dismiss a newer splash replay.
-                return
-            }
-        }
     }
 
     private func openPendingQuickSaveControl() {

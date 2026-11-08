@@ -3,7 +3,6 @@
     <device id="retina6_12" orientation="portrait" appearance="light"/>
     <dependencies>
         <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="23501"/>
-        <capability name="Safe area layout guides" minToolsVersion="9.0"/>
         <capability name="Named colors" minToolsVersion="9.0"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
@@ -13,29 +12,7 @@
                 <viewController id="launch-controller" sceneMemberID="viewController">
                     <view key="view" contentMode="scaleToFill" id="launch-root">
                         <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
-                        <viewLayoutGuide key="safeArea" id="launch-safe"/>
-                        <subviews>
-                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" image="LaterBoxLaunchMark" translatesAutoresizingMaskIntoConstraints="NO" id="launch-logo">
-                                <rect key="frame" x="112.5" y="292" width="168" height="168"/>
-                                <constraints>
-                                    <constraint firstAttribute="width" constant="168" id="launch-mark-width"/>
-                                    <constraint firstAttribute="height" constant="168" id="launch-mark-height"/>
-                                </constraints>
-                            </imageView>
-                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" text="laterbox" textAlignment="center" lineBreakMode="tailTruncation" numberOfLines="1" adjustsFontForContentSizeCategory="YES" translatesAutoresizingMaskIntoConstraints="NO" id="launch-wordmark">
-                                <rect key="frame" x="87.5" y="482" width="218" height="36"/>
-                                <fontDescription key="fontDescription" type="system" weight="black" pointSize="28"/>
-                                <color key="textColor" name="LaterBoxLaunchInk"/>
-                                <nil key="highlightedColor"/>
-                            </label>
-                        </subviews>
                         <color key="backgroundColor" name="LaterBoxLaunchCanvas"/>
-                        <constraints>
-                            <constraint firstItem="launch-logo" firstAttribute="centerX" secondItem="launch-root" secondAttribute="centerX" id="launch-mark-center-x"/>
-                            <constraint firstItem="launch-logo" firstAttribute="centerY" secondItem="launch-root" secondAttribute="centerY" constant="-50" id="launch-mark-center-y"/>
-                            <constraint firstItem="launch-wordmark" firstAttribute="centerX" secondItem="launch-root" secondAttribute="centerX" id="launch-wordmark-center-x"/>
-                            <constraint firstItem="launch-wordmark" firstAttribute="top" secondItem="launch-logo" secondAttribute="bottom" constant="22" id="launch-wordmark-top"/>
-                        </constraints>
                     </view>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="launch-first-responder" userLabel="First Responder" sceneMemberID="firstResponder"/>
@@ -43,12 +20,8 @@
         </scene>
     </scenes>
     <resources>
-        <image name="LaterBoxLaunchMark" width="603" height="656"/>
         <namedColor name="LaterBoxLaunchCanvas">
             <color red="1" green="1" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
-        </namedColor>
-        <namedColor name="LaterBoxLaunchInk">
-            <color red="0" green="0" blue="0" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
         </namedColor>
     </resources>
 </document>
