@@ -5,6 +5,7 @@ import { APP_ORIGIN } from '@/lib/auth/config';
 import { useAuth } from '@/lib/store/AuthContext';
 import { Apple, Sparkles, ArrowRight, Compass } from 'lucide-react';
 import { MarketingPlatformsSection } from '@/components/marketing/MarketingPlatformsSection';
+import { InteractiveDashboardPreview } from '@/components/marketing/InteractiveDashboardPreview';
 import { ScrollConvergenceSection } from '@/components/marketing/ScrollConvergenceSection';
 import { HowItWorksStepsSection } from '@/components/marketing/HowItWorksStepsSection';
 import { WhenLaterBecomesNowSection } from '@/components/marketing/WhenLaterBecomesNowSection';
@@ -114,17 +115,7 @@ export default function LandingPage() {
           {/* ============================================================ */}
           {/* Interactive Native Dashboard Preview */}
           {/* ============================================================ */}
-          <div
-            id="live-guest-sandbox"
-            className="max-w-6xl mx-auto overflow-hidden rounded-[32px] border border-[#e4e0d5] bg-white shadow-2xl scroll-mt-24"
-          >
-            <iframe
-              title="Live LaterBox inbox preview"
-              src={`${APP_ORIGIN}/inbox?guest=1&embed=welcome`}
-              className="block h-[760px] w-full border-0 bg-[#f7f5ee]"
-              loading="lazy"
-            />
-          </div>
+          <InteractiveDashboardPreview id="live-guest-sandbox" className="scroll-mt-24" />
         </div>
       </section>
 

@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[Marketing / Interactive Demo]** Replace the real guest-app hero iframe and static dashboard illustration with one responsive, sandboxed marketing dashboard preview in both homepage placements. Sample search, navigation, quick save, schedule, star, complete, and reset are in-memory only.
+
 - **[Marketing / Homepage]** Restore the original centered homepage hero and embedded live demo while preserving the redesigned header, footer, platform showcase, and remaining marketing layout.
 
 - **[Marketing / Platforms]** Replace the outdated Android-heavy home CTA with a polished Web, Chrome extension, and iOS showcase, aligned to current priority platforms.
