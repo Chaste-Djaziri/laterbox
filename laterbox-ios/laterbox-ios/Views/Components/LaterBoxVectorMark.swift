@@ -88,6 +88,51 @@ struct LaterBoxVectorMark: View {
     }
 }
 
+/// Draws the brand ink from bottom to top as a local startup stage completes.
+/// Both copies use the same transparent vector paths; only the colored fill is masked.
+struct LaterBoxLoadingMark: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var size: CGFloat = 164
+    var progress: Double
+    var emptyInk: Color = Color(hex: "171711").opacity(0.16)
+    var filledInk: Color = AppTheme.accent
+
+    /// Clamp startup stages so invalid/out-of-order values never escape the logo.
+    static func normalizedProgress(_ progress: Double) -> Double {
+        guard progress.isFinite else { return 0 }
+        return min(1, max(0, progress))
+    }
+
+    private var fillHeight: CGFloat {
+        size * CGFloat(Self.normalizedProgress(progress))
+    }
+
+    var body: some View {
+        ZStack {
+            LaterBoxVectorMark(size: size, ink: emptyInk, animates: false)
+
+            LaterBoxVectorMark(size: size, ink: filledInk, animates: false)
+                .mask {
+                    VStack(spacing: 0) {
+                        Spacer(minLength: 0)
+                        Rectangle()
+                            .frame(height: fillHeight)
+                    }
+                    .frame(width: size, height: size)
+                }
+        }
+        .frame(width: size, height: size)
+        .animation(
+            reduceMotion ? nil : .easeInOut(duration: 0.45),
+            value: Self.normalizedProgress(progress)
+        )
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("LaterBox loading")
+        .accessibilityValue("\(Int(Self.normalizedProgress(progress) * 100)) percent")
+    }
+}
+
 /// The vector has exactly three independent ink pieces, allowing each face to animate.
 /// All coordinates are relative to the cropped 603 x 656 artboard (original x=211, y=167).
 struct LaterBoxMarkShape: Shape {

@@ -13,6 +13,7 @@ struct ContentView: View {
     @StateObject private var coordinator = SyncCoordinator.shared
     @StateObject private var lockManager = AppLockManager.shared
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     @ObservedObject private var returnRouter = ReturnNotificationRouter.shared
     @StateObject private var aiManager = LaterAIManager.shared
@@ -21,6 +22,7 @@ struct ContentView: View {
     @State private var isLaunching = true
     @State private var launchStarted = false
     @State private var launchStatus = "Preparing your vault"
+    @State private var launchProgress = 0.04
     @State private var showingSyncReport = false
     @State private var syncReportMessage = ""
 
@@ -208,16 +210,18 @@ struct ContentView: View {
         ZStack {
             AppTheme.canvasBackground.ignoresSafeArea()
 
-            VStack(spacing: 22) {
-                Image("LaterboxLogo")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 290, height: 110)
-                    .accessibilityLabel("LaterBox")
+            VStack(spacing: 18) {
+                LaterBoxLoadingMark(
+                    size: 168,
+                    progress: launchProgress,
+                    filledInk: AppTheme.accent
+                )
+                .padding(.bottom, 6)
 
-                ProgressView()
-                    .tint(AppTheme.textPrimary)
-                    .padding(.top, 14)
+                Text("laterbox")
+                    .font(.system(size: 28, weight: .black, design: .rounded))
+                    .tracking(-1)
+                    .foregroundStyle(AppTheme.textPrimary)
 
                 Text(launchStatus)
                     .font(.subheadline)
@@ -234,11 +238,17 @@ struct ContentView: View {
     private func prepareLaunch() async {
         // Local content must be imported before showing the inbox.
         launchStatus = "Loading saved items"
+        withAnimation(reduceMotion ? nil : .easeOut(duration: 0.35)) {
+            launchProgress = 0.32
+        }
         try? SharedCaptureImporter.refresh(context: modelContext)
 
-        // The local vault is ready. Never block access on StoreKit, network,
-        // or entitlement requests: these may hang when the device is offline.
-        finishLaunch()
+        // These milestones reflect local launch work, not network or StoreKit progress.
+        // Cloud refresh remains independent so offline launches are never held hostage.
+        withAnimation(reduceMotion ? nil : .easeOut(duration: 0.4)) {
+            launchProgress = 0.85
+        }
+        await finishLaunch()
 
         // Refresh optional cloud/account state independently of splash lifetime.
         Task {
@@ -248,10 +258,20 @@ struct ContentView: View {
     }
 
     @MainActor
-    private func finishLaunch() {
-        guard isLaunching else { return }
+    private func finishLaunch() async {
+        guard isLaunching, !Task.isCancelled else { return }
         launchStatus = "Opening LaterBox"
-        withAnimation(.easeOut(duration: 0.3)) {
+        withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.42)) {
+            launchProgress = 1
+        }
+
+        // Let the user see the logo finish filling, without waiting on network.
+        // Accessibility Reduce Motion skips the visual hold.
+        if !reduceMotion {
+            try? await Task.sleep(for: .milliseconds(480))
+        }
+        guard !Task.isCancelled else { return }
+        withAnimation(reduceMotion ? nil : .easeOut(duration: 0.25)) {
             isLaunching = false
         }
         openPendingQuickSaveControl()

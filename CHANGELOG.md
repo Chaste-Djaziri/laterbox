@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[iOS / Launch splash]** Use the transparent SwiftUI cube mark on launch and replace the separate spinner with a brand-green, bottom-to-top fill reflecting local startup stages. Complete the fill before transitioning to the app, without waiting for network or StoreKit; respect Reduce Motion.
+
 - **[iOS / Brand identity]** Recreate the uploaded LaterBox cube monogram as editable, background-free SwiftUI vector paths, supporting adaptive light/dark ink colors, custom tint and subtle reduce-motion-aware assembly animation. Replace the centered image asset in the five-tab header with the vector mark.
 
 - **[iOS / Navigation]** Replace the Inbox-only root with a five-tab navigation system (Inbox, Today, Kept, Library, Settings), move Quick Save to the top-left of a shared header with the LaterBox icon centered, retain secondary mailbox navigation through a More menu, and remove the overlapping Inbox floating action and bottom subscription bar from tabbed layouts.

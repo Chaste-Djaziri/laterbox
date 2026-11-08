@@ -13,6 +13,16 @@ struct MainTabTests {
         #expect(Set(MainTab.allCases.map(\.symbol)).count == 5)
     }
 
+    @Test("Splash fill clamps to the valid loading range")
+    func splashFillProgress() {
+        #expect(LaterBoxLoadingMark.normalizedProgress(-0.2) == 0)
+        #expect(LaterBoxLoadingMark.normalizedProgress(0.32) == 0.32)
+        #expect(LaterBoxLoadingMark.normalizedProgress(0.85) == 0.85)
+        #expect(LaterBoxLoadingMark.normalizedProgress(1.2) == 1)
+        #expect(LaterBoxLoadingMark.normalizedProgress(.nan) == 0)
+        #expect(LaterBoxLoadingMark.normalizedProgress(.infinity) == 0)
+    }
+
     @Test("The brand mark is made from three scalable vector faces with open counters")
     func vectorMarkGeometry() {
         let artboard = CGRect(x: 0, y: 0, width: 603, height: 656)
