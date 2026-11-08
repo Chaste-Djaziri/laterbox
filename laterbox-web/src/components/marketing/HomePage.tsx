@@ -1,7 +1,7 @@
 import Link from 'next/link';
-import { APP_ORIGIN } from '@/lib/auth/config';
 import { MarketingHero } from '@/components/marketing/MarketingHero';
 import { LivePreviewSection } from '@/components/marketing/LivePreviewSection';
+import { MarketingPlatformsSection } from '@/components/marketing/MarketingPlatformsSection';
 import { ScrollConvergenceSection } from '@/components/marketing/ScrollConvergenceSection';
 import { HowItWorksStepsSection } from '@/components/marketing/HowItWorksStepsSection';
 import { WhenLaterBecomesNowSection } from '@/components/marketing/WhenLaterBecomesNowSection';
@@ -14,8 +14,6 @@ import { YourThingsStaySection } from '@/components/marketing/YourThingsStaySect
 import { LessMentalClutterSection } from '@/components/marketing/LessMentalClutterSection';
 import { WontForgetItLaterSection } from '@/components/marketing/WontForgetItLaterSection';
 import { LandingFaqSection } from '@/components/marketing/LandingFaqSection';
-import { AppStoreButton } from '@/components/download/AppStoreButton';
-import { Apple, ArrowRight, Globe2, Smartphone, Laptop } from 'lucide-react';
 
 export default function LandingPage() {
   return (
@@ -166,114 +164,7 @@ export default function LandingPage() {
 
 
 
-      {/* ============================================================ */}
-      {/* All-Platform Ecosystem Showcase */}
-      {/* ============================================================ */}
-      <section className="py-16 border-t border-[#e4e0d5] bg-white">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 text-center">
-          <p className="text-xs font-bold uppercase tracking-widest text-[#9e9b92] mb-8">
-            One Unified Vault Across All Your Devices
-          </p>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
-            <a
-              href="https://apps.apple.com/us/app/laterbox-save-for-later/id6804139119"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="p-5 rounded-2xl bg-[#f7f5ee] border border-[#e4e0d5] hover:border-[#171711] transition-all flex flex-col items-center gap-2 group"
-            >
-              <Apple className="w-7 h-7 text-[#171711] transition-transform group-hover:scale-110" />
-              <div className="flex items-center gap-1.5">
-                <span className="text-sm font-bold text-[#171711]">iOS & iPadOS</span>
-                <span className="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[9px] font-bold">Live</span>
-              </div>
-              <span className="text-xs text-[#6c6b63]">Official App Store Release</span>
-            </a>
-
-            <Link
-              href="/download"
-              className="p-5 rounded-2xl bg-[#f7f5ee] border border-[#e4e0d5] hover:border-[#171711] transition-all flex flex-col items-center gap-2 group"
-            >
-              <Smartphone className="w-7 h-7 text-[#171711] transition-transform group-hover:scale-110" />
-              <div className="flex items-center gap-1.5">
-                <span className="text-sm font-bold text-[#171711]">Android</span>
-                <span className="px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 text-[9px] font-bold">Dev</span>
-              </div>
-              <span className="text-xs text-[#6c6b63]">Under Active Development</span>
-            </Link>
-
-            <Link
-              href="/download"
-              className="p-5 rounded-2xl bg-[#f7f5ee] border border-[#e4e0d5] hover:border-[#171711] transition-all flex flex-col items-center gap-2 group"
-            >
-              <Laptop className="w-7 h-7 text-[#171711] transition-transform group-hover:scale-110" />
-              <div className="flex items-center gap-1.5">
-                <span className="text-sm font-bold text-[#171711]">macOS & Windows</span>
-                <span className="text-[10px] text-[#9e9b92]">Soon</span>
-              </div>
-              <span className="text-xs text-[#6c6b63]">Companions Coming Soon</span>
-            </Link>
-
-            <Link
-              href={`${APP_ORIGIN}/inbox?guest=1`}
-              className="p-5 rounded-2xl bg-[#f7f5ee] border border-[#e4e0d5] hover:border-[#171711] transition-all flex flex-col items-center gap-2 group"
-            >
-              <Globe2 className="w-7 h-7 text-[#171711] transition-transform group-hover:scale-110" />
-              <span className="text-sm font-bold text-[#171711]">Cloud Web App</span>
-              <span className="text-xs text-[#6c6b63]">Zero install, instant access</span>
-            </Link>
-          </div>
-        </div>
-      </section>
-
-
-      {/* ============================================================ */}
-      {/* Pre-Footer Final Download CTA Banner (White Section, Black Container) */}
-      {/* ============================================================ */}
-      <section className="bg-white py-20 sm:py-28 px-4 sm:px-6">
-        <div className="max-w-5xl mx-auto relative rounded-3xl sm:rounded-[36px] bg-[#171711] p-10 sm:p-16 lg:p-20 text-center text-white shadow-2xl overflow-hidden border border-[#2e2d28]">
-          <div className="relative z-10 max-w-3xl mx-auto flex flex-col items-center">
-            {/* Main Headline */}
-            <div className="space-y-1 sm:space-y-2 mb-8 sm:mb-10">
-              <h2 className="text-4xl sm:text-6xl md:text-7xl lg:text-[76px] font-black tracking-tight leading-none text-white">
-                Drop it now.
-              </h2>
-              <p className="font-serif italic font-normal text-3xl sm:text-5xl md:text-6xl lg:text-[68px] leading-tight text-[#e6edb0]">
-                Deal with it later.
-              </p>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex flex-wrap items-center justify-center gap-3.5 sm:gap-4 w-full">
-              <AppStoreButton size="large" theme="dark" />
-              <a
-                href="/api/download/laterbox.apk"
-                className="px-8 sm:px-9 py-4 rounded-2xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs sm:text-sm tracking-wider uppercase transition-all border border-white/10 hover:scale-102 flex items-center gap-2"
-              >
-                <span>Download for Android</span>
-                <ArrowRight className="w-4 h-4 text-[#E7FF57]" />
-              </a>
-            </div>
-
-            {/* Subtext */}
-            <p className="text-xs sm:text-sm text-[#9e9b92] tracking-wide mt-7 sm:mt-9 select-none font-medium">
-              Free • Offline • No account required
-            </p>
-
-            {/* Attribution */}
-            <p className="text-[11px] sm:text-xs text-[#6c6b63] mt-3">
-              Made by{' '}
-              <a
-                href="https://micorp.pro"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-[#9e9b92] hover:text-white underline decoration-dotted transition-colors"
-              >
-                Nexaura Dev
-              </a>
-            </p>
-          </div>
-        </div>
-      </section>
+      <MarketingPlatformsSection />
     </div>
   );
 }
