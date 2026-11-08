@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[Marketing / Homepage]** Restore the original centered homepage hero and embedded live demo while preserving the redesigned header, footer, platform showcase, and remaining marketing layout.
+
 - **[Marketing / Platforms]** Replace the outdated Android-heavy home CTA with a polished Web, Chrome extension, and iOS showcase, aligned to current priority platforms.
 
 - **[Marketing / Shell]** Simplify the public footer and shared page layout with platform-first navigation, a consistent final action, meaningful status feedback, and keyboard-accessible main-content navigation.

@@ -1,6 +1,9 @@
+'use client';
+
 import Link from 'next/link';
-import { MarketingHero } from '@/components/marketing/MarketingHero';
-import { LivePreviewSection } from '@/components/marketing/LivePreviewSection';
+import { APP_ORIGIN } from '@/lib/auth/config';
+import { useAuth } from '@/lib/store/AuthContext';
+import { Apple, Sparkles, ArrowRight, Compass } from 'lucide-react';
 import { MarketingPlatformsSection } from '@/components/marketing/MarketingPlatformsSection';
 import { ScrollConvergenceSection } from '@/components/marketing/ScrollConvergenceSection';
 import { HowItWorksStepsSection } from '@/components/marketing/HowItWorksStepsSection';
@@ -16,10 +19,115 @@ import { WontForgetItLaterSection } from '@/components/marketing/WontForgetItLat
 import { LandingFaqSection } from '@/components/marketing/LandingFaqSection';
 
 export default function LandingPage() {
+  const { continueAsGuest } = useAuth();
+
   return (
     <div className="selection:bg-[#171711] selection:text-white">
-      <MarketingHero />
-      <LivePreviewSection />
+      {/* Hero Section */}
+      <section className="relative pt-12 sm:pt-20 pb-16 sm:pb-24 overflow-hidden">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 text-center relative z-10">
+          {/* Pro Pill Badge */}
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#e6edb0] border border-[#d0db84] text-[#171711] text-xs font-extrabold mb-8 shadow-xs">
+            <Sparkles className="w-3.5 h-3.5 text-[#171711]" />
+            <span>LaterBox Pro • Built for Power Users, Developers & Curators</span>
+          </div>
+
+          {/* Main Hero Heading */}
+          <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black tracking-tight text-[#171711] leading-[1.08] mb-6">
+            LaterBox: save now. <br />
+            Return to it <span className="font-serif italic font-normal">later.</span>
+          </h1>
+
+          {/* Subheading */}
+          <p className="max-w-2xl mx-auto text-base sm:text-xl text-[#6c6b63] leading-relaxed mb-10">
+            Your save-for-later app and bookmark manager for links, articles, videos, notes, and files. Organize collections and find what you saved when you need it.
+          </p>
+
+          {/* Action CTAs */}
+          <div className="flex flex-wrap items-center justify-center gap-3.5">
+            <Link
+              href={`${APP_ORIGIN}/inbox?guest=1`}
+              className="inline-flex items-center gap-2 px-7 py-3.5 rounded-full bg-[#171711] hover:bg-[#282723] active:bg-[#0f0f0e] text-white font-extrabold text-sm sm:text-base shadow-sm transition-all duration-150 group"
+            >
+              <span>Launch Web App Free</span>
+              <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+            </Link>
+
+            <Link
+              href="/download"
+              className="inline-flex items-center gap-2 px-6 py-3.5 rounded-full bg-white border border-[#e4e0d5] text-[#171711] hover:bg-[#ebe7dc]/50 font-bold text-sm sm:text-base shadow-xs transition-all"
+            >
+              <Apple className="w-4 h-4 text-[#171711]" />
+              <span>Get for iOS & Downloads</span>
+            </Link>
+
+            <Link
+              href={`${APP_ORIGIN}/inbox?guest=1`}
+              onClick={() => continueAsGuest()}
+              className="inline-flex items-center gap-2 px-6 py-3.5 rounded-full bg-[#ebe7dc]/70 text-[#171711] hover:bg-[#ebe7dc] font-bold text-sm sm:text-base transition-all"
+            >
+              <Compass className="w-4 h-4 text-[#6c6b63]" />
+              <span>Try Guest Sandbox</span>
+            </Link>
+          </div>
+
+          {/* Meta Trust Badges */}
+          <div className="mt-8 text-xs text-[#6c6b63] space-y-1 font-medium">
+            <p className="flex items-center justify-center gap-2">
+              <span>Free</span>
+              <span>•</span>
+              <span>Offline</span>
+              <span>•</span>
+              <span>No account required</span>
+            </p>
+            <p className="text-[11px] text-[#9e9b92]">
+              Made by{' '}
+              <a
+                href="https://micorp.pro"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline decoration-[#9e9b92]/50 hover:text-[#171711] font-semibold text-[#6c6b63] transition-colors"
+              >
+                MiCorp
+              </a>
+              .
+            </p>
+          </div>
+        </div>
+
+        {/* Hero Dashboard Preview Container with identical max-w-6xl dimensions as Designed to stay section */}
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          {/* Floating Try It Badge Indicator */}
+          <div className="mt-12 sm:mt-16 flex justify-start pl-6 sm:pl-10 mb-[-12px] relative z-20">
+            <a
+              href="#live-guest-sandbox"
+              className="inline-flex flex-col items-center group cursor-pointer"
+            >
+              <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#171711] group-hover:bg-[#282723] text-[#e6edb0] font-black text-xs tracking-wider uppercase shadow-md transition-all group-hover:scale-105">
+                <span>TRY IT</span>
+                <span className="text-xs leading-none font-black">↓</span>
+              </div>
+              <div className="w-0 h-0 border-x-4 border-x-transparent border-t-[5px] border-t-[#171711] group-hover:border-t-[#282723] transition-colors" />
+            </a>
+          </div>
+
+          {/* ============================================================ */}
+          {/* Interactive Native Dashboard Preview */}
+          {/* ============================================================ */}
+          <div
+            id="live-guest-sandbox"
+            className="max-w-6xl mx-auto overflow-hidden rounded-[32px] border border-[#e4e0d5] bg-white shadow-2xl scroll-mt-24"
+          >
+            <iframe
+              title="Live LaterBox inbox preview"
+              src={`${APP_ORIGIN}/inbox?guest=1&embed=welcome`}
+              className="block h-[760px] w-full border-0 bg-[#f7f5ee]"
+              loading="lazy"
+            />
+          </div>
+        </div>
+      </section>
+
 
       {/* ============================================================ */}
       {/* "We all have a place called Later" Problem Section */}
