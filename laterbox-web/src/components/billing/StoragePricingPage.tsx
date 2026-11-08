@@ -30,19 +30,17 @@ const tiers = [
 
 export function StoragePricingPage({ inApp = false }: { inApp?: boolean }) {
   const [interval, setInterval] = useState<'month' | 'year'>('year');
-  const [error, setError] = useState('');
   const { prices, loading, error: priceError, retry } = useWhopPrices();
   const { user } = useAuth();
-  const { entitlement, manage } = useBilling();
+  const { entitlement } = useBilling();
   const active = Boolean(entitlement.provider && entitlement.status !== 'free');
-  const limit = entitlement.storageLimitBytes ?? 500_000_000;
-  const used = entitlement.storageUsedBytes;
-  const percent = used == null ? 0 : Math.min(100, Math.round(used / Math.max(1, limit) * 100));
   const plusSavings = yearlySavings(prices?.plus_month, prices?.plus_year);
 
   return (
     <main className={`min-h-screen overflow-hidden bg-[#f8f9f4] text-[#171b14] ${inApp ? 'px-4 py-10 sm:px-8' : 'px-4 py-16 sm:px-8'}`}>
       <div className="mx-auto max-w-6xl">
+        {!inApp && (
+          <>
         <header className="relative mx-auto max-w-3xl text-center">
           <div className="pointer-events-none absolute -top-28 left-1/2 -z-0 h-72 w-96 -translate-x-1/2 rounded-full bg-[#e6edb0]/55 blur-[85px]" />
           <div className="relative">
@@ -65,29 +63,10 @@ export function StoragePricingPage({ inApp = false }: { inApp?: boolean }) {
           <span className="flex items-center gap-2"><CheckCircle2 size={16} className="text-[#819b51]" /> Keep your library on Free</span>
         </div>
 
-        {user && (
-          <section className="mx-auto mt-10 flex max-w-2xl flex-wrap items-center justify-between gap-5 rounded-[22px] border border-[#dde4d1] bg-white p-5 shadow-[0_8px_30px_rgba(33,41,23,.03)]">
-            <div className="min-w-[190px] flex-1">
-              <p className="text-[10px] font-black uppercase tracking-[0.15em] text-[#88917d]">Your current plan</p>
-              <div className="mt-1 flex items-end justify-between gap-3">
-                <strong className="text-xl">{(entitlement.storagePlan ?? 'free').toUpperCase()}</strong>
-                <span className="text-xs text-[#697364]">{used == null ? 'Storage loading' : `${(used / 1e9).toFixed(2)} GB used`}</span>
-              </div>
-              <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-[#eff2e7]" role="progressbar" aria-valuenow={percent} aria-valuemin={0} aria-valuemax={100} aria-label="Cloud storage used">
-                <div className="h-full rounded-full bg-[#a1b778] transition-all" style={{ width: `${percent}%` }} />
-              </div>
-              <p className="mt-1.5 text-right text-[11px] text-[#899281]">{(limit / 1e9).toFixed(limit < 1e9 ? 1 : 0)} GB available</p>
-            </div>
-            {active && (
-              <button type="button" onClick={() => void manage().catch(e => setError(e instanceof Error ? e.message : 'Unable to manage subscription.'))}
-                className="rounded-xl border border-[#d4dbc7] px-4 py-2.5 text-xs font-black transition hover:bg-[#f1f4e9]">
-                Manage current plan <ArrowRight size={13} className="ml-1 inline" />
-              </button>
-            )}
-          </section>
+          </>
         )}
 
-        <div className="mt-11 flex flex-col items-center gap-3">
+        <div className={`${inApp ? "mt-0" : "mt-11"} flex flex-col items-center gap-3`}>
           <div className="inline-flex rounded-full border border-[#e1e5d8] bg-white p-1.5 shadow-sm" aria-label="Billing cycle">
             {(['month', 'year'] as const).map(value => (
               <button key={value} type="button" onClick={() => setInterval(value)}
@@ -160,7 +139,6 @@ export function StoragePricingPage({ inApp = false }: { inApp?: boolean }) {
             <button onClick={retry} type="button" className="inline-flex items-center gap-1 font-black underline underline-offset-2"><RefreshCcw size={13}/> Retry pricing</button>
           </div>
         )}
-        {error && <p className="mt-5 text-center text-sm text-red-700" role="alert">{error}</p>}
 
         <section className="mt-16 grid gap-6 rounded-[28px] border border-[#e2e7da] bg-white px-7 py-8 sm:grid-cols-3 sm:px-10">
           <div className="flex gap-3"><ShieldCheck className="mt-0.5 shrink-0 text-[#778e54]" size={22}/><div><h3 className="text-sm font-black">Your data, always yours</h3><p className="mt-1 text-xs leading-5 text-[#7e8974]">Cancel a paid plan without losing access to your regular bookmarks.</p></div></div>
