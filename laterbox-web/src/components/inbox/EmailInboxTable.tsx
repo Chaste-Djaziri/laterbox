@@ -58,6 +58,7 @@ const ItemDetailView = dynamic(
 import { AddToCollectionModal } from '@/components/collections/AddToCollectionModal';
 import { fetchAttachmentDownloadUrl } from '@/lib/utils/attachment';
 import { PortalMenu } from '@/components/ui/PortalMenu';
+import { ToolbarTooltipRegion } from '@/components/ui/ToolbarTooltipRegion';
 import { ExactScheduleModal } from '@/components/scheduling/ExactScheduleModal';
 import { ReturnTimePicker } from '@/components/scheduling/ReturnTimePicker';
 import { emailTableItemHref, readEmailTableItemId } from '@/lib/utils/tableItemNavigation';
@@ -652,10 +653,11 @@ export function EmailInboxTable({
       {/* TOP TOOLBAR: Controls, Batch Actions, Pagination */}
       {/* ===================================================================== */}
       {openedItemId ? (
-        <div className="relative z-20 flex min-h-[60px] items-center gap-2 border-b border-[#e4e0d5] bg-[#fafaf6] px-2.5 py-2 text-[#171711] sm:gap-3 sm:px-4">
+        <ToolbarTooltipRegion className="relative z-20 flex min-h-[60px] items-center gap-2 border-b border-[#e4e0d5] bg-[#fafaf6] px-2.5 py-2 text-[#171711] sm:gap-3 sm:px-4">
           <button
             type="button"
             onClick={closeItemDetails}
+            data-tooltip={`Back to ${propTitle || 'items'}`}
             className="inline-flex min-h-9 shrink-0 items-center gap-2 rounded-xl px-2 text-xs font-bold transition-colors hover:bg-[#e6edb0] focus-visible:outline-2 focus-visible:outline-[#758a50] sm:px-3"
           >
             <ArrowLeft className="h-4 w-4" aria-hidden="true" />
@@ -670,7 +672,7 @@ export function EmailInboxTable({
               <>
                 <button
                   type="button"
-                  title={openedItem.favorite ? 'Remove star' : 'Star item'}
+                  data-tooltip={openedItem.favorite ? 'Remove star' : 'Star item'}
                   aria-label={openedItem.favorite ? 'Remove star' : 'Star item'}
                   aria-pressed={Boolean(openedItem.favorite)}
                   disabled={detailActionPending}
@@ -682,7 +684,7 @@ export function EmailInboxTable({
 
                 <button
                   type="button"
-                  title={openedItem.status === 'saved' ? 'Already kept' : 'Keep in library'}
+                  data-tooltip={openedItem.status === 'saved' ? 'Already kept' : 'Keep in library'}
                   aria-label={openedItem.status === 'saved' ? 'Already kept' : 'Keep in library'}
                   disabled={detailActionPending || Boolean(openedItem.deleted_at) || openedItem.status === 'saved'}
                   onClick={() => void runDetailAction(() => keepItem(openedItem.id), 'keep item')}
@@ -694,7 +696,7 @@ export function EmailInboxTable({
 
                 <button
                   type="button"
-                  title={openedItem.status === 'archived' ? 'Already archived' : 'Archive item'}
+                  data-tooltip={openedItem.status === 'archived' ? 'Already archived' : 'Archive item'}
                   aria-label={openedItem.status === 'archived' ? 'Already archived' : 'Archive item'}
                   disabled={detailActionPending || Boolean(openedItem.deleted_at) || openedItem.status === 'archived'}
                   onClick={() => void runDetailAction(() => archiveItem(openedItem.id), 'archive item')}
@@ -705,7 +707,7 @@ export function EmailInboxTable({
 
                 <button
                   type="button"
-                  title="Add to collections"
+                  data-tooltip="Add to collections"
                   aria-label="Add to collections"
                   disabled={detailActionPending || Boolean(openedItem.deleted_at)}
                   onClick={() => setCollectionModalItem(openedItem)}
@@ -717,7 +719,7 @@ export function EmailInboxTable({
                 <button
                   ref={headerScheduleTriggerRef}
                   type="button"
-                  title="Reschedule item"
+                  data-tooltip="Reschedule item"
                   aria-label="Reschedule item"
                   aria-expanded={headerScheduleOpen}
                   disabled={detailActionPending || Boolean(openedItem.deleted_at)}
@@ -748,7 +750,7 @@ export function EmailInboxTable({
 
                 <button
                   type="button"
-                  title={detailCopied ? 'Copied' : 'Copy item link or content'}
+                  data-tooltip={detailCopied ? 'Copied' : 'Copy item link or content'}
                   aria-label={detailCopied ? 'Copied' : 'Copy item link or content'}
                   disabled={detailActionPending}
                   onClick={async () => {
@@ -771,7 +773,7 @@ export function EmailInboxTable({
                     href={openedExternalUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    title="Open external source"
+                    data-tooltip="Open external source"
                     aria-label="Open external source in a new tab"
                     className={detailActionClass}
                   >
@@ -782,7 +784,7 @@ export function EmailInboxTable({
                 {openedItem.deleted_at ? (
                   <button
                     type="button"
-                    title="Restore item"
+                    data-tooltip="Restore item"
                     aria-label="Restore item"
                     disabled={detailActionPending}
                     onClick={() => void runDetailAction(() => restoreItem(openedItem.id), 'restore item', true)}
@@ -793,7 +795,7 @@ export function EmailInboxTable({
                 ) : (
                   <button
                     type="button"
-                    title="Delete item"
+                    data-tooltip="Delete item"
                     aria-label="Delete item"
                     disabled={detailActionPending}
                     onClick={() => {
@@ -817,7 +819,7 @@ export function EmailInboxTable({
             <button
               type="button"
               aria-label="Previous item"
-              title="Previous item"
+              data-tooltip="Previous item"
               disabled={!previousItemId}
               onClick={() => previousItemId && openItemDetails(previousItemId, true)}
               className="rounded-lg p-2 text-[#5f655b] transition-colors hover:bg-white disabled:cursor-not-allowed disabled:opacity-30 focus-visible:outline-2 focus-visible:outline-[#758a50]"
@@ -827,7 +829,7 @@ export function EmailInboxTable({
             <button
               type="button"
               aria-label="Next item"
-              title="Next item"
+              data-tooltip="Next item"
               disabled={!nextItemId}
               onClick={() => nextItemId && openItemDetails(nextItemId, true)}
               className="rounded-lg p-2 text-[#5f655b] transition-colors hover:bg-white disabled:cursor-not-allowed disabled:opacity-30 focus-visible:outline-2 focus-visible:outline-[#758a50]"
@@ -840,7 +842,7 @@ export function EmailInboxTable({
               {detailActionError}
             </div>
           )}
-        </div>
+        </ToolbarTooltipRegion>
       ) : (
       <div className="shrink-0 flex items-center justify-between px-3 py-2 border-b border-[#e4e0d5] bg-white text-[#6c6b63] text-xs min-h-[46px] select-none rounded-t-2xl relative z-20">
         {/* Left Toolbar Controls */}

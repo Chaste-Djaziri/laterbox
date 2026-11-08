@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[App / Email Toolbar]** Add consistent, styled hover and keyboard-focus tooltips for every in-table reading action, including Back, Star, Keep, Archive, Collections, Reschedule, Copy, Open Source, Delete/Restore, and previous/next. Portal placement prevents the scrollable toolbar from clipping labels.
+
 - **[App / Email reading toolbar]** Consolidate the embedded item actions (star, keep, archive, collections, reschedule, copy, external source, delete/restore) into the email-style table header alongside Back and previous/next. Hide the duplicated detail action bar and inline scheduling panel in embedded mode; retain the standalone item page layout.
 
 - **[App / Email table]** Open saved items in the full item-details view inside the email-style table, replacing the previous split reading panel. Keep list state and table controls, enable Back/Forward with a shareable `?item=` URL, and reuse the same details component on the standalone item route.
