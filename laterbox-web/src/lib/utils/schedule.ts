@@ -37,6 +37,46 @@ export function todayFocusItems(items: LaterBoxItem[], now: Date): { overdue: La
   };
 }
 
+/** The timestamp when an active item became available in Inbox.
+ * Due Deferred entries remain Deferred in storage until interacted with, so
+ * their scheduled return time represents Inbox arrival in read-only views.
+ * For older direct-Inbox records without entry history, creation is the
+ * conservative fallback. Explicit but malformed entry history is not guessed.
+ */
+export function inboxArrivalTimestamp(item: LaterBoxItem): number | null {
+  if (item.deleted_at) return null;
+  let timestamp: string | null | undefined;
+  if (item.status === 'inbox') {
+    timestamp = item.inbox_entered_at ?? item.created_at;
+  } else if (item.status === 'deferred') {
+    timestamp = item.return_at;
+  } else {
+    return null;
+  }
+  if (!timestamp) return null;
+  const time = new Date(timestamp).getTime();
+  return Number.isFinite(time) ? time : null;
+}
+
+/** Active Inbox arrivals over the last 24 elapsed hours (not local midnight). */
+export function recentInboxArrivals(
+  items: readonly LaterBoxItem[],
+  now: Date,
+): LaterBoxItem[] {
+  const current = now.getTime();
+  if (!Number.isFinite(current)) return [];
+  const cutoff = current - 24 * 60 * 60 * 1000;
+  return items.filter(item => {
+    if (!isDue(item, now)) return false;
+    const arrival = inboxArrivalTimestamp(item);
+    return arrival !== null && arrival >= cutoff && arrival <= current;
+  }).sort((a, b) => {
+    const timeA = inboxArrivalTimestamp(a) ?? -Infinity;
+    const timeB = inboxArrivalTimestamp(b) ?? -Infinity;
+    return timeB - timeA || b.created_at.localeCompare(a.created_at);
+  });
+}
+
 /** Returns null for missing/invalid history rather than inventing an Inbox entry. */
 export function formatInboxAge(item: LaterBoxItem, now: Date): string | null {
   if (item.status !== 'inbox' || item.deleted_at || !item.inbox_entered_at) return null;

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { isDue, migrateSchedule, resolveReturnPreset, scheduleItems, todayFocusItems, formatInboxAge, transitionItemStatus, moveItemToInbox, restoreItemToInbox, scheduleItemReturn } from './schedule';
+import { isDue, migrateSchedule, resolveReturnPreset, scheduleItems, todayFocusItems, formatInboxAge, inboxArrivalTimestamp, recentInboxArrivals, transitionItemStatus, moveItemToInbox, restoreItemToInbox, scheduleItemReturn } from './schedule';
 import { itemRow, queueCapture } from './pending-captures';
 import type { LaterBoxItem } from '../supabase/types';
 
@@ -158,4 +158,45 @@ test('offline capture queues are isolated per account and keep the latest resche
     if (original) Object.defineProperty(globalThis, 'localStorage', original);
     else Reflect.deleteProperty(globalThis, 'localStorage');
   }
+});
+
+test('Today includes only items that entered Inbox in the last rolling 24 hours', () => {
+  const time = new Date('2026-11-08T11:00:00.000Z');
+  const before = new Date(time.getTime() - 24 * 60 * 60 * 1000);
+  const later = (ms: number) => new Date(time.getTime() + ms).toISOString();
+  const activeInbox = (id: string, entered: string | null): LaterBoxItem => ({
+    ...item(id, null, 'inbox'),
+    inbox_entered_at: entered,
+    created_at: '2026-10-01T08:00:00.000Z',
+  });
+  const candidates: LaterBoxItem[] = [
+    activeInbox('older', later(-24 * 60 * 60 * 1000 - 1)),
+    activeInbox('boundary', before.toISOString()),
+    activeInbox('recent', later(-60 * 60 * 1000)),
+    activeInbox('now', time.toISOString()),
+    activeInbox('future-inbox', later(1000)),
+    { ...activeInbox('legacy-recent', null), created_at: later(-5000) },
+    activeInbox('legacy-old', null),
+    { ...item('returned-recent', new Date(later(-20 * 60 * 60 * 1000))), created_at: '2026-09-01T00:00:00Z' },
+    { ...item('returned-old', new Date(later(-25 * 60 * 60 * 1000))), created_at: later(-1000) },
+    item('not-due', new Date(later(3000))),
+    { ...activeInbox('kept', later(-2000)), status: 'saved' },
+    { ...activeInbox('archived', later(-2000)), status: 'archived' },
+    { ...activeInbox('deleted', later(-2000)), deleted_at: later(-1000) },
+    { ...activeInbox('bad-entry', 'bad-date'), created_at: later(-1000) },
+    { ...item('someday', null), created_at: later(-1000) },
+  ];
+  assert.deepEqual(recentInboxArrivals(candidates, time).map(i => i.id), [
+    'now', 'legacy-recent', 'recent', 'returned-recent', 'boundary',
+  ]);
+  assert.equal(inboxArrivalTimestamp(candidates[7]), time.getTime() - 20 * 60 * 60 * 1000);
+  assert.equal(inboxArrivalTimestamp(candidates[13]), null);
+  assert.deepEqual(recentInboxArrivals(candidates, new Date('bad-date')), []);
+});
+
+test('Today uses elapsed hours across local midnight and daylight-saving boundaries', () => {
+  const time = new Date('2026-10-25T12:30:00.000Z');
+  const recent = { ...item('recent-23h', null, 'inbox'), inbox_entered_at: new Date(time.getTime() - 23 * 3600000).toISOString() };
+  const stale = { ...item('stale-25h', null, 'inbox'), inbox_entered_at: new Date(time.getTime() - 25 * 3600000).toISOString() };
+  assert.deepEqual(recentInboxArrivals([stale, recent], time).map(i => i.id), ['recent-23h']);
 });
