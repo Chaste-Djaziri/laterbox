@@ -26,6 +26,14 @@ struct MainTabTests {
         #expect(!LaterBoxSplashTiming.shouldReplay(wasBackgrounded: true, phase: .inactive))
     }
 
+    @Test("Splash uses black on white in Light Mode and white on black in Dark Mode")
+    func splashRespectsAppearance() {
+        #expect(LaterBoxLoadingMark.foreground(for: .light) == Color.black)
+        #expect(LaterBoxLoadingMark.background(for: .light) == Color.white)
+        #expect(LaterBoxLoadingMark.foreground(for: .dark) == Color.white)
+        #expect(LaterBoxLoadingMark.background(for: .dark) == Color.black)
+    }
+
     @Test("Splash fill clamps to the valid loading range")
     func splashFillProgress() {
         #expect(LaterBoxLoadingMark.normalizedProgress(-0.2) == 0)

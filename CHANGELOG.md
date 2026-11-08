@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[iOS / Splash theming]** Use a pure white canvas and black vector-logo fill in Light Mode, and a pure black canvas with white fill in Dark Mode. Derive appearance from the system while the splash is visible (including on foreground replay), restore the app's existing appearance afterward, and retain the five-second motion and transparent vector cutouts.
+
 - **[iOS / Splash animation]** Keep the SwiftUI logo fill splash visible for five seconds at cold launch and replay the same animation whenever the app returns from background; prevent overlapping replay completions and continue local/cloud startup independently.
 
 - **[iOS / Launch splash]** Use the transparent SwiftUI cube mark on launch and replace the separate spinner with a brand-green, bottom-to-top fill reflecting local startup stages. Complete the fill before transitioning to the app, without waiting for network or StoreKit; respect Reduce Motion.

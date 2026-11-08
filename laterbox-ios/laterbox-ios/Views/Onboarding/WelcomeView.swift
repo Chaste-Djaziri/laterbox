@@ -141,11 +141,9 @@ struct WelcomeView: View {
             .navigationDestination(isPresented: $showingAuthView) {
                 AuthView()
             }
-            .preferredColorScheme(.dark)
-            .whiteStatusBar()
         }
-        .preferredColorScheme(.dark)
-        .whiteStatusBar()
+        // The root ContentView controls appearance for the welcome screen.
+        // Keeping a forced scheme here would also force the splash into Dark Mode.
     }
 }
 

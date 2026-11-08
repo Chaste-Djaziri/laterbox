@@ -91,10 +91,21 @@ struct LaterBoxVectorMark: View {
 /// Draws the brand ink from bottom to top as a local startup stage completes.
 /// Both copies use the same transparent vector paths; only the colored fill is masked.
 struct LaterBoxLoadingMark: View {
+    @Environment(\.colorScheme) private var colorScheme
+
     var size: CGFloat = 164
     var progress: Double
-    var emptyInk: Color = Color(hex: "171711").opacity(0.16)
-    var filledInk: Color = AppTheme.accent
+    /// Override either color for custom presentations, or use the system-adaptive defaults.
+    var emptyInk: Color? = nil
+    var filledInk: Color? = nil
+
+    static func foreground(for scheme: ColorScheme) -> Color {
+        scheme == .dark ? .white : .black
+    }
+
+    static func background(for scheme: ColorScheme) -> Color {
+        scheme == .dark ? .black : .white
+    }
 
     /// Clamp startup stages so invalid/out-of-order values never escape the logo.
     static func normalizedProgress(_ progress: Double) -> Double {
@@ -108,9 +119,17 @@ struct LaterBoxLoadingMark: View {
 
     var body: some View {
         ZStack {
-            LaterBoxVectorMark(size: size, ink: emptyInk, animates: false)
+            LaterBoxVectorMark(
+                size: size,
+                ink: emptyInk ?? Self.foreground(for: colorScheme).opacity(0.16),
+                animates: false
+            )
 
-            LaterBoxVectorMark(size: size, ink: filledInk, animates: false)
+            LaterBoxVectorMark(
+                size: size,
+                ink: filledInk ?? Self.foreground(for: colorScheme),
+                animates: false
+            )
                 .mask {
                     VStack(spacing: 0) {
                         Spacer(minLength: 0)

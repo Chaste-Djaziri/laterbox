@@ -26,6 +26,7 @@ struct ContentView: View {
     @StateObject private var lockManager = AppLockManager.shared
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.colorScheme) private var systemColorScheme
 
     @ObservedObject private var returnRouter = ReturnNotificationRouter.shared
     @StateObject private var aiManager = LaterAIManager.shared
@@ -57,11 +58,9 @@ struct ContentView: View {
         ZStack {
             if !coordinator.hasAccess {
                 WelcomeView()
-                    .whiteStatusBar()
                     .transition(.opacity)
             } else {
                 MainTabView()
-                    .darkStatusBar()
                     .sheet(isPresented: $coordinator.showingQuickCapture) {
                         QuickCaptureSheet()
                     }
@@ -112,12 +111,17 @@ struct ContentView: View {
             }
         }
         .animation(.spring(response: 0.45, dampingFraction: 0.85), value: coordinator.hasAccess)
-        .preferredColorScheme(activeColorScheme)
-        .onChange(of: activeColorScheme) { _, newScheme in
-            StatusBarStyleModifier.apply(newScheme == .dark ? .dark : .light)
+        // While the splash is visible, let iOS use the device's Light/Dark appearance.
+        // Restore the existing app-specific color scheme after the splash finishes.
+        .preferredColorScheme(isLaunching ? nil : activeColorScheme)
+        .onChange(of: activeColorScheme) { _, _ in
+            applyCurrentInterfaceStyle()
+        }
+        .onChange(of: isLaunching) { _, _ in
+            applyCurrentInterfaceStyle()
         }
         .onAppear {
-            StatusBarStyleModifier.apply(activeColorScheme == .dark ? .dark : .light)
+            applyCurrentInterfaceStyle()
         }
         .task {
             guard !launchStarted else { return }
@@ -228,31 +232,38 @@ struct ContentView: View {
         }
     }
     private var launchSplash: some View {
-        ZStack {
-            AppTheme.canvasBackground.ignoresSafeArea()
+        let ink = LaterBoxLoadingMark.foreground(for: systemColorScheme)
+        return ZStack {
+            LaterBoxLoadingMark.background(for: systemColorScheme)
+                .ignoresSafeArea()
 
             VStack(spacing: 18) {
                 LaterBoxLoadingMark(
                     size: 168,
-                    progress: launchProgress,
-                    filledInk: AppTheme.accent
+                    progress: launchProgress
                 )
                 .padding(.bottom, 6)
 
                 Text("laterbox")
                     .font(.system(size: 28, weight: .black, design: .rounded))
                     .tracking(-1)
-                    .foregroundStyle(AppTheme.textPrimary)
+                    .foregroundStyle(ink)
 
                 Text(launchStatus)
                     .font(.subheadline)
-                    .foregroundStyle(AppTheme.textSecondary)
+                    .foregroundStyle(ink.opacity(0.65))
                     .accessibilityAddTraits(.updatesFrequently)
             }
             .padding(28)
         }
-        .preferredColorScheme(.light)
         .accessibilityElement(children: .combine)
+    }
+
+    private func applyCurrentInterfaceStyle() {
+        let style: UIUserInterfaceStyle = isLaunching
+            ? .unspecified
+            : (activeColorScheme == .dark ? .dark : .light)
+        StatusBarStyleModifier.apply(style)
     }
 
     @MainActor
