@@ -72,7 +72,7 @@ final class laterbox_iosUITests: XCTestCase {
     }
 
     @MainActor
-    func testReturnsSegmentsAreAlwaysVisibleAndSwitchContent() throws {
+    func testReturnsScrollableSegmentsAndExpandableSearch() throws {
         let app = XCUIApplication()
         app.launchArguments = ["-lb_guest_mode", "YES", "-lb_user_email", ""]
         app.launch()
@@ -101,6 +101,26 @@ final class laterbox_iosUITests: XCTestCase {
 
         today.tap()
         XCTAssertTrue(app.staticTexts["Due today"].waitForExistence(timeout: 5))
+
+        let searchButton = app.buttons["Returns Search Button"]
+        XCTAssertTrue(searchButton.exists, "The top-right calendar should be replaced by search")
+        searchButton.tap()
+        let searchField = app.textFields["Returns Search Field"]
+        XCTAssertTrue(searchField.waitForExistence(timeout: 5))
+        XCTAssertFalse(app.staticTexts["Make time for what you saved."].exists,
+                       "Expanded search hides the Returns heading description")
+
+        searchField.tap()
+        searchField.typeText("unlikely-return-search-term")
+        XCTAssertTrue(app.staticTexts["No matches in Today"].waitForExistence(timeout: 5))
+
+        upcoming.tap()
+        XCTAssertTrue(app.staticTexts["No matches in Upcoming"].waitForExistence(timeout: 5),
+                      "Search applies to the active segment")
+
+        app.buttons["Returns Search Cancel"].tap()
+        XCTAssertTrue(searchButton.waitForExistence(timeout: 5))
+        XCTAssertFalse(searchField.exists)
     }
 
     @MainActor

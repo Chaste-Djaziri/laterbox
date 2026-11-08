@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[iOS / Compact Returns search]** Make the Today / Upcoming / Someday switcher a short horizontally scrollable row of count badges. Replace the decorative calendar in the Returns header with a search control that expands into a full-width input and Cancel action, hides the header title/description, and filters deferred items by title, source, and saved content within the selected section. Preserve cross-section switching, clear/close behavior, adaptive light/graphite appearance, and contextual no-results feedback.
+
 - **[iOS / Returns appearance and navigation]** Redesign the Today/Returns screen with the same white Light Mode and textured graphite Dark Mode as Inbox, including adaptive overdue/today cards and controls. Replace the horizontally scrollable pill filters with a full-width equal-width Today / Upcoming / Someday segmented switcher, prominent selection states and counts, distinct section descriptions, and helpful context-specific empty states, while preserving return actions and native item-detail navigation.
 
 - **[Web / Item detail chat]** Replace the full item page's raw personal-note textarea (which exposed synced iOS thread JSON) with a conversation-style Notes & Follow-ups thread and composer. Decode the same shared itemThread format as the Inbox side panel and iOS; support sending, quoted replies, editing/deleting messages, reactions, existing poll votes and file references, legacy plain-text notes, and safe save feedback without destroying thread metadata.

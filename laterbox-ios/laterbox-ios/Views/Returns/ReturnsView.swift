@@ -56,6 +56,26 @@ public enum ReturnSegment: String, CaseIterable {
     }
 }
 
+/// Search matches only items in the selected returns section, using the same
+/// meaningful metadata visible in item details.
+enum ReturnsItemSearch {
+    static func matches(_ item: LBItem, query: String) -> Bool {
+        let needle = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !needle.isEmpty else { return true }
+        let fields = [
+            item.title,
+            item.url ?? "",
+            item.domain ?? "",
+            item.siteName ?? "",
+            item.metadataDescription ?? "",
+            item.textContent ?? "",
+            item.summary,
+            item.collectionName ?? ""
+        ] + item.tags
+        return fields.contains { $0.localizedStandardContains(needle) }
+    }
+}
+
 public struct ReturnsView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
@@ -65,6 +85,9 @@ public struct ReturnsView: View {
 
     @State private var selectedSegment: ReturnSegment = .today
     @State private var snoozeTargetItem: LBItem?
+    @State private var isSearching = false
+    @State private var searchText = ""
+    @FocusState private var searchFocused: Bool
     private let isTabRoot: Bool
 
     private var primaryInk: Color { InboxAppearance.textPrimary(for: colorScheme) }
@@ -99,7 +122,23 @@ public struct ReturnsView: View {
         }
     }
 
-    private var itemsForSegment: [LBItem] { items(for: selectedSegment) }
+    private var itemsForSegment: [LBItem] {
+        items(for: selectedSegment).filter {
+            ReturnsItemSearch.matches($0, query: searchText)
+        }
+    }
+
+    private var hasSearchQuery: Bool {
+        !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    private func closeSearch() {
+        searchFocused = false
+        withAnimation(.easeInOut(duration: 0.2)) {
+            searchText = ""
+            isSearching = false
+        }
+    }
 
     public var body: some View {
         NavigationStack {
@@ -116,7 +155,11 @@ public struct ReturnsView: View {
                     ScrollView {
                         VStack(alignment: .leading, spacing: 12) {
                             if itemsForSegment.isEmpty {
-                                emptyState
+                                if hasSearchQuery {
+                                    searchEmptyState
+                                } else {
+                                    emptyState
+                                }
                             } else if selectedSegment == .today {
                                 TodayFocusList(
                                     items: itemsForSegment,
@@ -167,114 +210,182 @@ public struct ReturnsView: View {
 
     private var pageHeader: some View {
         HStack(spacing: 12) {
-            if !isTabRoot {
-                Button {
-                    dismiss()
-                    LBHaptic.light()
-                } label: {
-                    Label("Inbox", systemImage: "chevron.left")
-                        .font(.system(size: 14, weight: .semibold))
+            if isSearching {
+                HStack(spacing: 10) {
+                    Image(systemName: "magnifyingglass")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundStyle(secondaryInk)
+
+                    TextField("Search returns...", text: $searchText)
+                        .font(.system(size: 15))
                         .foregroundStyle(primaryInk)
+                        .tint(colorScheme == .dark ? AppTheme.accent : Color(hex: "171711"))
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                        .submitLabel(.search)
+                        .focused($searchFocused)
+                        .onAppear { searchFocused = true }
+                        .accessibilityIdentifier("Returns Search Field")
+
+                    if !searchText.isEmpty {
+                        Button {
+                            searchText = ""
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.system(size: 16))
+                                .foregroundStyle(secondaryInk)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Clear returns search")
+                    }
                 }
-                .buttonStyle(.plain)
-            }
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text(isTabRoot ? "Returns" : "Returns Schedule")
-                    .font(.system(size: 25, weight: .bold))
-                    .foregroundStyle(primaryInk)
-                Text("Make time for what you saved.")
-                    .font(.system(size: 12))
-                    .foregroundStyle(secondaryInk)
-            }
-
-            Spacer(minLength: 0)
-
-            Image(systemName: "calendar.badge.clock")
-                .font(.system(size: 18, weight: .medium))
-                .foregroundStyle(primaryInk)
-                .frame(width: 42, height: 42)
+                .padding(.horizontal, 13)
+                .frame(maxWidth: .infinity)
+                .frame(height: 43)
                 .background(surface, in: RoundedRectangle(cornerRadius: 13, style: .continuous))
                 .overlay {
                     RoundedRectangle(cornerRadius: 13, style: .continuous)
                         .strokeBorder(border, lineWidth: 1)
                 }
-                .accessibilityHidden(true)
-        }
-        .padding(.horizontal, 18)
-        .padding(.top, 14)
-        .padding(.bottom, 18)
-    }
 
-    /// Three equal-width, always-visible destinations: no horizontal scrolling.
-    private var segmentSwitcher: some View {
-        HStack(spacing: 5) {
-            ForEach(ReturnSegment.allCases, id: \.self) { segment in
-                let selected = selectedSegment == segment
-                let count = items(for: segment).count
+                Button("Cancel") {
+                    closeSearch()
+                }
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(primaryInk)
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("Returns Search Cancel")
+            } else {
+                if !isTabRoot {
+                    Button {
+                        dismiss()
+                        LBHaptic.light()
+                    } label: {
+                        Label("Inbox", systemImage: "chevron.left")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(primaryInk)
+                    }
+                    .buttonStyle(.plain)
+                }
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(isTabRoot ? "Returns" : "Returns Schedule")
+                        .font(.system(size: 25, weight: .bold))
+                        .foregroundStyle(primaryInk)
+                    Text("Make time for what you saved.")
+                        .font(.system(size: 12))
+                        .foregroundStyle(secondaryInk)
+                }
+
+                Spacer(minLength: 0)
 
                 Button {
-                    guard selectedSegment != segment else { return }
-                    withAnimation(.easeInOut(duration: 0.18)) {
-                        selectedSegment = segment
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        isSearching = true
                     }
                     LBHaptic.light()
                 } label: {
-                    VStack(spacing: 7) {
-                        Label(segment.rawValue, systemImage: segment.symbol)
-                            .font(.system(size: 12, weight: .semibold))
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.8)
-                        Text("\(count)")
-                            .font(.system(size: 11, weight: .bold, design: .rounded))
-                            .monospacedDigit()
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 3)
-                            .background(
-                                selected
-                                    ? Color(hex: "171711").opacity(0.11)
-                                    : (colorScheme == .dark ? Color.white.opacity(0.1) : Color.black.opacity(0.06)),
-                                in: Capsule()
-                            )
-                    }
-                    .foregroundStyle(
-                        selected
-                            ? Color(hex: "171711")
-                            : primaryInk
-                    )
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 67)
-                    .background(
-                        selected ? AppTheme.accent : Color.clear,
-                        in: RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    )
-                    .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    Image(systemName: "magnifyingglass")
+                        .font(.system(size: 18, weight: .medium))
+                        .foregroundStyle(primaryInk)
+                        .frame(width: 42, height: 42)
+                        .background(surface, in: RoundedRectangle(cornerRadius: 13, style: .continuous))
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 13, style: .continuous)
+                                .strokeBorder(border, lineWidth: 1)
+                        }
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("\(segment.rawValue), \(count) \(count == 1 ? "item" : "items")")
-                .accessibilityValue(selected ? "Selected" : "Not selected")
-                .accessibilityIdentifier("Returns Segment \(segment.rawValue)")
+                .accessibilityLabel("Search returns")
+                .accessibilityIdentifier("Returns Search Button")
             }
         }
-        .padding(5)
-        .background(surface, in: RoundedRectangle(cornerRadius: 19, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: 19, style: .continuous)
-                .strokeBorder(border, lineWidth: 1)
+        .padding(.horizontal, 18)
+        .padding(.top, 14)
+        .padding(.bottom, 13)
+    }
+
+    /// Compact horizontally scrollable chips keep the destination switcher
+    /// visible without consuming an entire row of tall cards.
+    private var segmentSwitcher: some View {
+        ScrollViewReader { reader in
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(ReturnSegment.allCases, id: \.self) { segment in
+                        let selected = selectedSegment == segment
+                        let count = items(for: segment).count
+
+                        Button {
+                            guard selectedSegment != segment else { return }
+                            withAnimation(.easeInOut(duration: 0.18)) {
+                                selectedSegment = segment
+                            }
+                            LBHaptic.light()
+                        } label: {
+                            HStack(spacing: 7) {
+                                Image(systemName: segment.symbol)
+                                    .font(.system(size: 12, weight: .semibold))
+                                Text(segment.rawValue)
+                                    .font(.system(size: 12, weight: .semibold))
+                                    .lineLimit(1)
+                                Text("\(count)")
+                                    .font(.system(size: 10, weight: .bold, design: .rounded))
+                                    .monospacedDigit()
+                                    .padding(.horizontal, 6)
+                                    .frame(minHeight: 19)
+                                    .background(
+                                        selected
+                                            ? Color(hex: "171711").opacity(0.12)
+                                            : (colorScheme == .dark
+                                                ? Color.white.opacity(0.09)
+                                                : Color.black.opacity(0.05)),
+                                        in: Capsule()
+                                    )
+                            }
+                            .foregroundStyle(selected ? Color(hex: "171711") : primaryInk)
+                            .padding(.horizontal, 12)
+                            .frame(height: 38)
+                            .background(
+                                selected ? AppTheme.accent : surface,
+                                in: Capsule()
+                            )
+                            .overlay {
+                                Capsule()
+                                    .strokeBorder(selected ? Color.clear : border, lineWidth: 1)
+                            }
+                        }
+                        .buttonStyle(.plain)
+                        .id(segment)
+                        .accessibilityLabel("\(segment.rawValue), \(count) \(count == 1 ? "item" : "items")")
+                        .accessibilityValue(selected ? "Selected" : "Not selected")
+                        .accessibilityIdentifier("Returns Segment \(segment.rawValue)")
+                    }
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 3)
+            }
+            .onChange(of: selectedSegment) { _, next in
+                withAnimation(.easeInOut(duration: 0.18)) {
+                    reader.scrollTo(next, anchor: .center)
+                }
+            }
         }
-        .padding(.horizontal, 16)
     }
 
     private var segmentDescription: some View {
         HStack(alignment: .center, spacing: 12) {
             VStack(alignment: .leading, spacing: 5) {
-                Text(selectedSegment.heading)
+                Text(hasSearchQuery ? "Search results" : selectedSegment.heading)
                     .font(.system(size: 19, weight: .bold))
                     .foregroundStyle(primaryInk)
-                Text(selectedSegment.description)
-                    .font(.system(size: 12))
-                    .foregroundStyle(secondaryInk)
-                    .fixedSize(horizontal: false, vertical: true)
+                Text(
+                    hasSearchQuery
+                        ? "\(itemsForSegment.count) \(itemsForSegment.count == 1 ? "match" : "matches") in \(selectedSegment.rawValue)"
+                        : selectedSegment.description
+                )
+                .font(.system(size: 12))
+                .foregroundStyle(secondaryInk)
+                .fixedSize(horizontal: false, vertical: true)
             }
             Spacer(minLength: 0)
         }
@@ -302,6 +413,38 @@ public struct ReturnsView: View {
                 .foregroundStyle(secondaryInk)
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.horizontal, 24)
+        .padding(.vertical, 42)
+        .background(surface, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .strokeBorder(border, lineWidth: 1)
+        }
+        .padding(.horizontal, 12)
+        .padding(.top, 6)
+    }
+
+    private var searchEmptyState: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 25, weight: .medium))
+                .foregroundStyle(secondaryInk)
+                .frame(width: 56, height: 56)
+                .background(
+                    colorScheme == .dark ? Color(hex: "303438") : Color(hex: "EAEDE8"),
+                    in: RoundedRectangle(cornerRadius: 17, style: .continuous)
+                )
+
+            Text("No matches in \(selectedSegment.rawValue)")
+                .font(.system(size: 16, weight: .bold))
+                .foregroundStyle(primaryInk)
+
+            Text("Try a different search or switch to another section.")
+                .font(.system(size: 13))
+                .foregroundStyle(secondaryInk)
+                .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity)
         .padding(.horizontal, 24)

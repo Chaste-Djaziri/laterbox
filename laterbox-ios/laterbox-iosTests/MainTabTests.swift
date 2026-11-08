@@ -73,6 +73,29 @@ struct MainTabTests {
         #expect(ReturnSegment.someday.emptyTitle == "Your Someday list is empty")
     }
 
+    @Test("Returns search matches saved content and ignores empty input")
+    func returnsSearch() {
+        let item = LBItem(
+            url: "https://example.com/weekly-guide",
+            title: "Read the next chapter",
+            textContent: "An interesting anime review",
+            type: .link,
+            status: .deferred
+        )
+        item.siteName = "Example News"
+        item.summary = "Pick this up next week"
+        item.tags = ["Reading", "Favorites"]
+
+        #expect(ReturnsItemSearch.matches(item, query: ""))
+        #expect(ReturnsItemSearch.matches(item, query: "   "))
+        #expect(ReturnsItemSearch.matches(item, query: "CHAPTER"))
+        #expect(ReturnsItemSearch.matches(item, query: "example.com"))
+        #expect(ReturnsItemSearch.matches(item, query: "anime"))
+        #expect(ReturnsItemSearch.matches(item, query: "next week"))
+        #expect(ReturnsItemSearch.matches(item, query: "reading"))
+        #expect(!ReturnsItemSearch.matches(item, query: "coffee"))
+    }
+
     @Test("Only Inbox owns the custom top header")
     func headerVisibility() {
         #expect(MainTab.inbox.showsAppHeader)
