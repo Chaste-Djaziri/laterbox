@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[App / Sidebar]** Switch the authenticated desktop dashboard to a compact, large-icon-only navigation rail; keep tooltips, counts, quick capture, plan status, sync and collection management available through an accessible flyout.
+
 - **[Marketing / Dashboard Preview]** Collapse the interactive sample dashboard sidebar into a compact icon-only navigation rail with larger icons, tooltip labels, and a prominent quick-save action. Keep the real app layout untouched.
 
 - **[Marketing / Interactive Demo]** Replace the real guest-app hero iframe and static dashboard illustration with one responsive, sandboxed marketing dashboard preview in both homepage placements. Sample search, navigation, quick save, schedule, star, complete, and reset are in-memory only.
