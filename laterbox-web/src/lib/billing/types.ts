@@ -1,5 +1,5 @@
 export type EntitlementTier = 'free' | 'pro';
-export type EntitlementProvider = 'paddle' | 'apple' | null;
+export type EntitlementProvider = 'paddle' | 'apple' | 'whop' | null;
 export type EntitlementStatus =
   | 'free'
   | 'granted'
@@ -21,6 +21,9 @@ export interface Entitlement {
   phaseEndsAt: string | null;
   billingInterval?: 'month' | 'year' | null;
   appleEnvironment?: 'Sandbox' | 'Production' | null;
+  storagePlan?: 'free' | 'plus' | 'vault';
+  storageLimitBytes?: number;
+  storageUsedBytes?: number | null;
 }
 
 export const FREE_ENTITLEMENT: Entitlement = {
@@ -33,6 +36,9 @@ export const FREE_ENTITLEMENT: Entitlement = {
   billingWarning: null,
   phaseStartsAt: null,
   phaseEndsAt: null,
+  storagePlan: 'free',
+  storageLimitBytes: 500_000_000,
+  storageUsedBytes: null,
 };
 
 export function hasProAccess(entitlement: Entitlement): boolean {
@@ -74,7 +80,7 @@ export function presentEntitlement(
   if (!hasAccess) {
     return {
       label: 'Free',
-      description: 'Local saving, reading, search, organization, and export.',
+      description: '500 MB cloud storage, free sync on every device, and unlimited local saving.',
       actionLabel: 'View plans',
       tone: 'neutral',
       remainingDays: null,
@@ -123,7 +129,7 @@ export function presentEntitlement(
   }
   return {
     label: 'Pro',
-    description: 'Sync, cloud attachments, integrations, and automation are active.',
+    description: 'Your paid storage and connected devices are active.',
     actionLabel: 'Manage',
     tone: 'success',
     remainingDays: null,

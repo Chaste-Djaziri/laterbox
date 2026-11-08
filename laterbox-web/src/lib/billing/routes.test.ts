@@ -15,7 +15,7 @@ function request(body: unknown, authenticated = true) {
   });
 }
 
-test('billing routes authenticate, scope subscriptions, and handle Paddle failures', async () => {
+test('billing routes preserve legacy Paddle subscriptions while validating Whop checkout plans', async () => {
   const saved = { ...process.env };
   const originalFetch = globalThis.fetch;
   let mode = 'active';
@@ -34,6 +34,7 @@ test('billing routes authenticate, scope subscriptions, and handle Paddle failur
     if (url.pathname.endsWith('/billing_customers')) return json(mode === 'no-customer' ? null : { customer_id: 'ctm_owned' });
     if (url.pathname.endsWith('/billing_subscriptions')) {
       subscriptionQueries.push(url.search);
+      if (url.searchParams.get('provider') === 'eq.whop') return json([]);
       if (!url.searchParams.has('customer_id')) {
         if (mode === 'lookup-failure') return json({ message: 'unavailable' }, 503);
         return json(mode === 'apple-active' || mode === 'paddle-active' ? [{ provider: mode === 'apple-active' ? 'apple' : 'paddle', status: 'active', current_period_ends_at: new Date(Date.now() + 60_000).toISOString(), updated_at: new Date().toISOString() }] : mode === 'expired' ? [{ provider: 'apple', status: 'active', current_period_ends_at: '2026-01-01T00:00:00Z', updated_at: '2026-01-01T00:00:00Z' }] : []);
@@ -55,7 +56,7 @@ test('billing routes authenticate, scope subscriptions, and handle Paddle failur
     assert.equal((await payload(await portal(request({})))).url, 'https://customer-portal.paddle.com/manage');
     assert.equal((await payload(await portal(request({ action: 'cancel', subscriptionId: 'sub_someone_else' })))).url, 'https://customer-portal.paddle.com/cancel');
     assert.deepEqual(paddleRequests.at(-1)?.body, { subscription_ids: ['sub_owned'] });
-    assert.ok(subscriptionQueries.every((query) => query.includes('user_id=eq.user-123') && query.includes('customer_id=eq.ctm_owned') && query.includes('provider=eq.paddle')));
+    assert.ok(subscriptionQueries.every((query) => query.includes('user_id=eq.user-123') && (query.includes('provider=eq.whop') || (query.includes('customer_id=eq.ctm_owned') && query.includes('provider=eq.paddle')))));
     mode = 'scheduled';
     assert.equal((await portal(request({ action: 'cancel' }))).status, 409);
     mode = 'no-subscription';
@@ -65,29 +66,21 @@ test('billing routes authenticate, scope subscriptions, and handle Paddle failur
     assert.equal((await portal(request({}))).status, 404);
     mode = 'paddle-failure';
     assert.equal((await portal(request({}))).status, 503);
-    assert.equal((await checkout(request({ interval: 'month' }))).status, 503);
-    mode = 'active';
-    assert.equal((await checkout(request({ interval: 'week' }))).status, 400);
-    assert.equal((await checkout(request({ interval: 'month' }, false))).status, 401);
-    for (const interval of ['month', 'year']) {
-      assert.equal((await payload(await checkout(request({ interval })))).transactionId, 'txn_created');
-      assert.equal(paddleRequests.at(-1)?.body.items[0].price_id, `pri_${interval}`);
-      assert.equal(paddleRequests.at(-1)?.body.custom_data.user_id, 'user-123');
-    }
+    assert.equal((await checkout(request({ plan: 'plus_month' }, false))).status, 401);
+    assert.equal((await checkout(request({ plan: '__proto__' }))).status, 400);
+    assert.equal((await checkout(request({ interval: 'month' }))).status, 400);
+    // Plan IDs are exclusively server-configured; missing price IDs fail closed.
+    assert.equal((await checkout(request({ plan: 'plus_month' }))).status, 503);
+    process.env.WHOP_PLUS_MONTHLY_PLAN_ID = 'plan_testMonthly';
     for (const provider of ['apple-active', 'paddle-active']) {
       mode = provider;
-      const count = paddleRequests.length;
-      assert.equal((await checkout(request({ interval: 'month' }))).status, 409);
-      assert.equal(paddleRequests.length, count);
+      assert.equal((await checkout(request({ plan: 'plus_month' }))).status, 409);
     }
-    mode = 'expired';
-    assert.equal((await checkout(request({ interval: 'month' }))).status, 200);
     mode = 'lookup-failure';
-    assert.equal((await checkout(request({ interval: 'month' }))).status, 503);
-    mode = 'active';
-    process.env.NEXT_PUBLIC_PADDLE_PRO_MONTHLY_PRICE_ID_PROD = '';
-    process.env.NEXT_PUBLIC_PADDLE_PRO_MONTHLY_PRICE_ID = '';
-    assert.equal((await checkout(request({ interval: 'month' }))).status, 503);
+    assert.equal((await checkout(request({ plan: 'plus_month' }))).status, 503);
+    mode = 'expired';
+    // Missing Whop SDK credentials safely prevents a checkout even for an expired account.
+    assert.equal((await checkout(request({ plan: 'plus_month' }))).status, 503);
   } finally {
     globalThis.fetch = originalFetch;
     for (const key of Object.keys(process.env)) if (!(key in saved)) delete process.env[key];

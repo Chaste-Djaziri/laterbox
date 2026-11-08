@@ -2,6 +2,8 @@ import { subscriptionHasAccess } from '@/lib/billing/eligibility';
 import { NextResponse } from 'next/server';
 import { FREE_ENTITLEMENT, type Entitlement } from '@/lib/billing/types';
 import { getBillingAdminClient, getRequestUser } from '@/lib/billing/server';
+import { FREE_STORAGE_BYTES, LEGACY_PRO_STORAGE_BYTES, WHOP_STORAGE_PLANS } from '@/lib/billing/storage-plans';
+import { storagePlanForWhopId } from '@/lib/billing/whop';
 
 export const dynamic = 'force-dynamic';
 
@@ -45,7 +47,9 @@ export async function GET(request: Request) {
         tier: 'pro',
         billingInterval: eligible.provider === 'apple'
           ? eligible.product_id === 'com.laterbox.pro.annual' ? 'year' : 'month'
-          : null,
+          : eligible.provider === 'whop'
+            ? storagePlanForWhopId(eligible.price_id)?.endsWith('year') ? 'year' : 'month'
+            : null,
         appleEnvironment: eligible.apple_environment ?? null,
         status: eligible.status,
         provider: eligible.provider,
@@ -81,6 +85,25 @@ export async function GET(request: Request) {
       };
     }
 
+    const storagePlan = eligible?.storage_plan === 'vault'
+      ? 'vault' : eligible || grants?.[0] ? 'plus' : 'free';
+    const defaultLimit = storagePlan === 'vault'
+      ? WHOP_STORAGE_PLANS.vault_month.bytes
+      : storagePlan === 'plus' ? LEGACY_PRO_STORAGE_BYTES : FREE_STORAGE_BYTES;
+    // RPC may not exist until the staged storage migration is deployed.
+    const [{ data: limit }, { data: used }] = await Promise.all([
+      admin.rpc('account_storage_limit_bytes', { target_user_id: user.id }),
+      admin.rpc('account_storage_used_bytes', { target_user_id: user.id }),
+    ]);
+    const toCount = (value: unknown): number | null => {
+      const count = Number(value);
+      return value !== null && value !== undefined && Number.isSafeInteger(count) && count >= 0 ? count : null;
+    };
+    entitlement = {
+      ...entitlement, storagePlan,
+      storageLimitBytes: toCount(limit) ?? defaultLimit,
+      storageUsedBytes: toCount(used),
+    };
     return NextResponse.json(entitlement, {
       headers: { 'Cache-Control': 'private, no-store' },
     });

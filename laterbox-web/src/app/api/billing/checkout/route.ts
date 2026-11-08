@@ -1,54 +1,66 @@
-import { subscriptionHasAccess } from '@/lib/billing/eligibility';
 import { NextResponse } from 'next/server';
-import { getBillingAdminClient, getRequestUser, paddleRequest } from '@/lib/billing/server';
+import { subscriptionHasAccess } from '@/lib/billing/eligibility';
+import { getBillingAdminClient, getRequestUser } from '@/lib/billing/server';
+import { parseWhopPlan, whopEnvironment, whopPlanId, whopServer } from '@/lib/billing/whop';
 
-type BillingInterval = 'month' | 'year';
+export const dynamic = 'force-dynamic';
 
+/** Create an account-bound checkout; never accept Whop plan IDs from the browser. */
 export async function POST(request: Request) {
   const user = await getRequestUser(request);
-  if (!user?.email) return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
+  if (!user?.id || !user.email) {
+    return NextResponse.json({ error: 'Sign in to purchase a storage plan.' }, { status: 401 });
+  }
+  let key;
+  try {
+    const body = await request.json() as { plan?: unknown };
+    key = parseWhopPlan(body.plan);
+  } catch {
+    return NextResponse.json({ error: 'Invalid checkout request.' }, { status: 400 });
+  }
+  if (!key) return NextResponse.json({ error: 'Choose a valid storage plan.' }, { status: 400 });
 
   try {
-    const body = (await request.json()) as { interval?: BillingInterval };
-    if (body.interval !== 'month' && body.interval !== 'year') {
-      return NextResponse.json({ error: 'Choose a monthly or annual plan.' }, { status: 400 });
-    }
-    const { data: subscriptions, error } = await getBillingAdminClient()
-      .from('billing_subscriptions')
+    const planId = whopPlanId(key);
+    const admin = getBillingAdminClient();
+    const { data: subscriptions, error } = await admin.from('billing_subscriptions')
       .select('provider,status,current_period_ends_at,past_due_at,updated_at,revoked_at')
       .eq('user_id', user.id);
     if (error) throw error;
-    const existing = subscriptions?.find((row) => subscriptionHasAccess(row));
-    if (existing) {
+    const active = (subscriptions ?? []).find(row => subscriptionHasAccess(row));
+    if (active) {
       return NextResponse.json({
+        error: 'You already have an active subscription. Manage it before buying a second plan.',
         code: 'subscription_already_active',
-        error: `Your Pro subscription is managed by ${existing.provider === 'apple' ? 'Apple' : 'Paddle'}. Cancel renewal there and wait until access ends before switching payment providers.`,
       }, { status: 409 });
     }
-    const isProduction = process.env.NEXT_PUBLIC_PADDLE_ENV === 'production';
-    const priceId =
-      body.interval === 'month'
-        ? isProduction
-          ? process.env.NEXT_PUBLIC_PADDLE_PRO_MONTHLY_PRICE_ID_PROD ||
-            process.env.NEXT_PUBLIC_PADDLE_PRO_MONTHLY_PRICE_ID
-          : process.env.NEXT_PUBLIC_PADDLE_PRO_MONTHLY_PRICE_ID
-        : isProduction
-          ? process.env.NEXT_PUBLIC_PADDLE_PRO_YEARLY_PRICE_ID_PROD ||
-            process.env.NEXT_PUBLIC_PADDLE_PRO_YEARLY_PRICE_ID
-          : process.env.NEXT_PUBLIC_PADDLE_PRO_YEARLY_PRICE_ID;
-    if (!priceId) throw new Error('Paddle price is not configured.');
 
-    const transaction = await paddleRequest<{ id: string }>('/transactions', {
-      method: 'POST',
-      body: JSON.stringify({
-        items: [{ price_id: priceId, quantity: 1 }],
-        custom_data: { user_id: user.id },
-        collection_mode: 'automatic',
-      }),
+    const intentId = crypto.randomUUID();
+    const { error: intentError } = await admin.from('billing_checkout_intents').insert({
+      id: intentId,
+      user_id: user.id,
+      provider: 'whop',
+      plan_key: key,
+      plan_id: planId,
     });
-    return NextResponse.json({ transactionId: transaction.id });
+    if (intentError) throw intentError;
+
+    // Metadata is the authoritative link back to this account. Do not depend on email matching.
+    const checkout = await whopServer().checkoutConfigurations.create({
+      plan_id: planId,
+      mode: 'payment',
+      metadata: { laterbox_intent_id: intentId },
+    }, { idempotencyKey: `laterbox-${intentId}` });
+
+    const { error: updateError } = await admin.from('billing_checkout_intents')
+      .update({ checkout_id: checkout.id })
+      .eq('id', intentId).eq('user_id', user.id);
+    if (updateError) throw updateError;
+    return NextResponse.json({ checkoutId: checkout.id, intentId, environment: whopEnvironment() }, {
+      headers: { 'Cache-Control': 'private, no-store' },
+    });
   } catch (error) {
-    console.error('[billing] checkout preparation failed', error);
-    return NextResponse.json({ error: 'Unable to start checkout.' }, { status: 503 });
+    console.error('[whop] checkout creation failed', error);
+    return NextResponse.json({ error: 'Checkout is unavailable. Check Whop configuration and database migrations.' }, { status: 503 });
   }
 }

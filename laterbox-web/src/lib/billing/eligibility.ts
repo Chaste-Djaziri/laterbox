@@ -13,7 +13,7 @@ export function subscriptionHasAccess(row: SubscriptionAccess, now = Date.now())
   const end = row.current_period_ends_at ? Date.parse(row.current_period_ends_at) : null;
   if (end !== null && (!Number.isFinite(end) || end <= now)) return false;
   if (row.status === 'active' || row.status === 'trialing') {
-    return row.provider !== 'apple' || end !== null;
+    return !['apple','whop'].includes(row.provider) || end !== null;
   }
   if (row.status === 'canceled') return end !== null;
   if (row.status !== 'past_due') return false;
