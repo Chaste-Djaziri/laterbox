@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[Web / Deployment CI]** Trigger a fresh main-branch web release and log the Cloudflare 10215 deployment-order safeguard, ensuring the release workflow deploys the latest Worker before updating Apple verification secrets.
+
 - **[Web / Cloudflare CI]** Fix Cloudflare Worker error 10215 during Apple purchase-verification setup by deploying the newly built Worker before updating Apple verification secrets. Preserve the existing validated certificates, encrypted GitHub credentials, and Wrangler diagnostics.
 
 - **[Web / Cloudflare release]** Harden Apple purchase-verification secret provisioning: verify Cloudflare's per-variable size limit, retain dedicated App Store credentials, and surface safely redacted Wrangler diagnostics with actionable Worker permission guidance instead of failing with a generic error. Add isolated tests for failures and sensitive-data redaction.

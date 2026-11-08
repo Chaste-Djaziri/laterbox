@@ -79,6 +79,7 @@ jobs:
         run: |
           test -n "$CLOUDFLARE_API_TOKEN" || { echo '::error::Missing CLOUDFLARE_API_TOKEN'; exit 1; }
           test -n "$CLOUDFLARE_ACCOUNT_ID" || { echo '::error::Missing CLOUDFLARE_ACCOUNT_ID'; exit 1; }
+          echo 'Deploying the latest Worker version before updating Apple secrets (Cloudflare 10215 safeguard).'
           npx opennextjs-cloudflare deploy
       - name: Configure Apple purchase verification
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
