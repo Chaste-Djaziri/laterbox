@@ -4,6 +4,7 @@ import UniformTypeIdentifiers
 import LocalAuthentication
 
 struct BackupRestoreView: View {
+    @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dismiss) private var dismiss
     var recoveryOnly = false
     @Environment(\.modelContext) private var modelContext
@@ -27,11 +28,11 @@ struct BackupRestoreView: View {
             VStack(alignment: .leading, spacing: 20) {
                 VStack(alignment: .leading, spacing: 8) {
                     Label(recoveryOnly ? "Restore your library" : "Your library, your data", systemImage: "externaldrive.fill")
-                        .foregroundStyle(AppTheme.textPrimary)
+                        .foregroundStyle(SettingsAppearance.textPrimary(for: colorScheme))
                         .font(.title2.bold())
                     Text(recoveryOnly ? "Have a LaterBox backup? Import your saved items and collections before continuing." : "Securely move your saved items, collections, reminders, and available attachments between devices.")
                         .font(.subheadline)
-                        .foregroundStyle(AppTheme.textSecondary)
+                        .foregroundStyle(SettingsAppearance.textSecondary(for: colorScheme))
                 }
                 .padding(.top, 10)
 
@@ -39,19 +40,19 @@ struct BackupRestoreView: View {
                 VStack(alignment: .leading, spacing: 13) {
                     Label("Encrypted export", systemImage: "lock.shield.fill")
                         .font(.headline)
-                        .foregroundStyle(AppTheme.textPrimary)
+                        .foregroundStyle(SettingsAppearance.textPrimary(for: colorScheme))
                     Text("Create a backup protected by your own recovery password. Device authentication is required before exporting.")
                         .font(.subheadline)
-                        .foregroundStyle(AppTheme.textSecondary)
+                        .foregroundStyle(SettingsAppearance.textSecondary(for: colorScheme))
                     SecureField("Recovery password (8+ characters)", text: $password)
                         .textContentType(.newPassword)
-                        .foregroundStyle(AppTheme.textPrimary)
+                        .foregroundStyle(SettingsAppearance.textPrimary(for: colorScheme))
                         .padding(13)
-                        .background(Color.white, in: RoundedRectangle(cornerRadius: 12))
+                        .background(SettingsAppearance.surface(for: colorScheme), in: RoundedRectangle(cornerRadius: 12))
                     SecureField("Confirm recovery password", text: $confirmation)
                         .textContentType(.newPassword)
                         .padding(13)
-                        .background(AppTheme.canvasBackground, in: RoundedRectangle(cornerRadius: 12))
+                        .background(SettingsAppearance.inset(for: colorScheme), in: RoundedRectangle(cornerRadius: 12))
                     Button {
                         Task { await prepareExport() }
                     } label: {
@@ -75,41 +76,41 @@ struct BackupRestoreView: View {
                                 .font(.subheadline.bold())
                                 .frame(maxWidth: .infinity)
                                 .padding(15)
-                                .background(Color.white, in: RoundedRectangle(cornerRadius: 14))
+                                .background(SettingsAppearance.surface(for: colorScheme), in: RoundedRectangle(cornerRadius: 14))
                         }
                     }
                 }
                 .padding(18)
-                .liquidGlassCard(cornerRadius: 20)
+                .settingsCard(for: colorScheme, cornerRadius: 20)
 
                 }
 
                 VStack(alignment: .leading, spacing: 13) {
                     Label("Restore from backup", systemImage: "arrow.down.doc.fill")
                         .font(.headline)
-                        .foregroundStyle(AppTheme.textPrimary)
+                        .foregroundStyle(SettingsAppearance.textPrimary(for: colorScheme))
                     Text("Choose a .laterbox file and enter its recovery password. Existing items are kept; missing items are merged.")
                         .font(.subheadline)
-                        .foregroundStyle(AppTheme.textSecondary)
+                        .foregroundStyle(SettingsAppearance.textSecondary(for: colorScheme))
                     Button { showingImporter = true } label: {
                         Label("Choose Backup File", systemImage: "folder.fill")
                             .font(.subheadline.bold())
                             .frame(maxWidth: .infinity)
                             .padding(15)
-                            .background(AppTheme.canvasBackground, in: RoundedRectangle(cornerRadius: 14))
+                            .background(SettingsAppearance.inset(for: colorScheme), in: RoundedRectangle(cornerRadius: 14))
                     }
                     if pendingImport != nil {
                         SecureField("Backup recovery password", text: $exportPassword)
-                            .foregroundStyle(AppTheme.textPrimary)
+                            .foregroundStyle(SettingsAppearance.textPrimary(for: colorScheme))
                             .padding(13)
-                            .background(AppTheme.canvasBackground, in: RoundedRectangle(cornerRadius: 12))
+                            .background(SettingsAppearance.inset(for: colorScheme), in: RoundedRectangle(cornerRadius: 12))
                         if let preview {
                             Text("\(preview.newItems) new items · \(preview.conflicts.count) existing items")
                                 .font(.subheadline.weight(.semibold))
-                                .foregroundStyle(AppTheme.textPrimary)
+                                .foregroundStyle(SettingsAppearance.textPrimary(for: colorScheme))
                             Text("Existing items are kept by default. Enable Replace for any item you want to overwrite.")
                                 .font(.caption)
-                                .foregroundStyle(AppTheme.textSecondary)
+                                .foregroundStyle(SettingsAppearance.textSecondary(for: colorScheme))
                             ForEach(preview.conflicts, id: \.id) { conflict in
                                 Toggle(isOn: Binding(
                                     get: { selectedReplacements.contains(conflict.id) },
@@ -144,35 +145,35 @@ struct BackupRestoreView: View {
                     }
                 }
                 .padding(18)
-                .liquidGlassCard(cornerRadius: 20)
+                .settingsCard(for: colorScheme, cornerRadius: 20)
 
                 if let successMessage {
                     Label(successMessage, systemImage: "checkmark.circle.fill")
-                        .foregroundStyle(AppTheme.textPrimary)
+                        .foregroundStyle(SettingsAppearance.textPrimary(for: colorScheme))
                         .font(.subheadline)
                 }
                 if !recoveryOnly {
                 Text("Keep your password somewhere safe: LaterBox cannot recover it. Backups left only inside the app are lost if the app is deleted. Save a copy to Files, iCloud Drive, or another storage provider.")
                     .font(.caption)
-                    .foregroundStyle(AppTheme.textSecondary)
+                    .foregroundStyle(SettingsAppearance.textSecondary(for: colorScheme))
                 }
             }
             .padding(20)
         }
-        .background(AppTheme.canvasBackground.ignoresSafeArea())
+        .background(InboxGrainBackground().ignoresSafeArea())
         .tint(Color.blue)
         .navigationTitle("")
         .toolbar {
             ToolbarItem(placement: .principal) {
                 Text(recoveryOnly ? "Restore Backup" : "Backup & Restore")
                     .font(.headline.weight(.bold))
-                    .foregroundStyle(AppTheme.textPrimary)
+                    .foregroundStyle(SettingsAppearance.textPrimary(for: colorScheme))
             }
             if recoveryOnly {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Done") { dismiss() }
                         .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(AppTheme.textPrimary)
+                        .foregroundStyle(SettingsAppearance.textPrimary(for: colorScheme))
                 }
             }
         }

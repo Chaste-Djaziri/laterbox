@@ -2,6 +2,7 @@ import SwiftUI
 
 /// Practical, device-guided tutorials for getting started with LaterBox.
 public struct LearnLaterBoxView: View {
+    @Environment(\.colorScheme) private var colorScheme
     @Environment(\.openURL) private var openURL
     @AppStorage("laterbox.learn.homeQuickSave.imageGuide.step.v2") private var currentStep = 0
     @AppStorage("laterbox.learn.homeQuickSave.imageGuide.complete.v2") private var completed = false
@@ -102,7 +103,7 @@ public struct LearnLaterBoxView: View {
 
     public var body: some View {
         ZStack {
-            AppTheme.canvasBackground.ignoresSafeArea()
+            InboxGrainBackground().ignoresSafeArea()
 
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 20) {
@@ -111,7 +112,7 @@ public struct LearnLaterBoxView: View {
                     VStack(alignment: .leading, spacing: 14) {
                         HStack {
                             Image(systemName: "house.fill")
-                                .foregroundStyle(AppTheme.textPrimary)
+                                .foregroundStyle(SettingsAppearance.onAccent)
                                 .frame(width: 48, height: 48)
                                 .background(AppTheme.accent, in: RoundedRectangle(cornerRadius: 14))
                             VStack(alignment: .leading, spacing: 3) {
@@ -119,18 +120,18 @@ public struct LearnLaterBoxView: View {
                                     .font(.system(size: 18, weight: .bold))
                                 Text("Save notes and links without opening the app")
                                     .font(.subheadline)
-                                    .foregroundStyle(AppTheme.textSecondary)
+                                    .foregroundStyle(SettingsAppearance.textSecondary(for: colorScheme))
                             }
                             Spacer(minLength: 0)
                         }
                         Text("This guide uses **Quick Save to LaterBox**, not **Open LaterBox Quick Save**. The first saves directly through Shortcuts; the second launches the in-app composer.")
                             .font(.subheadline)
-                            .foregroundStyle(AppTheme.textSecondary)
+                            .foregroundStyle(SettingsAppearance.textSecondary(for: colorScheme))
                             .fixedSize(horizontal: false, vertical: true)
                     }
                     .padding(18)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(Color.white, in: RoundedRectangle(cornerRadius: 20))
+                    .background(SettingsAppearance.surface(for: colorScheme), in: RoundedRectangle(cornerRadius: 20))
                     .accessibilityIdentifier("learn.homeQuickSave.intro")
 
                     VStack(alignment: .leading, spacing: 18) {
@@ -138,7 +139,7 @@ public struct LearnLaterBoxView: View {
                             Text("STEP \(min(max(currentStep, 0), steps.count - 1) + 1) OF \(steps.count)")
                                 .font(.caption.weight(.bold))
                                 .tracking(0.8)
-                                .foregroundStyle(AppTheme.textSecondary)
+                                .foregroundStyle(SettingsAppearance.textSecondary(for: colorScheme))
                             Spacer()
                             if completed {
                                 Label("Completed", systemImage: "checkmark.circle.fill")
@@ -150,7 +151,7 @@ public struct LearnLaterBoxView: View {
                         HStack(spacing: 5) {
                             ForEach(steps.indices, id: \.self) { index in
                                 Capsule()
-                                    .fill(index <= safeStep ? AppTheme.textPrimary : Color.black.opacity(0.09))
+                                    .fill(index <= safeStep ? SettingsAppearance.textPrimary(for: colorScheme) : Color.black.opacity(0.09))
                                     .frame(height: 5)
                             }
                         }
@@ -159,7 +160,7 @@ public struct LearnLaterBoxView: View {
                         HStack(alignment: .top, spacing: 14) {
                             Image(systemName: steps[safeStep].icon)
                                 .font(.system(size: 21, weight: .semibold))
-                                .foregroundStyle(AppTheme.textPrimary)
+                                .foregroundStyle(SettingsAppearance.textPrimary(for: colorScheme))
                                 .frame(width: 46, height: 46)
                                 .background(AppTheme.accent.opacity(0.65), in: RoundedRectangle(cornerRadius: 13))
 
@@ -168,7 +169,7 @@ public struct LearnLaterBoxView: View {
                                     .font(.system(size: 19, weight: .bold))
                                 Text(steps[safeStep].detail)
                                     .font(.subheadline)
-                                    .foregroundStyle(AppTheme.textSecondary)
+                                    .foregroundStyle(SettingsAppearance.textSecondary(for: colorScheme))
                                     .fixedSize(horizontal: false, vertical: true)
                             }
                         }
@@ -187,7 +188,7 @@ public struct LearnLaterBoxView: View {
                             Text("Follow the red arrow. Tap the screenshot to enlarge.")
                         }
                         .font(.caption)
-                        .foregroundStyle(AppTheme.textSecondary)
+                        .foregroundStyle(SettingsAppearance.textSecondary(for: colorScheme))
 
                         if safeStep == 3 {
                             actionComparison
@@ -200,7 +201,7 @@ public struct LearnLaterBoxView: View {
 
                     }
                     .padding(18)
-                    .background(Color.white, in: RoundedRectangle(cornerRadius: 20))
+                    .background(SettingsAppearance.surface(for: colorScheme), in: RoundedRectangle(cornerRadius: 20))
                     .accessibilityIdentifier("learn.homeQuickSave.steps")
 
                     VStack(alignment: .leading, spacing: 12) {
@@ -216,19 +217,19 @@ public struct LearnLaterBoxView: View {
                                     .font(.subheadline.weight(.semibold))
                                 Spacer()
                                 Image(systemName: "chevron.right")
-                                    .foregroundStyle(AppTheme.textTertiary)
+                                    .foregroundStyle(SettingsAppearance.textTertiary(for: colorScheme))
                             }
-                            .foregroundStyle(AppTheme.textPrimary)
+                            .foregroundStyle(SettingsAppearance.textPrimary(for: colorScheme))
                         }
                         .buttonStyle(.plain)
                     }
                     .padding(18)
-                    .background(Color.white, in: RoundedRectangle(cornerRadius: 18))
+                    .background(SettingsAppearance.surface(for: colorScheme), in: RoundedRectangle(cornerRadius: 18))
 
                     Link(destination: URL(string: "https://support.apple.com/guide/shortcuts/apd735880972/ios")!) {
                         Label("Apple's official Home Screen shortcut guide", systemImage: "arrow.up.right.square")
                             .font(.caption.weight(.medium))
-                            .foregroundStyle(AppTheme.textSecondary)
+                            .foregroundStyle(SettingsAppearance.textSecondary(for: colorScheme))
                     }
                     .frame(maxWidth: .infinity)
                 }
@@ -262,9 +263,9 @@ public struct LearnLaterBoxView: View {
                         .font(.subheadline.weight(.semibold))
                         .frame(maxWidth: .infinity)
                         .frame(height: 48)
-                        .background(AppTheme.canvasBackground, in: RoundedRectangle(cornerRadius: 13))
+                        .background(SettingsAppearance.inset(for: colorScheme), in: RoundedRectangle(cornerRadius: 13))
                 }
-                .foregroundStyle(AppTheme.textPrimary)
+                .foregroundStyle(SettingsAppearance.textPrimary(for: colorScheme))
                 .buttonStyle(.plain)
             }
 
@@ -285,7 +286,7 @@ public struct LearnLaterBoxView: View {
                 .frame(height: 48)
                 .background(AppTheme.accent, in: RoundedRectangle(cornerRadius: 13))
             }
-            .foregroundStyle(AppTheme.textPrimary)
+            .foregroundStyle(SettingsAppearance.onAccent)
             .buttonStyle(.plain)
             .disabled(safeStep == steps.count - 1 && completed)
         }
@@ -300,10 +301,10 @@ public struct LearnLaterBoxView: View {
         VStack(alignment: .leading, spacing: 6) {
             Text("Make LaterBox yours")
                 .font(.system(size: 28, weight: .bold))
-                .foregroundStyle(AppTheme.textPrimary)
+                .foregroundStyle(SettingsAppearance.textPrimary(for: colorScheme))
             Text("A visual walkthrough to create and use a Home Screen shortcut for saving without launching the app.")
                 .font(.subheadline)
-                .foregroundStyle(AppTheme.textSecondary)
+                .foregroundStyle(SettingsAppearance.textSecondary(for: colorScheme))
         }
         .padding(.vertical, 6)
     }
@@ -317,7 +318,7 @@ public struct LearnLaterBoxView: View {
                         .font(.subheadline.weight(.semibold))
                     Text("Choose this • saves from the Shortcuts prompt")
                         .font(.caption)
-                        .foregroundStyle(AppTheme.textSecondary)
+                        .foregroundStyle(SettingsAppearance.textSecondary(for: colorScheme))
                 }
                 Spacer(minLength: 0)
             }
@@ -325,18 +326,18 @@ public struct LearnLaterBoxView: View {
             .background(AppTheme.accent.opacity(0.38), in: RoundedRectangle(cornerRadius: 12))
 
             HStack(spacing: 10) {
-                Image(systemName: "xmark.circle.fill").foregroundStyle(AppTheme.textSecondary)
+                Image(systemName: "xmark.circle.fill").foregroundStyle(SettingsAppearance.textSecondary(for: colorScheme))
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Open LaterBox Quick Save")
                         .font(.subheadline.weight(.semibold))
                     Text("Not this one • opens the LaterBox app")
                         .font(.caption)
-                        .foregroundStyle(AppTheme.textSecondary)
+                        .foregroundStyle(SettingsAppearance.textSecondary(for: colorScheme))
                 }
                 Spacer(minLength: 0)
             }
             .padding(12)
-            .background(AppTheme.canvasBackground, in: RoundedRectangle(cornerRadius: 12))
+            .background(SettingsAppearance.inset(for: colorScheme), in: RoundedRectangle(cornerRadius: 12))
         }
     }
 

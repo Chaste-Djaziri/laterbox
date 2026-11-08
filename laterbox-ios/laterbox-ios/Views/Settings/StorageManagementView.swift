@@ -9,6 +9,7 @@ import SwiftUI
 import SwiftData
 
 public struct StorageManagementView: View {
+    @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
     @Query private var allItems: [LBItem]
@@ -41,7 +42,7 @@ public struct StorageManagementView: View {
 
     public var body: some View {
         ZStack {
-            AppTheme.canvasBackground.ignoresSafeArea()
+            InboxGrainBackground().ignoresSafeArea()
 
                 ScrollView(showsIndicators: false) {
                     VStack(alignment: .leading, spacing: 20) {
@@ -52,7 +53,7 @@ public struct StorageManagementView: View {
                                     .foregroundColor(AppTheme.accent)
                                 Text(msg)
                                     .font(.subheadline.weight(.semibold))
-                                    .foregroundColor(AppTheme.textPrimary)
+                                    .foregroundColor(SettingsAppearance.textPrimary(for: colorScheme))
                             }
                             .padding(.horizontal, 14)
                             .padding(.vertical, 10)
@@ -67,11 +68,11 @@ public struct StorageManagementView: View {
                                 VStack(alignment: .leading, spacing: 3) {
                                     Text("STORAGE USAGE")
                                         .font(.caption.weight(.bold))
-                                        .foregroundColor(AppTheme.textSecondary)
+                                        .foregroundColor(SettingsAppearance.textSecondary(for: colorScheme))
                                         .tracking(0.6)
                                     Text(storageManager.breakdown.formattedTotal)
                                         .font(.system(size: 32, weight: .bold, design: .rounded))
-                                        .foregroundColor(AppTheme.textPrimary)
+                                        .foregroundColor(SettingsAppearance.textPrimary(for: colorScheme))
                                 }
                                 Spacer()
                                 Button(action: {
@@ -82,9 +83,9 @@ public struct StorageManagementView: View {
                                     Image(systemName: "arrow.clockwise")
                                         .font(.system(size: 14, weight: .bold))
                                         .padding(8)
-                                        .background(Circle().fill(AppTheme.background))
-                                        .overlay(Circle().strokeBorder(AppTheme.cardBorder, lineWidth: 1))
-                                        .foregroundColor(AppTheme.textPrimary)
+                                        .background(Circle().fill(SettingsAppearance.inset(for: colorScheme)))
+                                        .overlay(Circle().strokeBorder(SettingsAppearance.border(for: colorScheme), lineWidth: 1))
+                                        .foregroundColor(SettingsAppearance.textPrimary(for: colorScheme))
                                 }
                                 .buttonStyle(.plain)
                             }
@@ -131,13 +132,13 @@ public struct StorageManagementView: View {
                             }
                         }
                         .padding(18)
-                        .liquidGlassCard(cornerRadius: 20)
+                        .settingsCard(for: colorScheme, cornerRadius: 20)
 
                         // Clean-up Actions Section
                         VStack(alignment: .leading, spacing: 14) {
                             Text("RECLAIM SPACE & CLEANUP")
                                 .font(.caption.weight(.bold))
-                                .foregroundColor(AppTheme.textSecondary)
+                                .foregroundColor(SettingsAppearance.textSecondary(for: colorScheme))
                                 .tracking(0.6)
 
                             // 1. Empty Trash / Recycle Bin
@@ -171,7 +172,7 @@ public struct StorageManagementView: View {
                             // 3. Clear Kept Content
                             cleanupCard(
                                 icon: "archivebox.fill",
-                                iconColor: AppTheme.textPrimary,
+                                iconColor: SettingsAppearance.textPrimary(for: colorScheme),
                                 title: "Kept Content",
                                 subtitle: "\(keptItems.count) kept & archived items in vault",
                                 actionTitle: "Clear Kept",
@@ -201,7 +202,7 @@ public struct StorageManagementView: View {
                             VStack(alignment: .leading, spacing: 12) {
                                 Text("DUPLICATE ITEMS BREAKDOWN")
                                     .font(.caption.weight(.bold))
-                                    .foregroundColor(AppTheme.textSecondary)
+                                    .foregroundColor(SettingsAppearance.textSecondary(for: colorScheme))
                                     .tracking(0.6)
 
                                 ForEach(storageManager.duplicateGroups) { group in
@@ -210,12 +211,12 @@ public struct StorageManagementView: View {
                                             VStack(alignment: .leading, spacing: 3) {
                                                 Text(group.primaryItem.title)
                                                     .font(.subheadline.weight(.semibold))
-                                                    .foregroundColor(AppTheme.textPrimary)
+                                                    .foregroundColor(SettingsAppearance.textPrimary(for: colorScheme))
                                                     .lineLimit(2)
                                                 if let url = group.primaryItem.url {
                                                     Text(url)
                                                         .font(.caption2)
-                                                        .foregroundColor(AppTheme.textSecondary)
+                                                        .foregroundColor(SettingsAppearance.textSecondary(for: colorScheme))
                                                         .lineLimit(1)
                                                 }
                                             }
@@ -230,10 +231,10 @@ public struct StorageManagementView: View {
 
                                         Text("Keeping latest saved copy; \(group.duplicates.count) redundant copy will be removed.")
                                             .font(.caption2)
-                                            .foregroundColor(AppTheme.textSecondary)
+                                            .foregroundColor(SettingsAppearance.textSecondary(for: colorScheme))
                                     }
                                     .padding(14)
-                                    .liquidGlassCard(cornerRadius: 14)
+                                    .settingsCard(for: colorScheme, cornerRadius: 14)
                                 }
                             }
                         }
@@ -304,15 +305,15 @@ public struct StorageManagementView: View {
             VStack(alignment: .leading, spacing: 1) {
                 Text(name)
                     .font(.caption.weight(.semibold))
-                    .foregroundColor(AppTheme.textPrimary)
+                    .foregroundColor(SettingsAppearance.textPrimary(for: colorScheme))
                 Text(detail)
                     .font(.system(size: 10))
-                    .foregroundColor(AppTheme.textSecondary)
+                    .foregroundColor(SettingsAppearance.textSecondary(for: colorScheme))
             }
             Spacer()
             Text(size)
                 .font(.caption.weight(.bold).monospaced())
-                .foregroundColor(AppTheme.textPrimary)
+                .foregroundColor(SettingsAppearance.textPrimary(for: colorScheme))
         }
         .padding(.vertical, 2)
     }
@@ -340,10 +341,10 @@ public struct StorageManagementView: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
                     .font(.subheadline.weight(.semibold))
-                    .foregroundColor(AppTheme.textPrimary)
+                    .foregroundColor(SettingsAppearance.textPrimary(for: colorScheme))
                 Text(subtitle)
                     .font(.caption2)
-                    .foregroundColor(AppTheme.textSecondary)
+                    .foregroundColor(SettingsAppearance.textSecondary(for: colorScheme))
                     .lineLimit(2)
             }
 
@@ -355,7 +356,7 @@ public struct StorageManagementView: View {
             }) {
                 Text(actionTitle)
                     .font(.caption.weight(.bold))
-                    .foregroundColor(isEnabled ? (isDestructive ? Color.red : AppTheme.textPrimary) : AppTheme.textSecondary.opacity(0.4))
+                    .foregroundColor(isEnabled ? (isDestructive ? Color.red : SettingsAppearance.textPrimary(for: colorScheme)) : SettingsAppearance.textSecondary(for: colorScheme).opacity(0.4))
                     .padding(.horizontal, 11)
                     .padding(.vertical, 7)
                     .background(
@@ -370,6 +371,6 @@ public struct StorageManagementView: View {
             .disabled(!isEnabled)
         }
         .padding(14)
-        .liquidGlassCard(cornerRadius: 16)
+        .settingsCard(for: colorScheme, cornerRadius: 16)
     }
 }

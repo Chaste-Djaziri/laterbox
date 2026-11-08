@@ -1,6 +1,7 @@
 import SwiftUI
 
 public struct AppIconSelectionView: View {
+    @Environment(\.colorScheme) private var colorScheme
     @ObservedObject private var coordinator = SyncCoordinator.shared
     @StateObject private var iconManager = AppIconManager.shared
     @State private var selectedCategory = "All"
@@ -13,20 +14,20 @@ public struct AppIconSelectionView: View {
 
     public var body: some View {
         ZStack {
-            AppTheme.canvasBackground.ignoresSafeArea()
+            InboxGrainBackground().ignoresSafeArea()
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 20) {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Make LaterBox yours")
                             .font(.headline)
-                            .foregroundStyle(AppTheme.textPrimary)
+                            .foregroundStyle(SettingsAppearance.textPrimary(for: colorScheme))
                         Text("Choose the icon for your home screen.")
                             .font(.subheadline)
-                            .foregroundStyle(AppTheme.textSecondary)
+                            .foregroundStyle(SettingsAppearance.textSecondary(for: colorScheme))
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(18)
-                    .liquidGlassCard(cornerRadius: 20)
+                    .settingsCard(for: colorScheme, cornerRadius: 20)
 
                     if !coordinator.isProUser {
                         Button {
@@ -39,7 +40,7 @@ public struct AppIconSelectionView: View {
                                 Spacer()
                                 Image(systemName: "chevron.right").font(.caption)
                             }
-                            .foregroundStyle(AppTheme.textPrimary)
+                            .foregroundStyle(SettingsAppearance.onAccent)
                             .padding(14)
                             .background(AppTheme.accent, in: RoundedRectangle(cornerRadius: 14))
                         }
@@ -55,10 +56,10 @@ public struct AppIconSelectionView: View {
                                 } label: {
                                     Text(category)
                                         .font(.caption.weight(.medium))
-                                        .foregroundStyle(AppTheme.textPrimary)
+                                        .foregroundStyle(selectedCategory == category ? SettingsAppearance.onAccent : SettingsAppearance.textPrimary(for: colorScheme))
                                         .padding(.horizontal, 14)
                                         .padding(.vertical, 8)
-                                        .background(selectedCategory == category ? AppTheme.accent : AppTheme.cardBackground, in: Capsule())
+                                        .background(selectedCategory == category ? AppTheme.accent : SettingsAppearance.surface(for: colorScheme), in: Capsule())
                                 }
                                 .accessibilityAddTraits(selectedCategory == category ? .isSelected : [])
                                 .buttonStyle(.plain)
@@ -74,7 +75,7 @@ public struct AppIconSelectionView: View {
 
                     Text("iOS confirms when you change your app icon.")
                         .font(.caption)
-                        .foregroundStyle(AppTheme.textSecondary)
+                        .foregroundStyle(SettingsAppearance.textSecondary(for: colorScheme))
                         .frame(maxWidth: .infinity)
                 }
                 .padding(20)
@@ -123,14 +124,14 @@ public struct AppIconSelectionView: View {
                     }
                 }
                 .font(.caption2)
-                .foregroundStyle(AppTheme.textSecondary)
+                .foregroundStyle(SettingsAppearance.textSecondary(for: colorScheme))
             }
-            .foregroundStyle(AppTheme.textPrimary)
+            .foregroundStyle(SettingsAppearance.textPrimary(for: colorScheme))
             .frame(maxWidth: .infinity)
             .padding(.vertical, 16)
             .padding(.horizontal, 8)
-            .background(AppTheme.cardBackground, in: RoundedRectangle(cornerRadius: 18))
-            .overlay(RoundedRectangle(cornerRadius: 18).strokeBorder(selected ? AppTheme.textPrimary : AppTheme.cardBorder, lineWidth: selected ? 1.5 : 1))
+            .background(SettingsAppearance.surface(for: colorScheme), in: RoundedRectangle(cornerRadius: 18))
+            .overlay(RoundedRectangle(cornerRadius: 18).strokeBorder(selected ? SettingsAppearance.textPrimary(for: colorScheme) : SettingsAppearance.border(for: colorScheme), lineWidth: selected ? 1.5 : 1))
         }
         .buttonStyle(.plain)
         .disabled(iconManager.isChanging)

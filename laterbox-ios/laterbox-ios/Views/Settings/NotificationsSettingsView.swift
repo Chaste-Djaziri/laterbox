@@ -9,6 +9,7 @@ import SwiftUI
 import UserNotifications
 
 public struct NotificationsSettingsView: View {
+    @Environment(\.colorScheme) private var colorScheme
     @State private var notificationStatus: UNAuthorizationStatus = .notDetermined
     @State private var isSendingTestNotification = false
     @State private var testNotificationScheduled = false
@@ -19,7 +20,7 @@ public struct NotificationsSettingsView: View {
 
     public var body: some View {
         ZStack {
-            AppTheme.canvasBackground.ignoresSafeArea()
+            InboxGrainBackground().ignoresSafeArea()
 
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 20) {
@@ -37,24 +38,24 @@ public struct NotificationsSettingsView: View {
                         VStack(spacing: 4) {
                             Text(notificationStatusTitle)
                                 .font(.system(size: 20, weight: .bold))
-                                .foregroundColor(AppTheme.textPrimary)
+                                .foregroundColor(SettingsAppearance.textPrimary(for: colorScheme))
 
                             Text(notificationStatusSubtitle)
                                 .font(.subheadline)
-                                .foregroundColor(AppTheme.textSecondary)
+                                .foregroundColor(SettingsAppearance.textSecondary(for: colorScheme))
                                 .multilineTextAlignment(.center)
                         }
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 26)
                     .padding(.horizontal, 18)
-                    .liquidGlassCard(cornerRadius: 22)
+                    .settingsCard(for: colorScheme, cornerRadius: 22)
 
                     // Permission & Control Card
                     VStack(alignment: .leading, spacing: 14) {
                         Text("Notification Permissions")
                             .font(.headline)
-                            .foregroundStyle(AppTheme.textPrimary)
+                            .foregroundStyle(SettingsAppearance.textPrimary(for: colorScheme))
 
                         VStack(spacing: 12) {
                             HStack {
@@ -63,7 +64,7 @@ public struct NotificationsSettingsView: View {
                                         .foregroundColor(notificationStatusColor)
                                     Text("System Authorization")
                                         .font(.subheadline)
-                                        .foregroundColor(AppTheme.textPrimary)
+                                        .foregroundColor(SettingsAppearance.textPrimary(for: colorScheme))
                                 }
                                 Spacer()
                                 Text(notificationStatusTitle)
@@ -71,28 +72,28 @@ public struct NotificationsSettingsView: View {
                                     .foregroundColor(notificationStatusColor)
                             }
 
-                            Divider().background(AppTheme.cardBorder)
+                            Divider().background(SettingsAppearance.border(for: colorScheme))
 
                             if notificationStatus == .authorized || notificationStatus == .provisional {
                                 HStack {
                                     Text("Reminders & Resurfacing")
                                         .font(.subheadline)
-                                        .foregroundColor(AppTheme.textSecondary)
+                                        .foregroundColor(SettingsAppearance.textSecondary(for: colorScheme))
                                     Spacer()
                                     HStack(spacing: 4) {
                                         Image(systemName: "checkmark.circle.fill")
                                             .font(.caption)
-                                            .foregroundColor(AppTheme.textPrimary)
+                                            .foregroundColor(SettingsAppearance.textPrimary(for: colorScheme))
                                         Text("Enabled")
                                             .font(.caption2.weight(.bold))
-                                            .foregroundColor(AppTheme.textPrimary)
+                                            .foregroundColor(SettingsAppearance.onAccent)
                                     }
                                     .padding(.horizontal, 9)
                                     .padding(.vertical, 4)
                                     .background(Capsule().fill(AppTheme.accent))
                                 }
 
-                                Divider().background(AppTheme.cardBorder)
+                                Divider().background(SettingsAppearance.border(for: colorScheme))
 
                                 // Send Test Notification
                                 Button(action: {
@@ -101,7 +102,7 @@ public struct NotificationsSettingsView: View {
                                     HStack(spacing: 8) {
                                         if isSendingTestNotification {
                                             ProgressView()
-                                                .tint(AppTheme.textPrimary)
+                                                .tint(SettingsAppearance.textPrimary(for: colorScheme))
                                         } else {
                                             Image(systemName: testNotificationScheduled ? "checkmark" : "paperplane.fill")
                                         }
@@ -111,7 +112,7 @@ public struct NotificationsSettingsView: View {
                                     .frame(maxWidth: .infinity)
                                     .padding(.vertical, 12)
                                     .background(testNotificationScheduled ? AppTheme.accent : AppTheme.accent.opacity(0.35))
-                                    .foregroundColor(AppTheme.textPrimary)
+                                    .foregroundColor(SettingsAppearance.onAccent)
                                     .clipShape(RoundedRectangle(cornerRadius: 12))
                                 }
                                 .buttonStyle(.plain)
@@ -129,7 +130,7 @@ public struct NotificationsSettingsView: View {
                                         Image(systemName: "arrow.up.right")
                                     }
                                     .font(.caption.weight(.medium))
-                                    .foregroundColor(AppTheme.textSecondary)
+                                    .foregroundColor(SettingsAppearance.textSecondary(for: colorScheme))
                                 }
                                 .buttonStyle(.plain)
                                 .padding(.top, 2)
@@ -138,7 +139,7 @@ public struct NotificationsSettingsView: View {
                                 VStack(alignment: .leading, spacing: 10) {
                                     Text("Notifications are currently disabled in iOS Settings. Allow notifications to receive timely return reminders for your saved items.")
                                         .font(.caption)
-                                        .foregroundColor(AppTheme.textSecondary)
+                                        .foregroundColor(SettingsAppearance.textSecondary(for: colorScheme))
                                         .lineSpacing(2)
 
                                     Button(action: {
@@ -164,7 +165,7 @@ public struct NotificationsSettingsView: View {
                                 VStack(alignment: .leading, spacing: 10) {
                                     Text("Enable notifications to receive alerts when your snoozed inbox items and reminders return.")
                                         .font(.caption)
-                                        .foregroundColor(AppTheme.textSecondary)
+                                        .foregroundColor(SettingsAppearance.textSecondary(for: colorScheme))
                                         .lineSpacing(2)
 
                                     Button(action: {
@@ -178,7 +179,7 @@ public struct NotificationsSettingsView: View {
                                         .frame(maxWidth: .infinity)
                                         .padding(.vertical, 12)
                                         .background(AppTheme.accent)
-                                        .foregroundColor(AppTheme.textPrimary)
+                                        .foregroundColor(SettingsAppearance.textPrimary(for: colorScheme))
                                         .clipShape(RoundedRectangle(cornerRadius: 12))
                                     }
                                     .buttonStyle(.plain)
@@ -194,7 +195,7 @@ public struct NotificationsSettingsView: View {
                                         .frame(maxWidth: .infinity)
                                         .padding(.vertical, 12)
                                         .background(Color.black.opacity(0.05))
-                                        .foregroundColor(AppTheme.textSecondary)
+                                        .foregroundColor(SettingsAppearance.textSecondary(for: colorScheme))
                                         .clipShape(RoundedRectangle(cornerRadius: 12))
                                     }
                                     .buttonStyle(.plain)
@@ -204,11 +205,11 @@ public struct NotificationsSettingsView: View {
                         .padding(16)
                         .background(
                             RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                .fill(AppTheme.cardBackground)
+                                .fill(SettingsAppearance.surface(for: colorScheme))
                         )
                         .overlay(
                             RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                .strokeBorder(AppTheme.cardBorder, lineWidth: 1)
+                                .strokeBorder(SettingsAppearance.border(for: colorScheme), lineWidth: 1)
                         )
                     }
 
@@ -216,29 +217,29 @@ public struct NotificationsSettingsView: View {
                     VStack(alignment: .leading, spacing: 10) {
                         Text("Quiet Utility Design")
                             .font(.headline)
-                            .foregroundStyle(AppTheme.textPrimary)
+                            .foregroundStyle(SettingsAppearance.textPrimary(for: colorScheme))
 
                         VStack(alignment: .leading, spacing: 8) {
                             Text("LaterBox is built as a quiet utility. You will only receive a notification when an item you explicitly scheduled is ready to return to your inbox.")
                                 .font(.subheadline)
-                                .foregroundColor(AppTheme.textSecondary)
+                                .foregroundColor(SettingsAppearance.textSecondary(for: colorScheme))
                                 .lineSpacing(2)
 
                             Text("• No promotional notifications or engagement nudges.")
                                 .font(.caption)
-                                .foregroundColor(AppTheme.textSecondary)
+                                .foregroundColor(SettingsAppearance.textSecondary(for: colorScheme))
                             Text("• Tapping a notification opens the item directly.")
                                 .font(.caption)
-                                .foregroundColor(AppTheme.textSecondary)
+                                .foregroundColor(SettingsAppearance.textSecondary(for: colorScheme))
                         }
                         .padding(16)
                         .background(
                             RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                .fill(AppTheme.cardBackground)
+                                .fill(SettingsAppearance.surface(for: colorScheme))
                         )
                         .overlay(
                             RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                .strokeBorder(AppTheme.cardBorder, lineWidth: 1)
+                                .strokeBorder(SettingsAppearance.border(for: colorScheme), lineWidth: 1)
                         )
                     }
                 }
@@ -321,7 +322,7 @@ public struct NotificationsSettingsView: View {
         case .denied:
             return Color.red
         default:
-            return AppTheme.textSecondary
+            return SettingsAppearance.textSecondary(for: colorScheme)
         }
     }
 

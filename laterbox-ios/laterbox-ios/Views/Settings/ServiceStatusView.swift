@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct ServiceStatusView: View {
+    @Environment(\.colorScheme) private var colorScheme
     private enum HistorySelection: String, CaseIterable, Identifiable {
         case day = "Day"
         case week = "Week"
@@ -104,9 +105,8 @@ struct ServiceStatusView: View {
         }
         .listStyle(.insetGrouped)
         .scrollContentBackground(.hidden)
-        .background(AppTheme.background)
-        .scrollContentBackground(.hidden)
-        .background(AppTheme.canvasBackground.ignoresSafeArea())
+        .background(InboxGrainBackground().ignoresSafeArea())
+        .tint(SettingsAppearance.textPrimary(for: colorScheme))
         .navigationTitle("Service Status")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {

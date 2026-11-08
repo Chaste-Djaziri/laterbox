@@ -2,6 +2,7 @@ import SwiftUI
 
 /// Account creation and connection are separate, voluntary actions.
 public struct ConnectProView: View {
+    @Environment(\.colorScheme) private var colorScheme
     @ObservedObject private var coordinator = SyncCoordinator.shared
     @ObservedObject private var storeKit = StoreKitManager.shared
     @State private var confirming = false
@@ -18,16 +19,16 @@ public struct ConnectProView: View {
             VStack(alignment: .leading, spacing: 10) {
                 Text("Pro on this device")
                     .font(.headline)
-                    .foregroundColor(isLiquidGlass ? .white : AppTheme.textPrimary)
+                    .foregroundColor(isLiquidGlass ? .white : SettingsAppearance.textPrimary(for: colorScheme))
 
                 Text("Your Apple purchase works without a LaterBox account. Connecting an account is optional and enables cloud sync, backup, and Pro on the web.")
                     .font(.caption)
-                    .foregroundColor(isLiquidGlass ? Color.white.opacity(0.8) : AppTheme.textSecondary)
+                    .foregroundColor(isLiquidGlass ? Color.white.opacity(0.8) : SettingsAppearance.textSecondary(for: colorScheme))
 
                 if let email = coordinator.currentUserEmail, !email.isEmpty {
                     Text("Connect to: \(email)")
                         .font(.caption.weight(.semibold))
-                        .foregroundColor(isLiquidGlass ? Color.white.opacity(0.95) : AppTheme.textPrimary)
+                        .foregroundColor(isLiquidGlass ? Color.white.opacity(0.95) : SettingsAppearance.textPrimary(for: colorScheme))
                 }
 
                 Button {
@@ -44,7 +45,7 @@ public struct ConnectProView: View {
                         Text(coordinator.isAuthenticated ? "Connect Pro to your account" : "Sign in to connect Pro (optional)")
                             .font(.subheadline.weight(.semibold))
                     }
-                    .foregroundColor(isLiquidGlass ? .white : AppTheme.textPrimary)
+                    .foregroundColor(isLiquidGlass ? .white : SettingsAppearance.textPrimary(for: colorScheme))
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 12)
                     .background(
@@ -57,17 +58,17 @@ public struct ConnectProView: View {
 
                 Text("Signing in does not connect this purchase automatically.")
                     .font(.caption2)
-                    .foregroundColor(isLiquidGlass ? Color.white.opacity(0.6) : AppTheme.textSecondary)
+                    .foregroundColor(isLiquidGlass ? Color.white.opacity(0.6) : SettingsAppearance.textSecondary(for: colorScheme))
             }
             .padding(16)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(
                 RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .fill(isLiquidGlass ? Color.white.opacity(0.08) : AppTheme.cardBackground)
+                    .fill(isLiquidGlass ? Color.white.opacity(0.08) : SettingsAppearance.surface(for: colorScheme))
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .strokeBorder(isLiquidGlass ? Color.white.opacity(0.18) : AppTheme.cardBorder, lineWidth: 1)
+                    .strokeBorder(isLiquidGlass ? Color.white.opacity(0.18) : SettingsAppearance.border(for: colorScheme), lineWidth: 1)
             )
             .confirmationDialog("Connect Pro to \(destinationEmail ?? "your LaterBox account")?", isPresented: $confirming, titleVisibility: .visible) {
                 Button("Connect Pro") {

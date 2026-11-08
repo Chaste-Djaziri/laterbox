@@ -1,6 +1,7 @@
 import SwiftUI
 
 public struct ShortcutsSettingsView: View {
+    @Environment(\.colorScheme) private var colorScheme
     @State private var showingQuickCaptureTest = false
     @State private var testSuccessMessage: String? = nil
 
@@ -8,8 +9,7 @@ public struct ShortcutsSettingsView: View {
 
     public var body: some View {
         ZStack {
-            AppTheme.canvasBackground
-                .ignoresSafeArea()
+            InboxGrainBackground().ignoresSafeArea()
 
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(spacing: 20) {
@@ -17,7 +17,7 @@ public struct ShortcutsSettingsView: View {
                         HStack(spacing: 14) {
                             Image(systemName: "house.fill")
                                 .font(.system(size: 21, weight: .semibold))
-                                .foregroundStyle(AppTheme.textPrimary)
+                                .foregroundStyle(SettingsAppearance.onAccent)
                                 .frame(width: 48, height: 48)
                                 .background(AppTheme.accent, in: RoundedRectangle(cornerRadius: 14))
 
@@ -26,18 +26,18 @@ public struct ShortcutsSettingsView: View {
                                     .font(.system(size: 16, weight: .bold))
                                 Text("Save without opening LaterBox · Guided setup")
                                     .font(.caption)
-                                    .foregroundStyle(AppTheme.textSecondary)
+                                    .foregroundStyle(SettingsAppearance.textSecondary(for: colorScheme))
                                     .multilineTextAlignment(.leading)
                             }
                             Spacer(minLength: 0)
                             Image(systemName: "chevron.right")
-                                .foregroundStyle(AppTheme.textTertiary)
+                                .foregroundStyle(SettingsAppearance.textTertiary(for: colorScheme))
                         }
                         .padding(18)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(Color.white, in: RoundedRectangle(cornerRadius: 18))
+                        .background(SettingsAppearance.surface(for: colorScheme), in: RoundedRectangle(cornerRadius: 18))
                     }
-                    .foregroundStyle(AppTheme.textPrimary)
+                    .foregroundStyle(SettingsAppearance.textPrimary(for: colorScheme))
                     .buttonStyle(.plain)
 
                     // Hero Card
@@ -55,26 +55,26 @@ public struct ShortcutsSettingsView: View {
                             VStack(alignment: .leading, spacing: 2) {
                                 Text("Control Center Quick Save")
                                     .font(.system(size: 16, weight: .bold))
-                                    .foregroundColor(AppTheme.textPrimary)
+                                    .foregroundColor(SettingsAppearance.textPrimary(for: colorScheme))
                                 Text("Opens the in-app Quick Save composer")
                                     .font(.caption)
-                                    .foregroundColor(AppTheme.textSecondary)
+                                    .foregroundColor(SettingsAppearance.textSecondary(for: colorScheme))
                             }
                         }
 
                         Text("Add LaterBox to Control Center for quick access to the in-app composer. For a Home Screen shortcut that saves without opening LaterBox, use the guided setup above.")
                             .font(.system(size: 13))
-                            .foregroundColor(AppTheme.textSecondary)
+                            .foregroundColor(SettingsAppearance.textSecondary(for: colorScheme))
                             .lineSpacing(3)
                     }
                     .padding(18)
-                    .liquidGlassCard(cornerRadius: 18)
+                    .settingsCard(for: colorScheme, cornerRadius: 18)
 
                     // Setup Instructions
                     VStack(alignment: .leading, spacing: 16) {
                         Text("HOW TO ADD TO CONTROL CENTER")
                             .font(.system(size: 11, weight: .bold))
-                            .foregroundColor(AppTheme.textSecondary)
+                            .foregroundColor(SettingsAppearance.textSecondary(for: colorScheme))
                             .tracking(0.6)
 
                         instructionStep(
@@ -108,7 +108,7 @@ public struct ShortcutsSettingsView: View {
                         )
                     }
                     .padding(18)
-                    .liquidGlassCard(cornerRadius: 18)
+                    .settingsCard(for: colorScheme, cornerRadius: 18)
 
                     // Safari Toolbar & Share Sheet Card
                     VStack(alignment: .leading, spacing: 14) {
@@ -118,16 +118,16 @@ public struct ShortcutsSettingsView: View {
                                 .foregroundColor(AppTheme.accent)
                             Text("Safari Toolbar & Blank Sharing")
                                 .font(.system(size: 14, weight: .bold))
-                                .foregroundColor(AppTheme.textPrimary)
+                                .foregroundColor(SettingsAppearance.textPrimary(for: colorScheme))
                         }
 
                         Text("You can also tap LaterBox from Safari's tools menu or Share Sheet anytime. Even with nothing attached or selected, LaterBox opens the clean Quick Save composer to add what you need.")
                             .font(.system(size: 13))
-                            .foregroundColor(AppTheme.textSecondary)
+                            .foregroundColor(SettingsAppearance.textSecondary(for: colorScheme))
                             .lineSpacing(3)
                     }
                     .padding(18)
-                    .liquidGlassCard(cornerRadius: 18)
+                    .settingsCard(for: colorScheme, cornerRadius: 18)
 
                     // Action Button section
                     Button(action: {
@@ -167,16 +167,16 @@ public struct ShortcutsSettingsView: View {
                     .frame(width: 26, height: 26)
                 Text(number)
                     .font(.system(size: 12, weight: .bold))
-                    .foregroundColor(AppTheme.textPrimary)
+                    .foregroundColor(SettingsAppearance.textPrimary(for: colorScheme))
             }
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
                     .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(AppTheme.textPrimary)
+                    .foregroundColor(SettingsAppearance.textPrimary(for: colorScheme))
                 Text(description)
                     .font(.system(size: 12))
-                    .foregroundColor(AppTheme.textSecondary)
+                    .foregroundColor(SettingsAppearance.textSecondary(for: colorScheme))
                     .lineSpacing(2)
             }
         }

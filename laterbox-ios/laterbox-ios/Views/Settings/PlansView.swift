@@ -14,6 +14,7 @@ public enum PlanIntervalSelection {
 }
 
 public struct PlansView: View {
+    @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dismiss) private var dismiss
     @Environment(\.openURL) private var openURL
     @ObservedObject private var storeKit = StoreKitManager.shared
@@ -48,7 +49,7 @@ public struct PlansView: View {
                     .blur(radius: 70)
                     .offset(x: 140, y: 160)
             } else {
-                Color.black.opacity(0.92)
+                Color(hex: "1B1D20").opacity(0.96)
                     .ignoresSafeArea()
             }
         }
@@ -61,7 +62,7 @@ public struct PlansView: View {
                 if isLiquidGlass {
                     liquidGlassModalBackground
                 } else {
-                    LiquidGlassBackground()
+                    InboxGrainBackground().ignoresSafeArea()
                 }
 
                 ScrollView {
@@ -78,18 +79,18 @@ public struct PlansView: View {
                                     )
                                 Image(systemName: "crown.fill")
                                     .font(.system(size: 32, weight: .bold))
-                                    .foregroundColor(isLiquidGlass ? .white : AppTheme.textPrimary)
+                                    .foregroundColor(isLiquidGlass ? .white : SettingsAppearance.onAccent)
                             }
                             .padding(.top, 8)
 
                             VStack(spacing: 6) {
                                 Text("LaterBox Pro")
                                     .font(.system(size: 28, weight: .bold))
-                                    .foregroundColor(isLiquidGlass ? .white : AppTheme.textPrimary)
+                                    .foregroundColor(isLiquidGlass ? .white : SettingsAppearance.textPrimary(for: colorScheme))
 
                                 Text("Pro app icons and your choice of AI providers on this device. Connect an optional account for cloud sync, backup, and web access.")
                                     .font(.subheadline)
-                                    .foregroundColor(isLiquidGlass ? Color.white.opacity(0.85) : AppTheme.textSecondary)
+                                    .foregroundColor(isLiquidGlass ? Color.white.opacity(0.85) : SettingsAppearance.textSecondary(for: colorScheme))
                                     .multilineTextAlignment(.center)
                                     .padding(.horizontal, 16)
                             }
@@ -159,13 +160,13 @@ public struct PlansView: View {
                         ConnectProView(isLiquidGlass: isLiquidGlass)
                         if storeKit.monthlyProduct == nil || storeKit.annualProduct == nil {
                             Button("Retry App Store prices") { Task { await storeKit.loadProducts() } }
-                                .foregroundColor(isLiquidGlass ? Color.white.opacity(0.85) : AppTheme.textPrimary)
+                                .foregroundColor(isLiquidGlass ? Color.white.opacity(0.85) : SettingsAppearance.textPrimary(for: colorScheme))
                         }
                         // Feature Breakdown
                         VStack(alignment: .leading, spacing: 14) {
                             Text("What's Included with Pro")
                                 .font(.caption.weight(.bold))
-                                .foregroundColor(isLiquidGlass ? Color.white.opacity(0.65) : AppTheme.textSecondary)
+                                .foregroundColor(isLiquidGlass ? Color.white.opacity(0.65) : SettingsAppearance.textSecondary(for: colorScheme))
                                 .textCase(.uppercase)
 
                             VStack(alignment: .leading, spacing: 12) {
@@ -193,11 +194,11 @@ public struct PlansView: View {
                             .padding(18)
                             .background(
                                 RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                    .fill(isLiquidGlass ? Color.white.opacity(0.08) : AppTheme.cardBackground)
+                                    .fill(isLiquidGlass ? Color.white.opacity(0.08) : SettingsAppearance.surface(for: colorScheme))
                             )
                             .overlay(
                                 RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                    .strokeBorder(isLiquidGlass ? Color.white.opacity(0.18) : AppTheme.cardBorder, lineWidth: 1)
+                                    .strokeBorder(isLiquidGlass ? Color.white.opacity(0.18) : SettingsAppearance.border(for: colorScheme), lineWidth: 1)
                             )
                         }
 
@@ -205,7 +206,7 @@ public struct PlansView: View {
                            let message = storeKit.cloudRegistrationMessage {
                             Text(message)
                                 .font(.caption)
-                                .foregroundColor(isLiquidGlass ? Color.white.opacity(0.8) : AppTheme.textSecondary)
+                                .foregroundColor(isLiquidGlass ? Color.white.opacity(0.8) : SettingsAppearance.textSecondary(for: colorScheme))
                         }
                         // Error Banner if any
                         if let error = storeKit.errorMessage ?? coordinator.billingError {
@@ -265,7 +266,7 @@ public struct PlansView: View {
                                     Text("Restore Purchases")
                                         .font(.caption.weight(.semibold))
                                 }
-                                .foregroundColor(isLiquidGlass ? .white : AppTheme.textPrimary)
+                                .foregroundColor(isLiquidGlass ? .white : SettingsAppearance.textPrimary(for: colorScheme))
                                 .padding(.vertical, 8)
                                 .padding(.horizontal, 16)
                                 .background(
@@ -283,13 +284,13 @@ public struct PlansView: View {
                             // Legal Disclosure
                             Text("Payment will be charged to your Apple ID account at confirmation of purchase. Subscription automatically renews unless canceled at least 24 hours before the end of the current period. You can manage or cancel your subscription anytime in your Apple ID Account Settings.")
                                 .font(.system(size: 11))
-                                .foregroundColor(isLiquidGlass ? Color.white.opacity(0.65) : AppTheme.textSecondary.opacity(0.8))
+                                .foregroundColor(isLiquidGlass ? Color.white.opacity(0.65) : SettingsAppearance.textSecondary(for: colorScheme).opacity(0.8))
                                 .multilineTextAlignment(.center)
                                 .lineSpacing(2)
 
                             Button("LaterBox Service Terms") { if let url = URL(string: StoreKitManager.termsOfServiceUrl) { openURL(url) } }
                                 .font(.caption)
-                                .foregroundColor(isLiquidGlass ? Color.white.opacity(0.85) : AppTheme.textPrimary)
+                                .foregroundColor(isLiquidGlass ? Color.white.opacity(0.85) : SettingsAppearance.textPrimary(for: colorScheme))
                             // EULA & Privacy Policy Links
                             HStack(spacing: 16) {
                                 Button("Terms of Use (EULA)") {
@@ -298,10 +299,10 @@ public struct PlansView: View {
                                     }
                                 }
                                 .font(.caption.weight(.medium))
-                                .foregroundColor(isLiquidGlass ? Color.white.opacity(0.85) : AppTheme.textPrimary)
+                                .foregroundColor(isLiquidGlass ? Color.white.opacity(0.85) : SettingsAppearance.textPrimary(for: colorScheme))
 
                                 Text("•")
-                                    .foregroundColor(isLiquidGlass ? Color.white.opacity(0.4) : AppTheme.textSecondary)
+                                    .foregroundColor(isLiquidGlass ? Color.white.opacity(0.4) : SettingsAppearance.textSecondary(for: colorScheme))
 
                                 Button("Privacy Policy") {
                                     if let url = URL(string: StoreKitManager.privacyPolicyUrl) {
@@ -309,7 +310,7 @@ public struct PlansView: View {
                                     }
                                 }
                                 .font(.caption.weight(.medium))
-                                .foregroundColor(isLiquidGlass ? Color.white.opacity(0.85) : AppTheme.textPrimary)
+                                .foregroundColor(isLiquidGlass ? Color.white.opacity(0.85) : SettingsAppearance.textPrimary(for: colorScheme))
                             }
                         }
                         .padding(.top, 4)
@@ -368,14 +369,14 @@ public struct PlansView: View {
                     Circle()
                         .strokeBorder(
                             isSelected
-                                ? (isLiquidGlass ? Color.white : AppTheme.textPrimary)
+                                ? (isLiquidGlass ? Color.white : SettingsAppearance.textPrimary(for: colorScheme))
                                 : (isLiquidGlass ? Color.white.opacity(0.35) : Color.black.opacity(0.2)),
                             lineWidth: 2
                         )
                         .frame(width: 22, height: 22)
                     if isSelected {
                         Circle()
-                            .fill(isLiquidGlass ? Color.white : AppTheme.textPrimary)
+                            .fill(isLiquidGlass ? Color.white : SettingsAppearance.textPrimary(for: colorScheme))
                             .frame(width: 12, height: 12)
                     }
                 }
@@ -384,12 +385,12 @@ public struct PlansView: View {
                     HStack(spacing: 8) {
                         Text(title)
                             .font(.headline.weight(.bold))
-                            .foregroundColor(isLiquidGlass ? .white : AppTheme.textPrimary)
+                            .foregroundColor(isLiquidGlass ? .white : SettingsAppearance.textPrimary(for: colorScheme))
 
                         if let badgeText = badge {
                             Text(badgeText)
                                 .font(.system(size: 10, weight: .bold))
-                                .foregroundColor(isLiquidGlass ? .white : AppTheme.textPrimary)
+                                .foregroundColor(isLiquidGlass ? .white : SettingsAppearance.textPrimary(for: colorScheme))
                                 .padding(.horizontal, 8)
                                 .padding(.vertical, 3)
                                 .background(
@@ -406,7 +407,7 @@ public struct PlansView: View {
                     Text(detail)
                         .fixedSize(horizontal: false, vertical: true)
                         .font(.caption)
-                        .foregroundColor(isLiquidGlass ? Color.white.opacity(0.75) : AppTheme.textSecondary)
+                        .foregroundColor(isLiquidGlass ? Color.white.opacity(0.75) : SettingsAppearance.textSecondary(for: colorScheme))
                 }
 
                 Spacer()
@@ -415,10 +416,10 @@ public struct PlansView: View {
                     HStack(alignment: .firstTextBaseline, spacing: 2) {
                         Text(price)
                             .font(.system(size: 18, weight: .bold))
-                            .foregroundColor(isLiquidGlass ? .white : AppTheme.textPrimary)
+                            .foregroundColor(isLiquidGlass ? .white : SettingsAppearance.textPrimary(for: colorScheme))
                         Text(period)
                             .font(.caption)
-                            .foregroundColor(isLiquidGlass ? Color.white.opacity(0.7) : AppTheme.textSecondary)
+                            .foregroundColor(isLiquidGlass ? Color.white.opacity(0.7) : SettingsAppearance.textSecondary(for: colorScheme))
                     }
                 }
             }
@@ -427,14 +428,14 @@ public struct PlansView: View {
                 RoundedRectangle(cornerRadius: 16, style: .continuous)
                     .fill(isLiquidGlass
                         ? (isSelected ? Color.white.opacity(0.18) : Color.white.opacity(0.08))
-                        : AppTheme.cardBackground)
+                        : SettingsAppearance.surface(for: colorScheme))
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 16, style: .continuous)
                     .strokeBorder(
                         isSelected
-                            ? (isLiquidGlass ? Color.white.opacity(0.85) : AppTheme.textPrimary)
-                            : (isLiquidGlass ? Color.white.opacity(0.20) : AppTheme.cardBorder),
+                            ? (isLiquidGlass ? Color.white.opacity(0.85) : SettingsAppearance.textPrimary(for: colorScheme))
+                            : (isLiquidGlass ? Color.white.opacity(0.20) : SettingsAppearance.border(for: colorScheme)),
                         lineWidth: isSelected ? 1.5 : 1
                     )
             )
@@ -454,15 +455,15 @@ public struct PlansView: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("LaterBox Pro Active")
                             .font(.headline.weight(.bold))
-                            .foregroundColor(isLiquidGlass ? .white : AppTheme.textPrimary)
+                            .foregroundColor(isLiquidGlass ? .white : SettingsAppearance.textPrimary(for: colorScheme))
                         if let date = coordinator.billingEntitlement?.accessEndDate ?? storeKit.expirationDate {
                             Text("\(coordinator.billingEntitlement?.willCancel == true ? "Access ends" : coordinator.billingEntitlement?.status == "trialing" ? "Trial ends" : coordinator.billingEntitlement?.status == "past_due" ? "Grace period ends" : "Current period ends") \(date.formatted(date: .long, time: .omitted))")
                                 .font(.caption)
-                                .foregroundColor(isLiquidGlass ? Color.white.opacity(0.75) : AppTheme.textSecondary)
+                                .foregroundColor(isLiquidGlass ? Color.white.opacity(0.75) : SettingsAppearance.textSecondary(for: colorScheme))
                         } else {
                             Text(coordinator.hasCloudPro ? "Device and account Pro active" : "Device Pro active · Account connection optional")
                                 .font(.caption)
-                                .foregroundColor(isLiquidGlass ? Color.white.opacity(0.75) : AppTheme.textSecondary)
+                                .foregroundColor(isLiquidGlass ? Color.white.opacity(0.75) : SettingsAppearance.textSecondary(for: colorScheme))
                         }
                     }
                 }
@@ -471,7 +472,7 @@ public struct PlansView: View {
 
                 Text("Active")
                     .font(.caption2.weight(.bold))
-                    .foregroundColor(isLiquidGlass ? .white : AppTheme.textPrimary)
+                    .foregroundColor(isLiquidGlass ? .white : SettingsAppearance.textPrimary(for: colorScheme))
                     .padding(.horizontal, 10)
                     .padding(.vertical, 4)
                     .background(
@@ -484,7 +485,7 @@ public struct PlansView: View {
                     )
             }
 
-            Divider().background(isLiquidGlass ? Color.white.opacity(0.2) : AppTheme.cardBorder)
+            Divider().background(isLiquidGlass ? Color.white.opacity(0.2) : SettingsAppearance.border(for: colorScheme))
 
             if coordinator.billingEntitlement?.provider != nil || storeKit.isProSubscriptionActive {
             Button(action: {
@@ -496,7 +497,7 @@ public struct PlansView: View {
                     Image(systemName: "arrow.up.right")
                         .font(.caption.weight(.bold))
                 }
-                .foregroundColor(isLiquidGlass ? .white : AppTheme.textPrimary)
+                .foregroundColor(isLiquidGlass ? .white : SettingsAppearance.textPrimary(for: colorScheme))
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 10)
                 .background(
@@ -506,17 +507,17 @@ public struct PlansView: View {
             }
             .buttonStyle(.plain)
             Text("To switch payment providers, cancel renewal with your current provider and subscribe again after access ends.")
-                .font(.caption).foregroundColor(isLiquidGlass ? Color.white.opacity(0.7) : AppTheme.textSecondary)
+                .font(.caption).foregroundColor(isLiquidGlass ? Color.white.opacity(0.7) : SettingsAppearance.textSecondary(for: colorScheme))
             }
         }
         .padding(18)
         .background(
             RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(isLiquidGlass ? Color.white.opacity(0.08) : AppTheme.cardBackground)
+                .fill(isLiquidGlass ? Color.white.opacity(0.08) : SettingsAppearance.surface(for: colorScheme))
         )
         .overlay(
             RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .strokeBorder(isLiquidGlass ? Color.white.opacity(0.18) : AppTheme.cardBorder, lineWidth: 1)
+                .strokeBorder(isLiquidGlass ? Color.white.opacity(0.18) : SettingsAppearance.border(for: colorScheme), lineWidth: 1)
         )
     }
 
@@ -529,16 +530,16 @@ public struct PlansView: View {
                     .frame(width: 32, height: 32)
                 Image(systemName: icon)
                     .font(.system(size: 14, weight: .bold))
-                    .foregroundColor(isLiquidGlass ? .white : AppTheme.textPrimary)
+                    .foregroundColor(isLiquidGlass ? .white : SettingsAppearance.textPrimary(for: colorScheme))
             }
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
                     .font(.subheadline.weight(.semibold))
-                    .foregroundColor(isLiquidGlass ? .white : AppTheme.textPrimary)
+                    .foregroundColor(isLiquidGlass ? .white : SettingsAppearance.textPrimary(for: colorScheme))
                 Text(subtitle)
                     .font(.caption)
-                    .foregroundColor(isLiquidGlass ? Color.white.opacity(0.75) : AppTheme.textSecondary)
+                    .foregroundColor(isLiquidGlass ? Color.white.opacity(0.75) : SettingsAppearance.textSecondary(for: colorScheme))
             }
         }
     }

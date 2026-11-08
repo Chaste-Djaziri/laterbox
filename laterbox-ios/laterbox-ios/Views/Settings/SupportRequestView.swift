@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct SupportRequestView: View {
+    @Environment(\.colorScheme) private var colorScheme
     init(initialSubject: String = "", initialMessage: String = "") {
         _subject = State(initialValue: initialSubject)
         _message = State(initialValue: initialMessage)
@@ -31,7 +32,7 @@ struct SupportRequestView: View {
             } else {
                 Section {
                     Text("Tell us what happened or how we can help. Include steps to reproduce a problem. Please leave out passwords and sensitive information.")
-                        .font(.subheadline).foregroundStyle(AppTheme.textSecondary)
+                        .font(.subheadline).foregroundStyle(SettingsAppearance.textSecondary(for: colorScheme))
                     Picker("What do you need?", selection: $category) {
                         Text("Report a problem").tag("problem")
                         Text("I need help").tag("help")
@@ -47,7 +48,7 @@ struct SupportRequestView: View {
                 Section("Message") {
                     TextEditor(text: $message).frame(minHeight: 180).accessibilityLabel("Message")
                     Text("\(message.count)/5,000 characters · At least 10 characters")
-                        .font(.caption).foregroundStyle(AppTheme.textSecondary)
+                        .font(.caption).foregroundStyle(SettingsAppearance.textSecondary(for: colorScheme))
                 }
                 Section {
                     Button { Task { await submit() } } label: {
@@ -66,9 +67,8 @@ struct SupportRequestView: View {
         }
         .disabled(sending)
         .scrollContentBackground(.hidden)
-        .background(AppTheme.background)
-        .scrollContentBackground(.hidden)
-        .background(AppTheme.canvasBackground.ignoresSafeArea())
+        .background(InboxGrainBackground().ignoresSafeArea())
+        .tint(SettingsAppearance.textPrimary(for: colorScheme))
         .navigationTitle("Help & Report a Problem")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(.visible, for: .navigationBar)

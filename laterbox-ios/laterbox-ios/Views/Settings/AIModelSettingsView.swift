@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct AIModelSettingsView: View {
+    @Environment(\.colorScheme) private var colorScheme
     @ObservedObject private var modelManager = LaterAIModelManager.shared
 
     @State private var testingProvider: AIProviderType? = nil
@@ -37,7 +38,7 @@ struct AIModelSettingsView: View {
 
     var body: some View {
         ZStack {
-            AppTheme.canvasBackground.ignoresSafeArea()
+            InboxGrainBackground().ignoresSafeArea()
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 20) {
                     VStack(alignment: .leading, spacing: 6) {
@@ -45,7 +46,7 @@ struct AIModelSettingsView: View {
                             .font(.title2.bold())
                         Text("On-device intelligence, free cloud models, and AI assistants for capture and search.")
                             .font(.subheadline)
-                            .foregroundStyle(AppTheme.textSecondary)
+                            .foregroundStyle(SettingsAppearance.textSecondary(for: colorScheme))
                     }
 
                     // MARK: - On-Device Hardware Support Card
@@ -61,10 +62,10 @@ struct AIModelSettingsView: View {
                                 VStack(alignment: .leading, spacing: 3) {
                                     Text("On-Device Model")
                                         .font(.headline)
-                                        .foregroundColor(AppTheme.textPrimary)
+                                        .foregroundColor(SettingsAppearance.textPrimary(for: colorScheme))
                                     Text(modelManager.deviceHardwareSummary)
                                         .font(.caption)
-                                        .foregroundColor(AppTheme.textSecondary)
+                                        .foregroundColor(SettingsAppearance.textSecondary(for: colorScheme))
                                 }
                             }
 
@@ -90,12 +91,12 @@ struct AIModelSettingsView: View {
                                         lineWidth: 1
                                     )
                             )
-                            .foregroundColor(modelManager.isOnDeviceModelSupported ? Color(red: 22/255, green: 130/255, blue: 60/255) : AppTheme.textSecondary)
+                            .foregroundColor(modelManager.isOnDeviceModelSupported ? Color(red: 22/255, green: 130/255, blue: 60/255) : SettingsAppearance.textSecondary(for: colorScheme))
                         }
 
                         Text(modelManager.supportStatusMessage)
                             .font(.subheadline)
-                            .foregroundColor(AppTheme.textSecondary)
+                            .foregroundColor(SettingsAppearance.textSecondary(for: colorScheme))
                             .fixedSize(horizontal: false, vertical: true)
 
                         Divider()
@@ -106,10 +107,10 @@ struct AIModelSettingsView: View {
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text("Enable On-Device Model")
                                         .font(.system(size: 16, weight: .medium))
-                                        .foregroundColor(AppTheme.textPrimary)
+                                        .foregroundColor(SettingsAppearance.textPrimary(for: colorScheme))
                                     Text("Use hardware Neural Engine for private, zero-cloud processing")
                                         .font(.caption)
-                                        .foregroundColor(AppTheme.textSecondary)
+                                        .foregroundColor(SettingsAppearance.textSecondary(for: colorScheme))
                                 }
                             }
                             .tint(Color.black)
@@ -118,30 +119,30 @@ struct AIModelSettingsView: View {
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text("On-Device Model")
                                         .font(.system(size: 16, weight: .medium))
-                                        .foregroundColor(AppTheme.textSecondary)
+                                        .foregroundColor(SettingsAppearance.textSecondary(for: colorScheme))
                                     Text("Requires iPhone 15 Pro, iPhone 16, iPhone 17 or later with 8GB+ RAM")
                                         .font(.caption)
-                                        .foregroundColor(AppTheme.textTertiary)
+                                        .foregroundColor(SettingsAppearance.textTertiary(for: colorScheme))
                                 }
                                 Spacer()
                                 Text("Unavailable")
                                     .font(.caption.bold())
-                                    .foregroundColor(AppTheme.textTertiary)
+                                    .foregroundColor(SettingsAppearance.textTertiary(for: colorScheme))
                             }
                         }
                     }
                     .padding(18)
-                    .background(AppTheme.cardBackground, in: RoundedRectangle(cornerRadius: 18))
+                    .background(SettingsAppearance.surface(for: colorScheme), in: RoundedRectangle(cornerRadius: 18))
                     .overlay(
                         RoundedRectangle(cornerRadius: 18)
-                            .strokeBorder(AppTheme.cardBorder, lineWidth: 1)
+                            .strokeBorder(SettingsAppearance.border(for: colorScheme), lineWidth: 1)
                     )
 
                     // MARK: - Engine Selector Card
                     VStack(alignment: .leading, spacing: 12) {
                         Text("Active Engine")
                             .font(.headline)
-                            .foregroundColor(AppTheme.textPrimary)
+                            .foregroundColor(SettingsAppearance.textPrimary(for: colorScheme))
 
                         if modelManager.isOnDeviceModelSupported && modelManager.isOnDeviceModelEnabled {
                             engineOptionRow(
@@ -188,10 +189,10 @@ struct AIModelSettingsView: View {
                         )
                     }
                     .padding(18)
-                    .background(AppTheme.cardBackground, in: RoundedRectangle(cornerRadius: 18))
+                    .background(SettingsAppearance.surface(for: colorScheme), in: RoundedRectangle(cornerRadius: 18))
                     .overlay(
                         RoundedRectangle(cornerRadius: 18)
-                            .strokeBorder(AppTheme.cardBorder, lineWidth: 1)
+                            .strokeBorder(SettingsAppearance.border(for: colorScheme), lineWidth: 1)
                     )
 
                     // MARK: - BazaarLink Free AI Configuration Card
@@ -199,7 +200,7 @@ struct AIModelSettingsView: View {
                         HStack {
                             Label("BazaarLink Free AI", systemImage: "bolt.shield.fill")
                                 .font(.headline)
-                                .foregroundColor(AppTheme.textPrimary)
+                                .foregroundColor(SettingsAppearance.textPrimary(for: colorScheme))
 
                             Spacer()
 
@@ -213,12 +214,12 @@ struct AIModelSettingsView: View {
 
                         Text("Drop-in OpenAI-compatible API with free Qwen 3.7 Flash and DeepSeek V4 models. Requires no credit card.")
                             .font(.caption)
-                            .foregroundColor(AppTheme.textSecondary)
+                            .foregroundColor(SettingsAppearance.textSecondary(for: colorScheme))
 
                         VStack(alignment: .leading, spacing: 6) {
                             Text("Model")
                                 .font(.caption.bold())
-                                .foregroundColor(AppTheme.textSecondary)
+                                .foregroundColor(SettingsAppearance.textSecondary(for: colorScheme))
 
                             Picker("Model", selection: $modelManager.bazaarlinkModel) {
                                 ForEach(bazaarlinkModels, id: \.0) { model in
@@ -234,7 +235,7 @@ struct AIModelSettingsView: View {
                         VStack(alignment: .leading, spacing: 6) {
                             Text("API Key (BAZAARLINK_API_KEY)")
                                 .font(.caption.bold())
-                                .foregroundColor(AppTheme.textSecondary)
+                                .foregroundColor(SettingsAppearance.textSecondary(for: colorScheme))
 
                             HStack {
                                 SecureField("Enter BazaarLink API key", text: $modelManager.bazaarlinkApiKey)
@@ -250,7 +251,7 @@ struct AIModelSettingsView: View {
                                 }
                             }
                             .padding(10)
-                            .background(Color.white, in: RoundedRectangle(cornerRadius: 10))
+                            .background(SettingsAppearance.surface(for: colorScheme), in: RoundedRectangle(cornerRadius: 10))
                             .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Color.black.opacity(0.1), lineWidth: 1))
                         }
 
@@ -290,10 +291,10 @@ struct AIModelSettingsView: View {
                         }
                     }
                     .padding(18)
-                    .background(AppTheme.cardBackground, in: RoundedRectangle(cornerRadius: 18))
+                    .background(SettingsAppearance.surface(for: colorScheme), in: RoundedRectangle(cornerRadius: 18))
                     .overlay(
                         RoundedRectangle(cornerRadius: 18)
-                            .strokeBorder(AppTheme.cardBorder, lineWidth: 1)
+                            .strokeBorder(SettingsAppearance.border(for: colorScheme), lineWidth: 1)
                     )
 
                     // MARK: - Google Gemini Configuration Card
@@ -301,7 +302,7 @@ struct AIModelSettingsView: View {
                         HStack {
                             Label("Google Gemini", systemImage: "sparkles")
                                 .font(.headline)
-                                .foregroundColor(AppTheme.textPrimary)
+                                .foregroundColor(SettingsAppearance.textPrimary(for: colorScheme))
 
                             Spacer()
 
@@ -315,12 +316,12 @@ struct AIModelSettingsView: View {
 
                         Text("Multimodal cloud intelligence for complex task and media reasoning. Requires your Google AI Studio key.")
                             .font(.caption)
-                            .foregroundColor(AppTheme.textSecondary)
+                            .foregroundColor(SettingsAppearance.textSecondary(for: colorScheme))
 
                         VStack(alignment: .leading, spacing: 6) {
                             Text("Model")
                                 .font(.caption.bold())
-                                .foregroundColor(AppTheme.textSecondary)
+                                .foregroundColor(SettingsAppearance.textSecondary(for: colorScheme))
 
                             Picker("Model", selection: $modelManager.geminiModel) {
                                 ForEach(geminiModels, id: \.0) { model in
@@ -336,7 +337,7 @@ struct AIModelSettingsView: View {
                         VStack(alignment: .leading, spacing: 6) {
                             Text("API Key (GEMINI_API_KEY)")
                                 .font(.caption.bold())
-                                .foregroundColor(AppTheme.textSecondary)
+                                .foregroundColor(SettingsAppearance.textSecondary(for: colorScheme))
 
                             HStack {
                                 SecureField("Enter Google Gemini API key", text: $modelManager.geminiApiKey)
@@ -352,7 +353,7 @@ struct AIModelSettingsView: View {
                                 }
                             }
                             .padding(10)
-                            .background(Color.white, in: RoundedRectangle(cornerRadius: 10))
+                            .background(SettingsAppearance.surface(for: colorScheme), in: RoundedRectangle(cornerRadius: 10))
                             .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Color.black.opacity(0.1), lineWidth: 1))
                         }
 
@@ -392,10 +393,10 @@ struct AIModelSettingsView: View {
                         }
                     }
                     .padding(18)
-                    .background(AppTheme.cardBackground, in: RoundedRectangle(cornerRadius: 18))
+                    .background(SettingsAppearance.surface(for: colorScheme), in: RoundedRectangle(cornerRadius: 18))
                     .overlay(
                         RoundedRectangle(cornerRadius: 18)
-                            .strokeBorder(AppTheme.cardBorder, lineWidth: 1)
+                            .strokeBorder(SettingsAppearance.border(for: colorScheme), lineWidth: 1)
                     )
 
                     // MARK: - OpenAI GPT Configuration Card
@@ -403,7 +404,7 @@ struct AIModelSettingsView: View {
                         HStack {
                             Label("OpenAI GPT", systemImage: "brain.head.profile")
                                 .font(.headline)
-                                .foregroundColor(AppTheme.textPrimary)
+                                .foregroundColor(SettingsAppearance.textPrimary(for: colorScheme))
 
                             Spacer()
 
@@ -417,12 +418,12 @@ struct AIModelSettingsView: View {
 
                         Text("Industry-standard GPT-4o, GPT-4o Mini, and o3-mini models. Requires your OpenAI API key.")
                             .font(.caption)
-                            .foregroundColor(AppTheme.textSecondary)
+                            .foregroundColor(SettingsAppearance.textSecondary(for: colorScheme))
 
                         VStack(alignment: .leading, spacing: 6) {
                             Text("Model")
                                 .font(.caption.bold())
-                                .foregroundColor(AppTheme.textSecondary)
+                                .foregroundColor(SettingsAppearance.textSecondary(for: colorScheme))
 
                             Picker("Model", selection: $modelManager.openaiModel) {
                                 ForEach(openaiModels, id: \.0) { model in
@@ -438,7 +439,7 @@ struct AIModelSettingsView: View {
                         VStack(alignment: .leading, spacing: 6) {
                             Text("API Key (OPENAI_API_KEY)")
                                 .font(.caption.bold())
-                                .foregroundColor(AppTheme.textSecondary)
+                                .foregroundColor(SettingsAppearance.textSecondary(for: colorScheme))
 
                             HStack {
                                 SecureField("sk-...", text: $modelManager.openaiApiKey)
@@ -454,7 +455,7 @@ struct AIModelSettingsView: View {
                                 }
                             }
                             .padding(10)
-                            .background(Color.white, in: RoundedRectangle(cornerRadius: 10))
+                            .background(SettingsAppearance.surface(for: colorScheme), in: RoundedRectangle(cornerRadius: 10))
                             .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Color.black.opacity(0.1), lineWidth: 1))
                         }
 
@@ -494,10 +495,10 @@ struct AIModelSettingsView: View {
                         }
                     }
                     .padding(18)
-                    .background(AppTheme.cardBackground, in: RoundedRectangle(cornerRadius: 18))
+                    .background(SettingsAppearance.surface(for: colorScheme), in: RoundedRectangle(cornerRadius: 18))
                     .overlay(
                         RoundedRectangle(cornerRadius: 18)
-                            .strokeBorder(AppTheme.cardBorder, lineWidth: 1)
+                            .strokeBorder(SettingsAppearance.border(for: colorScheme), lineWidth: 1)
                     )
 
                     // MARK: - Anthropic Claude Configuration Card
@@ -505,7 +506,7 @@ struct AIModelSettingsView: View {
                         HStack {
                             Label("Anthropic Claude", systemImage: "bubble.left.and.text.bubble.right.fill")
                                 .font(.headline)
-                                .foregroundColor(AppTheme.textPrimary)
+                                .foregroundColor(SettingsAppearance.textPrimary(for: colorScheme))
 
                             Spacer()
 
@@ -519,12 +520,12 @@ struct AIModelSettingsView: View {
 
                         Text("State-of-the-art Claude 3.5 Sonnet, 3.5 Haiku, and 3.7 Sonnet. Requires your Anthropic console key.")
                             .font(.caption)
-                            .foregroundColor(AppTheme.textSecondary)
+                            .foregroundColor(SettingsAppearance.textSecondary(for: colorScheme))
 
                         VStack(alignment: .leading, spacing: 6) {
                             Text("Model")
                                 .font(.caption.bold())
-                                .foregroundColor(AppTheme.textSecondary)
+                                .foregroundColor(SettingsAppearance.textSecondary(for: colorScheme))
 
                             Picker("Model", selection: $modelManager.claudeModel) {
                                 ForEach(claudeModels, id: \.0) { model in
@@ -540,7 +541,7 @@ struct AIModelSettingsView: View {
                         VStack(alignment: .leading, spacing: 6) {
                             Text("API Key (ANTHROPIC_API_KEY)")
                                 .font(.caption.bold())
-                                .foregroundColor(AppTheme.textSecondary)
+                                .foregroundColor(SettingsAppearance.textSecondary(for: colorScheme))
 
                             HStack {
                                 SecureField("sk-ant-...", text: $modelManager.claudeApiKey)
@@ -556,7 +557,7 @@ struct AIModelSettingsView: View {
                                 }
                             }
                             .padding(10)
-                            .background(Color.white, in: RoundedRectangle(cornerRadius: 10))
+                            .background(SettingsAppearance.surface(for: colorScheme), in: RoundedRectangle(cornerRadius: 10))
                             .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Color.black.opacity(0.1), lineWidth: 1))
                         }
 
@@ -596,10 +597,10 @@ struct AIModelSettingsView: View {
                         }
                     }
                     .padding(18)
-                    .background(AppTheme.cardBackground, in: RoundedRectangle(cornerRadius: 18))
+                    .background(SettingsAppearance.surface(for: colorScheme), in: RoundedRectangle(cornerRadius: 18))
                     .overlay(
                         RoundedRectangle(cornerRadius: 18)
-                            .strokeBorder(AppTheme.cardBorder, lineWidth: 1)
+                            .strokeBorder(SettingsAppearance.border(for: colorScheme), lineWidth: 1)
                     )
 
                     // MARK: - Search Refinement
@@ -607,18 +608,18 @@ struct AIModelSettingsView: View {
                         VStack(alignment: .leading, spacing: 2) {
                             Text("Search refinement")
                                 .font(.system(size: 16, weight: .medium))
-                                .foregroundColor(AppTheme.textPrimary)
+                                .foregroundColor(SettingsAppearance.textPrimary(for: colorScheme))
                             Text("Enhance queries locally for higher precision results")
                                 .font(.caption)
-                                .foregroundColor(AppTheme.textSecondary)
+                                .foregroundColor(SettingsAppearance.textSecondary(for: colorScheme))
                         }
                     }
                     .tint(Color.black)
                     .padding(18)
-                    .background(AppTheme.cardBackground, in: RoundedRectangle(cornerRadius: 18))
+                    .background(SettingsAppearance.surface(for: colorScheme), in: RoundedRectangle(cornerRadius: 18))
                     .overlay(
                         RoundedRectangle(cornerRadius: 18)
-                            .strokeBorder(AppTheme.cardBorder, lineWidth: 1)
+                            .strokeBorder(SettingsAppearance.border(for: colorScheme), lineWidth: 1)
                     )
                 }
                 .padding(20)
@@ -684,7 +685,7 @@ struct AIModelSettingsView: View {
                     HStack(spacing: 6) {
                         Text(title)
                             .font(.system(size: 15, weight: .semibold))
-                            .foregroundColor(AppTheme.textPrimary)
+                            .foregroundColor(SettingsAppearance.textPrimary(for: colorScheme))
 
                         if provider.isCustomKey {
                             Text(hasKey ? "Key Set" : "Key Required")
@@ -702,13 +703,13 @@ struct AIModelSettingsView: View {
                                 .padding(.horizontal, 6)
                                 .padding(.vertical, 2)
                                 .background(Capsule().fill(Color.black.opacity(0.06)))
-                                .foregroundColor(AppTheme.textSecondary)
+                                .foregroundColor(SettingsAppearance.textSecondary(for: colorScheme))
                         }
                     }
 
                     Text(subtitle)
                         .font(.caption)
-                        .foregroundColor(AppTheme.textSecondary)
+                        .foregroundColor(SettingsAppearance.textSecondary(for: colorScheme))
                 }
 
                 Spacer()

@@ -9,6 +9,7 @@ import SwiftUI
 import StoreKit
 
 public struct SubscriptionSettingsView: View {
+    @Environment(\.colorScheme) private var colorScheme
     @Environment(\.openURL) private var openURL
     @ObservedObject private var coordinator = SyncCoordinator.shared
     @ObservedObject private var storeKit = StoreKitManager.shared
@@ -17,7 +18,7 @@ public struct SubscriptionSettingsView: View {
 
     public var body: some View {
         ZStack {
-            AppTheme.canvasBackground.ignoresSafeArea()
+            InboxGrainBackground().ignoresSafeArea()
 
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 20) {
@@ -29,17 +30,17 @@ public struct SubscriptionSettingsView: View {
                                 .frame(width: 76, height: 76)
                             Image(systemName: "crown.fill")
                                 .font(.system(size: 34, weight: .bold))
-                                .foregroundColor(AppTheme.textPrimary)
+                                .foregroundColor(SettingsAppearance.textPrimary(for: colorScheme))
                         }
 
                         VStack(spacing: 4) {
                             Text(coordinator.isProUser ? "LaterBox Pro" : "LaterBox Local")
                                 .font(.system(size: 24, weight: .bold, design: .rounded))
-                                .foregroundColor(AppTheme.textPrimary)
+                                .foregroundColor(SettingsAppearance.textPrimary(for: colorScheme))
 
                             Text(coordinator.isProUser ? coordinator.hasCloudPro ? "Device Pro and account cloud access active" : "Device Pro active • Account connection optional" : "Free offline vault • Cloud synchronization available")
                                 .font(.subheadline)
-                                .foregroundColor(AppTheme.textSecondary)
+                                .foregroundColor(SettingsAppearance.textSecondary(for: colorScheme))
                                 .multilineTextAlignment(.center)
                                 .padding(.horizontal, 16)
                         }
@@ -47,20 +48,20 @@ public struct SubscriptionSettingsView: View {
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 26)
                     .padding(.horizontal, 18)
-                    .liquidGlassCard(cornerRadius: 22)
+                    .settingsCard(for: colorScheme, cornerRadius: 22)
 
                     // Plan Overview Card
                     VStack(alignment: .leading, spacing: 14) {
                         HStack {
                             Text("Current membership")
                                 .font(.headline)
-                                .foregroundStyle(AppTheme.textPrimary)
+                                .foregroundStyle(SettingsAppearance.textPrimary(for: colorScheme))
 
                             Spacer()
 
                             Text(coordinator.isProUser ? "Active" : "Free Forever")
                                 .font(.caption2.weight(.bold))
-                                .foregroundColor(AppTheme.textPrimary)
+                                .foregroundColor(SettingsAppearance.onAccent)
                                 .padding(.horizontal, 10)
                                 .padding(.vertical, 4)
                                 .background(Capsule().fill(AppTheme.accent))
@@ -70,16 +71,16 @@ public struct SubscriptionSettingsView: View {
                             if coordinator.isProUser {
                                 Text(coordinator.hasCloudPro ? "Your connected account has Pro access on iOS and the web." : "Pro works on this device without registration. Connect an account only if you want cloud sync, backup, and web access.")
                                     .font(.subheadline)
-                                    .foregroundColor(AppTheme.textSecondary)
+                                    .foregroundColor(SettingsAppearance.textSecondary(for: colorScheme))
                                     .lineSpacing(2)
                             } else {
                                 Text("Local mode is 100% free forever. Your items are saved offline on this device with full privacy and zero tracking.")
                                     .font(.subheadline)
-                                    .foregroundColor(AppTheme.textSecondary)
+                                    .foregroundColor(SettingsAppearance.textSecondary(for: colorScheme))
                                     .lineSpacing(2)
                             }
 
-                            Divider().background(AppTheme.cardBorder)
+                            Divider().background(SettingsAppearance.border(for: colorScheme))
 
                             VStack(alignment: .leading, spacing: 8) {
                                 featureRow(icon: "icloud.fill", title: "Multi-Device Cloud Sync", unlocked: coordinator.hasCloudPro)
@@ -90,14 +91,14 @@ public struct SubscriptionSettingsView: View {
                         }
                     }
                     .padding(18)
-                    .liquidGlassCard(cornerRadius: 20)
+                    .settingsCard(for: colorScheme, cornerRadius: 20)
 
                     ConnectProView()
                     // Subscription Management Actions
                     VStack(alignment: .leading, spacing: 12) {
                         Text("Manage subscription")
                             .font(.headline)
-                            .foregroundStyle(AppTheme.textPrimary)
+                            .foregroundStyle(SettingsAppearance.textPrimary(for: colorScheme))
 
                         if coordinator.billingEntitlement?.provider != nil || storeKit.isProSubscriptionActive {
                             Button(action: {
@@ -112,16 +113,16 @@ public struct SubscriptionSettingsView: View {
                                     Image(systemName: "arrow.up.right")
                                         .font(.caption.weight(.bold))
                                 }
-                                .foregroundColor(AppTheme.textPrimary)
+                                .foregroundColor(SettingsAppearance.textPrimary(for: colorScheme))
                                 .padding(.horizontal, 16)
                                 .padding(.vertical, 14)
                                 .background(
                                     RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                        .fill(AppTheme.cardBackground)
+                                        .fill(SettingsAppearance.surface(for: colorScheme))
                                 )
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                        .strokeBorder(AppTheme.cardBorder, lineWidth: 1)
+                                        .strokeBorder(SettingsAppearance.border(for: colorScheme), lineWidth: 1)
                                 )
                             }
                             .buttonStyle(.plain)
@@ -151,7 +152,7 @@ public struct SubscriptionSettingsView: View {
 
                                 Text("\(storeKit.monthlyDisplayPrice) / month or \(storeKit.annualDisplayPrice) / year")
                                     .font(.caption)
-                                    .foregroundColor(AppTheme.textSecondary)
+                                    .foregroundColor(SettingsAppearance.textSecondary(for: colorScheme))
                                     .frame(maxWidth: .infinity, alignment: .center)
                             }
                         }
@@ -163,7 +164,7 @@ public struct SubscriptionSettingsView: View {
                         if let entitlement = coordinator.billingEntitlement, entitlement.provider != nil {
                             Text("Managed by \(entitlement.provider == "apple" ? "Apple" : entitlement.provider == "whop" ? "Whop" : "Paddle"). To switch payment providers, cancel renewal there and subscribe with the other provider after access ends.")
                                 .font(.caption)
-                                .foregroundColor(AppTheme.textSecondary)
+                                .foregroundColor(SettingsAppearance.textSecondary(for: colorScheme))
                             if let end = entitlement.accessEndDate {
                                 Text("\(entitlement.willCancel ? "Access ends" : entitlement.status == "trialing" ? "Trial ends" : entitlement.status == "past_due" ? "Grace period ends" : "Renews") \(end.formatted(date: .long, time: .omitted))")
                                     .font(.caption)
@@ -171,7 +172,7 @@ public struct SubscriptionSettingsView: View {
                         }
                         if storeKit.registrationAccountId == coordinator.currentUserId,
                            let message = storeKit.cloudRegistrationMessage {
-                            Text(message).font(.caption).foregroundColor(AppTheme.textSecondary)
+                            Text(message).font(.caption).foregroundColor(SettingsAppearance.textSecondary(for: colorScheme))
                         }
                         if let error = storeKit.errorMessage ?? coordinator.billingError {
                             VStack(alignment: .leading, spacing: 8) {
@@ -227,7 +228,7 @@ public struct SubscriptionSettingsView: View {
                                             .padding(.horizontal, 12)
                                             .padding(.vertical, 6)
                                             .background(AppTheme.accent.opacity(0.25))
-                                            .foregroundColor(AppTheme.textPrimary)
+                                            .foregroundColor(SettingsAppearance.textPrimary(for: colorScheme))
                                             .clipShape(Capsule())
                                         }
                                         .buttonStyle(.plain)
@@ -260,14 +261,14 @@ public struct SubscriptionSettingsView: View {
                                 Text("Restore Previous Purchases")
                                     .font(.caption.weight(.semibold))
                             }
-                            .foregroundColor(AppTheme.textSecondary)
+                            .foregroundColor(SettingsAppearance.textSecondary(for: colorScheme))
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 8)
                         }
                         .buttonStyle(.plain)
                     }
                     .padding(18)
-                    .liquidGlassCard(cornerRadius: 20)
+                    .settingsCard(for: colorScheme, cornerRadius: 20)
 
                     Button("LaterBox Service Terms") { if let url = URL(string: StoreKitManager.termsOfServiceUrl) { openURL(url) } }
                         .font(.caption)
@@ -279,10 +280,10 @@ public struct SubscriptionSettingsView: View {
                             }
                         }
                         .font(.caption.weight(.medium))
-                        .foregroundColor(AppTheme.textSecondary)
+                        .foregroundColor(SettingsAppearance.textSecondary(for: colorScheme))
 
                         Text("•")
-                            .foregroundColor(AppTheme.textSecondary.opacity(0.5))
+                            .foregroundColor(SettingsAppearance.textSecondary(for: colorScheme).opacity(0.5))
 
                         Button("Privacy Policy") {
                             if let url = URL(string: StoreKitManager.privacyPolicyUrl) {
@@ -290,7 +291,7 @@ public struct SubscriptionSettingsView: View {
                             }
                         }
                         .font(.caption.weight(.medium))
-                        .foregroundColor(AppTheme.textSecondary)
+                        .foregroundColor(SettingsAppearance.textSecondary(for: colorScheme))
                     }
                     .padding(.top, 4)
                 }
@@ -311,15 +312,15 @@ public struct SubscriptionSettingsView: View {
         HStack(spacing: 10) {
             Image(systemName: icon)
                 .font(.subheadline)
-                .foregroundColor(unlocked ? AppTheme.textPrimary : AppTheme.textSecondary)
+                .foregroundColor(unlocked ? SettingsAppearance.textPrimary(for: colorScheme) : SettingsAppearance.textSecondary(for: colorScheme))
                 .frame(width: 20)
             Text(title)
                 .font(.subheadline)
-                .foregroundColor(AppTheme.textPrimary)
+                .foregroundColor(SettingsAppearance.textPrimary(for: colorScheme))
             Spacer()
             Image(systemName: unlocked ? "checkmark.circle.fill" : "lock.fill")
                 .font(.caption)
-                .foregroundColor(unlocked ? Color.green : AppTheme.textSecondary.opacity(0.6))
+                .foregroundColor(unlocked ? Color.green : SettingsAppearance.textSecondary(for: colorScheme).opacity(0.6))
         }
     }
 }

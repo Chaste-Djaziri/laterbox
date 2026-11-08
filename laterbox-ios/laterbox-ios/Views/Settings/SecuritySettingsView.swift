@@ -9,6 +9,7 @@ import SwiftUI
 import SwiftData
 
 public struct SecuritySettingsView: View {
+    @Environment(\.colorScheme) private var colorScheme
     @Environment(\.modelContext) private var modelContext
     @ObservedObject private var lockManager = AppLockManager.shared
     @ObservedObject private var coordinator = SyncCoordinator.shared
@@ -21,7 +22,7 @@ public struct SecuritySettingsView: View {
 
     public var body: some View {
         ZStack {
-            AppTheme.canvasBackground.ignoresSafeArea()
+            InboxGrainBackground().ignoresSafeArea()
 
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 20) {
@@ -33,30 +34,30 @@ public struct SecuritySettingsView: View {
                                 .frame(width: 72, height: 72)
                             Image(systemName: lockManager.biometryIconName)
                                 .font(.system(size: 32, weight: .semibold))
-                                .foregroundColor(AppTheme.textPrimary)
+                                .foregroundColor(SettingsAppearance.textPrimary(for: colorScheme))
                         }
 
                         VStack(spacing: 4) {
                             Text(lockManager.isAppLockEnabled ? "\(lockManager.biometryName) Active" : "App Lock Disabled")
                                 .font(.system(size: 20, weight: .bold))
-                                .foregroundColor(AppTheme.textPrimary)
+                                .foregroundColor(SettingsAppearance.textPrimary(for: colorScheme))
 
                             Text(lockManager.isAppLockEnabled ? "LaterBox requires authentication to unlock" : "Anyone with access to your device can open LaterBox")
                                 .font(.subheadline)
-                                .foregroundColor(AppTheme.textSecondary)
+                                .foregroundColor(SettingsAppearance.textSecondary(for: colorScheme))
                                 .multilineTextAlignment(.center)
                         }
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 26)
                     .padding(.horizontal, 18)
-                    .liquidGlassCard(cornerRadius: 22)
+                    .settingsCard(for: colorScheme, cornerRadius: 22)
 
                     // Biometric Configuration Card
                     VStack(alignment: .leading, spacing: 14) {
                         Text("App Lock Configuration")
                             .font(.headline)
-                            .foregroundStyle(AppTheme.textPrimary)
+                            .foregroundStyle(SettingsAppearance.textPrimary(for: colorScheme))
 
                         VStack(spacing: 14) {
                             // Biometric Toggle Row
@@ -68,16 +69,16 @@ public struct SecuritySettingsView: View {
                                             .frame(width: 36, height: 36)
                                         Image(systemName: lockManager.biometryIconName)
                                             .font(.system(size: 17, weight: .semibold))
-                                            .foregroundColor(AppTheme.textPrimary)
+                                            .foregroundColor(SettingsAppearance.onAccent)
                                     }
 
                                     VStack(alignment: .leading, spacing: 2) {
                                         Text("Require \(lockManager.biometryName)")
                                             .font(.subheadline.weight(.semibold))
-                                            .foregroundColor(AppTheme.textPrimary)
+                                            .foregroundColor(SettingsAppearance.textPrimary(for: colorScheme))
                                         Text(lockManager.isAppLockEnabled ? "Enabled" : "Disabled")
                                             .font(.caption2)
-                                            .foregroundColor(AppTheme.textSecondary)
+                                            .foregroundColor(SettingsAppearance.textSecondary(for: colorScheme))
                                     }
                                 }
 
@@ -103,7 +104,7 @@ public struct SecuritySettingsView: View {
                             }
 
                             if lockManager.isAppLockEnabled {
-                                Divider().background(AppTheme.cardBorder)
+                                Divider().background(SettingsAppearance.border(for: colorScheme))
 
                                 // Immediate Lock Button
                                 Button(action: {
@@ -116,7 +117,7 @@ public struct SecuritySettingsView: View {
                                         Text("Lock LaterBox Now")
                                             .font(.subheadline.weight(.semibold))
                                     }
-                                    .foregroundColor(AppTheme.textPrimary)
+                                    .foregroundColor(SettingsAppearance.onAccent)
                                     .frame(maxWidth: .infinity)
                                     .padding(.vertical, 12)
                                     .background(
@@ -130,25 +131,25 @@ public struct SecuritySettingsView: View {
                         .padding(16)
                         .background(
                             RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                .fill(AppTheme.cardBackground)
+                                .fill(SettingsAppearance.surface(for: colorScheme))
                         )
                         .overlay(
                             RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                .strokeBorder(AppTheme.cardBorder, lineWidth: 1)
+                                .strokeBorder(SettingsAppearance.border(for: colorScheme), lineWidth: 1)
                         )
                     }
 
                     VStack(alignment: .leading, spacing: 12) {
                         Label("Clipboard Suggestions", systemImage: "doc.on.clipboard")
                             .font(.headline)
-                            .foregroundStyle(AppTheme.textPrimary)
+                            .foregroundStyle(SettingsAppearance.textPrimary(for: colorScheme))
                         Toggle(isOn: $clipboardSuggestionsEnabled) {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text("Check clipboard on app open")
                                     .font(.subheadline.weight(.semibold))
                                 Text("Off by default. When enabled, LaterBox checks for copied content when you open or return to the app.")
                                     .font(.caption)
-                                    .foregroundStyle(AppTheme.textSecondary)
+                                    .foregroundStyle(SettingsAppearance.textSecondary(for: colorScheme))
                             }
                         }
                         .tint(AppTheme.accent)
@@ -157,55 +158,55 @@ public struct SecuritySettingsView: View {
                         }
                     }
                     .padding(16)
-                    .liquidGlassCard(cornerRadius: 18)
+                    .settingsCard(for: colorScheme, cornerRadius: 18)
 
                     // Privacy Architecture
                     VStack(alignment: .leading, spacing: 10) {
                         Text("Your Data & Privacy")
                             .font(.headline)
-                            .foregroundStyle(AppTheme.textPrimary)
+                            .foregroundStyle(SettingsAppearance.textPrimary(for: colorScheme))
 
                         VStack(alignment: .leading, spacing: 10) {
                             HStack(alignment: .top, spacing: 10) {
                                 Image(systemName: "shield.lefthalf.filled")
                                     .font(.subheadline)
-                                    .foregroundColor(AppTheme.textPrimary)
+                                    .foregroundColor(SettingsAppearance.textPrimary(for: colorScheme))
                                     .padding(.top, 2)
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text("On-Device Storage")
                                         .font(.subheadline.weight(.semibold))
-                                        .foregroundColor(AppTheme.textPrimary)
+                                        .foregroundColor(SettingsAppearance.textPrimary(for: colorScheme))
                                     Text("Saved items use the app's local SwiftData storage. A separately encrypted database has not been verified; password-encrypted backup exports are a different protection.")
                                         .font(.caption)
-                                        .foregroundColor(AppTheme.textSecondary)
+                                        .foregroundColor(SettingsAppearance.textSecondary(for: colorScheme))
                                 }
                             }
 
-                            Divider().background(AppTheme.cardBorder)
+                            Divider().background(SettingsAppearance.border(for: colorScheme))
 
                             HStack(alignment: .top, spacing: 10) {
                                 Image(systemName: "eye.slash.fill")
                                     .font(.subheadline)
-                                    .foregroundColor(AppTheme.textPrimary)
+                                    .foregroundColor(SettingsAppearance.textPrimary(for: colorScheme))
                                     .padding(.top, 2)
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text("Privacy Choices")
                                         .font(.subheadline.weight(.semibold))
-                                        .foregroundColor(AppTheme.textPrimary)
+                                        .foregroundColor(SettingsAppearance.textPrimary(for: colorScheme))
                                     Text("Automatic clipboard suggestions are optional and disabled by default. You control whether LaterBox checks copied content when opening the app.")
                                         .font(.caption)
-                                        .foregroundColor(AppTheme.textSecondary)
+                                        .foregroundColor(SettingsAppearance.textSecondary(for: colorScheme))
                                 }
                             }
                         }
                         .padding(16)
                         .background(
                             RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                .fill(AppTheme.cardBackground)
+                                .fill(SettingsAppearance.surface(for: colorScheme))
                         )
                         .overlay(
                             RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                .strokeBorder(AppTheme.cardBorder, lineWidth: 1)
+                                .strokeBorder(SettingsAppearance.border(for: colorScheme), lineWidth: 1)
                         )
                     }
 
@@ -219,7 +220,7 @@ public struct SecuritySettingsView: View {
                             VStack(alignment: .leading, spacing: 12) {
                                 Text("Permanently delete your LaterBox account, cloud data, Cloudflare attachments, and this account's local data from the device.")
                                     .font(.caption)
-                                    .foregroundColor(AppTheme.textSecondary)
+                                    .foregroundColor(SettingsAppearance.textSecondary(for: colorScheme))
                                     .lineSpacing(2)
 
                                 Button {
@@ -256,7 +257,7 @@ public struct SecuritySettingsView: View {
                             .padding(16)
                             .background(
                                 RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                    .fill(AppTheme.cardBackground)
+                                    .fill(SettingsAppearance.surface(for: colorScheme))
                             )
                             .overlay(
                                 RoundedRectangle(cornerRadius: 18, style: .continuous)

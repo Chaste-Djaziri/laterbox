@@ -10,6 +10,7 @@ import UserNotifications
 import SwiftData
 
 public struct SettingsView: View {
+    @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
     @ObservedObject var coordinator = SyncCoordinator.shared
@@ -29,56 +30,58 @@ public struct SettingsView: View {
 
     public var body: some View {
         ZStack {
-            AppTheme.canvasBackground
-                .ignoresSafeArea()
+            InboxGrainBackground().ignoresSafeArea()
 
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(spacing: 16) {
-                    // Header Bar (left back button, centered title, right sync dot)
-                    ZStack {
-                        HStack {
-                            if !isTabRoot {
+                    // Clear, background-free header shared with the Inbox and Library.
+                    HStack(spacing: 12) {
+                        if !isTabRoot {
                             Button {
                                 dismiss()
                                 LBHaptic.light()
                             } label: {
-                                Image(systemName: "arrow.left")
-                                    .font(.system(size: 15, weight: .bold))
-                                    .foregroundColor(AppTheme.textPrimary)
+                                Image(systemName: "chevron.left")
+                                    .font(.system(size: 15, weight: .semibold))
+                                    .foregroundColor(SettingsAppearance.textPrimary(for: colorScheme))
                                     .frame(width: 38, height: 38)
-                                    .background(Color.black.opacity(0.04), in: Circle())
-                                    .contentShape(Circle())
+                                    .background(SettingsAppearance.surface(for: colorScheme), in: Circle())
                             }
                             .buttonStyle(.plain)
-                            .accessibilityLabel("Back to Inbox")
-                            }
-
-                            Spacer()
-
-                            // Sync status indicator
-                            Button(action: {
-                                if !coordinator.hasCloudPro {
-                                    LBHaptic.light()
-                                    coordinator.showingPlansSheet = true
-                                }
-                            }) {
-                                HStack(spacing: 5) {
-                                    Circle()
-                                        .fill(coordinator.syncHeaderColor)
-                                        .frame(width: 7, height: 7)
-                                    Text(coordinator.syncHeaderTitle)
-                                        .font(.caption2.weight(.medium))
-                                        .foregroundColor(AppTheme.textSecondary)
-                                }
-                            }
-                            .buttonStyle(.plain)
+                            .accessibilityLabel("Back")
                         }
 
-                        Text("Settings")
-                            .font(.system(size: 18, weight: .bold))
-                            .foregroundColor(AppTheme.textPrimary)
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text("Settings")
+                                .font(.system(size: 27, weight: .bold, design: .rounded))
+                                .foregroundColor(SettingsAppearance.textPrimary(for: colorScheme))
+                            Text("Customize your LaterBox experience")
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundColor(SettingsAppearance.textSecondary(for: colorScheme))
+                        }
+
+                        Spacer(minLength: 4)
+
+                        Button {
+                            if !coordinator.hasCloudPro {
+                                LBHaptic.light()
+                                coordinator.showingPlansSheet = true
+                            }
+                        } label: {
+                            HStack(spacing: 5) {
+                                Circle()
+                                    .fill(coordinator.syncHeaderColor)
+                                    .frame(width: 7, height: 7)
+                                Text(coordinator.syncHeaderTitle)
+                                    .font(.caption2.weight(.medium))
+                                    .foregroundColor(SettingsAppearance.textSecondary(for: colorScheme))
+                                    .lineLimit(1)
+                            }
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Sync: \(coordinator.syncHeaderTitle)")
                     }
-                    .padding(.top, 4)
+                    .padding(.top, 6)
                     .padding(.bottom, 6)
 
                     // Profile Card (matching reference layout)
@@ -90,32 +93,32 @@ public struct SettingsView: View {
                                     .frame(width: 52, height: 52)
                                 Image(systemName: "person.fill")
                                     .font(.system(size: 22, weight: .semibold))
-                                    .foregroundColor(AppTheme.textPrimary)
+                                    .foregroundColor(SettingsAppearance.onAccent)
                             }
 
                             VStack(alignment: .leading, spacing: 3) {
                                 Text("ACCOUNT")
                                     .font(.system(size: 10, weight: .bold))
                                     .tracking(0.8)
-                                    .foregroundStyle(AppTheme.textSecondary)
+                                    .foregroundStyle(SettingsAppearance.textSecondary(for: colorScheme))
 
                                 if let email = coordinator.currentUserEmail {
                                     Text(email)
                                         .font(.system(size: 16, weight: .bold))
-                                        .foregroundColor(AppTheme.textPrimary)
+                                        .foregroundColor(SettingsAppearance.textPrimary(for: colorScheme))
                                         .lineLimit(1)
 
                                     Text(coordinator.isProUser ? "LaterBox Pro Active" : "Free Cloud Account")
                                         .font(.caption.weight(.medium))
-                                        .foregroundColor(AppTheme.textSecondary)
+                                        .foregroundColor(SettingsAppearance.textSecondary(for: colorScheme))
                                 } else {
                                     Text("Guest Mode")
                                         .font(.system(size: 16, weight: .bold))
-                                        .foregroundColor(AppTheme.textPrimary)
+                                        .foregroundColor(SettingsAppearance.textPrimary(for: colorScheme))
 
                                     Text("Local saving active • Tap to sign in")
                                         .font(.caption)
-                                        .foregroundColor(AppTheme.textSecondary)
+                                        .foregroundColor(SettingsAppearance.textSecondary(for: colorScheme))
                                 }
                             }
 
@@ -123,15 +126,16 @@ public struct SettingsView: View {
 
                             Image(systemName: "chevron.right")
                                 .font(.system(size: 13, weight: .semibold))
-                                .foregroundColor(AppTheme.textSecondary.opacity(0.6))
+                                .foregroundColor(SettingsAppearance.textSecondary(for: colorScheme).opacity(0.6))
                         }
                         .padding(16)
                         .frame(maxWidth: .infinity)
                         .contentShape(Rectangle())
-                        .liquidGlassCard(cornerRadius: 18)
+                        .settingsCard(for: colorScheme, cornerRadius: 18)
                     }
                     .buttonStyle(.plain)
 
+                    settingsGroupHeading("ACCOUNT & NOTIFICATIONS")
                     // Essentials: subscription and notifications
                     VStack(spacing: 0) {
                         NavigationLink(destination: SubscriptionSettingsView()) {
@@ -154,8 +158,9 @@ public struct SettingsView: View {
                         }
                         .buttonStyle(.plain)
                     }
-                    .liquidGlassCard(cornerRadius: 18)
+                    .settingsCard(for: colorScheme, cornerRadius: 18)
 
+                    settingsGroupHeading("PREFERENCES & SYSTEM")
                     // Group 2: Preferences & System
                     VStack(spacing: 0) {
                         NavigationLink(destination: AppIconSelectionView()) {
@@ -211,8 +216,9 @@ public struct SettingsView: View {
                         }
                         .buttonStyle(.plain)
                     }
-                    .liquidGlassCard(cornerRadius: 18)
+                    .settingsCard(for: colorScheme, cornerRadius: 18)
 
+                    settingsGroupHeading("TOOLS")
                     // Technical settings live one level below everyday preferences.
                     VStack(spacing: 0) {
                         NavigationLink(destination: AdvancedSettingsView()) {
@@ -220,8 +226,9 @@ public struct SettingsView: View {
                         }
                         .buttonStyle(.plain)
                     }
-                    .liquidGlassCard(cornerRadius: 18)
+                    .settingsCard(for: colorScheme, cornerRadius: 18)
 
+                    settingsGroupHeading("HELP & INFORMATION")
                     // Learning, support and app information
                     VStack(spacing: 0) {
                         NavigationLink(destination: LearnLaterBoxView()) {
@@ -255,7 +262,7 @@ public struct SettingsView: View {
                         }
                         .buttonStyle(.plain)
                     }
-                    .liquidGlassCard(cornerRadius: 18)
+                    .settingsCard(for: colorScheme, cornerRadius: 18)
 
                     // Bottom Session Action Button (matching reference)
                     if coordinator.isAuthenticated {
@@ -274,11 +281,11 @@ public struct SettingsView: View {
                             .padding(.vertical, 14)
                             .background(
                                 RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                    .fill(AppTheme.cardBackground)
+                                    .fill(SettingsAppearance.surface(for: colorScheme))
                             )
                             .overlay(
                                 RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                    .strokeBorder(AppTheme.cardBorder, lineWidth: 1)
+                                    .strokeBorder(SettingsAppearance.border(for: colorScheme), lineWidth: 1)
                             )
                         }
                         .buttonStyle(.plain)
@@ -295,16 +302,16 @@ public struct SettingsView: View {
                                     Text("Sign In to LaterBox")
                                         .font(.system(size: 15, weight: .bold))
                                 }
-                                .foregroundColor(AppTheme.textPrimary)
+                                .foregroundColor(SettingsAppearance.textPrimary(for: colorScheme))
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 14)
                                 .background(
                                     RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                        .fill(AppTheme.cardBackground)
+                                        .fill(SettingsAppearance.surface(for: colorScheme))
                                 )
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                        .strokeBorder(AppTheme.cardBorder, lineWidth: 1)
+                                        .strokeBorder(SettingsAppearance.border(for: colorScheme), lineWidth: 1)
                                 )
                             }
                             .buttonStyle(.plain)
@@ -324,11 +331,11 @@ public struct SettingsView: View {
                                 .padding(.vertical, 14)
                                 .background(
                                     RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                        .fill(AppTheme.cardBackground)
+                                        .fill(SettingsAppearance.surface(for: colorScheme))
                                 )
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                        .strokeBorder(AppTheme.cardBorder, lineWidth: 1)
+                                        .strokeBorder(SettingsAppearance.border(for: colorScheme), lineWidth: 1)
                                 )
                             }
                             .buttonStyle(.plain)
@@ -338,7 +345,7 @@ public struct SettingsView: View {
 
                     // App Version Footer
                     VStack(spacing: 3) {
-                        Text("LaterBox for iOS • Liquid Glass Edition")
+                        Text("LaterBox for iOS")
                             .font(.caption2)
                             .foregroundColor(.secondary)
                         Text(AppVersion.displayString)
@@ -392,10 +399,21 @@ public struct SettingsView: View {
 
     // MARK: - Subcomponents
 
+    private func settingsGroupHeading(_ title: String) -> some View {
+        Text(title)
+            .font(.system(size: 11, weight: .bold))
+            .tracking(1)
+            .foregroundColor(SettingsAppearance.textSecondary(for: colorScheme))
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 3)
+            .padding(.top, 3)
+    }
+
+
     private var rowDivider: some View {
         Divider()
-            .background(AppTheme.cardBorder.opacity(0.7))
-            .padding(.leading, 48)
+            .background(SettingsAppearance.border(for: colorScheme).opacity(0.7))
+            .padding(.leading, 62)
     }
 
     private func groupedRow(
@@ -405,28 +423,29 @@ public struct SettingsView: View {
     ) -> some View {
         HStack(spacing: 12) {
             Image(systemName: icon)
-                .font(.system(size: 17, weight: .regular))
-                .foregroundColor(AppTheme.textPrimary)
-                .frame(width: 24, alignment: .center)
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundColor(SettingsAppearance.onAccent)
+                .frame(width: 34, height: 34)
+                .background(AppTheme.accent, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
 
             Text(title)
                 .font(.system(size: 15, weight: .semibold))
-                .foregroundColor(AppTheme.textPrimary)
+                .foregroundColor(SettingsAppearance.textPrimary(for: colorScheme))
 
             Spacer()
 
             if let badge {
                 Text(badge)
                     .font(.caption.weight(.medium))
-                    .foregroundColor(AppTheme.textSecondary)
+                    .foregroundColor(SettingsAppearance.textSecondary(for: colorScheme))
             }
 
             Image(systemName: "chevron.right")
                 .font(.system(size: 13, weight: .semibold))
-                .foregroundColor(AppTheme.textSecondary.opacity(0.6))
+                .foregroundColor(SettingsAppearance.textSecondary(for: colorScheme).opacity(0.6))
         }
         .padding(.horizontal, 16)
-        .padding(.vertical, 14)
+        .padding(.vertical, 10)
         .contentShape(Rectangle())
     }
 
@@ -454,29 +473,31 @@ public struct SettingsView: View {
 }
  
 private struct AdvancedSettingsView: View {
+    @Environment(\.colorScheme) private var colorScheme
+
     var body: some View {
         ZStack {
-            AppTheme.canvasBackground.ignoresSafeArea()
+            InboxGrainBackground().ignoresSafeArea()
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 16) {
                     Text("Configure AI, review service health, and manage local storage.")
                         .font(.subheadline)
-                        .foregroundStyle(AppTheme.textSecondary)
+                        .foregroundStyle(SettingsAppearance.textSecondary(for: colorScheme))
                     VStack(spacing: 0) {
                         NavigationLink(destination: AIModelSettingsView()) {
                             advancedRow("AI Models", icon: "sparkles")
                         }
-                        Divider()
+                        Divider().overlay(SettingsAppearance.border(for: colorScheme))
                         NavigationLink(destination: ServiceStatusView()) {
                             advancedRow("Service Status", icon: "waveform.path.ecg")
                         }
-                        Divider()
+                        Divider().overlay(SettingsAppearance.border(for: colorScheme))
                         NavigationLink(destination: StorageManagementView()) {
                             advancedRow("Storage Management", icon: "internaldrive")
                         }
                     }
                     .buttonStyle(.plain)
-                    .liquidGlassCard(cornerRadius: 18)
+                    .settingsCard(for: colorScheme, cornerRadius: 18)
                 }
                 .padding(20)
             }
@@ -490,10 +511,50 @@ private struct AdvancedSettingsView: View {
             Image(systemName: icon).frame(width: 24)
             Text(title).font(.system(size: 15, weight: .semibold))
             Spacer()
-            Image(systemName: "chevron.right").foregroundStyle(AppTheme.textSecondary)
+            Image(systemName: "chevron.right").foregroundStyle(SettingsAppearance.textSecondary(for: colorScheme))
         }
-        .foregroundStyle(AppTheme.textPrimary)
+        .foregroundStyle(SettingsAppearance.textPrimary(for: colorScheme))
         .padding(16)
         .contentShape(Rectangle())
+    }
+}
+
+// MARK: - Settings palette and surfaces
+// Reuse the Inbox neutral colors to keep the app consistent in both appearances.
+enum SettingsAppearance {
+    static let onAccent = Color(hex: "171711")
+    static func background(for scheme: ColorScheme) -> Color {
+        InboxAppearance.background(for: scheme)
+    }
+    static func surface(for scheme: ColorScheme) -> Color {
+        InboxAppearance.surface(for: scheme)
+    }
+    static func inset(for scheme: ColorScheme) -> Color {
+        scheme == .dark ? Color(hex: "1B1D20") : .white
+    }
+    static func textPrimary(for scheme: ColorScheme) -> Color {
+        InboxAppearance.textPrimary(for: scheme)
+    }
+    static func textSecondary(for scheme: ColorScheme) -> Color {
+        InboxAppearance.textSecondary(for: scheme)
+    }
+    static func textTertiary(for scheme: ColorScheme) -> Color {
+        textSecondary(for: scheme).opacity(0.7)
+    }
+    static func border(for scheme: ColorScheme) -> Color {
+        InboxAppearance.border(for: scheme)
+    }
+}
+
+extension View {
+    func settingsCard(for scheme: ColorScheme, cornerRadius: CGFloat = 18) -> some View {
+        self.background(
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                .fill(SettingsAppearance.surface(for: scheme))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                .strokeBorder(SettingsAppearance.border(for: scheme), lineWidth: 1)
+        )
     }
 }

@@ -8,6 +8,7 @@
 import SwiftUI
 
 public struct CheckForUpdatesView: View {
+    @Environment(\.colorScheme) private var colorScheme
     @Environment(\.openURL) private var openURL
     @State private var isChecking = false
     @State private var status: UpdateStatus = .idle
@@ -62,7 +63,7 @@ public struct CheckForUpdatesView: View {
 
     public var body: some View {
         ZStack {
-            AppTheme.canvasBackground.ignoresSafeArea()
+            InboxGrainBackground().ignoresSafeArea()
 
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 20) {
@@ -80,11 +81,11 @@ public struct CheckForUpdatesView: View {
                         VStack(spacing: 4) {
                             Text(statusTitle)
                                 .font(.system(size: 22, weight: .bold))
-                                .foregroundColor(AppTheme.textPrimary)
+                                .foregroundColor(SettingsAppearance.textPrimary(for: colorScheme))
 
                             Text(statusSubtitle)
                                 .font(.subheadline)
-                                .foregroundColor(AppTheme.textSecondary)
+                                .foregroundColor(SettingsAppearance.textSecondary(for: colorScheme))
                                 .multilineTextAlignment(.center)
                                 .padding(.horizontal, 16)
                         }
@@ -92,55 +93,55 @@ public struct CheckForUpdatesView: View {
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 26)
                     .padding(.horizontal, 18)
-                    .liquidGlassCard(cornerRadius: 22)
+                    .settingsCard(for: colorScheme, cornerRadius: 22)
 
                     // Current Installation Details Card
                     VStack(alignment: .leading, spacing: 14) {
                         Text("Installed Version")
                             .font(.headline)
-                            .foregroundStyle(AppTheme.textPrimary)
+                            .foregroundStyle(SettingsAppearance.textPrimary(for: colorScheme))
 
                         VStack(spacing: 12) {
                             HStack {
                                 Text("Version")
                                     .font(.subheadline)
-                                    .foregroundColor(AppTheme.textSecondary)
+                                    .foregroundColor(SettingsAppearance.textSecondary(for: colorScheme))
                                 Spacer()
                                 Text(AppVersion.currentVersion)
                                     .font(.subheadline.weight(.semibold).monospaced())
-                                    .foregroundColor(AppTheme.textPrimary)
+                                    .foregroundColor(SettingsAppearance.textPrimary(for: colorScheme))
                             }
 
-                            Divider().background(AppTheme.cardBorder)
+                            Divider().background(SettingsAppearance.border(for: colorScheme))
 
                             HStack {
                                 Text("Build Number")
                                     .font(.subheadline)
-                                    .foregroundColor(AppTheme.textSecondary)
+                                    .foregroundColor(SettingsAppearance.textSecondary(for: colorScheme))
                                 Spacer()
                                 Text(AppVersion.currentBuild)
                                     .font(.subheadline.weight(.semibold).monospaced())
-                                    .foregroundColor(AppTheme.textPrimary)
+                                    .foregroundColor(SettingsAppearance.textPrimary(for: colorScheme))
                             }
 
-                            Divider().background(AppTheme.cardBorder)
+                            Divider().background(SettingsAppearance.border(for: colorScheme))
 
                             HStack {
                                 Text("Build Date")
                                     .font(.subheadline)
-                                    .foregroundColor(AppTheme.textSecondary)
+                                    .foregroundColor(SettingsAppearance.textSecondary(for: colorScheme))
                                 Spacer()
                                 Text(formattedBuildDate)
                                     .font(.caption.weight(.medium))
-                                    .foregroundColor(AppTheme.textPrimary)
+                                    .foregroundColor(SettingsAppearance.textPrimary(for: colorScheme))
                             }
 
-                            Divider().background(AppTheme.cardBorder)
+                            Divider().background(SettingsAppearance.border(for: colorScheme))
 
                             HStack {
                                 Text("Release Channel")
                                     .font(.subheadline)
-                                    .foregroundColor(AppTheme.textSecondary)
+                                    .foregroundColor(SettingsAppearance.textSecondary(for: colorScheme))
                                 Spacer()
                                 HStack(spacing: 4) {
                                     Circle()
@@ -148,18 +149,18 @@ public struct CheckForUpdatesView: View {
                                         .frame(width: 7, height: 7)
                                     Text("Production")
                                         .font(.caption.weight(.semibold))
-                                        .foregroundColor(AppTheme.textPrimary)
+                                        .foregroundColor(SettingsAppearance.textPrimary(for: colorScheme))
                                 }
                             }
                         }
                         .padding(16)
                         .background(
                             RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                .fill(AppTheme.cardBackground)
+                                .fill(SettingsAppearance.surface(for: colorScheme))
                         )
                         .overlay(
                             RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                .strokeBorder(AppTheme.cardBorder, lineWidth: 1)
+                                .strokeBorder(SettingsAppearance.border(for: colorScheme), lineWidth: 1)
                         )
                     }
 
@@ -167,7 +168,7 @@ public struct CheckForUpdatesView: View {
                     VStack(alignment: .leading, spacing: 12) {
                         Text("Update Actions")
                             .font(.headline)
-                            .foregroundStyle(AppTheme.textPrimary)
+                            .foregroundStyle(SettingsAppearance.textPrimary(for: colorScheme))
 
                         if case .updateAvailable = status {
                             Button(action: {
@@ -200,7 +201,7 @@ public struct CheckForUpdatesView: View {
                             HStack(spacing: 8) {
                                 if isChecking {
                                     ProgressView()
-                                        .tint(AppTheme.textPrimary)
+                                        .tint(SettingsAppearance.textPrimary(for: colorScheme))
                                 } else {
                                     Image(systemName: "arrow.triangle.2.circlepath")
                                         .font(.system(size: 15, weight: .bold))
@@ -208,7 +209,7 @@ public struct CheckForUpdatesView: View {
                                 Text(isChecking ? "Checking for updates…" : "Check for Updates Now")
                                     .font(.subheadline.weight(.bold))
                             }
-                            .foregroundColor(AppTheme.textPrimary)
+                            .foregroundColor(SettingsAppearance.onAccent)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 14)
                             .background(
@@ -222,7 +223,7 @@ public struct CheckForUpdatesView: View {
                         if let lastChecked = lastCheckedDate {
                             Text("Last checked: \(lastChecked.formatted(date: .omitted, time: .shortened))")
                                 .font(.caption2)
-                                .foregroundColor(AppTheme.textSecondary)
+                                .foregroundColor(SettingsAppearance.textSecondary(for: colorScheme))
                                 .frame(maxWidth: .infinity, alignment: .center)
                         }
                     }
@@ -231,7 +232,7 @@ public struct CheckForUpdatesView: View {
                     VStack(alignment: .leading, spacing: 10) {
                         Text("What’s New in This Release")
                             .font(.headline)
-                            .foregroundStyle(AppTheme.textPrimary)
+                            .foregroundStyle(SettingsAppearance.textPrimary(for: colorScheme))
 
                         VStack(alignment: .leading, spacing: 10) {
                             highlightRow(icon: "sparkles", text: "Streamlined settings directory with dedicated sub-pages")
@@ -242,11 +243,11 @@ public struct CheckForUpdatesView: View {
                         .padding(16)
                         .background(
                             RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                .fill(AppTheme.cardBackground)
+                                .fill(SettingsAppearance.surface(for: colorScheme))
                         )
                         .overlay(
                             RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                .strokeBorder(AppTheme.cardBorder, lineWidth: 1)
+                                .strokeBorder(SettingsAppearance.border(for: colorScheme), lineWidth: 1)
                         )
                     }
 
@@ -255,14 +256,14 @@ public struct CheckForUpdatesView: View {
                         HStack(spacing: 6) {
                             Image(systemName: "info.circle")
                                 .font(.caption)
-                                .foregroundColor(AppTheme.textSecondary)
+                                .foregroundColor(SettingsAppearance.textSecondary(for: colorScheme))
                             Text("Automatic App Store Updates")
                                 .font(.caption.weight(.semibold))
-                                .foregroundColor(AppTheme.textSecondary)
+                                .foregroundColor(SettingsAppearance.textSecondary(for: colorScheme))
                         }
                         Text("To automatically receive LaterBox updates as soon as they are released, enable Automatic App Updates in iOS Settings > App Store.")
                             .font(.caption2)
-                            .foregroundColor(AppTheme.textSecondary.opacity(0.8))
+                            .foregroundColor(SettingsAppearance.textSecondary(for: colorScheme).opacity(0.8))
                             .lineSpacing(2)
                     }
                     .padding(.horizontal, 4)
@@ -332,15 +333,15 @@ public struct CheckForUpdatesView: View {
     private var statusIconColor: Color {
         switch status {
         case .idle:
-            return AppTheme.textPrimary
+            return SettingsAppearance.textPrimary(for: colorScheme)
         case .checking:
-            return AppTheme.textPrimary
+            return SettingsAppearance.textPrimary(for: colorScheme)
         case .upToDate:
-            return AppTheme.textPrimary
+            return SettingsAppearance.textPrimary(for: colorScheme)
         case .updateAvailable:
             return Color.blue
         case .error:
-            return AppTheme.textSecondary
+            return SettingsAppearance.textSecondary(for: colorScheme)
         }
     }
 
@@ -369,11 +370,11 @@ public struct CheckForUpdatesView: View {
         HStack(spacing: 10) {
             Image(systemName: icon)
                 .font(.caption)
-                .foregroundColor(AppTheme.textPrimary)
+                .foregroundColor(SettingsAppearance.textPrimary(for: colorScheme))
                 .frame(width: 18)
             Text(text)
                 .font(.caption)
-                .foregroundColor(AppTheme.textSecondary)
+                .foregroundColor(SettingsAppearance.textSecondary(for: colorScheme))
         }
     }
 
