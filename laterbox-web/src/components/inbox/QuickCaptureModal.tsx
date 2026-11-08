@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { resolveReturnPreset, returnLabel, type ReturnPreset } from '@/lib/utils/schedule';
 import { suggestCapture, captureSummary, type CaptureKind } from '@/lib/utils/captureSuggestions';
 import { prepareCaptureDraft } from '@/lib/utils/prepareCaptureDraft';
+import { MAX_TASK_CHECKLIST_ENTRIES, type TaskChecklistEntry } from '@/lib/utils/taskChecklist';
 import {
   X,
   Link2,
@@ -19,6 +20,8 @@ import {
   Music2,
   UploadCloud,
   CheckSquare,
+  ListTodo,
+  Trash2,
   ArrowRight,
   ArrowLeft,
   Calendar,
@@ -66,6 +69,11 @@ export function QuickCaptureModal({
   const [isCustomOpen, setIsCustomOpen] = useState(false);
 
   const [kind, setKind] = useState<CaptureKind>('link');
+  const [taskMode, setTaskMode] = useState<'single' | 'checklist'>('single');
+  const [taskEntries, setTaskEntries] = useState<TaskChecklistEntry[]>([
+    { id: 'draft-a', title: '', done: false },
+    { id: 'draft-b', title: '', done: false },
+  ]);
   const [duplicateId, setDuplicateId] = useState<string | null>(null);
   const { saveItem } = useItems();
   const [content, setContent] = useState('');
@@ -85,19 +93,31 @@ export function QuickCaptureModal({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const suggestion = useMemo(
-    () => suggestCapture(kind === 'task' ? [titleOverride, content].filter(Boolean).join('\n') : content, kind, files.map(file => file.name)),
-    [content, kind, titleOverride, files]
+    () => suggestCapture(
+      kind === 'task'
+        ? [titleOverride, content, ...(taskMode === 'checklist' ? taskEntries.map(entry => entry.title) : [])].filter(Boolean).join('\n')
+        : content,
+      kind,
+      files.map(file => file.name),
+    ),
+    [content, kind, titleOverride, taskMode, taskEntries, files]
   );
   const effectiveReturnAt = activePreset === 'auto' ? suggestion.returnAt : returnAt;
   const effectiveTitle = titleOverride ?? suggestion.title;
   const effectiveTags = tagsTouched ? selectedTags : suggestion.tags;
-  const contentSummary = captureSummary(
-    kind === 'task' ? [titleOverride?.trim(), content.trim()].filter(Boolean).join(' — ')
-      : kind === 'note' && titleOverride?.trim() ? [titleOverride.trim(), content.trim()].filter(Boolean).join(' — ')
-      : content,
-    files.map(file => file.name)
-  );
-  const preparedDraft = prepareCaptureDraft({kind, content, title: titleOverride, suggestedTitle: suggestion.title, fileCount: files.length});
+  const contentSummary = kind === 'task' && taskMode === 'checklist'
+    ? `${taskEntries.filter(entry => entry.title.trim()).length} tasks · ${titleOverride?.trim() || 'Untitled group'}`
+    : captureSummary(
+      kind === 'task' ? [titleOverride?.trim(), content.trim()].filter(Boolean).join(' — ')
+        : kind === 'note' && titleOverride?.trim() ? [titleOverride.trim(), content.trim()].filter(Boolean).join(' — ')
+        : content,
+      files.map(file => file.name)
+    );
+  const preparedDraft = prepareCaptureDraft({
+    kind, content, title: titleOverride, suggestedTitle: suggestion.title,
+    fileCount: files.length,
+    taskChecklist: kind === 'task' && taskMode === 'checklist' ? taskEntries : undefined,
+  });
 
   // Initialize on modal open
   useEffect(() => {
@@ -105,6 +125,11 @@ export function QuickCaptureModal({
       setStep(1);
       setContent('');
       setTitleOverride(null);
+      setTaskMode('single');
+      setTaskEntries([
+        { id: crypto.randomUUID(), title: '', done: false },
+        { id: crypto.randomUUID(), title: '', done: false },
+      ]);
       setFiles(initialFiles || []);
       setReturnAt(null);
       setActivePreset('auto');
@@ -246,7 +271,9 @@ export function QuickCaptureModal({
     if (e) e.preventDefault();
     if (saving || success) return;
     if (!preparedDraft) {
-      setError(kind === 'task' ? 'Give your task an action title.'
+      setError(kind === 'task' && taskMode === 'checklist'
+        ? 'Add a group title and at least two named tasks.'
+        : kind === 'task' ? 'Give your task an action title.'
         : kind === 'note' ? 'Write a note before saving.'
         : 'Add a link, some text, or an attachment to save.');
       return;
@@ -268,6 +295,7 @@ export function QuickCaptureModal({
         type: preparedDraft.type,
         title: preparedDraft.title,
         tags: effectiveTags,
+        taskChecklist: preparedDraft.taskChecklist,
       });
 
       if (item.id !== id) {
@@ -429,7 +457,9 @@ export function QuickCaptureModal({
                     <h3 className="text-sm font-black text-[#26311d]">{kind === 'task' ? 'A task to complete' : 'A note to remember'}</h3>
                     <p className="mt-1 text-xs leading-5 text-[#6c7466]">
                       {kind === 'task'
-                        ? 'Write an action you need to do. Schedule when it should come back, then mark it done.'
+                        ? taskMode === 'checklist'
+                          ? 'Give related tasks one home. Check them off individually, and the group finishes together.'
+                          : 'Write an action you need to do. Schedule when it should come back, then mark it done.'
                         : 'Capture thoughts, ideas, or information. Notes stay available for reference, without needing a deadline.'}
                     </p>
                   </div>
@@ -437,10 +467,31 @@ export function QuickCaptureModal({
               )}
 
               {kind === 'task' && (
+                <div className="grid grid-cols-2 gap-2 rounded-2xl border border-[#e0e4d4] bg-[#f6f7f0] p-1.5" role="group" aria-label="Task format">
+                  <button type="button" aria-pressed={taskMode === 'single'}
+                    disabled={saving || success}
+                    onClick={() => { setTaskMode('single'); setError(null); }}
+                    className={`flex min-h-11 items-center justify-center gap-2 rounded-xl px-3 text-xs font-bold transition-colors ${
+                      taskMode === 'single' ? 'bg-white text-[#25321e] shadow-sm' : 'text-[#76806f] hover:bg-white/70'
+                    }`}>
+                    <CheckSquare className="h-4 w-4" aria-hidden="true" /> Single task
+                  </button>
+                  <button type="button" aria-pressed={taskMode === 'checklist'}
+                    disabled={saving || success}
+                    onClick={() => { setTaskMode('checklist'); setError(null); }}
+                    className={`flex min-h-11 items-center justify-center gap-2 rounded-xl px-3 text-xs font-bold transition-colors ${
+                      taskMode === 'checklist' ? 'bg-[#e6edb0] text-[#25321e] shadow-sm' : 'text-[#76806f] hover:bg-white/70'
+                    }`}>
+                    <ListTodo className="h-4 w-4" aria-hidden="true" /> Task checklist
+                  </button>
+                </div>
+              )}
+
+              {kind === 'task' && (
                 <label className="block space-y-2">
                   <span className="flex items-center gap-2 text-xs font-bold text-[#2a3126]">
                     <CheckSquare className="h-4 w-4 text-[#7c934d]" aria-hidden="true" />
-                    Task name <span className="text-red-600">*</span>
+                    {taskMode === 'checklist' ? 'Group title' : 'Task name'} <span className="text-red-600">*</span>
                   </span>
                   <input
                     type="text"
@@ -448,11 +499,79 @@ export function QuickCaptureModal({
                     required
                     value={titleOverride ?? ''}
                     onChange={event => setTitleOverride(event.target.value)}
-                    placeholder="e.g. Finish the project presentation"
+                    placeholder={taskMode === 'checklist' ? 'e.g. Launch my portfolio' : 'e.g. Finish the project presentation'}
                     disabled={saving || success}
                     className="w-full rounded-2xl border border-[#d9e3c9] bg-white px-4 py-3.5 text-base font-bold text-[#171711] outline-none transition-colors placeholder:font-medium placeholder:text-[#a5ada0] focus:border-[#869d5b] focus:ring-2 focus:ring-[#e6edb0]"
                   />
                 </label>
+              )}
+
+              {kind === 'task' && taskMode === 'checklist' && (
+                <section aria-label="Tasks in this group" className="space-y-3 rounded-2xl border border-[#dce4ce] bg-[#fafbf6] p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <h3 className="text-xs font-black text-[#2b3724]">Checklist items</h3>
+                      <p className="mt-0.5 text-[11px] text-[#839078]">One named action per row · minimum 2</p>
+                    </div>
+                    <span className="shrink-0 rounded-full bg-[#e6edb0] px-2.5 py-1 text-[11px] font-bold text-[#536644]">
+                      {taskEntries.length} tasks
+                    </span>
+                  </div>
+                  <div className="space-y-2">
+                    {taskEntries.map((entry, index) => (
+                      <div key={entry.id} className="flex items-center gap-2 rounded-xl border border-[#e6eade] bg-white px-2 py-1.5">
+                        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#f0f4e7] text-[11px] font-black text-[#7f9370]">
+                          {index + 1}
+                        </span>
+                        <label className="min-w-0 flex-1">
+                          <span className="sr-only">Task {index + 1}</span>
+                          <input
+                            type="text"
+                            value={entry.title}
+                            maxLength={200}
+                            disabled={saving || success}
+                            placeholder={['Research the topic', 'Write the first draft', 'Review and publish'][index] || `Task ${index + 1}`}
+                            onChange={event => setTaskEntries(previous => previous.map(row =>
+                              row.id === entry.id ? { ...row, title: event.target.value } : row
+                            ))}
+                            onKeyDown={event => {
+                              if (event.key === 'Enter') {
+                                event.preventDefault();
+                                if (taskEntries.length < MAX_TASK_CHECKLIST_ENTRIES) {
+                                  setTaskEntries(previous => [...previous, { id: crypto.randomUUID(), title: '', done: false }]);
+                                }
+                              }
+                            }}
+                            className="w-full bg-transparent px-1 py-2 text-sm font-semibold text-[#273321] outline-none placeholder:font-normal placeholder:text-[#a5aca0]"
+                          />
+                        </label>
+                        <button
+                          type="button"
+                          aria-label={`Remove task ${index + 1}`}
+                          title="Remove task"
+                          disabled={taskEntries.length <= 2 || saving || success}
+                          onClick={() => setTaskEntries(previous => previous.filter(row => row.id !== entry.id))}
+                          className="rounded-lg p-2 text-[#9a9e93] transition-colors hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-25 focus-visible:outline-2 focus-visible:outline-[#81965c]"
+                        >
+                          <Trash2 className="h-4 w-4" aria-hidden="true" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                  <button
+                    type="button"
+                    disabled={taskEntries.length >= MAX_TASK_CHECKLIST_ENTRIES || saving || success}
+                    onClick={() => setTaskEntries(previous => [...previous, { id: crypto.randomUUID(), title: '', done: false }])}
+                    className="inline-flex min-h-10 items-center gap-2 rounded-full border border-[#cbd9ac] bg-[#edf4d8] px-4 text-xs font-black text-[#445c31] transition-colors hover:bg-[#e6edb0] disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-[#7d9454]"
+                  >
+                    <Plus className="h-4 w-4" aria-hidden="true" /> Add another task
+                  </button>
+                  {!preparedDraft && (
+                    <p className="text-[11px] font-medium text-[#8f7f57]">
+                      Give this group a title and fill in at least two tasks to continue.
+                    </p>
+                  )}
+                </section>
               )}
 
               {kind === 'note' && (
@@ -473,7 +592,7 @@ export function QuickCaptureModal({
               <label className="block space-y-2">
                 <span className="flex items-center justify-between text-xs font-bold text-[#2a3126]">
                   <span>
-                    {kind === 'task' ? 'Task details' : kind === 'note' ? 'Write your note' : kind === 'file' ? 'Add a description' : 'Link or URL'}
+                    {kind === 'task' ? (taskMode === 'checklist' ? 'Group description' : 'Task details') : kind === 'note' ? 'Write your note' : kind === 'file' ? 'Add a description' : 'Link or URL'}
                     {kind === 'task' || kind === 'file' ? <span className="ml-1 font-normal text-[#92958c]">(optional)</span> : null}
                     {kind === 'note' ? <span className="ml-1 text-red-600">*</span> : null}
                   </span>
@@ -501,7 +620,9 @@ export function QuickCaptureModal({
 
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <p className="max-w-[315px] text-[11px] leading-5 text-[#8b9086]">
-                  {kind === 'task' ? 'Tasks stay actionable until completed.'
+                  {kind === 'task' ? taskMode === 'checklist'
+                    ? 'All tasks share this group’s reminder; each can be completed independently.'
+                    : 'Tasks stay actionable until completed.'
                     : kind === 'note' ? 'Your note is saved as writing, not a to-do.'
                       : kind === 'file' ? 'Attach files to keep with your capture.'
                         : 'Save a URL to revisit whenever you are ready.'}
@@ -653,7 +774,7 @@ export function QuickCaptureModal({
                 <span className="break-words">{contentSummary}</span>
               </div>
               <label className="block space-y-1.5">
-                <span className="text-xs font-bold text-[#171711]">{kind === 'task' ? 'Task name' : kind === 'note' ? 'Note title' : 'Title'}</span>
+                <span className="text-xs font-bold text-[#171711]">{kind === 'task' ? (taskMode === 'checklist' ? 'Group title' : 'Task name') : kind === 'note' ? 'Note title' : 'Title'}</span>
                 <input
                   type="text"
                   maxLength={200}
@@ -664,7 +785,9 @@ export function QuickCaptureModal({
                   className="w-full rounded-xl border border-[#e4e0d5] bg-white px-3 py-2.5 text-sm font-semibold text-[#171711] focus:outline-hidden focus:border-[#171711]"
                 />
                 <span className="block text-[11px] text-[#8c897f]">
-                  {kind === 'task' ? 'This is the action you will complete. Details stay in the description.' : kind === 'note' ? 'A short title makes this note easier to find.' : 'Prefilled from your capture. Rename it without changing the original content.'}
+                  {kind === 'task' ? (taskMode === 'checklist'
+                    ? 'All checklist items stay together under this title.'
+                    : 'This is the action you will complete. Details stay in the description.') : kind === 'note' ? 'A short title makes this note easier to find.' : 'Prefilled from your capture. Rename it without changing the original content.'}
                 </span>
               </label>
 
@@ -897,7 +1020,7 @@ export function QuickCaptureModal({
                   <span>{files.length > 0 ? 'Uploading…' : 'Saving…'}</span>
                 </>
               ) : (
-                <span>{kind === 'task' ? 'Create task' : kind === 'note' ? 'Save note' : kind === 'file' ? 'Save files' : 'Save link'}</span>
+                <span>{kind === 'task' && taskMode === 'checklist' ? 'Create task group' : kind === 'task' ? 'Create task' : kind === 'note' ? 'Save note' : kind === 'file' ? 'Save files' : 'Save link'}</span>
               )}
             </button>
           </div>

@@ -36,6 +36,7 @@ import {
   CalendarDays,
   CalendarClock,
   CheckCircle,
+  ListTodo,
   Copy,
 } from 'lucide-react';
 import {
@@ -62,6 +63,7 @@ import { ToolbarTooltipRegion } from '@/components/ui/ToolbarTooltipRegion';
 import { ExactScheduleModal } from '@/components/scheduling/ExactScheduleModal';
 import { emailTableItemHref, readEmailTableItemId } from '@/lib/utils/tableItemNavigation';
 import { isTaskComplete } from '@/lib/utils/itemDetailPresentation';
+import { readTaskChecklist, taskChecklistProgress } from '@/lib/utils/taskChecklist';
 
 function InboxImageBackground({ item }: { item: LaterBoxItem }) {
   const asset = item.attachments?.find(a => a.mime_type?.startsWith('image/') ||
@@ -342,6 +344,7 @@ export function EmailInboxTable({
     ? allItems.find(item => item.id === openedItemId) ?? items.find(item => item.id === openedItemId) ?? null
     : null;
   const openedExternalUrl = openedItem?.url && /^https?:\/\//i.test(openedItem.url) ? openedItem.url : null;
+  const openedTaskGroup = openedItem ? readTaskChecklist(openedItem) : null;
   const openedIndex = openedItemId ? processedItems.findIndex(item => item.id === openedItemId) : -1;
   const runDetailAction = async (action: () => Promise<unknown>, actionLabel: string, returnToList = false) => {
     if (detailActionPending) return;
@@ -686,11 +689,15 @@ export function EmailInboxTable({
                     type="button"
                     role="checkbox"
                     aria-checked={isTaskComplete(openedItem)}
-                    data-tooltip={isTaskComplete(openedItem) ? 'Reopen completed task' : 'Mark task complete'}
-                    aria-label={isTaskComplete(openedItem) ? 'Reopen completed task' : 'Mark task complete'}
+                    data-tooltip={openedTaskGroup
+                      ? isTaskComplete(openedItem) ? 'Reopen all tasks' : 'Complete all tasks'
+                      : isTaskComplete(openedItem) ? 'Reopen completed task' : 'Mark task complete'}
+                    aria-label={openedTaskGroup
+                      ? isTaskComplete(openedItem) ? 'Reopen all tasks' : 'Complete all tasks'
+                      : isTaskComplete(openedItem) ? 'Reopen completed task' : 'Mark task complete'}
                     disabled={detailActionPending || Boolean(openedItem.deleted_at)}
                     onClick={() => void runDetailAction(
-                       () => isTaskComplete(openedItem)
+                      () => isTaskComplete(openedItem)
                         ? markUnseen(openedItem.id)
                         : archiveItem(openedItem.id),
                       'update task completion'
@@ -698,7 +705,9 @@ export function EmailInboxTable({
                     className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-xl bg-[#e6edb0] px-3 text-xs font-bold text-[#27321c] transition-colors hover:bg-[#d9e6a0] focus-visible:outline-2 focus-visible:outline-[#758a50] disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     <CheckCircle className={`h-4 w-4 ${isTaskComplete(openedItem) ? 'fill-[#678b4a] text-white' : ''}`} aria-hidden="true" />
-                    <span>{isTaskComplete(openedItem) ? 'Completed' : 'Complete'}</span>
+                    <span>{openedTaskGroup
+                      ? isTaskComplete(openedItem) ? 'All done' : 'Complete all'
+                      : isTaskComplete(openedItem) ? 'Completed' : 'Complete'}</span>
                   </button>
                 ) : (
                   <>
@@ -1435,8 +1444,12 @@ export function EmailInboxTable({
               item.title ||
               item.attachments?.[0]?.original_file_name ||
               'Untitled item';
-            const snippet =
-              item.metadata?.description || item.text_content || item.url || 'No preview available';
+            const groupChecklist = readTaskChecklist(item);
+            const groupProgress = groupChecklist ? taskChecklistProgress(groupChecklist) : null;
+            const groupNextSteps = groupChecklist?.filter(entry => !entry.done).slice(0, 2).map(entry => entry.title).join(', ');
+            const snippet = groupProgress
+              ? groupNextSteps || 'All group tasks completed'
+              : item.metadata?.description || item.text_content || item.url || 'No preview available';
             const hasAttachments = item.attachments && item.attachments.length > 0;
             const isVideo =
               item.metadata?.content_type === 'video' ||
@@ -1507,6 +1520,15 @@ export function EmailInboxTable({
                   <span className="font-bold text-[#171711] truncate shrink-0 max-w-[50%] sm:max-w-[42%] group-hover:text-black">
                     {title}
                   </span>
+                  {groupProgress && (
+                    <span
+                      title={`${groupProgress.done} of ${groupProgress.total} tasks completed`}
+                      className="inline-flex shrink-0 items-center gap-1 rounded-full border border-[#d7e5ba] bg-[#edf4d7] px-2 py-0.5 text-[10px] font-black text-[#597442]"
+                    >
+                      <ListTodo className="h-3 w-3" aria-hidden="true" />
+                      {groupProgress.done}/{groupProgress.total}
+                    </span>
+                  )}
                   <span className="text-[#9e9b92] shrink-0 font-bold">–</span>
                   <span className="text-[#6c6b63] truncate flex-1 min-w-0 font-normal">
                     {snippet}

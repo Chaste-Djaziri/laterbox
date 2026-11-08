@@ -7,6 +7,8 @@ import { useRouter } from 'next/navigation';
 import { MediaEmbed } from '@/components/item/MediaEmbed';
 import { getMusicSource, MusicSourceIcon, musicSourceLabel } from '@/components/music/MusicSource';
 import { NoteEditor } from '@/components/item/NoteEditor';
+import { TaskGroupChecklist } from '@/components/item/TaskGroupChecklist';
+import { readTaskChecklist, taskChecklistProgress, type TaskChecklistEntry } from '@/lib/utils/taskChecklist';
 import { ArticleReader } from '@/components/item/ArticleReader';
 import { AddToCollectionModal } from '@/components/collections/AddToCollectionModal';
 import { ReturnTimePicker } from '@/components/scheduling/ReturnTimePicker';
@@ -286,6 +288,7 @@ export function ItemDetailView({
     markSeen,
     markUnseen,
     deleteItem,
+    updateTaskChecklist,
   } = useItems();
 
   const [collectionModalOpen, setCollectionModalOpen] = useState(false);
@@ -328,6 +331,8 @@ export function ItemDetailView({
   const previewImage = item.metadata?.preview_image_url;
   const externalUrl = safeExternalItemUrl(item.url);
   const isTask = item.type === 'task';
+  const checklistEntries = readTaskChecklist(item);
+  const checklistProgress = checklistEntries ? taskChecklistProgress(checklistEntries) : null;
   const taskCompleted = isTaskComplete(item);
   const hasTaskDetails = isTask && Boolean(item.text_content?.trim()) &&
     item.text_content?.trim() !== title.trim();
@@ -392,6 +397,20 @@ export function ItemDetailView({
 
   const showArticleReader = shouldShowArticleReader(item, storedMarkdown, storedHtml);
   const itemCollections = item.collections || [];
+
+  const updateChecklistEntries = async (entries: TaskChecklistEntry[]) => {
+    if (taskSaving || !checklistEntries || item.deleted_at) return;
+    setTaskSaving(true);
+    setTaskError(null);
+    try {
+      await updateTaskChecklist(item.id, entries);
+    } catch (error) {
+      setTaskError(error instanceof Error ? error.message : 'Could not save the checklist.');
+      throw error;
+    } finally {
+      setTaskSaving(false);
+    }
+  };
 
   const toggleTaskCompletion = async () => {
     if (!isTask || taskSaving || item.deleted_at) return;
@@ -570,8 +589,12 @@ export function ItemDetailView({
                   <CheckCircle className="h-5 w-5" aria-hidden="true" />
                 </span>
                 <div>
-                  <p className="text-sm font-black text-[#29351d]">Task</p>
-                  <p className="mt-0.5 text-xs text-[#75836a]">Something to get done</p>
+                  <p className="text-sm font-black text-[#29351d]">{checklistEntries ? 'Task group' : 'Task'}</p>
+                  <p className="mt-0.5 text-xs text-[#75836a]">
+                    {checklistProgress
+                      ? `${checklistProgress.done} of ${checklistProgress.total} tasks completed`
+                      : 'Something to get done'}
+                  </p>
                 </div>
               </div>
               <span className={`rounded-full px-3 py-1 text-xs font-bold ${
@@ -841,7 +864,16 @@ export function ItemDetailView({
               )}
             </div>
 
-            {isTask && (
+            {checklistEntries && (
+              <TaskGroupChecklist
+                entries={checklistEntries}
+                busy={taskSaving || Boolean(item.deleted_at)}
+                error={taskError}
+                onUpdate={updateChecklistEntries}
+              />
+            )}
+
+            {isTask && !checklistEntries && (
               <section aria-label="Task completion" className="rounded-2xl border border-[#dfe7ca] bg-[#f8fbf0] p-4 sm:p-5">
                 <button
                   type="button"

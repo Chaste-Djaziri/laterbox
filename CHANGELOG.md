@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[Web / Grouped tasks]** Create one named task group with a checklist of 2–40 ordered tasks, an optional description, and a shared LaterBox reminder. Persist individual completion in the item’s synced structured metadata, offer per-task checkboxes plus add/rename/remove and complete/reopen-all controls in item details, automatically archive completed groups, and show group progress in the email-style inbox. Single tasks and notes retain their existing workflows.
+
 - **[App / Item Details]** Give tasks a reversible checkbox on the standalone and embedded detail views, using existing archive/Inbox status transitions; show the Article Reader only for classified articles or substantial captured web pages with reader content; and link OG preview images to safe external HTTP(S) source URLs when present. Align the email-view task toolbar with completion semantics and avoid duplicated text rendering.
 
 - **[App / Quick Create]** Give tasks and notes distinct creation workflows: tasks require an actionable title with optional details and reminder scheduling; notes have a writing area, optional title, and no reminder by default. Respect explicit type selection (including URLs and attachments), preserve writing text in storage, add capture payload regression tests, and clarify labels throughout the three-step modal.
