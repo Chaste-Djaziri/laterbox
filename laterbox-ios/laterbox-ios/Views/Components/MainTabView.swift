@@ -185,10 +185,5 @@ struct MainTabView: View {
         .frame(height: 58)
         .padding(.horizontal, 16)
         .background(AppTheme.canvasBackground)
-        .overlay(alignment: .bottom) {
-            Rectangle()
-                .fill(AppTheme.textPrimary.opacity(0.07))
-                .frame(height: 0.5)
-        }
     }
 }

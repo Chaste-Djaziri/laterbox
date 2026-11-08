@@ -26,7 +26,7 @@ struct MainTabTests {
         #expect(!LaterBoxSplashTiming.shouldReplay(wasBackgrounded: true, phase: .inactive))
     }
 
-    @Test("Refresh logo stretches only on downward overscroll")
+    @Test("Refresh logo grows uniformly on downward overscroll")
     func pullRefreshGeometry() {
         #expect(LaterBoxPullRefresh.distance(-32) == 0)
         #expect(LaterBoxPullRefresh.distance(0) == 0)
@@ -44,6 +44,16 @@ struct MainTabTests {
         #expect(LaterBoxPullRefresh.overscroll(contentOffsetY: 24, adjustedTopInset: 48) == 0)
         #expect(LaterBoxPullRefresh.overscroll(contentOffsetY: -300, adjustedTopInset: 48) == 180)
         #expect(LaterBoxPullRefresh.minimumVisibleSeconds >= 1)
+
+        let neutralScale = LaterBoxPullRefresh.uniformScale(distance: 0, refreshing: false)
+        let partialScale = LaterBoxPullRefresh.uniformScale(distance: 50, refreshing: false)
+        let fullScale = LaterBoxPullRefresh.uniformScale(distance: 100, refreshing: false)
+        let activeScale = LaterBoxPullRefresh.uniformScale(distance: 0, refreshing: true)
+        #expect(neutralScale == 1)
+        #expect(partialScale > neutralScale)
+        #expect(fullScale > partialScale)
+        #expect(activeScale == fullScale)
+        #expect(LaterBoxPullRefresh.uniformScale(distance: 500, refreshing: false) == fullScale)
     }
 
     @Test("Splash uses black on white in Light Mode and white on black in Dark Mode")

@@ -22,6 +22,11 @@ enum LaterBoxPullRefresh {
         min(distance(offset) / triggerDistance, 1)
     }
 
+    /// Equal scaling in both axes keeps the cube's proportions intact.
+    static func uniformScale(distance: CGFloat, refreshing: Bool) -> CGFloat {
+        refreshing ? 1.34 : 1 + progress(distance) * 0.34
+    }
+
     /// Short local/offline syncs should still display an observable animation.
     @MainActor
     static func holdVisible(since start: Date) async {
@@ -135,11 +140,11 @@ struct LaterBoxPullRefreshMarker: UIViewRepresentable {
     }
 }
 
-/// The same vector logo stretches while pulling, spins during real sync,
-/// and springs back when the async refresh completes.
+/// Keep the vector mark upright. Only a masked brand-color gradient rotates
+/// inside it, while the whole mark scales uniformly during pull-to-refresh.
 struct LaterBoxPullRefreshLogo: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var spinAngle: Double = 0
+    @State private var colorRotation: Double = 0
 
     var distance: CGFloat
     var refreshing: Bool
@@ -149,19 +154,50 @@ struct LaterBoxPullRefreshLogo: View {
         LaterBoxPullRefresh.progress(distance)
     }
 
+    private var brandColorFlow: some View {
+        AngularGradient(
+            stops: [
+                .init(color: Color(hex: "171711"), location: 0),
+                .init(color: AppTheme.accent, location: 0.18),
+                .init(color: .white, location: 0.27),
+                .init(color: Color(hex: "171711"), location: 0.42),
+                .init(color: AppTheme.accent, location: 0.66),
+                .init(color: Color(hex: "171711"), location: 1)
+            ],
+            center: .center
+        )
+        .frame(width: 72, height: 72)
+        .rotationEffect(.degrees(
+            reduceMotion ? 0 :
+                (refreshing ? colorRotation : Double(progress) * 300)
+        ))
+        .frame(width: 42, height: 42)
+        .mask {
+            // The mask is static, including the cube's transparent cutouts.
+            LaterBoxVectorMark(size: 42, ink: .white, animates: false)
+        }
+        .allowsHitTesting(false)
+    }
+
     var body: some View {
-        LaterBoxVectorMark(
-            size: 42,
-            appearance: .light,
-            animates: !refreshing,
-            replayToken: replayToken
-        )
-        .scaleEffect(
-            x: reduceMotion ? 1 : (refreshing ? 1.3 : 1 + progress * 0.22),
-            y: reduceMotion ? 1 : (refreshing ? 1.3 : 1 + progress * 0.52)
-        )
-        .offset(y: reduceMotion ? 0 : (refreshing ? 5 : progress * 7))
-        .rotationEffect(.degrees(spinAngle))
+        ZStack {
+            LaterBoxVectorMark(
+                size: 42,
+                appearance: .light,
+                animates: !refreshing,
+                replayToken: replayToken
+            )
+
+            if refreshing || progress > 0.02 {
+                brandColorFlow
+                    .transition(.opacity)
+            }
+        }
+        .frame(width: 42, height: 42)
+        .scaleEffect(reduceMotion ? 1 : LaterBoxPullRefresh.uniformScale(
+            distance: distance, refreshing: refreshing
+        ))
+        .offset(y: reduceMotion ? 0 : (refreshing ? 4 : progress * 7))
         .animation(
             reduceMotion ? nil : .interactiveSpring(response: 0.3, dampingFraction: 0.76),
             value: progress
@@ -170,22 +206,22 @@ struct LaterBoxPullRefreshLogo: View {
             reduceMotion ? nil : .spring(response: 0.48, dampingFraction: 0.76),
             value: refreshing
         )
-        .onAppear { updateSpin(refreshing) }
-        .onChange(of: refreshing) { _, active in updateSpin(active) }
+        .onAppear { updateColorRotation(refreshing) }
+        .onChange(of: refreshing) { _, active in updateColorRotation(active) }
         .frame(width: 44, height: 44)
         .contentShape(Rectangle())
         .accessibilityHidden(true)
     }
 
-    private func updateSpin(_ active: Bool) {
+    private func updateColorRotation(_ active: Bool) {
         if active && !reduceMotion {
-            spinAngle = 0
-            withAnimation(.linear(duration: 1.05).repeatForever(autoreverses: false)) {
-                spinAngle = 360
+            colorRotation = 0
+            withAnimation(.linear(duration: 0.85).repeatForever(autoreverses: false)) {
+                colorRotation = 360
             }
         } else {
             withAnimation(reduceMotion ? nil : .spring(response: 0.5, dampingFraction: 0.82)) {
-                spinAngle = 0
+                colorRotation = 0
             }
         }
     }
