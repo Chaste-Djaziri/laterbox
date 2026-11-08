@@ -24,6 +24,10 @@ import { uploadWithNotificationHandoff } from '../notifications/client';
 import { isActive, isDue, transitionItemStatus, moveItemToInbox, restoreItemToInbox, scheduleItemReturn } from '../utils/schedule';
 import { createQueryRecovery } from '../utils/query-recovery';
 import { collectionNameKey, planCollectionMerge, remapItemCollections } from '../utils/collection-dedup';
+import {
+  newTaskChecklistData, readTaskChecklist, setTaskChecklistComplete, withTaskChecklist,
+  type TaskChecklistEntry,
+} from '../utils/taskChecklist';
 
 const LOCAL_ITEMS_KEY = 'laterbox_local_items';
 const LOCAL_COLLECTIONS_KEY = 'laterbox_local_collections';
@@ -49,7 +53,8 @@ interface ItemContextType {
   isPulling: boolean;
   isPushing: boolean;
   restoreWebBackup: (backup: WebBackup) => Promise<{ restored: number; skipped: number; restoredFiles: number; missingFiles: number; restoredCollections: number }>;
-  saveItem: (value: string, options?: { id?: string; textSelector?: string; files?: File[]; returnAt?: string | null; type?: string; title?: string; tags?: string[] }) => Promise<LaterBoxItem>;
+  saveItem: (value: string, options?: { id?: string; textSelector?: string; files?: File[]; returnAt?: string | null; type?: string; title?: string; tags?: string[]; taskChecklist?: TaskChecklistEntry[] }) => Promise<LaterBoxItem>;
+  updateTaskChecklist: (id: string, entries: TaskChecklistEntry[]) => Promise<void>;
   now: Date;
   reschedule: (id: string, returnAt: string | null) => Promise<void>;
   setFavorite: (id: string, favorite: boolean) => Promise<void>;
@@ -494,12 +499,17 @@ export function ItemProvider({ children }: { children: ReactNode }) {
   // Save Item (URL, text, or file attachments)
   const saveItem = async (
     value: string,
-    options?: { id?: string; textSelector?: string; files?: File[]; returnAt?: string | null; type?: string; title?: string; tags?: string[] }
+    options?: { id?: string; textSelector?: string; files?: File[]; returnAt?: string | null; type?: string; title?: string; tags?: string[]; taskChecklist?: TaskChecklistEntry[] }
   ): Promise<LaterBoxItem> => {
     const trimmed = value.trim();
     const files = options?.files || [];
     // A typed Task or Note is authored text, even if its only line is a URL.
     const isWritingCapture = options?.type === 'task' || options?.type === 'note';
+    const checklist = options?.taskChecklist
+      ? newTaskChecklistData(options.taskChecklist) : null;
+    if (checklist && options?.type !== 'task') {
+      throw new Error('Task groups must be saved as tasks.');
+    }
 
     if (!trimmed && files.length === 0) {
       throw new Error('Enter a URL, some text, or upload an attachment.');
@@ -545,7 +555,7 @@ export function ItemProvider({ children }: { children: ReactNode }) {
     const itemId = options?.id || crypto.randomUUID();
 
     // Deduplication check: do not add if identical URL or text exists in inbox (and no files)
-    if (files.length === 0) {
+    if (files.length === 0 && !checklist) {
       const existing = items.find(
         (i) =>
           isActive(i) &&
@@ -621,6 +631,7 @@ export function ItemProvider({ children }: { children: ReactNode }) {
             structured_data: JSON.stringify({
               source: 'web', os: userOs,
               ...(initialTags.length > 0 ? { tags: initialTags } : {}),
+              ...(checklist ? { taskChecklist: checklist } : {}),
             }),
             created_at: now,
             updated_at: now,
@@ -795,7 +806,16 @@ export function ItemProvider({ children }: { children: ReactNode }) {
 
   const setStatus = async (id: string, status: ItemStatus) => {
     const timestamp = new Date().toISOString();
-    const updated = items.map((i) => i.id === id ? transitionItemStatus(i, status, timestamp) : i);
+    const updated = items.map((i) => {
+      if (i.id !== id) return i;
+      if (readTaskChecklist(i)) {
+        if (status === 'archived') return setTaskChecklistComplete(i, true, timestamp);
+        if (i.status === 'archived') {
+          return transitionItemStatus(setTaskChecklistComplete(i, false, timestamp), status, timestamp);
+        }
+      }
+      return transitionItemStatus(i, status, timestamp);
+    });
     setItems(updated);
     saveLocalData(updated);
     const changed = updated.find(item => item.id === id);
@@ -804,6 +824,18 @@ export function ItemProvider({ children }: { children: ReactNode }) {
     if (user) {
       await safeSyncPending(user.id);
     }
+  };
+
+  const updateTaskChecklist = async (id: string, entries: TaskChecklistEntry[]) => {
+    const current = items.find(item => item.id === id);
+    if (!current || current.deleted_at) throw new Error('Task group was not found.');
+    const timestamp = new Date().toISOString();
+    const changed = withTaskChecklist(current, entries, timestamp);
+    const updated = items.map(item => item.id === id ? changed : item);
+    setItems(updated);
+    saveLocalData(updated);
+    queueCapture(changed);
+    if (user) await safeSyncPending(user.id);
   };
 
   const reschedule = async (id: string, returnAt: string | null) => {
@@ -823,7 +855,14 @@ export function ItemProvider({ children }: { children: ReactNode }) {
   const archiveItem = (id: string) => setStatus(id, 'archived');
   const markUnseen = async (id: string) => {
     const timestamp = new Date().toISOString();
-    const updated = items.map(item => item.id === id ? moveItemToInbox(item, timestamp) : item);
+    const updated = items.map(item => item.id === id
+      ? moveItemToInbox(
+          readTaskChecklist(item) && item.status === 'archived'
+            ? setTaskChecklistComplete(item, false, timestamp)
+            : item,
+          timestamp,
+        )
+      : item);
     setItems(updated);
     saveLocalData(updated);
     const changed = updated.find(item => item.id === id);
@@ -1251,6 +1290,7 @@ export function ItemProvider({ children }: { children: ReactNode }) {
         loading,
         syncStatus,
         saveItem,
+        updateTaskChecklist,
         restoreWebBackup,
         setFavorite,
         setStatus,

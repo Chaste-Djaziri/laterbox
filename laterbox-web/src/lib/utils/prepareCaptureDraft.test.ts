@@ -35,3 +35,22 @@ test('links and attachments keep their original capture types', () => {
     type:'file',value:'Some files',title:undefined
   });
 });
+
+test('task checklist saves one group title with multiple independently tracked tasks', () => {
+  const entries = [
+    {id:'step-a',title:'Research',done:false},
+    {id:'step-b',title:'Write report',done:false},
+  ];
+  assert.deepEqual(prepareCaptureDraft({
+    kind:'task',title:'Prepare presentation',content:'Class project',
+    taskChecklist:entries,
+  }), {
+    type:'task',title:'Prepare presentation',value:'Class project',taskChecklist:entries,
+  });
+  assert.equal(prepareCaptureDraft({
+    kind:'task',title:'Prepare presentation',content:'',taskChecklist:[entries[0]],
+  }),null);
+  assert.equal(prepareCaptureDraft({
+    kind:'task',title:'',content:'Extra details',taskChecklist:entries,
+  }),null);
+});

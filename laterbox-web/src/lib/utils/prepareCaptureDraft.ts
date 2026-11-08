@@ -1,10 +1,12 @@
 // laterbox-web/src/lib/utils/prepareCaptureDraft.ts
 import type { CaptureKind } from './captureSuggestions';
+import { validateTaskChecklist, type TaskChecklistEntry } from './taskChecklist';
 
 export interface PreparedCaptureDraft {
   value: string;
   title?: string;
   type: 'link' | 'file' | 'note' | 'task';
+  taskChecklist?: TaskChecklistEntry[];
 }
 
 export type CaptureDraftInput = {
@@ -13,6 +15,7 @@ export type CaptureDraftInput = {
   title?: string | null;
   suggestedTitle?: string;
   fileCount?: number;
+  taskChecklist?: TaskChecklistEntry[];
 };
 
 /**
@@ -26,6 +29,11 @@ export function prepareCaptureDraft(input: CaptureDraftInput): PreparedCaptureDr
 
   if (input.kind === 'task') {
     if (!title) return null;
+    if (input.taskChecklist) {
+      const taskChecklist = validateTaskChecklist(input.taskChecklist);
+      if (!taskChecklist) return null;
+      return { type: 'task', title, value: text || title, taskChecklist };
+    }
     return { type: 'task', title, value: text || title };
   }
 
