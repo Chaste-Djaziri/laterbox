@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[Web / Marketing navigation]** Increase the public marketing header height and sizing, keep it borderless and shadow-free at the top of the page, and reveal a subtle separator and shadow only after scrolling. Dashboard navigation remains unchanged.
+
 - **[Web / Plans styling]** Match the in-app Plans page background to the standard dashboard canvas and swap green-tinted pricing card accents for neutral surfaces, while preserving the public Pricing page style and Whop checkout behavior.
 
 - **[Web / Sidebar status]** Surface account cloud-sync status for all signed-in users, including Free, and show live storage usage with accessible capacity detail, near-full/full warning levels, and plan upgrade action directly from the sidebar rail.
