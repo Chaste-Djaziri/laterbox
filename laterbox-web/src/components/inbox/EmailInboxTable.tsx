@@ -60,7 +60,6 @@ import { fetchAttachmentDownloadUrl } from '@/lib/utils/attachment';
 import { PortalMenu } from '@/components/ui/PortalMenu';
 import { ToolbarTooltipRegion } from '@/components/ui/ToolbarTooltipRegion';
 import { ExactScheduleModal } from '@/components/scheduling/ExactScheduleModal';
-import { ReturnTimePicker } from '@/components/scheduling/ReturnTimePicker';
 import { emailTableItemHref, readEmailTableItemId } from '@/lib/utils/tableItemNavigation';
 
 function InboxImageBackground({ item }: { item: LaterBoxItem }) {
@@ -161,14 +160,14 @@ export function EmailInboxTable({
   const openItemDetails = (id: string, replace = false) => {
     setSnoozeMenuForId(null);
     setBulkSnoozeOpen(false);
-    setHeaderScheduleOpen(false);
+    setExactSchedule(current => current?.source === 'detail' ? null : current);
     setDetailActionError('');
     setDetailCopied(false);
     replaceTableItemUrl(id, replace);
   };
 
   const closeItemDetails = () => {
-    setHeaderScheduleOpen(false);
+    setExactSchedule(current => current?.source === 'detail' ? null : current);
     setDetailActionError('');
     if (window.history.state?.laterboxTableItem) {
       window.history.back();
@@ -187,11 +186,10 @@ export function EmailInboxTable({
   const [moreMenuOpen, setMoreMenuOpen] = useState(false);
   const [snoozeMenuForId, setSnoozeMenuForId] = useState<string | null>(null);
   const [bulkSnoozeOpen, setBulkSnoozeOpen] = useState(false);
-  const [exactSchedule, setExactSchedule] = useState<{ ids: string[]; initialValue?: string | null } | null>(null);
+  const [exactSchedule, setExactSchedule] = useState<{ ids: string[]; initialValue?: string | null; source?: 'detail' } | null>(null);
   const [filterMenuOpen, setFilterMenuOpen] = useState<'format' | 'date' | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [collectionModalItem, setCollectionModalItem] = useState<LaterBoxItem | null>(null);
-  const [headerScheduleOpen, setHeaderScheduleOpen] = useState(false);
   const [detailActionPending, setDetailActionPending] = useState(false);
   const [detailActionError, setDetailActionError] = useState('');
   const [detailCopied, setDetailCopied] = useState(false);
@@ -200,7 +198,6 @@ export function EmailInboxTable({
   const moreMenuRef = useRef<HTMLDivElement>(null);
   const snoozeTriggerRef = useRef<HTMLButtonElement>(null);
   const bulkSnoozeTriggerRef = useRef<HTMLButtonElement>(null);
-  const headerScheduleTriggerRef = useRef<HTMLButtonElement>(null);
   const filterMenuRef = useRef<HTMLDivElement>(null);
 
   // Close menus on outside click
@@ -717,36 +714,20 @@ export function EmailInboxTable({
                 </button>
 
                 <button
-                  ref={headerScheduleTriggerRef}
                   type="button"
-                  data-tooltip="Reschedule item"
-                  aria-label="Reschedule item"
-                  aria-expanded={headerScheduleOpen}
+                  data-tooltip="Choose return date and time"
+                  aria-label="Choose return date and time"
+                  aria-haspopup="dialog"
                   disabled={detailActionPending || Boolean(openedItem.deleted_at)}
-                  onClick={() => setHeaderScheduleOpen(value => !value)}
-                  className={detailActionClass + (headerScheduleOpen ? ' bg-[#e6edb0] text-[#171711]' : '')}
+                  onClick={() => setExactSchedule({
+                    ids: [openedItem.id],
+                    initialValue: openedItem.return_at ?? null,
+                    source: 'detail',
+                  })}
+                  className={detailActionClass}
                 >
                   <CalendarClock className="h-[18px] w-[18px]" aria-hidden="true" />
                 </button>
-
-                {headerScheduleOpen && (
-                  <PortalMenu
-                    open={headerScheduleOpen}
-                    onClose={() => setHeaderScheduleOpen(false)}
-                    triggerRef={headerScheduleTriggerRef}
-                    width={360}
-                  >
-                    <div className="p-4">
-                      <ReturnTimePicker
-                        value={openedItem.return_at ?? null}
-                        onChange={value => {
-                          setHeaderScheduleOpen(false);
-                          void runDetailAction(() => reschedule(openedItem.id, value), 'reschedule item');
-                        }}
-                      />
-                    </div>
-                  </PortalMenu>
-                )}
 
                 <button
                   type="button"
@@ -1739,12 +1720,16 @@ export function EmailInboxTable({
 
       {/* Add To Collection Modal */}
       {exactSchedule && (
-        <ExactScheduleModal count={exactSchedule.ids.length} initialValue={exactSchedule.initialValue}
-          onClose={() => setExactSchedule(null)} onConfirm={async iso => {
+        <ExactScheduleModal
+          count={exactSchedule.ids.length}
+          initialValue={exactSchedule.initialValue}
+          onClose={() => setExactSchedule(null)}
+          onConfirm={async iso => {
             for (const id of exactSchedule.ids) await reschedule(id, iso);
+            if (exactSchedule.source !== 'detail') setSelectedIds(new Set());
             setExactSchedule(null);
-            setSelectedIds(new Set());
-          }} />
+          }}
+        />
       )}
       {collectionModalItem && (
         <AddToCollectionModal

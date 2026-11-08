@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useId, useRef, useState } from 'react';
-import { CalendarDays, ChevronLeft, ChevronRight, Clock, Loader2, X } from 'lucide-react';
+import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight, Clock, Loader2, X } from 'lucide-react';
 
 export function ExactScheduleModal({ count, initialValue, onClose, onConfirm }: {
   count: number;
@@ -19,7 +19,8 @@ export function ExactScheduleModal({ count, initialValue, onClose, onConfirm }: 
   const [error, setError] = useState('');
   const dialog = useRef<HTMLDialogElement>(null);
   const heading = useId();
-  const timeId = useId();
+  const hourId = useId();
+  const minuteId = useId();
 
   useEffect(() => { dialog.current?.showModal(); }, []);
 
@@ -37,7 +38,7 @@ export function ExactScheduleModal({ count, initialValue, onClose, onConfirm }: 
     <dialog ref={dialog} aria-labelledby={heading}
       onCancel={event => { if (busy) event.preventDefault(); else onClose(); }}
       onClose={onClose}
-      className="fixed inset-0 m-auto w-[calc(100%_-_2rem)] max-w-md max-h-[calc(100dvh_-_2rem)] overflow-y-auto rounded-3xl border border-[#e4e0d5] bg-[#faf9f5] p-0 text-[#171711] shadow-2xl backdrop:bg-black/40 backdrop:backdrop-blur-sm">
+      className="fixed inset-0 m-auto w-[calc(100%_-_2rem)] max-w-[480px] max-h-[calc(100dvh_-_2rem)] overflow-y-auto rounded-3xl border border-[#e4e0d5] bg-[#faf9f5] p-0 text-[#171711] shadow-[0_30px_90px_rgba(0,0,0,0.23)] backdrop:bg-[#171711]/55 backdrop:backdrop-blur-sm">
       <form onSubmit={async event => {
         event.preventDefault();
         if (busy) return;
@@ -76,10 +77,50 @@ export function ExactScheduleModal({ count, initialValue, onClose, onConfirm }: 
               })}
             </div>
           </div>
-          <div className="flex items-center justify-between gap-3 rounded-2xl border border-[#e4e0d5] bg-white p-4">
-            <label htmlFor={timeId} className="flex items-center gap-2 text-sm font-bold"><Clock className="h-4 w-4" />Time</label>
-            <input id={timeId} type="time" required value={time} onChange={event => { setTime(event.target.value); setError(''); }}
-              className="rounded-lg border border-[#e4e0d5] bg-[#faf9f5] px-3 py-2 text-sm focus:outline-2 focus:outline-[#171711]" />
+          <div className="rounded-2xl border border-[#e4e0d5] bg-white p-4">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <p className="flex items-center gap-2 text-sm font-bold">
+                <Clock className="h-4 w-4" aria-hidden="true" /> Custom time
+              </p>
+              <span className="rounded-full bg-[#e6edb0] px-2.5 py-1 text-[10px] font-bold text-[#3b472a]">24-hour format</span>
+            </div>
+            <div className="grid grid-cols-[1fr_auto_1fr] items-end gap-3">
+              <div>
+                <label htmlFor={hourId} className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-[#828177]">Hour</label>
+                <div className="relative">
+                  <select
+                    id={hourId}
+                    value={String(hours).padStart(2, '0')}
+                    onChange={event => { setTime(`${event.target.value}:${String(minutes).padStart(2, '0')}`); setError(''); }}
+                    className="w-full appearance-none rounded-xl border border-[#e4e0d5] bg-[#faf9f5] px-4 py-3 pr-9 text-center text-lg font-black tabular-nums text-[#171711] outline-none transition-colors hover:border-[#a9ba79] focus:border-[#92a862] focus:ring-2 focus:ring-[#e6edb0]"
+                  >
+                    {Array.from({ length: 24 }, (_, hour) => {
+                      const value = String(hour).padStart(2, '0');
+                      return <option key={value} value={value}>{value}</option>;
+                    })}
+                  </select>
+                  <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#85877d]" aria-hidden="true" />
+                </div>
+              </div>
+              <span className="pb-3 text-xl font-black text-[#6c6b63]" aria-hidden="true">:</span>
+              <div>
+                <label htmlFor={minuteId} className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-[#828177]">Minute</label>
+                <div className="relative">
+                  <select
+                    id={minuteId}
+                    value={String(minutes).padStart(2, '0')}
+                    onChange={event => { setTime(`${String(hours).padStart(2, '0')}:${event.target.value}`); setError(''); }}
+                    className="w-full appearance-none rounded-xl border border-[#e4e0d5] bg-[#faf9f5] px-4 py-3 pr-9 text-center text-lg font-black tabular-nums text-[#171711] outline-none transition-colors hover:border-[#a9ba79] focus:border-[#92a862] focus:ring-2 focus:ring-[#e6edb0]"
+                  >
+                    {Array.from({ length: 60 }, (_, minute) => {
+                      const value = String(minute).padStart(2, '0');
+                      return <option key={value} value={value}>{value}</option>;
+                    })}
+                  </select>
+                  <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#85877d]" aria-hidden="true" />
+                </div>
+              </div>
+            </div>
           </div>
           <div className="rounded-xl bg-[#e6edb0]/50 p-3" aria-live="polite">
             <p className="text-xs font-bold">{Number.isFinite(scheduled.getTime()) ? scheduled.toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : 'Choose a time'}</p>

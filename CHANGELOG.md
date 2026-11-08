@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[App / Reschedule dialog]** Open the email-table Reschedule action in the centered full scheduling modal, replacing the floating picker; add custom 24-hour hour/minute dropdown controls with one-minute precision and preserve existing date selection and save confirmation.
+
 - **[App / Email Toolbar]** Add consistent, styled hover and keyboard-focus tooltips for every in-table reading action, including Back, Star, Keep, Archive, Collections, Reschedule, Copy, Open Source, Delete/Restore, and previous/next. Portal placement prevents the scrollable toolbar from clipping labels.
 
 - **[App / Email reading toolbar]** Consolidate the embedded item actions (star, keep, archive, collections, reschedule, copy, external source, delete/restore) into the email-style table header alongside Back and previous/next. Hide the duplicated detail action bar and inline scheduling panel in embedded mode; retain the standalone item page layout.
