@@ -54,6 +54,16 @@ struct MainTabTests {
         #expect(fullScale > partialScale)
         #expect(activeScale == fullScale)
         #expect(LaterBoxPullRefresh.uniformScale(distance: 500, refreshing: false) == fullScale)
+
+        // Color fills continuously from the bottom as the finger pulls down.
+        #expect(LaterBoxPullRefresh.fillProgress(distance: 0, refreshing: false) == 0)
+        #expect(LaterBoxPullRefresh.fillProgress(distance: 25, refreshing: false) == 0.25)
+        #expect(LaterBoxPullRefresh.fillProgress(distance: 50, refreshing: false) == 0.5)
+        #expect(LaterBoxPullRefresh.fillProgress(distance: 100, refreshing: false) == 1)
+        #expect(LaterBoxPullRefresh.fillProgress(distance: 500, refreshing: false) == 1)
+        // While syncing, the mark stays fully colored even after the pull releases.
+        #expect(LaterBoxPullRefresh.fillProgress(distance: 0, refreshing: true) == 1)
+        #expect(LaterBoxPullRefresh.fillProgress(distance: -20, refreshing: false) == 0)
     }
 
     @Test("Splash uses black on white in Light Mode and white on black in Dark Mode")

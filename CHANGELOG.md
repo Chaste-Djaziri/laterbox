@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[iOS / Refresh logo color fill]** Replace the moving gradient in the centered pull-to-refresh vector logo with a static LaterBox green fill that climbs from bottom to top directly with drag distance, reaches full coverage during sync, then clears when refresh ends. Preserve equal-axis enlargement and transparent cutouts; no rotation or lighting sweep.
+
 - **[iOS / Header and refresh polish]** Remove the main header bottom hairline, keep the centered vector logo’s proportions during pull-to-refresh by scaling both axes equally, and animate a rotating LaterBox-color gradient *inside* the upright logo instead of rotating or distorting the mark. Preserve Reduce Motion behavior and smooth reset after sync.
 
 - **[iOS / Refresh and search fix]** Repair the unresponsive main-tab pull-to-refresh logo by observing real UIScrollView overscroll instead of an unreliable SwiftUI geometry preference, force bounce on short lists, and keep the logo visibly animated during fast sync. Remove the extra drawer button beside Inbox search so the search field occupies the whole row.

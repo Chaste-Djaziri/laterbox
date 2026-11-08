@@ -27,6 +27,11 @@ enum LaterBoxPullRefresh {
         refreshing ? 1.34 : 1 + progress(distance) * 0.34
     }
 
+    /// Fill the mark progressively with the finger; show a full fill while syncing.
+    static func fillProgress(distance: CGFloat, refreshing: Bool) -> CGFloat {
+        refreshing ? 1 : progress(distance)
+    }
+
     /// Short local/offline syncs should still display an observable animation.
     @MainActor
     static func holdVisible(since start: Date) async {
@@ -140,63 +145,60 @@ struct LaterBoxPullRefreshMarker: UIViewRepresentable {
     }
 }
 
-/// Keep the vector mark upright. Only a masked brand-color gradient rotates
-/// inside it, while the whole mark scales uniformly during pull-to-refresh.
+/// Keep the vector mark upright and proportionate as it enlarges.
+/// The green ink rises inside the original shape as the user pulls downward.
 struct LaterBoxPullRefreshLogo: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var colorRotation: Double = 0
 
     var distance: CGFloat
     var refreshing: Bool
     var replayToken = 0
 
+    private let markSize: CGFloat = 42
+
     private var progress: CGFloat {
         LaterBoxPullRefresh.progress(distance)
     }
 
-    private var brandColorFlow: some View {
-        AngularGradient(
-            stops: [
-                .init(color: Color(hex: "171711"), location: 0),
-                .init(color: AppTheme.accent, location: 0.18),
-                .init(color: .white, location: 0.27),
-                .init(color: Color(hex: "171711"), location: 0.42),
-                .init(color: AppTheme.accent, location: 0.66),
-                .init(color: Color(hex: "171711"), location: 1)
-            ],
-            center: .center
-        )
-        .frame(width: 72, height: 72)
-        .rotationEffect(.degrees(
-            reduceMotion ? 0 :
-                (refreshing ? colorRotation : Double(progress) * 300)
-        ))
-        .frame(width: 42, height: 42)
-        .mask {
-            // The mask is static, including the cube's transparent cutouts.
-            LaterBoxVectorMark(size: 42, ink: .white, animates: false)
-        }
-        .allowsHitTesting(false)
+    private var fillProgress: CGFloat {
+        LaterBoxPullRefresh.fillProgress(distance: distance, refreshing: refreshing)
     }
 
     var body: some View {
         ZStack {
             LaterBoxVectorMark(
-                size: 42,
+                size: markSize,
                 appearance: .light,
                 animates: !refreshing,
                 replayToken: replayToken
             )
 
-            if refreshing || progress > 0.02 {
-                brandColorFlow
-                    .transition(.opacity)
+            // The same vector is colored solid green, revealed bottom-to-top.
+            // The cube's open spaces remain transparent; no gradient or rotation.
+            LaterBoxVectorMark(
+                size: markSize,
+                ink: AppTheme.accent,
+                animates: false
+            )
+            .mask {
+                VStack(spacing: 0) {
+                    Spacer(minLength: 0)
+                    Rectangle()
+                        .frame(height: markSize * fillProgress)
+                }
+                .frame(width: markSize, height: markSize)
             }
+            // Follow the finger directly, then ease the last fill and reset.
+            .animation(reduceMotion ? nil : .linear(duration: 0.06), value: progress)
+            .animation(reduceMotion ? nil : .easeOut(duration: 0.28), value: refreshing)
         }
-        .frame(width: 42, height: 42)
-        .scaleEffect(reduceMotion ? 1 : LaterBoxPullRefresh.uniformScale(
-            distance: distance, refreshing: refreshing
-        ))
+        .frame(width: markSize, height: markSize)
+        .scaleEffect(
+            reduceMotion ? 1 : LaterBoxPullRefresh.uniformScale(
+                distance: distance,
+                refreshing: refreshing
+            )
+        )
         .offset(y: reduceMotion ? 0 : (refreshing ? 4 : progress * 7))
         .animation(
             reduceMotion ? nil : .interactiveSpring(response: 0.3, dampingFraction: 0.76),
@@ -206,23 +208,8 @@ struct LaterBoxPullRefreshLogo: View {
             reduceMotion ? nil : .spring(response: 0.48, dampingFraction: 0.76),
             value: refreshing
         )
-        .onAppear { updateColorRotation(refreshing) }
-        .onChange(of: refreshing) { _, active in updateColorRotation(active) }
         .frame(width: 44, height: 44)
         .contentShape(Rectangle())
         .accessibilityHidden(true)
-    }
-
-    private func updateColorRotation(_ active: Bool) {
-        if active && !reduceMotion {
-            colorRotation = 0
-            withAnimation(.linear(duration: 0.85).repeatForever(autoreverses: false)) {
-                colorRotation = 360
-            }
-        } else {
-            withAnimation(reduceMotion ? nil : .spring(response: 0.5, dampingFraction: 0.82)) {
-                colorRotation = 0
-            }
-        }
     }
 }
