@@ -216,9 +216,13 @@ struct CloudStorageUsageDetails: View {
                     .padding(16)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .background(
-                        colorScheme == .dark ? Color.white.opacity(0.06) : Color(hex: "F2F7E9"),
+                        colorScheme == .dark ? InboxAppearance.surface(for: .dark) : Color(hex: "F2F7E9"),
                         in: RoundedRectangle(cornerRadius: 14)
                     )
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 14)
+                            .strokeBorder(InboxAppearance.border(for: colorScheme), lineWidth: 1)
+                    }
 
                     if let error = coordinator.billingError {
                         Text(error)
@@ -235,6 +239,7 @@ struct CloudStorageUsageDetails: View {
                         )
                     }
                     .disabled(coordinator.isCheckingEntitlement)
+                    .tint(colorScheme == .dark ? AppTheme.accent : Color(hex: "496A33"))
 
                     NavigationLink {
                         PlansView()
@@ -243,8 +248,11 @@ struct CloudStorageUsageDetails: View {
                             .font(.subheadline.weight(.semibold))
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 13)
-                            .background(Color(hex: "171711"), in: RoundedRectangle(cornerRadius: 12))
-                            .foregroundStyle(.white)
+                            .background(
+                                colorScheme == .dark ? AppTheme.accent : Color(hex: "171711"),
+                                in: RoundedRectangle(cornerRadius: 12)
+                            )
+                            .foregroundStyle(colorScheme == .dark ? Color.black : Color.white)
                     }
                     .buttonStyle(.plain)
                 } else {
@@ -257,15 +265,21 @@ struct CloudStorageUsageDetails: View {
                             .font(.subheadline.weight(.semibold))
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 13)
-                            .background(Color(hex: "171711"), in: RoundedRectangle(cornerRadius: 12))
-                            .foregroundStyle(.white)
+                            .background(
+                                colorScheme == .dark ? AppTheme.accent : Color(hex: "171711"),
+                                in: RoundedRectangle(cornerRadius: 12)
+                            )
+                            .foregroundStyle(colorScheme == .dark ? Color.black : Color.white)
                     }
                     .buttonStyle(.plain)
                 }
             }
             .padding(22)
         }
-        .background(colorScheme == .dark ? Color.black : Color.white)
+        // The sheet owns a single grain/gradient layer; do not paint another
+        // flat black scroll background on top of it.
+        .background(Color.clear)
+        .toolbarBackground(.hidden, for: .navigationBar)
         .navigationTitle("Cloud storage")
         .navigationBarTitleDisplayMode(.inline)
         .task {

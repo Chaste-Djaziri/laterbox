@@ -33,6 +33,10 @@ struct InboxHeaderView: View {
                 }
                 .presentationDetents([.medium, .large])
                 .presentationDragIndicator(.visible)
+                // One shared page-style background across the sheet and its safe areas.
+                .presentationBackground {
+                    InboxGrainBackground()
+                }
             }
             .onChange(of: refreshIsRunning) { _, isRefreshing in
                 if !isRefreshing && coordinator.isAuthenticated && !coordinator.isGuestMode {

@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[iOS / Cloud storage popup]** Use the same graphite gradient and subtle static grain as Inbox for the cloud storage sheet in Dark Mode, with transparent scroll and navigation chrome rather than a separate black panel. Preserve the white Light Mode canvas and ensure the quota card and actions remain legible in both appearances.
+
 - **[iOS / Inbox header]** Remove the Inbox header's independent background layer; leave its layout transparent so the underlying page's Light Mode white or Dark Mode graphite grain renders continuously behind it, with no visible seam or duplicated texture.
 
 - **[iOS / Dark mode finish]** Replace the Inbox's pure black Dark Mode with a muted graphite-black gradient and subtle, stationary procedural grain; apply the same treatment to its fixed header while retaining a clean white Light Mode, legible cards, and a matching tab-bar background. Keep the texture noninteractive and deterministic for smooth scrolling.
