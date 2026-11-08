@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[Web / Billing]** Refresh LaterBox plans and checkout with Whop-sourced live plan prices, a responsive purchase summary, transparent checkout totals, and native Apple Pay/Google Pay availability through Whop's secure payment element. Do not show stale hard-coded prices when Whop pricing is unavailable.
+
 - **[Web / Cloudflare production configuration]** Add secure production deployment helpers that read the ignored production `.env`, sync encrypted Whop billing and Supabase runtime variables to the `laterbox-web` Worker without exposing credentials, and build with production Supabase and `https://app.laterbox.dev` instead of local overrides. Production Worker updated; custom-domain routing requires access to the `laterbox.dev` Cloudflare zone.
 
 - **[Web / Whop billing]** Fix catalog provisioning against the current Whop API: use `account_id` for scoped product/plan listings **and** creation instead of unrecognized `company_id`, which accidentally paginated the public product marketplace. Add read-only `--inspect` diagnostics and regression tests preventing unscoped catalog requests.

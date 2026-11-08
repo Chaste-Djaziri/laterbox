@@ -1,64 +1,177 @@
+// laterbox-web/src/components/billing/StoragePricingPage.tsx
 'use client';
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Check, Cloud, HardDrive, LockKeyhole } from 'lucide-react';
+import {
+  ArrowRight, Check, CheckCircle2, Cloud, HardDrive, LockKeyhole, RefreshCcw,
+  ShieldCheck, Sparkles, Zap,
+} from 'lucide-react';
 import { useAuth } from '@/lib/store/AuthContext';
 import { useBilling } from '@/lib/store/BillingContext';
-import { WHOP_STORAGE_PLANS } from '@/lib/billing/storage-plans';
+import { useWhopPrices } from '@/lib/billing/use-whop-prices';
+import { formatWhopPrice, yearlySavings } from '@/lib/billing/whop-prices';
+import { type WhopPlanKey } from '@/lib/billing/storage-plans';
 
 const tiers = [
-  { name: 'Free', key: 'free', size: '500 MB', features: ['Free sync across Web, iOS and Chrome', 'Unlimited ordinary bookmarks', 'Collections, scheduling and search', 'Local reading and exports'] },
-  { name: 'Plus', key: 'plus', size: '10 GB', features: ['Everything in Free', 'Cloud PDFs, images and files', 'Permanent offline content copies', 'Cloud storage management'] },
-  { name: 'Vault', key: 'vault', size: '100 GB', features: ['Everything in Plus', '100 GB cloud storage', 'Room for a larger document library', 'More space for archived pages'] },
+  {
+    name: 'Free', key: 'free', size: '500 MB', description: 'A home for every link, without a subscription.',
+    features: ['Sync across all your devices', 'Unlimited links and collections', 'Smart reminders and search', 'Export your library anytime'],
+  },
+  {
+    name: 'Plus', key: 'plus', size: '10 GB', description: 'A little more room for everything worth keeping.',
+    features: ['Everything in Free', 'Save files, images and PDFs', 'Keep full-page copies', 'Manage cloud storage easily'],
+  },
+  {
+    name: 'Vault', key: 'vault', size: '100 GB', description: 'Your growing digital library, with room to spare.',
+    features: ['Everything in Plus', '100 GB cloud storage', 'Room for bigger documents', 'Space for a growing archive'],
+  },
 ] as const;
 
 export function StoragePricingPage({ inApp = false }: { inApp?: boolean }) {
   const [interval, setInterval] = useState<'month' | 'year'>('year');
   const [error, setError] = useState('');
+  const { prices, loading, error: priceError, retry } = useWhopPrices();
   const { user } = useAuth();
   const { entitlement, manage } = useBilling();
-  const active = Boolean(entitlement.provider && (entitlement.accessEndsAt === null || Date.parse(entitlement.accessEndsAt) > Date.now()));
+  const active = Boolean(entitlement.provider && entitlement.status !== 'free');
   const limit = entitlement.storageLimitBytes ?? 500_000_000;
   const used = entitlement.storageUsedBytes;
   const percent = used == null ? 0 : Math.min(100, Math.round(used / Math.max(1, limit) * 100));
+  const plusSavings = yearlySavings(prices?.plus_month, prices?.plus_year);
+
   return (
-    <main className={inApp ? 'min-h-screen bg-[#f7f5ee] px-4 py-8 text-[#171711]' : 'min-h-screen bg-[#f7f5ee] px-5 py-16 text-[#171711]'}>
+    <main className={`min-h-screen overflow-hidden bg-[#f8f9f4] text-[#171b14] ${inApp ? 'px-4 py-10 sm:px-8' : 'px-4 py-16 sm:px-8'}`}>
       <div className="mx-auto max-w-6xl">
-        <header className="mx-auto max-w-2xl text-center">
-          <span className="inline-flex items-center gap-2 rounded-full bg-[#e6edb0] px-4 py-2 text-xs font-black uppercase tracking-widest"><Cloud size={15} /> LaterBox Storage</span>
-          <h1 className="mt-6 text-4xl font-black tracking-tight sm:text-5xl">Save anywhere. Keep more when you need it.</h1>
-          <p className="mt-5 text-base leading-7 text-[#64705a]">Sync links and collections across Web, iOS and Chrome for free. Pay for additional cloud storage, not access to your own devices.</p>
+        <header className="relative mx-auto max-w-3xl text-center">
+          <div className="pointer-events-none absolute -top-28 left-1/2 -z-0 h-72 w-96 -translate-x-1/2 rounded-full bg-[#e6edb0]/55 blur-[85px]" />
+          <div className="relative">
+            <span className="inline-flex items-center gap-2 rounded-full border border-[#cfd7b5] bg-[#e6edb0] px-4 py-2 text-[11px] font-black uppercase tracking-[0.16em]">
+              <Sparkles size={14} /> Storage that fits your life
+            </span>
+            <h1 className="mt-7 text-[clamp(2.7rem,6vw,4.8rem)] font-black leading-[1.06] tracking-[-0.055em]">
+              Keep what matters.<br /><span className="text-[#84975a]">Leave the clutter.</span>
+            </h1>
+            <p className="mx-auto mt-6 max-w-xl text-base leading-7 text-[#697364] sm:text-lg">
+              Saving links is always free. Get more secure cloud space only when your library needs it.
+              No complicated bundles, just space to grow.
+            </p>
+          </div>
         </header>
-        {user && <section className="mx-auto mt-8 max-w-xl rounded-2xl border border-[#dae0d1] bg-white p-5">
-          <div className="flex justify-between gap-4"><span className="text-sm font-bold">Your plan: {(entitlement.storagePlan ?? 'free').toUpperCase()}</span><span className="text-sm text-[#68725f]">{used == null ? 'Usage unavailable' : (used / 1e9).toFixed(2) + ' GB used'}</span></div>
-          <div className="mt-3 h-2 overflow-hidden rounded-full bg-[#edf0e7]"><div className="h-full rounded-full bg-[#a6b877]" style={{ width: percent + '%' }}/></div>
-          <div className="mt-2 text-right text-xs text-[#68725f]">{(limit / 1e9).toFixed(limit < 1e9 ? 1 : 0)} GB total</div>
-          {active && <button onClick={() => { void manage().catch(e => setError(e instanceof Error ? e.message : 'Unable to manage subscription.')); }} className="mt-3 text-sm font-bold underline">Manage subscription ({entitlement.provider})</button>}
-        </section>}
-        <div className="mx-auto mt-9 flex w-fit gap-1 rounded-full border border-[#dadecf] bg-white p-1">
-          {(['month','year'] as const).map(value => <button key={value} onClick={() => setInterval(value)} type="button" className={'rounded-full px-5 py-2.5 text-sm font-bold ' + (interval === value ? 'bg-[#171711] text-white' : 'text-[#65705f]')}>{value === 'month' ? 'Monthly' : 'Yearly · save 2 months'}</button>)}
+
+        <div className="mt-10 flex flex-wrap items-center justify-center gap-x-7 gap-y-3 text-xs font-semibold text-[#58634e]">
+          <span className="flex items-center gap-2"><CheckCircle2 size={16} className="text-[#819b51]" /> Free cross-device sync</span>
+          <span className="flex items-center gap-2"><CheckCircle2 size={16} className="text-[#819b51]" /> Cancel your paid plan anytime</span>
+          <span className="flex items-center gap-2"><CheckCircle2 size={16} className="text-[#819b51]" /> Keep your library on Free</span>
         </div>
-        <div className="mt-8 grid gap-4 lg:grid-cols-3">
+
+        {user && (
+          <section className="mx-auto mt-10 flex max-w-2xl flex-wrap items-center justify-between gap-5 rounded-[22px] border border-[#dde4d1] bg-white p-5 shadow-[0_8px_30px_rgba(33,41,23,.03)]">
+            <div className="min-w-[190px] flex-1">
+              <p className="text-[10px] font-black uppercase tracking-[0.15em] text-[#88917d]">Your current plan</p>
+              <div className="mt-1 flex items-end justify-between gap-3">
+                <strong className="text-xl">{(entitlement.storagePlan ?? 'free').toUpperCase()}</strong>
+                <span className="text-xs text-[#697364]">{used == null ? 'Storage loading' : `${(used / 1e9).toFixed(2)} GB used`}</span>
+              </div>
+              <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-[#eff2e7]" role="progressbar" aria-valuenow={percent} aria-valuemin={0} aria-valuemax={100} aria-label="Cloud storage used">
+                <div className="h-full rounded-full bg-[#a1b778] transition-all" style={{ width: `${percent}%` }} />
+              </div>
+              <p className="mt-1.5 text-right text-[11px] text-[#899281]">{(limit / 1e9).toFixed(limit < 1e9 ? 1 : 0)} GB available</p>
+            </div>
+            {active && (
+              <button type="button" onClick={() => void manage().catch(e => setError(e instanceof Error ? e.message : 'Unable to manage subscription.'))}
+                className="rounded-xl border border-[#d4dbc7] px-4 py-2.5 text-xs font-black transition hover:bg-[#f1f4e9]">
+                Manage current plan <ArrowRight size={13} className="ml-1 inline" />
+              </button>
+            )}
+          </section>
+        )}
+
+        <div className="mt-11 flex flex-col items-center gap-3">
+          <div className="inline-flex rounded-full border border-[#e1e5d8] bg-white p-1.5 shadow-sm" aria-label="Billing cycle">
+            {(['month', 'year'] as const).map(value => (
+              <button key={value} type="button" onClick={() => setInterval(value)}
+                aria-pressed={interval === value}
+                className={`rounded-full px-5 py-2.5 text-sm font-bold transition-all ${interval === value ? 'bg-[#1a2116] text-white shadow-sm' : 'text-[#7a8273] hover:text-[#1a2116]'}`}>
+                {value === 'month' ? 'Pay monthly' : 'Pay yearly'}
+              </button>
+            ))}
+          </div>
+          {plusSavings != null && <p className="text-xs text-[#727f64]">Save up to {plusSavings}% on Plus with yearly billing, compared with 12 monthly payments.</p>}
+        </div>
+
+        <div className="mt-9 grid gap-5 lg:grid-cols-3 lg:items-stretch">
           {tiers.map(tier => {
             const featured = tier.key === 'plus';
             const isFree = tier.key === 'free';
-            const plan = isFree ? null : WHOP_STORAGE_PLANS[(tier.key + '_' + interval) as keyof typeof WHOP_STORAGE_PLANS];
-            const href = isFree ? '/inbox' : '/checkout?plan=' + tier.key + '&interval=' + interval;
-            const destination = user || isFree ? href : '/login?next=' + encodeURIComponent(href);
-            return <section key={tier.key} className={'flex flex-col rounded-[28px] border p-7 ' + (featured ? 'border-[#9fac80] bg-[#171711] text-white' : 'border-[#dce2d4] bg-white')}>
-              <div className="flex justify-between items-center"><h2 className="text-xl font-black">{tier.name}</h2>{featured && <span className="rounded-full bg-[#e6edb0] px-3 py-1 text-xs font-black text-black">POPULAR</span>}</div>
-              <div className="mt-5 flex items-center gap-3"><span className="text-4xl font-black">{tier.size}</span><HardDrive size={20} className="opacity-60"/></div>
-              <p className="mt-4 text-2xl font-black">{isFree ? 'Free forever' : '$' + plan?.usd.toFixed(2)} {!isFree && <span className="text-xs font-semibold opacity-70">{interval === 'year' ? '/year' : '/month'}</span>}</p>
-              <div className="my-6 h-px bg-current opacity-10"/>
-              <div className="flex-1 space-y-3">{tier.features.map(f => <div key={f} className="flex gap-2 text-sm"><Check size={16} className={'mt-0.5 shrink-0 ' + (featured ? 'text-[#e6edb0]' : 'text-[#839953]')}/><span>{f}</span></div>)}</div>
-              <Link href={destination} className={'mt-8 rounded-xl px-5 py-3 text-center text-sm font-black ' + (featured ? 'bg-[#e6edb0] text-[#171711]' : 'bg-[#171711] text-white')}>{isFree ? 'Continue free' : 'Choose ' + tier.name}</Link>
-            </section>;
+            const key = isFree ? null : `${tier.key}_${interval}` as WhopPlanKey;
+            const quote = key ? prices?.[key] : null;
+            const saving = !isFree && interval === 'year' ? yearlySavings(prices?.[`${tier.key}_month` as WhopPlanKey], prices?.[`${tier.key}_year` as WhopPlanKey]) : null;
+            const href = isFree ? '/inbox' : `/checkout?plan=${tier.key}&interval=${interval}`;
+            const destination = user || isFree ? href : `/login?next=${encodeURIComponent(href)}`;
+            return (
+              <section key={tier.key} className={`group relative flex flex-col overflow-hidden rounded-[30px] border p-7 transition-transform duration-300 hover:-translate-y-1 sm:p-8 ${featured ? 'border-[#20291b] bg-[#1b2218] text-white shadow-[0_24px_60px_rgba(29,39,20,.16)]' : 'border-[#e0e4d9] bg-white shadow-[0_12px_32px_rgba(28,39,21,.04)]'}`}>
+                {featured && <div className="pointer-events-none absolute -right-16 -top-24 h-56 w-56 rounded-full bg-[#c7df86]/10 blur-2xl" />}
+                <div className="relative flex items-center justify-between">
+                  <span className={`inline-flex size-11 items-center justify-center rounded-2xl ${featured ? 'bg-[#e6edb0] text-[#20291b]' : 'bg-[#f0f4e5] text-[#748851]'}`}>
+                    {tier.key === 'vault' ? <HardDrive size={21} /> : tier.key === 'plus' ? <Zap size={21} /> : <Cloud size={21} />}
+                  </span>
+                  {featured && <span className="rounded-full border border-[#a8b989]/30 bg-[#e6edb0]/10 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-[#e6edb0]">Most popular</span>}
+                  {saving != null && saving > 0 && !featured && <span className="rounded-full bg-[#edf5d8] px-3 py-1.5 text-[11px] font-black text-[#526f2b]">Save {saving}%</span>}
+                </div>
+                <h2 className="mt-7 text-2xl font-black tracking-tight">LaterBox {tier.name}</h2>
+                <p className={`mt-2 min-h-12 text-sm leading-6 ${featured ? 'text-[#bbc6b5]' : 'text-[#737e6d]'}`}>{tier.description}</p>
+                <div className="mt-7 min-h-[106px]">
+                  {isFree ? (
+                    <><div className="text-[44px] font-black tracking-[-0.05em]">Free</div><p className="mt-1 text-xs text-[#82917b]">No credit card. Ever.</p></>
+                  ) : loading ? (
+                    <div role="status" aria-label="Loading Whop pricing"><div className={`mt-3 h-11 w-36 animate-pulse rounded-lg ${featured ? 'bg-white/10' : 'bg-[#edf0e6]'}`} /><p className="mt-3 text-xs opacity-60">Checking Whop pricing…</p></div>
+                  ) : quote ? (
+                    <>
+                      <div className="flex flex-wrap items-end gap-2">
+                        <strong className="text-[44px] font-black tracking-[-0.055em]">{formatWhopPrice(quote.renewalPrice, quote.currency)}</strong>
+                        <span className={`mb-2 text-sm ${featured ? 'text-[#b3bfad]' : 'text-[#7b8473]'}`}>/ {interval === 'month' ? '30 days' : '365 days'}</span>
+                      </div>
+                      <p className={`mt-1 text-xs ${featured ? 'text-[#b9c6ae]' : 'text-[#84907b]'}`}>{quote.currency} base rate · Final total in checkout</p>
+                    </>
+                  ) : (
+                    <><p className="mt-3 text-base font-black">Live price unavailable</p><p className="mt-2 text-xs opacity-70">View the final amount at checkout.</p></>
+                  )}
+                </div>
+                <div className={`my-7 h-px ${featured ? 'bg-white/15' : 'bg-[#edf0e9]'}`} />
+                <div className="flex items-baseline justify-between"><strong className="text-sm">Included with {tier.name}</strong><span className={`text-xs font-bold ${featured ? 'text-[#e6edb0]' : 'text-[#71865e]'}`}>{tier.size}</span></div>
+                <ul className="mt-5 flex-1 space-y-3.5">
+                  {tier.features.map(feature => <li key={feature} className="flex items-start gap-2.5 text-[13px] leading-5">
+                    <Check size={17} className={`mt-0.5 shrink-0 ${featured ? 'text-[#d2e5a2]' : 'text-[#8ca66c]'}`}/><span className={featured ? 'text-[#e4eadf]' : 'text-[#4d5b46]'}>{feature}</span>
+                  </li>)}
+                </ul>
+                <Link href={destination} className={`mt-9 flex items-center justify-center gap-2 rounded-2xl px-5 py-3.5 text-sm font-black transition-colors ${featured ? 'bg-[#e6edb0] text-[#1c2516] hover:bg-[#d7e29f]' : 'bg-[#1b2218] text-white hover:bg-[#34402d]'}`}>
+                  {isFree ? 'Continue with Free' : active ? 'View ' + tier.name : 'Get ' + tier.name}
+                  <ArrowRight size={16} />
+                </Link>
+              </section>
+            );
           })}
         </div>
+
+        {priceError && (
+          <div className="mx-auto mt-5 flex max-w-xl flex-wrap items-center justify-center gap-3 text-center text-xs text-[#9b6439]" role="alert">
+            <span>Live Whop pricing could not be loaded. Payments will display their final price before confirmation.</span>
+            <button onClick={retry} type="button" className="inline-flex items-center gap-1 font-black underline underline-offset-2"><RefreshCcw size={13}/> Retry pricing</button>
+          </div>
+        )}
         {error && <p className="mt-5 text-center text-sm text-red-700" role="alert">{error}</p>}
-        <p className="mt-8 flex items-center justify-center gap-2 text-center text-xs text-[#6d7568]"><LockKeyhole size={14}/> Embedded Whop checkout. Existing Apple and Paddle subscriptions remain managed with their original providers.</p>
-        <p className="mt-3 text-center text-xs text-[#7e8679]">Prices are USD reference amounts; the final total and any taxes appear at checkout.</p>
+
+        <section className="mt-16 grid gap-6 rounded-[28px] border border-[#e2e7da] bg-white px-7 py-8 sm:grid-cols-3 sm:px-10">
+          <div className="flex gap-3"><ShieldCheck className="mt-0.5 shrink-0 text-[#778e54]" size={22}/><div><h3 className="text-sm font-black">Your data, always yours</h3><p className="mt-1 text-xs leading-5 text-[#7e8974]">Cancel a paid plan without losing access to your regular bookmarks.</p></div></div>
+          <div className="flex gap-3"><Cloud className="mt-0.5 shrink-0 text-[#778e54]" size={22}/><div><h3 className="text-sm font-black">Sync for everyone</h3><p className="mt-1 text-xs leading-5 text-[#7e8974]">A Free account can sync your links across compatible LaterBox apps.</p></div></div>
+          <div className="flex gap-3"><LockKeyhole className="mt-0.5 shrink-0 text-[#778e54]" size={22}/><div><h3 className="text-sm font-black">Secure payments</h3><p className="mt-1 text-xs leading-5 text-[#7e8974]">Whop handles payments, taxes, and available express wallets.</p></div></div>
+        </section>
+        <p className="mt-7 text-center text-xs leading-5 text-[#858e7f]">
+          Plan rates come directly from Whop in the plan currency. Taxes, discounts, conversion and payment fees (if applicable) are calculated in Whop checkout.
+          Existing Apple and Paddle subscriptions remain with their original providers.
+        </p>
+        <p className="mt-3 text-center text-xs text-[#929b8e]"><Link className="underline hover:text-[#34402d]" href="/terms">Terms</Link> · <Link className="underline hover:text-[#34402d]" href="/refund">Refunds</Link></p>
       </div>
     </main>
   );
