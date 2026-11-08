@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[iOS / Brand identity]** Recreate the uploaded LaterBox cube monogram as editable, background-free SwiftUI vector paths, supporting adaptive light/dark ink colors, custom tint and subtle reduce-motion-aware assembly animation. Replace the centered image asset in the five-tab header with the vector mark.
+
 - **[iOS / Navigation]** Replace the Inbox-only root with a five-tab navigation system (Inbox, Today, Kept, Library, Settings), move Quick Save to the top-left of a shared header with the LaterBox icon centered, retain secondary mailbox navigation through a More menu, and remove the overlapping Inbox floating action and bottom subscription bar from tabbed layouts.
 
 - **[Web / Deployment CI]** Trigger a fresh main-branch web release and log the Cloudflare 10215 deployment-order safeguard, ensuring the release workflow deploys the latest Worker before updating Apple verification secrets.

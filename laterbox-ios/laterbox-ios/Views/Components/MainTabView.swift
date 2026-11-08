@@ -26,6 +26,7 @@ struct MainTabView: View {
     @State private var selectedTab: MainTab = .inbox
     @State private var secondaryMailbox: MailboxViewType?
     @State private var showingCapture = false
+    @State private var logoReplayToken = 0
 
     var body: some View {
         VStack(spacing: 0) {
@@ -78,12 +79,16 @@ struct MainTabView: View {
             Button {
                 LBHaptic.light()
                 selectedTab = .inbox
+                logoReplayToken += 1
             } label: {
-                Image("LaterboxIconGreen")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 38, height: 38)
-                    .clipShape(RoundedRectangle(cornerRadius: 11, style: .continuous))
+                LaterBoxVectorMark(
+                    size: 42,
+                    appearance: .light,
+                    animates: true,
+                    replayToken: logoReplayToken
+                )
+                .frame(width: 44, height: 44)
+                .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .accessibilityLabel("LaterBox home")

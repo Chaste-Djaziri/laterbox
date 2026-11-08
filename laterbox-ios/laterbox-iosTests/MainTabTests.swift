@@ -1,5 +1,6 @@
 // laterbox-ios/laterbox-iosTests/MainTabTests.swift
 import Testing
+import SwiftUI
 @testable import laterbox_ios
 
 @Suite("Main iOS navigation")
@@ -10,6 +11,32 @@ struct MainTabTests {
             "Inbox", "Today", "Kept", "Library", "Settings"
         ])
         #expect(Set(MainTab.allCases.map(\.symbol)).count == 5)
+    }
+
+    @Test("The brand mark is made from three scalable vector faces with open counters")
+    func vectorMarkGeometry() {
+        let artboard = CGRect(x: 0, y: 0, width: 603, height: 656)
+        let lid = LaterBoxMarkShape(part: .lid).path(in: artboard)
+        let left = LaterBoxMarkShape(part: .left).path(in: artboard)
+        let right = LaterBoxMarkShape(part: .right).path(in: artboard)
+
+        #expect(!lid.isEmpty)
+        #expect(!left.isEmpty)
+        #expect(!right.isEmpty)
+        #expect(lid.contains(CGPoint(x: 299, y: 20), eoFill: true))
+        #expect(!lid.contains(CGPoint(x: 299, y: 157), eoFill: true))
+        #expect(left.contains(CGPoint(x: 30, y: 400), eoFill: true))
+        #expect(!right.contains(CGPoint(x: 450, y: 390), eoFill: true))
+        #expect(!right.contains(CGPoint(x: 450, y: 490), eoFill: true))
+
+        // It can resize to header dimensions without relying on a raster image.
+        let small = LaterBoxMarkShape(part: .lid).path(
+            in: CGRect(x: 0, y: 0, width: 42, height: 42)
+        ).boundingRect
+        #expect(small.minX >= 0)
+        #expect(small.minY >= 0)
+        #expect(small.maxX <= 42)
+        #expect(small.maxY <= 42)
     }
 
     @Test("Secondary mailboxes remain outside the primary tab bar")
