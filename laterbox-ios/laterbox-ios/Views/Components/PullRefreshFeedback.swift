@@ -168,7 +168,7 @@ struct LaterBoxPullRefreshLogo: View {
         ZStack {
             LaterBoxVectorMark(
                 size: markSize,
-                appearance: .light,
+                appearance: .automatic,
                 animates: !refreshing,
                 replayToken: replayToken
             )

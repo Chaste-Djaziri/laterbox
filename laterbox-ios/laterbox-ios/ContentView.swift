@@ -41,17 +41,15 @@ struct ContentView: View {
     @State private var showingSyncReport = false
     @State private var syncReportMessage = ""
 
-    private var activeColorScheme: ColorScheme {
-        if !coordinator.hasAccess {
-            return .dark
-        }
-        if coordinator.showingAuthSheet {
+    private var activeColorScheme: ColorScheme? {
+        if !coordinator.hasAccess || coordinator.showingAuthSheet {
             return .dark
         }
         if coordinator.isShowingCapture || coordinator.showingQuickCapture {
             return .dark
         }
-        return .light
+        // Do not force Light Mode for the main app: Inbox follows iOS appearance.
+        return nil
     }
 
     var body: some View {
@@ -111,8 +109,8 @@ struct ContentView: View {
             }
         }
         .animation(.spring(response: 0.45, dampingFraction: 0.85), value: coordinator.hasAccess)
-        // While the splash is visible, let iOS use the device's Light/Dark appearance.
-        // Restore the existing app-specific color scheme after the splash finishes.
+        // Use the device appearance for the splash and main tabs, while
+        // preserving the existing dark appearance for welcome/auth/capture.
         .preferredColorScheme(isLaunching ? nil : activeColorScheme)
         .onChange(of: activeColorScheme) { _, _ in
             applyCurrentInterfaceStyle()
@@ -260,9 +258,12 @@ struct ContentView: View {
     }
 
     private func applyCurrentInterfaceStyle() {
-        let style: UIUserInterfaceStyle = isLaunching
-            ? .unspecified
-            : (activeColorScheme == .dark ? .dark : .light)
+        let style: UIUserInterfaceStyle
+        if isLaunching || activeColorScheme == nil {
+            style = .unspecified
+        } else {
+            style = activeColorScheme == .dark ? .dark : .light
+        }
         StatusBarStyleModifier.apply(style)
     }
 

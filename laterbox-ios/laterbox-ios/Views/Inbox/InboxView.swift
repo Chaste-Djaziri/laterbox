@@ -10,6 +10,7 @@ import SwiftData
 
 public struct InboxView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.colorScheme) private var colorScheme
     @Query(sort: \LBItem.createdAt, order: .reverse) private var allItems: [LBItem]
     @Query(sort: \LBCollection.name) private var availableCollections: [LBCollection]
     @ObservedObject var coordinator = SyncCoordinator.shared
@@ -76,7 +77,7 @@ public struct InboxView: View {
                     .multilineTextAlignment(.leading)
                 Spacer(minLength: 0)
             }
-            .foregroundStyle(destructive ? Color.red : AppTheme.textPrimary)
+            .foregroundStyle(destructive ? Color.red : InboxAppearance.textPrimary(for: colorScheme))
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
             .contentShape(Rectangle())
@@ -232,19 +233,19 @@ public struct InboxView: View {
                 HStack(spacing: 10) {
                     Image(systemName: "magnifyingglass")
                         .font(.system(size: 16, weight: .medium))
-                        .foregroundStyle(AppTheme.textSecondary)
+                        .foregroundStyle(InboxAppearance.textSecondary(for: colorScheme))
                     Text("Search your LaterBox")
                         .font(.system(size: 15))
-                        .foregroundStyle(AppTheme.textSecondary)
+                        .foregroundStyle(InboxAppearance.textSecondary(for: colorScheme))
                     Spacer(minLength: 0)
                     Image(systemName: "sparkles")
                         .font(.system(size: 14, weight: .medium))
-                        .foregroundStyle(AppTheme.textPrimary)
+                        .foregroundStyle(InboxAppearance.textPrimary(for: colorScheme))
                 }
                 .padding(.horizontal, 15)
                 .frame(height: 46)
-                .background(Color.white, in: Capsule())
-                .overlay(Capsule().strokeBorder(Color.black.opacity(0.07), lineWidth: 1))
+                .background(InboxAppearance.surface(for: colorScheme), in: Capsule())
+                .overlay(Capsule().strokeBorder(InboxAppearance.border(for: colorScheme), lineWidth: 1))
             }
             .buttonStyle(.plain)
             .frame(maxWidth: .infinity)
@@ -258,7 +259,7 @@ public struct InboxView: View {
     public var body: some View {
         NavigationStack {
             ZStack {
-                Color(hex: "F7F5EE").ignoresSafeArea()
+                InboxAppearance.background(for: colorScheme).ignoresSafeArea()
 
                 VStack(spacing: 0) {
                     ScrollView {
@@ -285,7 +286,7 @@ public struct InboxView: View {
                                 } label: {
                                     Image(systemName: "line.3.horizontal")
                                         .font(.system(size: 20, weight: .regular))
-                                        .foregroundColor(AppTheme.textPrimary)
+                                        .foregroundColor(InboxAppearance.textPrimary(for: colorScheme))
                                         .frame(width: 36, height: 36)
                                 }
                                 .buttonStyle(.plain)
@@ -311,9 +312,9 @@ public struct InboxView: View {
                                     }
                                     .padding(.horizontal, 16)
                                     .frame(height: 48)
-                                    .background(Color.white, in: Capsule())
+                                    .background(InboxAppearance.surface(for: colorScheme), in: Capsule())
                                     .overlay(
-                                        Capsule().strokeBorder(Color.black.opacity(0.08), lineWidth: 1)
+                                        Capsule().strokeBorder(InboxAppearance.border(for: colorScheme), lineWidth: 1)
                                     )
                                     .shadow(color: Color.black.opacity(0.04), radius: 6, y: 2)
                                 }
@@ -399,7 +400,7 @@ public struct InboxView: View {
                                 } label: {
                                     Image(systemName: "arrow.left")
                                         .font(.system(size: 18, weight: .medium))
-                                        .foregroundColor(AppTheme.textPrimary)
+                                        .foregroundColor(InboxAppearance.textPrimary(for: colorScheme))
                                         .frame(width: 36, height: 36)
                                 }
                                 .buttonStyle(.plain)
@@ -412,7 +413,7 @@ public struct InboxView: View {
 
                                     TextField("Search in LaterBox", text: $searchQuery)
                                         .font(.system(size: 16))
-                                        .foregroundColor(AppTheme.textPrimary)
+                                        .foregroundColor(InboxAppearance.textPrimary(for: colorScheme))
                                         .focused($isSearchFocused)
                                         .submitLabel(.search)
 
@@ -434,9 +435,9 @@ public struct InboxView: View {
                                 }
                                 .padding(.horizontal, 14)
                                 .frame(height: 48)
-                                .background(Color.white, in: Capsule())
+                                .background(InboxAppearance.surface(for: colorScheme), in: Capsule())
                                 .overlay(
-                                    Capsule().strokeBorder(Color.black.opacity(0.1), lineWidth: 1)
+                                    Capsule().strokeBorder(InboxAppearance.border(for: colorScheme), lineWidth: 1)
                                 )
                                 .shadow(color: Color.black.opacity(0.04), radius: 6, y: 2)
                             }
@@ -460,10 +461,10 @@ public struct InboxView: View {
                                         }
                                         .padding(.horizontal, 12)
                                         .padding(.vertical, 7)
-                                        .background(searchStarredOnly ? Color(hex: "171711") : Color.white, in: Capsule())
-                                        .foregroundColor(searchStarredOnly ? Color(hex: "E6EDB0") : AppTheme.textPrimary)
+                                        .background(searchStarredOnly ? Color(hex: "171711") : InboxAppearance.surface(for: colorScheme), in: Capsule())
+                                        .foregroundColor(searchStarredOnly ? Color(hex: "E6EDB0") : InboxAppearance.textPrimary(for: colorScheme))
                                         .overlay(
-                                            Capsule().strokeBorder(searchStarredOnly ? Color.clear : Color.black.opacity(0.08), lineWidth: 1)
+                                            Capsule().strokeBorder(searchStarredOnly ? Color.clear : InboxAppearance.border(for: colorScheme), lineWidth: 1)
                                         )
                                     }
                                     .buttonStyle(.plain)
@@ -481,10 +482,10 @@ public struct InboxView: View {
                                         }
                                         .padding(.horizontal, 12)
                                         .padding(.vertical, 7)
-                                        .background(searchHasAttachmentOnly ? Color(hex: "171711") : Color.white, in: Capsule())
-                                        .foregroundColor(searchHasAttachmentOnly ? Color(hex: "E6EDB0") : AppTheme.textPrimary)
+                                        .background(searchHasAttachmentOnly ? Color(hex: "171711") : InboxAppearance.surface(for: colorScheme), in: Capsule())
+                                        .foregroundColor(searchHasAttachmentOnly ? Color(hex: "E6EDB0") : InboxAppearance.textPrimary(for: colorScheme))
                                         .overlay(
-                                            Capsule().strokeBorder(searchHasAttachmentOnly ? Color.clear : Color.black.opacity(0.08), lineWidth: 1)
+                                            Capsule().strokeBorder(searchHasAttachmentOnly ? Color.clear : InboxAppearance.border(for: colorScheme), lineWidth: 1)
                                         )
                                     }
                                     .buttonStyle(.plain)
@@ -504,10 +505,10 @@ public struct InboxView: View {
                                             }
                                             .padding(.horizontal, 12)
                                             .padding(.vertical, 7)
-                                            .background(isSelected ? Color(hex: "171711") : Color.white, in: Capsule())
-                                            .foregroundColor(isSelected ? Color(hex: "E6EDB0") : AppTheme.textPrimary)
+                                            .background(isSelected ? Color(hex: "171711") : InboxAppearance.surface(for: colorScheme), in: Capsule())
+                                            .foregroundColor(isSelected ? Color(hex: "E6EDB0") : InboxAppearance.textPrimary(for: colorScheme))
                                             .overlay(
-                                                Capsule().strokeBorder(isSelected ? Color.clear : Color.black.opacity(0.08), lineWidth: 1)
+                                                Capsule().strokeBorder(isSelected ? Color.clear : InboxAppearance.border(for: colorScheme), lineWidth: 1)
                                             )
                                         }
                                         .buttonStyle(.plain)
@@ -559,7 +560,7 @@ public struct InboxView: View {
 
                                                     Text(search)
                                                         .font(.system(size: 15, weight: .regular))
-                                                        .foregroundColor(AppTheme.textPrimary)
+                                                        .foregroundColor(InboxAppearance.textPrimary(for: colorScheme))
 
                                                     Spacer()
 
@@ -569,7 +570,7 @@ public struct InboxView: View {
                                                 }
                                                 .padding(.horizontal, 16)
                                                 .padding(.vertical, 14)
-                                                .background(Color.white)
+                                                .background(InboxAppearance.surface(for: colorScheme))
                                             }
                                             .buttonStyle(.plain)
                                         }
@@ -577,7 +578,7 @@ public struct InboxView: View {
                                     .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                                     .overlay(
                                         RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                            .strokeBorder(Color.black.opacity(0.06), lineWidth: 1)
+                                            .strokeBorder(InboxAppearance.border(for: colorScheme), lineWidth: 1)
                                     )
                                     .padding(.horizontal, 12)
                                 }
@@ -597,18 +598,18 @@ public struct InboxView: View {
                                                 .foregroundColor(.secondary.opacity(0.4))
                                             Text(searchQuery.isEmpty ? "No items matching filters" : "No results for \"\(searchQuery)\"")
                                                 .font(.headline)
-                                                .foregroundColor(AppTheme.textPrimary)
+                                                .foregroundColor(InboxAppearance.textPrimary(for: colorScheme))
                                             Text("Try adjusting your keywords or clearing active filters.")
                                                 .font(.caption)
-                                                .foregroundColor(AppTheme.textSecondary)
+                                                .foregroundColor(InboxAppearance.textSecondary(for: colorScheme))
                                         }
                                         .frame(maxWidth: .infinity)
                                         .padding(40)
-                                        .background(Color.white)
+                                        .background(InboxAppearance.surface(for: colorScheme))
                                         .cornerRadius(16)
                                         .overlay(
                                             RoundedRectangle(cornerRadius: 16)
-                                                .strokeBorder(Color.black.opacity(0.06), lineWidth: 1)
+                                                .strokeBorder(InboxAppearance.border(for: colorScheme), lineWidth: 1)
                                         )
                                         .padding(.horizontal, 12)
                                         .padding(.top, 10)
@@ -709,19 +710,19 @@ public struct InboxView: View {
                                         .foregroundColor(.secondary.opacity(0.35))
                                     Text(emptyTitleText)
                                         .font(.headline)
-                                        .foregroundColor(AppTheme.textPrimary)
+                                        .foregroundColor(InboxAppearance.textPrimary(for: colorScheme))
                                     Text(emptySubtitleText)
                                         .font(.caption)
-                                        .foregroundColor(AppTheme.textSecondary)
+                                        .foregroundColor(InboxAppearance.textSecondary(for: colorScheme))
                                         .multilineTextAlignment(.center)
                                 }
                                 .frame(maxWidth: .infinity)
                                 .padding(48)
-                                .background(Color.white)
+                                .background(InboxAppearance.surface(for: colorScheme))
                                 .cornerRadius(16)
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 16)
-                                        .strokeBorder(Color.black.opacity(0.06), lineWidth: 1)
+                                        .strokeBorder(InboxAppearance.border(for: colorScheme), lineWidth: 1)
                                 )
                                 .padding(.horizontal, 12)
                                 .padding(.top, 12)
@@ -788,7 +789,7 @@ public struct InboxView: View {
                             .tint(Color(hex: "2563EB"))
                         Text("Syncing…")
                             .font(.system(size: 12, weight: .semibold))
-                            .foregroundStyle(AppTheme.textPrimary)
+                            .foregroundStyle(InboxAppearance.textPrimary(for: colorScheme))
                     }
                     .padding(.horizontal, 12)
                     .padding(.vertical, 8)
@@ -1040,7 +1041,7 @@ public struct InboxView: View {
                                     .foregroundColor(Color(hex: coll.colorHex))
                                 Text(coll.name)
                                     .font(.system(size: 15, weight: .medium))
-                                    .foregroundColor(AppTheme.textPrimary)
+                                    .foregroundColor(InboxAppearance.textPrimary(for: colorScheme))
                                 Spacer()
                                 if targetItem.collectionName == coll.name {
                                     Image(systemName: "checkmark")
@@ -1125,7 +1126,7 @@ public struct InboxView: View {
                     HStack(spacing: 6) {
                         Text("Guest / Local Vault")
                             .font(.system(size: 12, weight: .bold))
-                            .foregroundColor(AppTheme.textPrimary)
+                            .foregroundColor(InboxAppearance.textPrimary(for: colorScheme))
 
                         Circle()
                             .fill(Color(hex: "9E9B92"))
@@ -1133,12 +1134,12 @@ public struct InboxView: View {
 
                         Text("Offline")
                             .font(.system(size: 10, weight: .semibold))
-                            .foregroundColor(AppTheme.textSecondary)
+                            .foregroundColor(InboxAppearance.textSecondary(for: colorScheme))
                     }
 
                     Text("Sign in to backup & sync across devices")
                         .font(.system(size: 11, weight: .regular))
-                        .foregroundColor(AppTheme.textSecondary)
+                        .foregroundColor(InboxAppearance.textSecondary(for: colorScheme))
                         .lineLimit(1)
                 }
 
@@ -1171,7 +1172,7 @@ public struct InboxView: View {
                     HStack(spacing: 6) {
                         Text("Free Plan")
                             .font(.system(size: 12, weight: .bold))
-                            .foregroundColor(AppTheme.textPrimary)
+                            .foregroundColor(InboxAppearance.textPrimary(for: colorScheme))
 
                         Text("LIMITED")
                             .font(.system(size: 9, weight: .heavy))
@@ -1183,7 +1184,7 @@ public struct InboxView: View {
 
                     Text("Upgrade to Pro for cloud sync & AI")
                         .font(.system(size: 11, weight: .regular))
-                        .foregroundColor(AppTheme.textSecondary)
+                        .foregroundColor(InboxAppearance.textSecondary(for: colorScheme))
                         .lineLimit(1)
                 }
 
@@ -1226,7 +1227,7 @@ public struct InboxView: View {
                         HStack(spacing: 6) {
                             Text("Cloud Sync")
                                 .font(.system(size: 12, weight: .bold))
-                                .foregroundColor(AppTheme.textPrimary)
+                                .foregroundColor(InboxAppearance.textPrimary(for: colorScheme))
 
                             Text("SYNCING")
                                 .font(.system(size: 9, weight: .heavy))
@@ -1238,7 +1239,7 @@ public struct InboxView: View {
 
                         Text(coordinator.isPulling ? "Pulling latest changes from cloud…" : (coordinator.isPushing ? "Pushing local edits to cloud…" : "Resolving conflicts & syncing…"))
                             .font(.system(size: 11, weight: .regular))
-                            .foregroundColor(AppTheme.textSecondary)
+                            .foregroundColor(InboxAppearance.textSecondary(for: colorScheme))
                             .lineLimit(1)
                     }
 
@@ -1258,7 +1259,7 @@ public struct InboxView: View {
                         HStack(spacing: 6) {
                             Text("Sync Needed")
                                 .font(.system(size: 12, weight: .bold))
-                                .foregroundColor(AppTheme.textPrimary)
+                                .foregroundColor(InboxAppearance.textPrimary(for: colorScheme))
 
                             HStack(spacing: 2) {
                                 Text("\(coordinator.pendingPullCount)↓")
@@ -1274,7 +1275,7 @@ public struct InboxView: View {
 
                         Text("Pull remote changes first, then push local edits")
                             .font(.system(size: 11, weight: .regular))
-                            .foregroundColor(AppTheme.textSecondary)
+                            .foregroundColor(InboxAppearance.textSecondary(for: colorScheme))
                             .lineLimit(1)
                     }
 
@@ -1313,7 +1314,7 @@ public struct InboxView: View {
                         HStack(spacing: 6) {
                             Text("Cloud Updates")
                                 .font(.system(size: 12, weight: .bold))
-                                .foregroundColor(AppTheme.textPrimary)
+                                .foregroundColor(InboxAppearance.textPrimary(for: colorScheme))
 
                             Text("\(coordinator.pendingPullCount) NEW")
                                 .font(.system(size: 9, weight: .heavy))
@@ -1325,7 +1326,7 @@ public struct InboxView: View {
 
                         Text("\(coordinator.pendingPullCount) change\(coordinator.pendingPullCount == 1 ? "" : "s") available to pull")
                             .font(.system(size: 11, weight: .regular))
-                            .foregroundColor(AppTheme.textSecondary)
+                            .foregroundColor(InboxAppearance.textSecondary(for: colorScheme))
                             .lineLimit(1)
                     }
 
@@ -1364,7 +1365,7 @@ public struct InboxView: View {
                         HStack(spacing: 6) {
                             Text("Unsynced Edits")
                                 .font(.system(size: 12, weight: .bold))
-                                .foregroundColor(AppTheme.textPrimary)
+                                .foregroundColor(InboxAppearance.textPrimary(for: colorScheme))
 
                             Text("\(coordinator.pendingPushCount) LOCAL")
                                 .font(.system(size: 9, weight: .heavy))
@@ -1376,7 +1377,7 @@ public struct InboxView: View {
 
                         Text("\(coordinator.pendingPushCount) edit\(coordinator.pendingPushCount == 1 ? "" : "s") pending push")
                             .font(.system(size: 11, weight: .regular))
-                            .foregroundColor(AppTheme.textSecondary)
+                            .foregroundColor(InboxAppearance.textSecondary(for: colorScheme))
                             .lineLimit(1)
                     }
 
@@ -1415,7 +1416,7 @@ public struct InboxView: View {
                         HStack(spacing: 6) {
                             Text("Pro Member")
                                 .font(.system(size: 12, weight: .bold))
-                                .foregroundColor(AppTheme.textPrimary)
+                                .foregroundColor(InboxAppearance.textPrimary(for: colorScheme))
 
                             HStack(spacing: 3) {
                                 Circle()
@@ -1432,7 +1433,7 @@ public struct InboxView: View {
 
                         Text("Cloud sync active • All changes up to date")
                             .font(.system(size: 11, weight: .regular))
-                            .foregroundColor(AppTheme.textSecondary)
+                            .foregroundColor(InboxAppearance.textSecondary(for: colorScheme))
                             .lineLimit(1)
                     }
 
@@ -1464,7 +1465,7 @@ public struct InboxView: View {
         .padding(.bottom, max(8, bottomSafeAreaInset))
         .frame(maxWidth: .infinity)
         .background(
-            Color.white
+            InboxAppearance.surface(for: colorScheme)
                 .overlay(
                     Rectangle()
                         .frame(height: 1)

@@ -11,6 +11,7 @@ import UniformTypeIdentifiers
 import ImageIO
 
 public struct EmailInboxRowView: View {
+    @Environment(\.colorScheme) private var colorScheme
     @State private var attachmentThumbnail: UIImage?
     public let item: LBItem
     public var isSelectionMode: Bool = false
@@ -241,7 +242,7 @@ public struct EmailInboxRowView: View {
                     Button(action: onToggleSelect) {
                         Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
                             .font(.system(size: 20))
-                            .foregroundColor(isSelected ? AppTheme.textPrimary : Color.gray.opacity(0.4))
+                            .foregroundColor(isSelected ? InboxAppearance.textPrimary(for: colorScheme) : Color.gray.opacity(0.4))
                     }
                     .buttonStyle(.plain)
                     .padding(.top, 10)
@@ -281,7 +282,7 @@ public struct EmailInboxRowView: View {
                     HStack(alignment: .firstTextBaseline) {
                         Text(senderText)
                             .font(.system(size: 15, weight: .bold))
-                            .foregroundColor(AppTheme.textPrimary)
+                            .foregroundColor(InboxAppearance.textPrimary(for: colorScheme))
                             .lineLimit(1)
 
                         Spacer()
@@ -294,7 +295,7 @@ public struct EmailInboxRowView: View {
                     // Line 2: Subject / Title
                     Text(item.title)
                         .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(AppTheme.textPrimary)
+                        .foregroundColor(InboxAppearance.textPrimary(for: colorScheme))
                         .lineLimit(1)
 
                     // Line 3: Snippet text + Bottom-Right Star Icon
@@ -308,7 +309,7 @@ public struct EmailInboxRowView: View {
                         Button(action: onToggleFavorite) {
                             Image(systemName: item.favorite ? "star.fill" : "star")
                                 .font(.system(size: 16))
-                                .foregroundColor(item.favorite ? AppTheme.amber : Color.black.opacity(0.28))
+                                .foregroundColor(item.favorite ? AppTheme.amber : InboxAppearance.inactiveStar(for: colorScheme))
                         }
                         .buttonStyle(.plain)
                     }
@@ -352,7 +353,7 @@ public struct EmailInboxRowView: View {
                 topTrailingRadius: topRadius,
                 style: .continuous
             )
-            .fill(Color.white)
+            .fill(InboxAppearance.surface(for: colorScheme))
         )
         .clipShape(
             UnevenRoundedRectangle(
@@ -371,7 +372,7 @@ public struct EmailInboxRowView: View {
                 topTrailingRadius: topRadius,
                 style: .continuous
             )
-            .strokeBorder(Color.black.opacity(0.04), lineWidth: 0.5)
+            .strokeBorder(InboxAppearance.border(for: colorScheme), lineWidth: 0.5)
         )
         .contentShape(
             UnevenRoundedRectangle(

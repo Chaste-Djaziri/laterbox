@@ -23,6 +23,7 @@ enum MainTab: String, CaseIterable, Identifiable {
 }
 
 struct MainTabView: View {
+    @Environment(\.colorScheme) private var colorScheme
     @State private var selectedTab: MainTab = .inbox
     @State private var secondaryMailbox: MailboxViewType?
     @State private var showingCapture = false
@@ -103,12 +104,12 @@ struct MainTabView: View {
                 .tabItem { Label(MainTab.settings.rawValue, systemImage: MainTab.settings.symbol) }
                 .tag(MainTab.settings)
             }
-            .tint(AppTheme.textPrimary)
-            .toolbarBackground(AppTheme.canvasBackground, for: .tabBar)
+            .tint(InboxAppearance.textPrimary(for: colorScheme))
+            .toolbarBackground(InboxAppearance.background(for: colorScheme), for: .tabBar)
             .toolbarBackground(.visible, for: .tabBar)
             .accessibilityIdentifier("LaterBox Main Tabs")
         }
-        .background(AppTheme.canvasBackground.ignoresSafeArea())
+        .background(InboxAppearance.background(for: colorScheme).ignoresSafeArea())
         .fullScreenCover(isPresented: $showingCapture) {
             NavigationStack {
                 CaptureView()
@@ -174,7 +175,7 @@ struct MainTabView: View {
                 } label: {
                     Image(systemName: "line.3.horizontal")
                         .font(.system(size: 19, weight: .medium))
-                        .foregroundStyle(AppTheme.textPrimary)
+                        .foregroundStyle(InboxAppearance.textPrimary(for: colorScheme))
                         .frame(width: 44, height: 44)
                         .contentShape(Rectangle())
                 }
@@ -184,6 +185,6 @@ struct MainTabView: View {
         }
         .frame(height: 58)
         .padding(.horizontal, 16)
-        .background(AppTheme.canvasBackground)
+        .background(InboxAppearance.background(for: colorScheme))
     }
 }

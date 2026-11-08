@@ -66,6 +66,16 @@ struct MainTabTests {
         #expect(LaterBoxPullRefresh.fillProgress(distance: -20, refreshing: false) == 0)
     }
 
+    @Test("Inbox uses true white and black canvases with contrasting content")
+    func inboxAppearance() {
+        #expect(InboxAppearance.background(for: .light) == Color.white)
+        #expect(InboxAppearance.background(for: .dark) == Color.black)
+        #expect(InboxAppearance.textPrimary(for: .light) == Color.black)
+        #expect(InboxAppearance.textPrimary(for: .dark) == Color.white)
+        #expect(InboxAppearance.surface(for: .light) != InboxAppearance.surface(for: .dark))
+        #expect(InboxAppearance.border(for: .light) != InboxAppearance.border(for: .dark))
+    }
+
     @Test("Splash uses black on white in Light Mode and white on black in Dark Mode")
     func splashRespectsAppearance() {
         #expect(LaterBoxLoadingMark.foreground(for: .light) == Color.black)
