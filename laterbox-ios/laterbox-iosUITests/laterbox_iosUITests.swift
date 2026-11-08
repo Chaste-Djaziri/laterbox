@@ -72,6 +72,38 @@ final class laterbox_iosUITests: XCTestCase {
     }
 
     @MainActor
+    func testReturnsSegmentsAreAlwaysVisibleAndSwitchContent() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["-lb_guest_mode", "YES", "-lb_user_email", ""]
+        app.launch()
+
+        let todayTab = app.tabBars.buttons["Today"]
+        XCTAssertTrue(todayTab.waitForExistence(timeout: 15))
+        todayTab.tap()
+
+        let today = app.buttons["Returns Segment Today"]
+        let upcoming = app.buttons["Returns Segment Upcoming"]
+        let someday = app.buttons["Returns Segment Someday"]
+
+        XCTAssertTrue(today.waitForExistence(timeout: 5))
+        XCTAssertTrue(upcoming.exists)
+        XCTAssertTrue(someday.exists)
+        XCTAssertEqual(today.value as? String, "Selected")
+        XCTAssertTrue(app.staticTexts["Due today"].exists)
+
+        upcoming.tap()
+        XCTAssertEqual(upcoming.value as? String, "Selected")
+        XCTAssertTrue(app.staticTexts["Coming up"].waitForExistence(timeout: 5))
+
+        someday.tap()
+        XCTAssertEqual(someday.value as? String, "Selected")
+        XCTAssertTrue(app.staticTexts["Whenever you're ready"].waitForExistence(timeout: 5))
+
+        today.tap()
+        XCTAssertTrue(app.staticTexts["Due today"].waitForExistence(timeout: 5))
+    }
+
+    @MainActor
     func testInboxSearchStaysAlignedAfterItemPushAndSwipeBack() throws {
         let app = XCUIApplication()
         app.launchArguments = ["-lb_guest_mode", "YES", "-lb_user_email", ""]

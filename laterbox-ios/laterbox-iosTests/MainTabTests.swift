@@ -58,6 +58,21 @@ struct MainTabTests {
         #expect(CloudStorageQuota.from(old).percent == nil)
     }
 
+    @Test("Returns destinations have distinct labels, symbols, and empty states")
+    func returnSegments() {
+        #expect(ReturnSegment.allCases.map(\.rawValue) == ["Today", "Upcoming", "Someday"])
+        #expect(Set(ReturnSegment.allCases.map(\.symbol)).count == 3)
+        for segment in ReturnSegment.allCases {
+            #expect(!segment.heading.isEmpty)
+            #expect(!segment.description.isEmpty)
+            #expect(!segment.emptyTitle.isEmpty)
+            #expect(!segment.emptyHint.isEmpty)
+        }
+        #expect(ReturnSegment.today.emptyTitle == "All caught up")
+        #expect(ReturnSegment.upcoming.heading == "Coming up")
+        #expect(ReturnSegment.someday.emptyTitle == "Your Someday list is empty")
+    }
+
     @Test("Only Inbox owns the custom top header")
     func headerVisibility() {
         #expect(MainTab.inbox.showsAppHeader)

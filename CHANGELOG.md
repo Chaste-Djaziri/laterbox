@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[iOS / Returns appearance and navigation]** Redesign the Today/Returns screen with the same white Light Mode and textured graphite Dark Mode as Inbox, including adaptive overdue/today cards and controls. Replace the horizontally scrollable pill filters with a full-width equal-width Today / Upcoming / Someday segmented switcher, prominent selection states and counts, distinct section descriptions, and helpful context-specific empty states, while preserving return actions and native item-detail navigation.
+
 - **[Web / Item detail chat]** Replace the full item page's raw personal-note textarea (which exposed synced iOS thread JSON) with a conversation-style Notes & Follow-ups thread and composer. Decode the same shared itemThread format as the Inbox side panel and iOS; support sending, quoted replies, editing/deleting messages, reactions, existing poll votes and file references, legacy plain-text notes, and safe save feedback without destroying thread metadata.
 
 - **[iOS / Detail chat composer]** Restore the item-details chat-style input as a persistent bottom composer above the safe area, preserving quoted replies, adaptive white/graphite styling, and keyboard behavior. Keep the web-aligned item card and thread messages scrollable independently; scroll to the latest note after sending without jumping to notes when opening an item.
