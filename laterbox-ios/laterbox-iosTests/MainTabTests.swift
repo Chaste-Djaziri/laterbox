@@ -116,14 +116,23 @@ struct MainTabTests {
         #expect(canvas?.resolvedColor(with: dark).isEqual(UIColor.black) == true)
     }
 
-    @Test("Inbox uses true white and black canvases with contrasting content")
+    @Test("Inbox uses clean white and textured graphite dark appearance")
     func inboxAppearance() {
         #expect(InboxAppearance.background(for: .light) == Color.white)
-        #expect(InboxAppearance.background(for: .dark) == Color.black)
+        #expect(InboxAppearance.background(for: .dark) == Color(hex: "1B1D20"))
+        #expect(InboxAppearance.surface(for: .dark) == Color(hex: "25282B"))
         #expect(InboxAppearance.textPrimary(for: .light) == Color.black)
         #expect(InboxAppearance.textPrimary(for: .dark) == Color.white)
         #expect(InboxAppearance.surface(for: .light) != InboxAppearance.surface(for: .dark))
         #expect(InboxAppearance.border(for: .light) != InboxAppearance.border(for: .dark))
+    }
+
+    @Test("Graphite grain remains deterministic and within bounds")
+    func darkGrainNoise() {
+        let sample = (0..<100).map { InboxGrainBackground.noise(UInt64($0)) }
+        #expect(sample.allSatisfy { $0 >= 0 && $0 <= 1 })
+        #expect(sample == (0..<100).map { InboxGrainBackground.noise(UInt64($0)) })
+        #expect(Set(sample).count > 90)
     }
 
     @Test("The brand mark is made from three scalable vector faces with open counters")

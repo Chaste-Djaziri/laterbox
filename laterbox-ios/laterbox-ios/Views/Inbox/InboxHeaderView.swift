@@ -104,6 +104,6 @@ struct InboxHeaderView: View {
         }
         .frame(height: 58)
         .padding(.horizontal, 16)
-        .background(InboxAppearance.background(for: colorScheme))
+        .background(InboxGrainBackground())
     }
 }

@@ -255,7 +255,7 @@ public struct InboxView: View {
     public var body: some View {
         NavigationStack(path: $itemPath) {
             ZStack {
-                InboxAppearance.background(for: colorScheme).ignoresSafeArea()
+                InboxGrainBackground().ignoresSafeArea()
 
                 VStack(spacing: 0) {
                     // The header is part of this navigation root, not the outer

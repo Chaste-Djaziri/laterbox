@@ -57,6 +57,6 @@ struct MainTabView: View {
         .toolbarBackground(InboxAppearance.background(for: colorScheme), for: .tabBar)
         .toolbarBackground(.visible, for: .tabBar)
         .accessibilityIdentifier("LaterBox Main Tabs")
-        .background(InboxAppearance.background(for: colorScheme).ignoresSafeArea())
+        .background(InboxGrainBackground().ignoresSafeArea())
     }
 }
