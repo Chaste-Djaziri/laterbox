@@ -296,10 +296,10 @@ export default function SettingsPage() {
                 {plan.description}
               </p>
               {plan.progress !== null && <div className="mt-3 h-1.5 max-w-md overflow-hidden rounded-full bg-white/15"><div className={`h-full ${plan.tone === 'warning' ? 'bg-amber-300' : 'bg-[#e6edb0]'}`} style={{ width: `${Math.round(plan.progress * 100)}%` }} /></div>}
-              {entitlement.billingWarning && <p className="mt-2 text-xs font-bold text-amber-300">Payment needs attention. Update it in the billing portal to keep Pro active.</p>}
+              {entitlement.billingWarning && <p className="mt-2 text-xs font-bold text-amber-300">Payment needs attention. Update it in the billing portal to keep your storage plan active.</p>}
               {billingMessage && <p className="mt-2 text-xs font-bold text-red-300">{billingMessage}</p>}
             </div>
-            {isPro && entitlement.provider === 'paddle' ? (
+            {isPro && (entitlement.provider === 'paddle' || entitlement.provider === 'whop') ? (
               <button
                 type="button"
                 disabled={billingLoading}
@@ -314,7 +314,7 @@ export default function SettingsPage() {
             ) : isPro && entitlement.provider === 'apple' ? (
               <AppleSubscriptionDetails entitlement={entitlement} />
             ) : (
-              <Link href="/plans" className="rounded-xl bg-[#e6edb0] hover:bg-[#d8e09e] px-4 py-2.5 text-center text-xs font-black text-[#171711] transition-colors">View Pro plans</Link>
+              <Link href="/plans" className="rounded-xl bg-[#e6edb0] hover:bg-[#d8e09e] px-4 py-2.5 text-center text-xs font-black text-[#171711] transition-colors">View storage plans</Link>
             )}
           </div>
         </section>

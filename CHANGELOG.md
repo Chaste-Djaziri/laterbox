@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[Web / Pricing]** Introduce Free, Plus and Vault storage pricing across public and app plans, update Settings billing access, and remove obsolete refund-page trial claims for new Whop subscriptions.
+
 - **[Cloud / Storage]** Open account-based sync on Web, iOS and browser capture, with server-side storage quotas, reservation checks and safe limits on file uploads.
 - **[Billing / Whop]** Begin the provider-safe transition to authenticated embedded Whop checkout, storage tiers and verified webhooks. Retain legacy Paddle and App Store subscription management until customer migration is complete.
 

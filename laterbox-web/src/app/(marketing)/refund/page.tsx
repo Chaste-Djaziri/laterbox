@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 
 export default function RefundPolicyPage() {
-  const lastUpdated = 'September 11, 2026';
+  const lastUpdated = 'November 8, 2026';
 
   return (
     <div className="w-full flex-1">
@@ -30,7 +30,7 @@ export default function RefundPolicyPage() {
             Refund Policy
           </h1>
           <p className="text-sm sm:text-base text-[#6c6b63] font-medium leading-relaxed max-w-2xl">
-            LaterBox operates under a strict no-refund policy for all subscription plans and digital purchases. Please read this policy carefully before purchasing a LaterBox Pro subscription.
+            This policy explains refunds and cancellations for LaterBox storage subscriptions, including Whop purchases and legacy providers. Mandatory consumer rights under applicable law always apply.
           </p>
           <p className="text-xs font-semibold text-[#9e9b92]">
             Last Updated: {lastUpdated}
@@ -43,9 +43,9 @@ export default function RefundPolicyPage() {
             <div className="w-10 h-10 rounded-2xl bg-amber-100 flex items-center justify-center text-amber-900 border border-amber-200">
               <Ban className="w-5 h-5" />
             </div>
-            <h3 className="text-sm font-bold text-[#171711]">No Refunds</h3>
+            <h3 className="text-sm font-bold text-[#171711]">Refund Eligibility</h3>
             <p className="text-xs text-[#6c6b63] leading-relaxed">
-              All sales, renewals, and subscription charges are final and non-refundable once processed.
+              Paid subscriptions generally renew until canceled. Refund requests remain subject to applicable consumer law and the payment provider's rules.
             </p>
           </div>
 
@@ -53,9 +53,9 @@ export default function RefundPolicyPage() {
             <div className="w-10 h-10 rounded-2xl bg-[#e6edb0] flex items-center justify-center text-[#171711] border border-[#d0db84]">
               <Clock className="w-5 h-5" />
             </div>
-            <h3 className="text-sm font-bold text-[#171711]">14-Day Free Trial</h3>
+            <h3 className="text-sm font-bold text-[#171711]">Free Plan</h3>
             <p className="text-xs text-[#6c6b63] leading-relaxed">
-              Test all Pro features completely free before you are charged. Cancel anytime during the trial.
+              Save links and sync across devices for free. Upgrade only when you need more cloud storage.
             </p>
           </div>
 
@@ -79,7 +79,7 @@ export default function RefundPolicyPage() {
               <span>1. Strict No-Refund Policy</span>
             </h2>
             <p>
-              Except where strictly required by applicable local law, <strong>all payments made for LaterBox Pro (including both monthly and annual plans) are final and non-refundable</strong>.
+              Except where required by applicable local law or the payment provider, <strong>paid subscription charges are generally non-refundable once the billing period begins</strong>.
             </p>
             <p>
               We do not provide prorated refunds, partial refunds, or credits for unused subscription time, early cancellations, downgrades, or accidental renewals once a billing period has commenced.
@@ -90,7 +90,7 @@ export default function RefundPolicyPage() {
                 <span>Important Notice Before Subscribing</span>
               </p>
               <p>
-                Because LaterBox Pro provides immediate digital access to cloud sync, storage infrastructure, and premium automation features, processing fees and server costs are incurred immediately upon subscription activation.
+                Paid plans allocate additional cloud storage immediately. Basic cloud sync remains free for all signed-in accounts.
               </p>
             </div>
           </section>
@@ -99,23 +99,23 @@ export default function RefundPolicyPage() {
           <section className="space-y-3 p-6 sm:p-8 rounded-3xl bg-white border border-[#e4e0d5]">
             <h2 className="text-xl font-extrabold text-[#171711] flex items-center gap-2">
               <Clock className="w-5 h-5 text-[#171711]" />
-              <span>2. Risk-Free Evaluation & 14-Day Free Trial</span>
+              <span>2. Free Evaluation & Optional Promotions</span>
             </h2>
             <p>
-              To ensure that LaterBox Pro completely meets your needs prior to making any financial commitment, we provide multiple risk-free ways to evaluate our platform:
+              You can evaluate LaterBox before purchasing more storage:
             </p>
             <ul className="space-y-2.5 pl-1">
               <li className="flex items-start gap-2">
                 <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                <span><strong>Free Tier:</strong> Basic saving, reading, searching, organizing, and local exports are 100% free forever without requiring payment details.</span>
+                <span><strong>Free Tier:</strong> Saving, reading, searching, organizing, device sync, and 500 MB of cloud storage are free without payment details.</span>
               </li>
               <li className="flex items-start gap-2">
                 <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                <span><strong>14-Day Free Trial:</strong> Both monthly and annual subscriptions include a full 14-day free trial for eligible new subscribers. You have full access to all Pro features with zero charge during this window.</span>
+                <span><strong>Optional promotions:</strong> A trial is available only if explicitly shown during checkout. New Whop storage plans are not configured with a trial by default.</span>
               </li>
             </ul>
             <p>
-              If you decide that LaterBox Pro is not for you, simply cancel your subscription before the 14-day trial period concludes. You will not be billed.
+              Review the final price, renewal terms, and any eligible promotion before confirming a paid subscription.
             </p>
           </section>
 
@@ -131,7 +131,7 @@ export default function RefundPolicyPage() {
             <ul className="space-y-2 pl-2">
               <li className="flex items-start gap-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#171711] shrink-0 mt-2" />
-                <span><strong>Web & Direct Purchases (Paddle):</strong> Navigate to your Account Settings in LaterBox and open the customer billing portal to cancel with a single click.</span>
+                <span><strong>Web Purchases (Whop and legacy Paddle):</strong> Open Account Settings in LaterBox and select Manage Subscription to reach your original payment provider.</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#171711] shrink-0 mt-2" />
@@ -139,7 +139,7 @@ export default function RefundPolicyPage() {
               </li>
             </ul>
             <p>
-              When you cancel, your account remains active with full Pro features until the end of the current billing cycle. Afterward, your account reverts to the Free plan. Your local saved items and data remain entirely intact and exportable.
+              Cancellation follows the provider's confirmed effective date. When your paid storage allowance ends, free syncing remains available. Existing saved data is not automatically deleted, but new uploads may pause when your files exceed the Free quota.
             </p>
           </section>
 
@@ -205,8 +205,8 @@ export default function RefundPolicyPage() {
         {/* Quick Back to Pricing CTA */}
         <div className="p-6 rounded-3xl bg-[#f7f5ee] border border-[#e4e0d5] flex flex-col sm:flex-row items-center justify-between gap-4">
           <div>
-            <h3 className="text-sm font-bold text-[#171711]">Ready to explore LaterBox Pro?</h3>
-            <p className="text-xs text-[#6c6b63]">Start your 14-day free trial today with no commitment.</p>
+            <h3 className="text-sm font-bold text-[#171711]">Ready to explore LaterBox storage?</h3>
+            <p className="text-xs text-[#6c6b63]">Start with free cloud sync, then upgrade your storage when you need it.</p>
           </div>
           <Link
             href="/pricing"
