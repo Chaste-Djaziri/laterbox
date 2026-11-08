@@ -169,6 +169,20 @@ public struct EmailInboxRowView: View {
         return url
     }
 
+    /// Fade preview imagery into the current card surface, never fixed white.
+    /// Using the same color as the row avoids a pale strip in Dark Mode.
+    private var previewFadeOverlay: some View {
+        LinearGradient(
+            stops: [
+                .init(color: InboxAppearance.surface(for: colorScheme).opacity(0.92), location: 0),
+                .init(color: InboxAppearance.surface(for: colorScheme).opacity(0.2), location: 0.6),
+                .init(color: .clear, location: 1)
+            ],
+            startPoint: .leading,
+            endPoint: .trailing
+        )
+    }
+
     public var body: some View {
         ZStack(alignment: .trailing) {
             // Right-aligned fading OG / Video cover image watermark (matching web anime-card style)
@@ -186,6 +200,7 @@ public struct EmailInboxRowView: View {
                             .init(color: .black.opacity(0.85), location: 0.65),
                             .init(color: .black, location: 1)
                         ], startPoint: .leading, endPoint: .trailing))
+                        .overlay(previewFadeOverlay)
                         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .trailing)
                 }
                 .allowsHitTesting(false)
@@ -215,17 +230,7 @@ public struct EmailInboxRowView: View {
                                         endPoint: .trailing
                                     )
                                 )
-                                .overlay(
-                                    LinearGradient(
-                                        stops: [
-                                            .init(color: Color.white.opacity(0.92), location: 0.0),
-                                            .init(color: Color.white.opacity(0.2), location: 0.6),
-                                            .init(color: .clear, location: 1.0)
-                                        ],
-                                        startPoint: .leading,
-                                        endPoint: .trailing
-                                    )
-                                )
+                                .overlay(previewFadeOverlay)
                                 .frame(width: watermarkWidth, height: cardHeight)
                         default:
                             EmptyView()

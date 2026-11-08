@@ -1,6 +1,7 @@
 // laterbox-ios/laterbox-iosTests/MainTabTests.swift
 import Testing
 import SwiftUI
+import UIKit
 @testable import laterbox_ios
 
 @Suite("Main iOS navigation")
@@ -64,6 +65,21 @@ struct MainTabTests {
         // While syncing, the mark stays fully colored even after the pull releases.
         #expect(LaterBoxPullRefresh.fillProgress(distance: 0, refreshing: true) == 1)
         #expect(LaterBoxPullRefresh.fillProgress(distance: -20, refreshing: false) == 0)
+    }
+
+    @Test("Native launch assets resolve to black-on-white and white-on-black")
+    func nativeLaunchAppearance() {
+        let light = UITraitCollection(userInterfaceStyle: .light)
+        let dark = UITraitCollection(userInterfaceStyle: .dark)
+        let canvas = UIColor(named: "LaterBoxLaunchCanvas")
+        let ink = UIColor(named: "LaterBoxLaunchInk")
+
+        #expect(canvas?.resolvedColor(with: light).isEqual(UIColor.white) == true)
+        #expect(canvas?.resolvedColor(with: dark).isEqual(UIColor.black) == true)
+        #expect(ink?.resolvedColor(with: light).isEqual(UIColor.black) == true)
+        #expect(ink?.resolvedColor(with: dark).isEqual(UIColor.white) == true)
+        #expect(UIImage(named: "LaterBoxLaunchMark", in: .main, compatibleWith: light) != nil)
+        #expect(UIImage(named: "LaterBoxLaunchMark", in: .main, compatibleWith: dark) != nil)
     }
 
     @Test("Inbox uses true white and black canvases with contrasting content")

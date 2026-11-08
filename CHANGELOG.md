@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[iOS / Dark previews and launch]** Fix email-preview image fade overlays so they blend into light or dark card surfaces instead of fading into white in Dark Mode. Replace the static beige native launch storyboard with adaptive white/black named colors and a transparent PDF vector cube in black/white variants, matching the animated SwiftUI splash and avoiding a theme flash on startup.
+
 - **[iOS / Inbox appearance]** Give the main Inbox a pure white canvas in Light Mode and pure black canvas in Dark Mode, allow the signed-in root to follow the device appearance, and adapt search, inbox cards, text, borders, and tab/header chrome to maintain legible contrast.
 
 - **[iOS / Refresh logo color fill]** Replace the moving gradient in the centered pull-to-refresh vector logo with a static LaterBox green fill that climbs from bottom to top directly with drag distance, reaches full coverage during sync, then clears when refresh ends. Preserve equal-axis enlargement and transparent cutouts; no rotation or lighting sweep.

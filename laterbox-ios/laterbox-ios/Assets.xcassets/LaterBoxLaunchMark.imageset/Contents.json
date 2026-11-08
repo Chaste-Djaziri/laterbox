@@ -1,0 +1,25 @@
+{
+  "images": [
+    {
+      "filename": "LaunchMarkLight.pdf",
+      "idiom": "universal"
+    },
+    {
+      "filename": "LaunchMarkDark.pdf",
+      "idiom": "universal",
+      "appearances": [
+        {
+          "appearance": "luminosity",
+          "value": "dark"
+        }
+      ]
+    }
+  ],
+  "info": {
+    "author": "xcode",
+    "version": 1
+  },
+  "properties": {
+    "preserves-vector-representation": true
+  }
+}
