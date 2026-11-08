@@ -47,6 +47,7 @@ public struct ItemDetailView: View {
     // Follow-ups & Notes state
     @State private var threadData: ItemThreadData = ItemThreadData()
     @State private var noteDraftText: String = ""
+    @State private var noteSendToken = 0
     @State private var quotedSnippet: String? = nil
     @FocusState private var isNoteFocused: Bool
 
@@ -101,26 +102,35 @@ public struct ItemDetailView: View {
 
                 // Match web detail hierarchy: one item card instead of a stack
                 // of independent metadata, media and content panels.
-                ScrollView {
-                    VStack(spacing: 18) {
-                        if item.status == ItemStatus.inbox.rawValue {
-                            inboxAgeBanner
-                        } else if let date = item.returnAt {
-                            returnScheduleBanner(ret: date)
+                ScrollViewReader { scroll in
+                    ScrollView {
+                        VStack(spacing: 18) {
+                            if item.status == ItemStatus.inbox.rawValue {
+                                inboxAgeBanner
+                            } else if let date = item.returnAt {
+                                returnScheduleBanner(ret: date)
+                            }
+
+                            webStyleItemCard
+                            notesAndFollowUpsCard
+                                .id("item-notes-end")
                         }
-
-                        webStyleItemCard
-
-                        // Personal notes live beneath the item, as on the web.
-                        notesAndFollowUpsCard
+                        .frame(maxWidth: 660)
+                        .frame(maxWidth: .infinity)
+                        .padding(.horizontal, 14)
+                        .padding(.top, 12)
+                        .padding(.bottom, 24)
                     }
-                    .frame(maxWidth: 660)
-                    .frame(maxWidth: .infinity)
-                    .padding(.horizontal, 14)
-                    .padding(.top, 12)
-                    .padding(.bottom, 24)
+                    .onChange(of: noteSendToken) { _, _ in
+                        withAnimation(.easeOut(duration: 0.25)) {
+                            scroll.scrollTo("item-notes-end", anchor: .bottom)
+                        }
+                    }
                 }
 
+                // Always available, like a chat app. The list scrolls under
+                // this composer and the keyboard lifts it with the safe area.
+                bottomChatInputBar
             }
         }
         .toolbar(usesNativeNavigation ? .visible : .hidden, for: .navigationBar)
@@ -1247,8 +1257,6 @@ public struct ItemDetailView: View {
                     .foregroundColor(.secondary)
                     .padding(.vertical, 4)
             }
-            inlineNotesComposer
-                .padding(.top, 4)
         }
         .padding(14)
         .background(detailSurface)
@@ -1260,10 +1268,8 @@ public struct ItemDetailView: View {
         .shadow(color: Color.black.opacity(0.02), radius: 4, y: 1)
     }
 
-    // Web detail pages keep personal notes beneath the primary item card.
-    // This editor sits in the notes section instead of occupying screen space
-    // as a permanent bottom dock during article reading.
-    private var inlineNotesComposer: some View {
+    // Fixed chat-style composer, separate from the scrollable thread.
+    private var bottomChatInputBar: some View {
         VStack(spacing: 8) {
             if let snippet = quotedSnippet {
                 HStack(spacing: 8) {
@@ -1314,6 +1320,18 @@ public struct ItemDetailView: View {
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
                     .strokeBorder(detailBorder, lineWidth: 1)
             }
+        }
+        .padding(.horizontal, 14)
+        .padding(.top, 9)
+        .padding(.bottom, 8)
+        .background(
+            InboxAppearance.background(for: colorScheme)
+                .opacity(0.97)
+        )
+        .overlay(alignment: .top) {
+            Rectangle()
+                .fill(detailBorder)
+                .frame(height: 1)
         }
     }
 
@@ -1675,7 +1693,7 @@ public struct ItemDetailView: View {
 
         noteDraftText = ""
         quotedSnippet = nil
-        isNoteFocused = false
+        noteSendToken += 1
         persistThread()
         LBHaptic.medium()
     }
