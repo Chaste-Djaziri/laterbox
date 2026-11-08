@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useMemo, useRef, useEffect, useSyncExternalStore } from 'react';
+import dynamic from 'next/dynamic';
 import { useRouter, usePathname } from 'next/navigation';
 import { LaterBoxItem } from '@/lib/supabase/types';
 import { useItems } from '@/lib/store/ItemContext';
@@ -18,6 +19,7 @@ import {
   RefreshCw,
   ChevronLeft,
   ChevronRight,
+  ArrowLeft,
   ChevronDown,
   MoreVertical,
   Paperclip,
@@ -44,11 +46,19 @@ import {
   itemMatchesQuery,
   resolveItemPreviewImageUrl,
 } from '@/lib/utils/emailFormatters';
-import { ItemSideDetailPanel } from '@/components/inbox/ItemSideDetailPanel';
+const ItemDetailView = dynamic(
+  () => import('@/components/item/ItemDetailView').then(module => module.ItemDetailView),
+  { loading: () => (
+    <div className="flex flex-1 items-center justify-center p-12 text-sm font-semibold text-[#8e8d87]">
+      Loading item details…
+    </div>
+  ) }
+);
 import { AddToCollectionModal } from '@/components/collections/AddToCollectionModal';
 import { fetchAttachmentDownloadUrl } from '@/lib/utils/attachment';
 import { PortalMenu } from '@/components/ui/PortalMenu';
 import { ExactScheduleModal } from '@/components/scheduling/ExactScheduleModal';
+import { emailTableItemHref, readEmailTableItemId } from '@/lib/utils/tableItemNavigation';
 
 function InboxImageBackground({ item }: { item: LaterBoxItem }) {
   const asset = item.attachments?.find(a => a.mime_type?.startsWith('image/') ||
@@ -87,6 +97,29 @@ interface EmailInboxTableProps {
   onClearSearch?: () => void;
 }
 
+const TABLE_ITEM_CHANGED = 'laterbox:table-item-changed';
+
+function subscribeToTableItem(onChange: () => void) {
+  window.addEventListener('popstate', onChange);
+  window.addEventListener(TABLE_ITEM_CHANGED, onChange);
+  return () => {
+    window.removeEventListener('popstate', onChange);
+    window.removeEventListener(TABLE_ITEM_CHANGED, onChange);
+  };
+}
+
+function readTableItemId() {
+  return readEmailTableItemId(window.location.search);
+}
+
+function replaceTableItemUrl(id: string | null, replace = false) {
+  const url = emailTableItemHref(window.location.href, id);
+  const state = { ...window.history.state, laterboxTableItem: Boolean(id) };
+  if (replace) window.history.replaceState(state, '', url);
+  else window.history.pushState(state, '', url);
+  window.dispatchEvent(new Event(TABLE_ITEM_CHANGED));
+}
+
 type TabKey = 'primary' | 'articles' | 'media' | 'updates';
 
 export function EmailInboxTable({
@@ -116,27 +149,24 @@ export function EmailInboxTable({
 
   const [activeTab, setActiveTab] = useState<TabKey>('primary');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
+  const openedItemId = useSyncExternalStore(subscribeToTableItem, readTableItemId, () => null);
   const [page, setPage] = useState(1);
   const pageSize = 50;
   const [sortOrder, setSortOrder] = useState<'latest' | 'oldest'>('latest');
 
-  // Selected item for split reading view
-  const selectedItem = useMemo(() => {
-    if (!selectedItemId) return null;
-    return items.find((i) => i.id === selectedItemId) || null;
-  }, [items, selectedItemId]);
+  const openItemDetails = (id: string, replace = false) => {
+    setSnoozeMenuForId(null);
+    setBulkSnoozeOpen(false);
+    replaceTableItemUrl(id, replace);
+  };
 
-  // Press Escape to close split reading view
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && selectedItemId) {
-        setSelectedItemId(null);
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedItemId]);
+  const closeItemDetails = () => {
+    if (window.history.state?.laterboxTableItem) {
+      window.history.back();
+    } else {
+      replaceTableItemUrl(null, true);
+    }
+  };
 
   // Local fallback filters if not provided by parent
   const [localFilters, setLocalFilters] = useState<InboxSearchFilters>(DEFAULT_SEARCH_FILTERS);
@@ -295,6 +325,11 @@ export function EmailInboxTable({
   const startIndex = (page - 1) * pageSize;
   const endIndex = Math.min(startIndex + pageSize, totalItems);
   const pagedItems = processedItems.slice(startIndex, endIndex);
+  const openedIndex = openedItemId ? processedItems.findIndex(item => item.id === openedItemId) : -1;
+  const previousItemId = openedIndex > 0 ? processedItems[openedIndex - 1].id : null;
+  const nextItemId = openedIndex >= 0 && openedIndex < processedItems.length - 1
+    ? processedItems[openedIndex + 1].id : null;
+
 
   // Dynamic empty state based on route, collection, or search filters
   const emptyStateConfig = useMemo(() => {
@@ -582,6 +617,43 @@ export function EmailInboxTable({
       {/* ===================================================================== */}
       {/* TOP TOOLBAR: Controls, Batch Actions, Pagination */}
       {/* ===================================================================== */}
+      {openedItemId ? (
+        <div className="shrink-0 flex min-h-[52px] items-center justify-between gap-3 border-b border-[#e4e0d5] bg-[#fafaf6] px-3 py-2 text-[#171711] sm:px-4">
+          <button
+            type="button"
+            onClick={closeItemDetails}
+            className="inline-flex min-h-9 items-center gap-2 rounded-xl px-3 text-xs font-bold transition-colors hover:bg-[#e6edb0] focus-visible:outline-2 focus-visible:outline-[#758a50]"
+          >
+            <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+            Back to {propTitle || 'items'}
+          </button>
+          <div className="flex items-center gap-1.5">
+            <span className="hidden text-[11px] font-semibold text-[#8e8d87] sm:inline">
+              {openedIndex >= 0 ? `${openedIndex + 1} of ${totalItems}` : 'Item details'}
+            </span>
+            <button
+              type="button"
+              aria-label="Previous item"
+              title="Previous item"
+              disabled={!previousItemId}
+              onClick={() => previousItemId && openItemDetails(previousItemId, true)}
+              className="rounded-lg p-2 text-[#5f655b] transition-colors hover:bg-white disabled:cursor-not-allowed disabled:opacity-30 focus-visible:outline-2 focus-visible:outline-[#758a50]"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              aria-label="Next item"
+              title="Next item"
+              disabled={!nextItemId}
+              onClick={() => nextItemId && openItemDetails(nextItemId, true)}
+              className="rounded-lg p-2 text-[#5f655b] transition-colors hover:bg-white disabled:cursor-not-allowed disabled:opacity-30 focus-visible:outline-2 focus-visible:outline-[#758a50]"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      ) : (
       <div className="shrink-0 flex items-center justify-between px-3 py-2 border-b border-[#e4e0d5] bg-white text-[#6c6b63] text-xs min-h-[46px] select-none rounded-t-2xl relative z-20">
         {/* Left Toolbar Controls */}
         <div className="flex items-center gap-1 sm:gap-2">
@@ -877,11 +949,12 @@ export function EmailInboxTable({
           </button>
         </div>
       </div>
+      )}
 
       {/* ===================================================================== */}
       {/* FILTER BAR / CATEGORY TABS */}
       {/* ===================================================================== */}
-      {isSearchActive ? (
+      {!openedItemId && (isSearchActive ? (
         /* SEARCH FILTER PILLS BAR (Image 1 style) */
         <div className="shrink-0 flex flex-wrap items-center justify-between gap-2 px-3 sm:px-4 py-2.5 border-b border-[#e4e0d5] bg-[#faf8f5]/60 text-xs relative z-30">
           <div className="flex flex-wrap items-center gap-1.5" ref={filterMenuRef}>
@@ -1095,12 +1168,22 @@ export function EmailInboxTable({
             );
           })}
         </div>
-      )}
+      ))}
 
       {/* ===================================================================== */}
       {/* EMAIL LIST ROWS */}
       {/* ===================================================================== */}
-      {pagedItems.length === 0 ? (
+      {openedItemId ? (
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain rounded-b-2xl bg-[#f7f5ee]">
+          <ItemDetailView
+            key={openedItemId}
+            id={openedItemId}
+            backHref={pathname}
+            onBack={closeItemDetails}
+            embedded
+          />
+        </div>
+      ) : pagedItems.length === 0 ? (
         <div className="flex-1 min-h-0 overflow-y-auto flex flex-col items-center justify-center py-16 px-4 text-center space-y-3 rounded-b-2xl">
           <div className="w-12 h-12 rounded-2xl bg-[#faf8f5] border border-[#e4e0d5] flex items-center justify-center text-[#9e9b92] shadow-2xs">
             {emptyStateConfig.icon}
@@ -1144,119 +1227,6 @@ export function EmailInboxTable({
             </button>
           ) : null}
         </div>
-      ) : selectedItem ? (
-        /* SPLIT VIEW (Image 1 style) */
-        <div className="flex-1 min-h-0 flex flex-col lg:flex-row overflow-hidden rounded-b-2xl border-t border-[#f0ede4]">
-          {/* Left Compact List Pane */}
-          <div className="w-full lg:w-[360px] xl:w-[410px] shrink-0 border-r border-[#e4e0d5] flex flex-col h-full overflow-hidden bg-white">
-            <div className="flex-1 min-h-0 overflow-y-auto divide-y divide-[#f0ede4]">
-              {pagedItems.map((item) => {
-                const isCurrentActive = item.id === selectedItemId;
-                const isSelected = selectedIds.has(item.id);
-                const isStarred = Boolean(item.favorite);
-                const sender = getEmailSender(item);
-                const title =
-                  item.metadata?.title ||
-                  item.title ||
-                  item.attachments?.[0]?.original_file_name ||
-                  'Untitled item';
-                const snippet =
-                  item.metadata?.description || item.text_content || item.url || 'No preview available';
-                const hasAttachments = item.attachments && item.attachments.length > 0;
-
-                return (
-                  <div
-                    key={item.id}
-                    onClick={() => setSelectedItemId(item.id)}
-                    className={`group relative overflow-hidden p-3 transition-colors cursor-pointer select-none text-left border-l-4 ${
-                      isCurrentActive
-                        ? 'bg-[#faf8f5] border-[#171711]'
-                        : isSelected
-                        ? 'bg-[#f5f8df] border-transparent hover:bg-[#eef3d0]'
-                        : 'bg-white border-transparent hover:bg-[#faf8f5]'
-                    }`}
-                  >
-                    {/* Top line: Selection, Star, Sender, Timestamp */}
-                    <InboxImageBackground item={item} />
-                    <div className="relative z-10">
-                    <div className="flex items-center justify-between gap-1.5 text-xs">
-                      <div className="flex items-center gap-1.5 min-w-0">
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onClick={(e) => toggleItemSelect(item.id, e)}
-                          onChange={() => {}}
-                          className="w-3.5 h-3.5 rounded border-[#c2beb3] accent-[#171711] cursor-pointer"
-                        />
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setFavorite(item.id, !isStarred);
-                          }}
-                          className="p-0.5 text-[#c2beb3] hover:text-amber-500 transition-colors"
-                        >
-                          <Star
-                            className={`w-3.5 h-3.5 ${
-                              isStarred ? 'fill-amber-400 text-amber-400' : ''
-                            }`}
-                          />
-                        </button>
-                        <span
-                          className={`truncate text-xs ${
-                            isCurrentActive
-                              ? 'font-black text-[#171711]'
-                              : 'font-bold text-[#171711]'
-                          }`}
-                        >
-                          {sender}
-                        </span>
-                      </div>
-                      <span className="text-[11px] font-medium text-[#8e8d87] shrink-0">
-                        {formatEmailDate(item.created_at)}
-                      </span>
-                    </div>
-
-                    {/* Middle line: Subject Title */}
-                    <div className="mt-1 flex items-center justify-between gap-2">
-                      <p
-                        className={`text-xs truncate ${
-                          isCurrentActive
-                            ? 'font-black text-[#171711]'
-                            : 'font-semibold text-[#171711]'
-                        }`}
-                      >
-                        {title}
-                      </p>
-                      {hasAttachments && (
-                        <Paperclip className="w-3 h-3 text-[#9e9b92] shrink-0" />
-                      )}
-                    </div>
-
-                    {/* Bottom line: Snippet */}
-                    <p className="text-[11px] text-[#6c6b63] truncate mt-0.5">
-                      {snippet}
-                    </p>
-                    {formatInboxAge(item, now) && (
-                      <p className="mt-1 text-[10px] font-semibold text-[#6c6b63]">
-                        {formatInboxAge(item, now)}
-                      </p>
-                    )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Right Reading Pane / Interactive Details Panel */}
-          <div className="flex-1 min-w-0 h-full overflow-hidden flex flex-col bg-white">
-            <ItemSideDetailPanel
-              item={selectedItem}
-              onClose={() => setSelectedItemId(null)}
-            />
-          </div>
-        </div>
       ) : (
         /* FULL WIDTH ROWS (Standard View) */
         <div className="flex-1 min-h-0 overflow-y-auto divide-y divide-[#f0ede4] rounded-b-2xl">
@@ -1280,8 +1250,17 @@ export function EmailInboxTable({
             return (
               <div
                 key={item.id}
-                onClick={() => setSelectedItemId(item.id)}
-                className={`group relative flex items-center gap-2.5 sm:gap-3 px-3 sm:px-4 py-2.5 transition-colors cursor-pointer select-none overflow-hidden last:rounded-b-2xl ${
+                onClick={() => openItemDetails(item.id)}
+                role="link"
+                tabIndex={0}
+                aria-label={`View details for ${title}`}
+                onKeyDown={event => {
+                  if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) {
+                    event.preventDefault();
+                    openItemDetails(item.id);
+                  }
+                }}
+                className={`group relative flex items-center gap-2.5 sm:gap-3 px-3 sm:px-4 py-2.5 transition-colors cursor-pointer select-none overflow-hidden focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[#7a9055] last:rounded-b-2xl ${
                   isSelected
                     ? 'bg-[#f5f8df] hover:bg-[#eef3d0]'
                     : 'bg-white hover:bg-[#faf8f5]'

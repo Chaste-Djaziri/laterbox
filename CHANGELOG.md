@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[App / Email table]** Open saved items in the full item-details view inside the email-style table, replacing the previous split reading panel. Keep list state and table controls, enable Back/Forward with a shareable `?item=` URL, and reuse the same details component on the standalone item route.
+
 - **[App / Sidebar Tooltips]** Display styled, keyboard-accessible icon labels beside the real dashboard sidebar on hover or focus, including navigation, quick save, collections, plan, and sync. Tooltip layer remains visible outside the rail’s clipped scroll container.
 
 - **[App / Collections Flyout]** Remove the desktop icon rail’s right border and anchor a fixed-size Collections popover beside its folder icon, with a visual pointer and an independently scrollable collection list while keeping creation and management accessible.
