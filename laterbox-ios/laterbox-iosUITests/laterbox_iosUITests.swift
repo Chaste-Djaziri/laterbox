@@ -89,18 +89,18 @@ final class laterbox_iosUITests: XCTestCase {
         XCTAssertTrue(upcoming.exists)
         XCTAssertTrue(someday.exists)
         XCTAssertEqual(today.value as? String, "Selected")
-        XCTAssertTrue(app.staticTexts["Due today"].exists)
+        XCTAssertFalse(app.staticTexts["Due today"].exists, "No redundant section heading beneath the switcher")
 
         upcoming.tap()
         XCTAssertEqual(upcoming.value as? String, "Selected")
-        XCTAssertTrue(app.staticTexts["Coming up"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.staticTexts["Coming up"].exists, "Segment titles are displayed only inside the chips")
 
         someday.tap()
         XCTAssertEqual(someday.value as? String, "Selected")
-        XCTAssertTrue(app.staticTexts["Whenever you're ready"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.staticTexts["Whenever you're ready"].exists, "Remove repeated subtitles")
 
         today.tap()
-        XCTAssertTrue(app.staticTexts["Due today"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.staticTexts["Due today"].exists)
 
         let searchButton = app.buttons["Returns Search Button"]
         XCTAssertTrue(searchButton.exists, "The top-right calendar should be replaced by search")

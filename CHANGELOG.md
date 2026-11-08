@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[iOS / Returns scroll navigation]** Remove redundant Today / Upcoming / Someday section headings and subtitles below the chip switcher. Keep the compact, horizontally scrollable chips visible at the top, automatically hide them on downward list scrolling and reveal them when scrolling upward or reaching the top, without resizing the scroll area or creating blank gaps. Retain expandable search, filtered results, native details navigation and the adaptive graphite appearance.
+
 - **[iOS / Compact Returns search]** Make the Today / Upcoming / Someday switcher a short horizontally scrollable row of count badges. Replace the decorative calendar in the Returns header with a search control that expands into a full-width input and Cancel action, hides the header title/description, and filters deferred items by title, source, and saved content within the selected section. Preserve cross-section switching, clear/close behavior, adaptive light/graphite appearance, and contextual no-results feedback.
 
 - **[iOS / Returns appearance and navigation]** Redesign the Today/Returns screen with the same white Light Mode and textured graphite Dark Mode as Inbox, including adaptive overdue/today cards and controls. Replace the horizontally scrollable pill filters with a full-width equal-width Today / Upcoming / Someday segmented switcher, prominent selection states and counts, distinct section descriptions, and helpful context-specific empty states, while preserving return actions and native item-detail navigation.

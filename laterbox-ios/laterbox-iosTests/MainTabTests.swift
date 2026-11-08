@@ -63,14 +63,42 @@ struct MainTabTests {
         #expect(ReturnSegment.allCases.map(\.rawValue) == ["Today", "Upcoming", "Someday"])
         #expect(Set(ReturnSegment.allCases.map(\.symbol)).count == 3)
         for segment in ReturnSegment.allCases {
-            #expect(!segment.heading.isEmpty)
-            #expect(!segment.description.isEmpty)
             #expect(!segment.emptyTitle.isEmpty)
             #expect(!segment.emptyHint.isEmpty)
         }
         #expect(ReturnSegment.today.emptyTitle == "All caught up")
-        #expect(ReturnSegment.upcoming.heading == "Coming up")
         #expect(ReturnSegment.someday.emptyTitle == "Your Someday list is empty")
+    }
+
+    @Test("Compact Returns switcher hides on downward scroll and reappears on upward scroll")
+    func returnsSwitcherScrollDirection() {
+        var tracker = ReturnsScrollSwitcherTracker()
+
+        // Call mutating functions outside #expect so Testing's call-capture
+        // macro never treats the mutable value as an immutable parameter.
+        func verify(_ offset: CGFloat, visible expected: Bool) {
+            let actual = tracker.update(offset: offset)
+            #expect(actual == expected)
+        }
+
+        verify(0, visible: true)
+        verify(24, visible: true)
+        verify(70, visible: false)
+        verify(89, visible: false)
+        verify(72, visible: true)
+        verify(55, visible: true)
+        verify(96, visible: false)
+        verify(5, visible: true)
+
+        // Ignore small scroll jitter, invalid values, and layout jumps.
+        tracker.reset()
+        verify(0, visible: true)
+        verify(1, visible: true)
+        verify(2, visible: true)
+        verify(220, visible: true)
+        verify(.nan, visible: true)
+        verify(.infinity, visible: true)
+        verify(1, visible: true)
     }
 
     @Test("Returns search matches saved content and ignores empty input")

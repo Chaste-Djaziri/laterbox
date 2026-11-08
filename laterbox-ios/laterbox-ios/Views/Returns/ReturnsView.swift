@@ -15,22 +15,6 @@ public enum ReturnSegment: String, CaseIterable {
         }
     }
 
-    var heading: String {
-        switch self {
-        case .today: "Due today"
-        case .upcoming: "Coming up"
-        case .someday: "Whenever you're ready"
-        }
-    }
-
-    var description: String {
-        switch self {
-        case .today: "Items returning today and anything overdue."
-        case .upcoming: "Everything scheduled for a future date."
-        case .someday: "No deadline. Revisit these when the moment feels right."
-        }
-    }
-
     var emptyTitle: String {
         switch self {
         case .today: "All caught up"
@@ -76,6 +60,69 @@ enum ReturnsItemSearch {
     }
 }
 
+/// Uses scrolling direction, not a timer, to toggle the compact switcher.
+/// The switcher overlays a stable ScrollView frame; hiding it never changes
+/// scroll geometry or leaves a blank row between the header and the list.
+struct ReturnsScrollSwitcherTracker {
+    private(set) var isVisible = true
+    private var lastOffset: CGFloat?
+    private var directionalDistance: CGFloat = 0
+
+    mutating func update(offset rawOffset: CGFloat) -> Bool {
+        guard rawOffset.isFinite else { return isVisible }
+        let offset = max(0, rawOffset)
+
+        if offset < 16 {
+            lastOffset = offset
+            directionalDistance = 0
+            isVisible = true
+            return isVisible
+        }
+
+        guard let previous = lastOffset else {
+            lastOffset = offset
+            return isVisible
+        }
+
+        let delta = offset - previous
+        lastOffset = offset
+
+        // Discard layout jumps rather than interpreting them as user gestures.
+        guard abs(delta) < 160 else {
+            directionalDistance = 0
+            return isVisible
+        }
+
+        if delta > 1 {
+            directionalDistance = max(0, directionalDistance) + delta
+            if offset > 55 && directionalDistance >= 24 {
+                isVisible = false
+                directionalDistance = 0
+            }
+        } else if delta < -1 {
+            directionalDistance = min(0, directionalDistance) + delta
+            if directionalDistance <= -14 {
+                isVisible = true
+                directionalDistance = 0
+            }
+        }
+        return isVisible
+    }
+
+    mutating func reset() {
+        lastOffset = nil
+        directionalDistance = 0
+        isVisible = true
+    }
+}
+
+private struct ReturnsScrollOffsetKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = nextValue()
+    }
+}
+
 public struct ReturnsView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
@@ -87,6 +134,8 @@ public struct ReturnsView: View {
     @State private var snoozeTargetItem: LBItem?
     @State private var isSearching = false
     @State private var searchText = ""
+    @State private var isSwitcherVisible = true
+    @State private var scrollSwitcherTracker = ReturnsScrollSwitcherTracker()
     @FocusState private var searchFocused: Bool
     private let isTabRoot: Bool
 
@@ -149,37 +198,67 @@ public struct ReturnsView: View {
 
                 VStack(spacing: 0) {
                     pageHeader
-                    segmentSwitcher
-                    segmentDescription
 
                     ScrollView {
-                        VStack(alignment: .leading, spacing: 12) {
-                            if itemsForSegment.isEmpty {
-                                if hasSearchQuery {
-                                    searchEmptyState
-                                } else {
-                                    emptyState
-                                }
-                            } else if selectedSegment == .today {
-                                TodayFocusList(
-                                    items: itemsForSegment,
-                                    onKeep: { coordinator.markDone(item: $0, context: modelContext) },
-                                    onReschedule: { snoozeTargetItem = $0 },
-                                    onDismiss: { coordinator.dismissReturn(item: $0, context: modelContext) }
+                        VStack(spacing: 0) {
+                            // Fixed reference point for the whole list, so
+                            // hiding the floating chips cannot change offsets.
+                            GeometryReader { geometry in
+                                Color.clear.preference(
+                                    key: ReturnsScrollOffsetKey.self,
+                                    value: -geometry.frame(in: .named("returnsVerticalScroll")).minY
                                 )
-                            } else {
-                                scheduleList(items: itemsForSegment)
                             }
+                            .frame(height: 0)
+
+                            VStack(alignment: .leading, spacing: 12) {
+                                if itemsForSegment.isEmpty {
+                                    if hasSearchQuery {
+                                        searchEmptyState
+                                    } else {
+                                        emptyState
+                                    }
+                                } else if selectedSegment == .today {
+                                    TodayFocusList(
+                                        items: itemsForSegment,
+                                        onKeep: { coordinator.markDone(item: $0, context: modelContext) },
+                                        onReschedule: { snoozeTargetItem = $0 },
+                                        onDismiss: { coordinator.dismissReturn(item: $0, context: modelContext) }
+                                    )
+                                } else {
+                                    scheduleList(items: itemsForSegment)
+                                }
+                            }
+                            .padding(.top, 54)
+                            .padding(.bottom, 34)
+                            .id(selectedSegment)
                         }
-                        .padding(.top, 6)
-                        .padding(.bottom, 34)
-                        .id(selectedSegment)
+                    }
+                    .coordinateSpace(name: "returnsVerticalScroll")
+                    .onPreferenceChange(ReturnsScrollOffsetKey.self) { offset in
+                        let shouldShow = scrollSwitcherTracker.update(offset: offset)
+                        guard shouldShow != isSwitcherVisible else { return }
+                        withAnimation(.easeOut(duration: 0.18)) {
+                            isSwitcherVisible = shouldShow
+                        }
+                    }
+                    .onChange(of: selectedSegment) { _, _ in
+                        scrollSwitcherTracker.reset()
+                        isSwitcherVisible = true
                     }
                     .refreshable {
                         LBHaptic.medium()
                         await coordinator.syncPendingItems(context: modelContext)
                     }
                     .scrollBounceBehavior(.always)
+                    .overlay(alignment: .top) {
+                        segmentSwitcher
+                            .padding(.top, 2)
+                            .offset(y: isSwitcherVisible ? 0 : -56)
+                            .opacity(isSwitcherVisible ? 1 : 0)
+                            .allowsHitTesting(isSwitcherVisible)
+                            .accessibilityHidden(!isSwitcherVisible)
+                    }
                 }
             }
             // A hidden root bar must not hide the native Back button in details.
@@ -370,29 +449,6 @@ public struct ReturnsView: View {
                 }
             }
         }
-    }
-
-    private var segmentDescription: some View {
-        HStack(alignment: .center, spacing: 12) {
-            VStack(alignment: .leading, spacing: 5) {
-                Text(hasSearchQuery ? "Search results" : selectedSegment.heading)
-                    .font(.system(size: 19, weight: .bold))
-                    .foregroundStyle(primaryInk)
-                Text(
-                    hasSearchQuery
-                        ? "\(itemsForSegment.count) \(itemsForSegment.count == 1 ? "match" : "matches") in \(selectedSegment.rawValue)"
-                        : selectedSegment.description
-                )
-                .font(.system(size: 12))
-                .foregroundStyle(secondaryInk)
-                .fixedSize(horizontal: false, vertical: true)
-            }
-            Spacer(minLength: 0)
-        }
-        .padding(.horizontal, 18)
-        .padding(.top, 20)
-        .padding(.bottom, 12)
-        .accessibilityElement(children: .combine)
     }
 
     private var emptyState: some View {
