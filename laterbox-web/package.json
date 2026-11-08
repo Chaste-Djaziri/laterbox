@@ -6,6 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "bump": "node scripts/bump-version.js",
+    "whop:provision": "tsx scripts/provision-whop-catalog.ts",
     "start": "next start",
     "lint": "eslint src scripts next.config.ts open-next.config.ts",
     "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",

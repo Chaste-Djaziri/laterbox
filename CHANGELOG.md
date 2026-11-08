@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[Web / Whop catalog provisioning]** Add a safe, repeatable Whop product-and-plan provisioning command for Plus and Vault monthly/yearly pricing. Default to dry-run, require explicit confirmation for live plans, reuse matching existing products and plans instead of duplicating, and write resulting plan IDs into the ignored local environment after a successful run.
+
 - **[Web / Local authentication]** Fix `/login` hydration mismatch from browser-only development toolbar state, point the ignored local Supabase env at loopback rather than a stale LAN address, bound initial session and sign-in requests to prevent indefinite loading, recover visibly from network errors, and make password login sign in rather than attempting account creation first. Preserve existing OAuth, OTP and guest flows, with regression tests.
 
 - **[Web / Authentication pages]** Redesign Login, Sign Up, OTP, password, and display-name steps as a responsive split layout: bright accessible forms on the left and the existing auth-background visual on the right. Retain existing authentication actions, guest mode, third-party providers, and safe redirect handling.
