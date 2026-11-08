@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[App / Email reading toolbar]** Consolidate the embedded item actions (star, keep, archive, collections, reschedule, copy, external source, delete/restore) into the email-style table header alongside Back and previous/next. Hide the duplicated detail action bar and inline scheduling panel in embedded mode; retain the standalone item page layout.
+
 - **[App / Email table]** Open saved items in the full item-details view inside the email-style table, replacing the previous split reading panel. Keep list state and table controls, enable Back/Forward with a shareable `?item=` URL, and reuse the same details component on the standalone item route.
 
 - **[App / Sidebar Tooltips]** Display styled, keyboard-accessible icon labels beside the real dashboard sidebar on hover or focus, including navigation, quick save, collections, plan, and sync. Tooltip layer remains visible outside the rail’s clipped scroll container.

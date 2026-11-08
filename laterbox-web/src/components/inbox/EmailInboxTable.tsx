@@ -36,6 +36,7 @@ import {
   CalendarDays,
   CalendarClock,
   CheckCircle,
+  Copy,
 } from 'lucide-react';
 import {
   InboxSearchFilters,
@@ -58,6 +59,7 @@ import { AddToCollectionModal } from '@/components/collections/AddToCollectionMo
 import { fetchAttachmentDownloadUrl } from '@/lib/utils/attachment';
 import { PortalMenu } from '@/components/ui/PortalMenu';
 import { ExactScheduleModal } from '@/components/scheduling/ExactScheduleModal';
+import { ReturnTimePicker } from '@/components/scheduling/ReturnTimePicker';
 import { emailTableItemHref, readEmailTableItemId } from '@/lib/utils/tableItemNavigation';
 
 function InboxImageBackground({ item }: { item: LaterBoxItem }) {
@@ -137,6 +139,7 @@ export function EmailInboxTable({
   const {
     items: allItems,
     setFavorite,
+    keepItem,
     archiveItem,
     deleteItem,
     restoreItem,
@@ -157,10 +160,15 @@ export function EmailInboxTable({
   const openItemDetails = (id: string, replace = false) => {
     setSnoozeMenuForId(null);
     setBulkSnoozeOpen(false);
+    setHeaderScheduleOpen(false);
+    setDetailActionError('');
+    setDetailCopied(false);
     replaceTableItemUrl(id, replace);
   };
 
   const closeItemDetails = () => {
+    setHeaderScheduleOpen(false);
+    setDetailActionError('');
     if (window.history.state?.laterboxTableItem) {
       window.history.back();
     } else {
@@ -182,11 +190,16 @@ export function EmailInboxTable({
   const [filterMenuOpen, setFilterMenuOpen] = useState<'format' | 'date' | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [collectionModalItem, setCollectionModalItem] = useState<LaterBoxItem | null>(null);
+  const [headerScheduleOpen, setHeaderScheduleOpen] = useState(false);
+  const [detailActionPending, setDetailActionPending] = useState(false);
+  const [detailActionError, setDetailActionError] = useState('');
+  const [detailCopied, setDetailCopied] = useState(false);
 
   const selectMenuRef = useRef<HTMLDivElement>(null);
   const moreMenuRef = useRef<HTMLDivElement>(null);
   const snoozeTriggerRef = useRef<HTMLButtonElement>(null);
   const bulkSnoozeTriggerRef = useRef<HTMLButtonElement>(null);
+  const headerScheduleTriggerRef = useRef<HTMLButtonElement>(null);
   const filterMenuRef = useRef<HTMLDivElement>(null);
 
   // Close menus on outside click
@@ -325,7 +338,28 @@ export function EmailInboxTable({
   const startIndex = (page - 1) * pageSize;
   const endIndex = Math.min(startIndex + pageSize, totalItems);
   const pagedItems = processedItems.slice(startIndex, endIndex);
+  const openedItem = openedItemId
+    ? allItems.find(item => item.id === openedItemId) ?? items.find(item => item.id === openedItemId) ?? null
+    : null;
+  const openedExternalUrl = openedItem?.url && /^https?:\/\//i.test(openedItem.url) ? openedItem.url : null;
   const openedIndex = openedItemId ? processedItems.findIndex(item => item.id === openedItemId) : -1;
+  const runDetailAction = async (action: () => Promise<unknown>, actionLabel: string, returnToList = false) => {
+    if (detailActionPending) return;
+    setDetailActionPending(true);
+    setDetailActionError('');
+    try {
+      await action();
+      if (returnToList) closeItemDetails();
+    } catch {
+      setDetailActionError(`Could not ${actionLabel}. Please try again.`);
+    } finally {
+      setDetailActionPending(false);
+    }
+  };
+
+  const detailActionClass =
+    'inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-[#77786f] transition-colors hover:bg-[#e9ebdf] hover:text-[#171711] focus-visible:outline-2 focus-visible:outline-[#73894e] disabled:cursor-not-allowed disabled:opacity-35';
+
   const previousItemId = openedIndex > 0 ? processedItems[openedIndex - 1].id : null;
   const nextItemId = openedIndex >= 0 && openedIndex < processedItems.length - 1
     ? processedItems[openedIndex + 1].id : null;
@@ -618,17 +652,166 @@ export function EmailInboxTable({
       {/* TOP TOOLBAR: Controls, Batch Actions, Pagination */}
       {/* ===================================================================== */}
       {openedItemId ? (
-        <div className="shrink-0 flex min-h-[52px] items-center justify-between gap-3 border-b border-[#e4e0d5] bg-[#fafaf6] px-3 py-2 text-[#171711] sm:px-4">
+        <div className="relative z-20 flex min-h-[60px] items-center gap-2 border-b border-[#e4e0d5] bg-[#fafaf6] px-2.5 py-2 text-[#171711] sm:gap-3 sm:px-4">
           <button
             type="button"
             onClick={closeItemDetails}
-            className="inline-flex min-h-9 items-center gap-2 rounded-xl px-3 text-xs font-bold transition-colors hover:bg-[#e6edb0] focus-visible:outline-2 focus-visible:outline-[#758a50]"
+            className="inline-flex min-h-9 shrink-0 items-center gap-2 rounded-xl px-2 text-xs font-bold transition-colors hover:bg-[#e6edb0] focus-visible:outline-2 focus-visible:outline-[#758a50] sm:px-3"
           >
             <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-            Back to {propTitle || 'items'}
+            <span className="hidden sm:inline">Back to {propTitle || 'items'}</span>
+            <span className="sm:hidden">Back</span>
           </button>
-          <div className="flex items-center gap-1.5">
-            <span className="hidden text-[11px] font-semibold text-[#8e8d87] sm:inline">
+
+          <span className="h-6 w-px shrink-0 bg-[#e4e0d5]" aria-hidden="true" />
+
+          <div role="toolbar" aria-label="Item actions" className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {openedItem && (
+              <>
+                <button
+                  type="button"
+                  title={openedItem.favorite ? 'Remove star' : 'Star item'}
+                  aria-label={openedItem.favorite ? 'Remove star' : 'Star item'}
+                  aria-pressed={Boolean(openedItem.favorite)}
+                  disabled={detailActionPending}
+                  onClick={() => void runDetailAction(() => setFavorite(openedItem.id, !openedItem.favorite), 'update star')}
+                  className={detailActionClass + (openedItem.favorite ? ' text-amber-600' : '')}
+                >
+                  <Star className={`h-[18px] w-[18px] ${openedItem.favorite ? 'fill-amber-400' : ''}`} aria-hidden="true" />
+                </button>
+
+                <button
+                  type="button"
+                  title={openedItem.status === 'saved' ? 'Already kept' : 'Keep in library'}
+                  aria-label={openedItem.status === 'saved' ? 'Already kept' : 'Keep in library'}
+                  disabled={detailActionPending || Boolean(openedItem.deleted_at) || openedItem.status === 'saved'}
+                  onClick={() => void runDetailAction(() => keepItem(openedItem.id), 'keep item')}
+                  className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-xl bg-[#e6edb0] px-3 text-xs font-bold text-[#27321c] transition-colors hover:bg-[#d9e6a0] focus-visible:outline-2 focus-visible:outline-[#758a50] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <CheckCircle className="h-4 w-4" aria-hidden="true" />
+                  <span>{openedItem.status === 'saved' ? 'Kept' : 'Keep'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  title={openedItem.status === 'archived' ? 'Already archived' : 'Archive item'}
+                  aria-label={openedItem.status === 'archived' ? 'Already archived' : 'Archive item'}
+                  disabled={detailActionPending || Boolean(openedItem.deleted_at) || openedItem.status === 'archived'}
+                  onClick={() => void runDetailAction(() => archiveItem(openedItem.id), 'archive item')}
+                  className={detailActionClass}
+                >
+                  <Archive className="h-[18px] w-[18px]" aria-hidden="true" />
+                </button>
+
+                <button
+                  type="button"
+                  title="Add to collections"
+                  aria-label="Add to collections"
+                  disabled={detailActionPending || Boolean(openedItem.deleted_at)}
+                  onClick={() => setCollectionModalItem(openedItem)}
+                  className={detailActionClass}
+                >
+                  <FolderPlus className="h-[18px] w-[18px]" aria-hidden="true" />
+                </button>
+
+                <button
+                  ref={headerScheduleTriggerRef}
+                  type="button"
+                  title="Reschedule item"
+                  aria-label="Reschedule item"
+                  aria-expanded={headerScheduleOpen}
+                  disabled={detailActionPending || Boolean(openedItem.deleted_at)}
+                  onClick={() => setHeaderScheduleOpen(value => !value)}
+                  className={detailActionClass + (headerScheduleOpen ? ' bg-[#e6edb0] text-[#171711]' : '')}
+                >
+                  <CalendarClock className="h-[18px] w-[18px]" aria-hidden="true" />
+                </button>
+
+                {headerScheduleOpen && (
+                  <PortalMenu
+                    open={headerScheduleOpen}
+                    onClose={() => setHeaderScheduleOpen(false)}
+                    triggerRef={headerScheduleTriggerRef}
+                    width={360}
+                  >
+                    <div className="p-4">
+                      <ReturnTimePicker
+                        value={openedItem.return_at ?? null}
+                        onChange={value => {
+                          setHeaderScheduleOpen(false);
+                          void runDetailAction(() => reschedule(openedItem.id, value), 'reschedule item');
+                        }}
+                      />
+                    </div>
+                  </PortalMenu>
+                )}
+
+                <button
+                  type="button"
+                  title={detailCopied ? 'Copied' : 'Copy item link or content'}
+                  aria-label={detailCopied ? 'Copied' : 'Copy item link or content'}
+                  disabled={detailActionPending}
+                  onClick={async () => {
+                    try {
+                      await navigator.clipboard.writeText(
+                        openedItem.url || openedItem.text_content || openedItem.title || 'Saved item'
+                      );
+                      setDetailCopied(true);
+                    } catch {
+                      setDetailActionError('Could not copy this item. Please try again.');
+                    }
+                  }}
+                  className={detailActionClass}
+                >
+                  {detailCopied ? <Check className="h-[18px] w-[18px] text-emerald-700" /> : <Copy className="h-[18px] w-[18px]" />}
+                </button>
+
+                {openedExternalUrl && (
+                  <a
+                    href={openedExternalUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title="Open external source"
+                    aria-label="Open external source in a new tab"
+                    className={detailActionClass}
+                  >
+                    <ExternalLink className="h-[18px] w-[18px]" aria-hidden="true" />
+                  </a>
+                )}
+
+                {openedItem.deleted_at ? (
+                  <button
+                    type="button"
+                    title="Restore item"
+                    aria-label="Restore item"
+                    disabled={detailActionPending}
+                    onClick={() => void runDetailAction(() => restoreItem(openedItem.id), 'restore item', true)}
+                    className={detailActionClass}
+                  >
+                    <RotateCcw className="h-[18px] w-[18px]" aria-hidden="true" />
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    title="Delete item"
+                    aria-label="Delete item"
+                    disabled={detailActionPending}
+                    onClick={() => {
+                      if (window.confirm('Move this item to Recently Deleted?')) {
+                        void runDetailAction(() => deleteItem(openedItem.id), 'delete item', true);
+                      }
+                    }}
+                    className={detailActionClass + ' hover:bg-red-50 hover:text-red-700'}
+                  >
+                    <Trash2 className="h-[18px] w-[18px]" aria-hidden="true" />
+                  </button>
+                )}
+              </>
+            )}
+          </div>
+
+          <div className="flex shrink-0 items-center gap-1 border-l border-[#e4e0d5] pl-2 sm:pl-3">
+            <span className="hidden text-[11px] font-semibold text-[#8e8d87] md:inline">
               {openedIndex >= 0 ? `${openedIndex + 1} of ${totalItems}` : 'Item details'}
             </span>
             <button
@@ -652,6 +835,11 @@ export function EmailInboxTable({
               <ChevronRight className="h-4 w-4" />
             </button>
           </div>
+          {detailActionError && (
+            <div role="alert" className="absolute right-3 top-full z-30 max-w-sm rounded-b-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-medium text-red-700 shadow-sm">
+              {detailActionError}
+            </div>
+          )}
         </div>
       ) : (
       <div className="shrink-0 flex items-center justify-between px-3 py-2 border-b border-[#e4e0d5] bg-white text-[#6c6b63] text-xs min-h-[46px] select-none rounded-t-2xl relative z-20">

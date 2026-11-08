@@ -367,7 +367,8 @@ export function ItemDetailView({
   return (
     <>
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6">
-        {/* Top Header & Actions Navigation */}
+        {/* The embedded email-view header owns these actions; standalone route keeps them here. */}
+        {!embedded && (
         <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-[#e4e0d5]">
           {!embedded && (
             <Link
@@ -483,6 +484,7 @@ export function ItemDetailView({
             </button>
           </div>
         </div>
+        )}
 
         {item.status === 'inbox' && (
           <div className="flex items-center gap-2 rounded-2xl border border-[#e4e0d5] bg-white px-4 py-3 text-sm text-[#171711]">
@@ -496,7 +498,8 @@ export function ItemDetailView({
           </div>
         )}
 
-        {/* Reschedule Picker */}
+        {/* Reschedule is available in the email view header for embedded details. */}
+        {!embedded && (
         <div className="bg-[#faf8f5] p-4 rounded-2xl border border-[#e4e0d5]">
           <ReturnTimePicker
             value={item.return_at ?? null}
@@ -505,6 +508,7 @@ export function ItemDetailView({
             }}
           />
         </div>
+        )}
 
         {/* ========================================================================= */}
         {/* Main Item Card: Multi-Platform Identification & Visual Previews */}
