@@ -7,6 +7,7 @@ import React, { createContext, useContext, useEffect, useState, ReactNode } from
 import { AuthError } from '@supabase/supabase-js';
 import { getLegacySupabaseClient as getSupabaseClient } from '../supabase/client';
 import { clearExtensionStatusCache } from '../extension/dashboard';
+import { withAuthTimeout } from '../auth/flow';
 
 export interface AuthContextType {
   user: AccountUser | null;
@@ -45,10 +46,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AccountUser | null>(null);
   const [session, setSession] = useState<AccountSession | null>(null);
   const [loading, setLoading] = useState(true);
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [authAttempt, setAuthAttempt] = useState(0);
   const [isGuest, setIsGuest] = useState(false);
   const [userName, setUserNameState] = useState<string>('');
 
+  const retryAuth = () => {
+    setAuthError(null);
+    setLoading(true);
+    setAuthAttempt(attempt => attempt + 1);
+  };
+
   useEffect(() => {
+    let cancelled = false;
     if (window.location.origin === 'http://localhost:8080') {
       setIsGuest(true);
       setLoading(false);
@@ -62,8 +72,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIsGuest(true);
     }
 
-    // Get current session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    // Resolve session initialization even if the configured Supabase server is
+    // unreachable. The previous unhandled getSession() rejection could leave
+    // every login button disabled with "loading" indefinitely.
+    void withAuthTimeout(Promise.resolve().then(() => supabase.auth.getSession()), 10000)
+    .then(({ data: { session }, error }) => {
+      if (cancelled) return;
+      if (error) throw error;
+      setAuthError(null);
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
@@ -78,7 +94,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (derived) setUserNameState(derived);
         }
       }
-      setLoading(false);
+    })
+    .catch(error => {
+      if (cancelled) return;
+      const details = error instanceof Error ? error.message : 'Unknown connection problem.';
+      setAuthError(`Could not initialize authentication. ${details}`);
+    })
+    .finally(() => {
+      if (!cancelled) setLoading(false);
     });
 
     // Listen for auth state changes
@@ -87,6 +110,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN') resumeCloudNotifications();
       if (session?.user) {
+        setAuthError(null);
         setSession(session);
         setUser(session.user);
         setIsGuest(false);
@@ -110,9 +134,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     return () => {
+      cancelled = true;
       subscription.unsubscribe();
     };
-  }, []);
+  }, [authAttempt]);
 
   const setUserName = async (name: string) => {
     const trimmed = name.trim();
@@ -303,6 +328,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user,
         session,
         getToken: getAccessToken,
+        authError,
+        retryAuth,
+        isAuthenticated: Boolean(user),
         loading,
         isGuest,
         userName,
