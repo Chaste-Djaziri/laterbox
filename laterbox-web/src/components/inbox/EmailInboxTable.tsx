@@ -61,6 +61,7 @@ import { PortalMenu } from '@/components/ui/PortalMenu';
 import { ToolbarTooltipRegion } from '@/components/ui/ToolbarTooltipRegion';
 import { ExactScheduleModal } from '@/components/scheduling/ExactScheduleModal';
 import { emailTableItemHref, readEmailTableItemId } from '@/lib/utils/tableItemNavigation';
+import { isTaskComplete } from '@/lib/utils/itemDetailPresentation';
 
 function InboxImageBackground({ item }: { item: LaterBoxItem }) {
   const asset = item.attachments?.find(a => a.mime_type?.startsWith('image/') ||
@@ -141,6 +142,7 @@ export function EmailInboxTable({
     setFavorite,
     keepItem,
     archiveItem,
+    markUnseen,
     deleteItem,
     restoreItem,
     permanentlyDeleteItem,
@@ -679,28 +681,51 @@ export function EmailInboxTable({
                   <Star className={`h-[18px] w-[18px] ${openedItem.favorite ? 'fill-amber-400' : ''}`} aria-hidden="true" />
                 </button>
 
-                <button
-                  type="button"
-                  data-tooltip={openedItem.status === 'saved' ? 'Already kept' : 'Keep in library'}
-                  aria-label={openedItem.status === 'saved' ? 'Already kept' : 'Keep in library'}
-                  disabled={detailActionPending || Boolean(openedItem.deleted_at) || openedItem.status === 'saved'}
-                  onClick={() => void runDetailAction(() => keepItem(openedItem.id), 'keep item')}
-                  className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-xl bg-[#e6edb0] px-3 text-xs font-bold text-[#27321c] transition-colors hover:bg-[#d9e6a0] focus-visible:outline-2 focus-visible:outline-[#758a50] disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  <CheckCircle className="h-4 w-4" aria-hidden="true" />
-                  <span>{openedItem.status === 'saved' ? 'Kept' : 'Keep'}</span>
-                </button>
+                {openedItem.type === 'task' ? (
+                  <button
+                    type="button"
+                    role="checkbox"
+                    aria-checked={isTaskComplete(openedItem)}
+                    data-tooltip={isTaskComplete(openedItem) ? 'Reopen completed task' : 'Mark task complete'}
+                    aria-label={isTaskComplete(openedItem) ? 'Reopen completed task' : 'Mark task complete'}
+                    disabled={detailActionPending || Boolean(openedItem.deleted_at)}
+                    onClick={() => void runDetailAction(
+                       () => isTaskComplete(openedItem)
+                        ? markUnseen(openedItem.id)
+                        : archiveItem(openedItem.id),
+                      'update task completion'
+                    )}
+                    className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-xl bg-[#e6edb0] px-3 text-xs font-bold text-[#27321c] transition-colors hover:bg-[#d9e6a0] focus-visible:outline-2 focus-visible:outline-[#758a50] disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <CheckCircle className={`h-4 w-4 ${isTaskComplete(openedItem) ? 'fill-[#678b4a] text-white' : ''}`} aria-hidden="true" />
+                    <span>{isTaskComplete(openedItem) ? 'Completed' : 'Complete'}</span>
+                  </button>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      data-tooltip={openedItem.status === 'saved' ? 'Already kept' : 'Keep in library'}
+                      aria-label={openedItem.status === 'saved' ? 'Already kept' : 'Keep in library'}
+                      disabled={detailActionPending || Boolean(openedItem.deleted_at) || openedItem.status === 'saved'}
+                      onClick={() => void runDetailAction(() => keepItem(openedItem.id), 'keep item')}
+                      className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-xl bg-[#e6edb0] px-3 text-xs font-bold text-[#27321c] transition-colors hover:bg-[#d9e6a0] focus-visible:outline-2 focus-visible:outline-[#758a50] disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      <CheckCircle className="h-4 w-4" aria-hidden="true" />
+                      <span>{openedItem.status === 'saved' ? 'Kept' : 'Keep'}</span>
+                    </button>
 
-                <button
-                  type="button"
-                  data-tooltip={openedItem.status === 'archived' ? 'Already archived' : 'Archive item'}
-                  aria-label={openedItem.status === 'archived' ? 'Already archived' : 'Archive item'}
-                  disabled={detailActionPending || Boolean(openedItem.deleted_at) || openedItem.status === 'archived'}
-                  onClick={() => void runDetailAction(() => archiveItem(openedItem.id), 'archive item')}
-                  className={detailActionClass}
-                >
-                  <Archive className="h-[18px] w-[18px]" aria-hidden="true" />
-                </button>
+                    <button
+                      type="button"
+                      data-tooltip={openedItem.status === 'archived' ? 'Already archived' : 'Archive item'}
+                      aria-label={openedItem.status === 'archived' ? 'Already archived' : 'Archive item'}
+                      disabled={detailActionPending || Boolean(openedItem.deleted_at) || openedItem.status === 'archived'}
+                      onClick={() => void runDetailAction(() => archiveItem(openedItem.id), 'archive item')}
+                      className={detailActionClass}
+                    >
+                      <Archive className="h-[18px] w-[18px]" aria-hidden="true" />
+                    </button>
+                  </>
+                )}
 
                 <button
                   type="button"

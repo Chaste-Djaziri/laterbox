@@ -17,6 +17,7 @@ import { fetchAttachmentDownloadUrl } from '@/lib/utils/attachment';
 import { Attachment } from '@/lib/supabase/types';
 import { VideoPlayerComponent } from '@/components/media/VideoPlayerComponent';
 import { AudioPlayerComponent } from '@/components/media/AudioPlayerComponent';
+import { isTaskComplete, safeExternalItemUrl, shouldShowArticleReader } from '@/lib/utils/itemDetailPresentation';
 import {
   ArrowLeft,
   Star,
@@ -50,6 +51,38 @@ import {
   StickyNote,
   Tag,
 } from 'lucide-react';
+
+/** Image previews open the original page when it has a safe external address. */
+function SourcePreviewImage({
+  src, alt, href, onError,
+}: {
+  src: string; alt: string; href: string | null; onError: () => void;
+}) {
+  const visual = (
+    <>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={src} alt={alt} onError={onError} className="h-full w-full object-cover" />
+      {href && (
+        <span className="pointer-events-none absolute bottom-4 right-4 inline-flex items-center gap-1.5 rounded-full bg-[#171711]/85 px-3 py-1.5 text-[11px] font-bold text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
+          Open source <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+        </span>
+      )}
+    </>
+  );
+  if (!href) return <div className="absolute inset-0">{visual}</div>;
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label={`Open original source for ${alt}`}
+      title="Open original source in a new tab"
+      className="group absolute inset-0 block cursor-pointer focus-visible:outline-4 focus-visible:-outline-offset-4 focus-visible:outline-[#e6edb0]"
+    >
+      {visual}
+    </a>
+  );
+}
 
 function formatBytes(bytes?: number): string {
   if (!bytes) return '0 B';
@@ -258,6 +291,8 @@ export function ItemDetailView({
   const [collectionModalOpen, setCollectionModalOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [imgError, setImgError] = useState(false);
+  const [taskSaving, setTaskSaving] = useState(false);
+  const [taskError, setTaskError] = useState<string | null>(null);
 
   const item = getItemById(id);
 
@@ -291,6 +326,11 @@ export function ItemDetailView({
   const description = item.metadata?.description || item.text_content;
   const timeAgo = formatTimeAgo(item.created_at);
   const previewImage = item.metadata?.preview_image_url;
+  const externalUrl = safeExternalItemUrl(item.url);
+  const isTask = item.type === 'task';
+  const taskCompleted = isTaskComplete(item);
+  const hasTaskDetails = isTask && Boolean(item.text_content?.trim()) &&
+    item.text_content?.trim() !== title.trim();
 
   // Determine platform card format category
   const ext = (primaryAttachment?.file_extension || primaryAttachment?.original_file_name || title || '')
@@ -304,7 +344,10 @@ export function ItemDetailView({
   const musicSource = getMusicSource(item.url);
   const isMusic = item.type === 'music' || item.metadata?.content_type === 'music' || musicSource !== 'music';
   const isLyrica = !!(item.url && item.url.includes('lyricarw.com'));
-  const isNote = item.type === 'note' || item.metadata?.content_type === 'note' || (!item.url && !primaryAttachment && item.text_content);
+  const isNote = !isTask && (
+    item.type === 'note' || item.metadata?.content_type === 'note' ||
+    (!item.url && !primaryAttachment && Boolean(item.text_content))
+  );
   const isArticle = item.type === 'article' || item.metadata?.content_type === 'article' || (domain && (domain.includes('notion.so') || domain.includes('medium.com')));
 
   // Structured tags + embed info + article reader content parsing
@@ -347,7 +390,22 @@ export function ItemDetailView({
     ? buildTextFragmentUrl(item.url, item.text_content, item.text_selector ? JSON.parse(item.text_selector).before : null)
     : null;
 
+  const showArticleReader = shouldShowArticleReader(item, storedMarkdown, storedHtml);
   const itemCollections = item.collections || [];
+
+  const toggleTaskCompletion = async () => {
+    if (!isTask || taskSaving || item.deleted_at) return;
+    setTaskSaving(true);
+    setTaskError(null);
+    try {
+      if (taskCompleted) await markUnseen(item.id);
+      else await archiveItem(item.id);
+    } catch {
+      setTaskError('Could not update the task. Please try again.');
+    } finally {
+      setTaskSaving(false);
+    }
+  };
 
   const handleDelete = async () => {
     if (confirm('Are you sure you want to delete this item?')) {
@@ -395,16 +453,6 @@ export function ItemDetailView({
             >
               <Star className={`w-5 h-5 ${item.favorite ? 'fill-amber-500' : ''}`} />
             </button>
-
-            {item.type === 'task' && item.status !== 'archived' && (
-              <button
-                type="button"
-                onClick={() => archiveItem(item.id)}
-                className="rounded-xl bg-[#e6edb0] px-3.5 py-1.5 text-xs font-bold text-[#171711] hover:bg-[#d8e09f] shadow-2xs transition-colors cursor-pointer"
-              >
-                Done
-              </button>
-            )}
 
             {/* Keep in Library / Archive / Move to Inbox Button */}
             {item.status === 'inbox' || item.status === 'deferred' ? (
@@ -515,7 +563,22 @@ export function ItemDetailView({
         {/* ========================================================================= */}
         <article className="rounded-[28px] sm:rounded-[34px] bg-white border-2 border-[#171711] shadow-[0_20px_60px_rgba(0,0,0,0.06)] overflow-hidden transition-all duration-200">
           {/* FORMAT 1: PSD / Design File */}
-          {isPsd ? (
+          {isTask ? (
+            <div className="flex items-center justify-between border-b border-[#e4e0d5] bg-[#f5f8e9] px-6 py-5">
+              <div className="flex items-center gap-3">
+                <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#e6edb0] text-[#314125]">
+                  <CheckCircle className="h-5 w-5" aria-hidden="true" />
+                </span>
+                <div>
+                  <p className="text-sm font-black text-[#29351d]">Task</p>
+                  <p className="mt-0.5 text-xs text-[#75836a]">Something to get done</p>
+                </div>
+              </div>
+              <span className={`rounded-full px-3 py-1 text-xs font-bold ${
+                taskCompleted ? 'bg-[#dcebc7] text-[#4b6d33]' : 'bg-white text-[#7d866f]'
+              }`}>{taskCompleted ? 'Completed' : 'To do'}</span>
+            </div>
+          ) : isPsd ? (
             <div className="relative w-full h-52 sm:h-64 bg-gradient-to-tr from-[#1e1b4b] via-[#701a75] via-[#ec4899] to-[#84cc16] overflow-hidden flex items-center justify-center border-b border-[#e4e0d5]">
               <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-black/20" />
               <div className="absolute top-4 right-4 px-3 py-1 rounded-full bg-black/60 backdrop-blur-md text-white text-xs font-semibold flex items-center gap-1.5 shadow-sm">
@@ -548,11 +611,10 @@ export function ItemDetailView({
             /* FORMAT 3: Video with Rich OG Image / Player */
             <div className="relative w-full h-52 sm:h-72 bg-black overflow-hidden border-b border-[#e4e0d5]">
               {previewImage && !imgError ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
+                <SourcePreviewImage
                   src={previewImage}
                   alt={title}
-                  className="w-full h-full object-cover"
+                  href={externalUrl}
                   onError={() => setImgError(true)}
                 />
               ) : (
@@ -560,7 +622,7 @@ export function ItemDetailView({
                   <Play className="w-12 h-12 text-white/50" />
                 </div>
               )}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/30" />
+              <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/30" />
               <div className="absolute top-4 left-4 px-3 py-1 rounded-full bg-black/60 backdrop-blur-md text-white text-xs font-semibold flex items-center gap-1.5 shadow-sm">
                 <span>{domain || 'youtube.com'}</span>
               </div>
@@ -573,11 +635,10 @@ export function ItemDetailView({
             /* FORMAT 4: Music / Audio with Artwork & Floating Play Button */
             <div className={`relative w-full h-52 sm:h-72 overflow-hidden border-b border-[#e4e0d5] ${isLyrica ? 'bg-purple-950' : 'bg-neutral-900'}`}>
               {previewImage && !imgError ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
+                <SourcePreviewImage
                   src={previewImage}
                   alt={title}
-                  className="w-full h-full object-cover"
+                  href={externalUrl}
                   onError={() => setImgError(true)}
                 />
               ) : isLyrica ? (
@@ -590,14 +651,14 @@ export function ItemDetailView({
                   <Music2 className="w-12 h-12 text-emerald-400" />
                 </div>
               )}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/30" />
+              <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/30" />
               <div className={`absolute top-4 right-4 px-3 py-1 rounded-full backdrop-blur-md text-white text-xs font-semibold flex items-center gap-1.5 shadow-sm ${isLyrica ? 'bg-purple-600/80' : 'bg-black/60'}`}>
                 <MusicSourceIcon source={musicSource} className="w-3 h-3" />
                 <span>{musicSourceLabel(musicSource)}</span>
               </div>
               {/* Floating Circular Play Button */}
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className={`w-14 h-14 rounded-full text-white flex items-center justify-center shadow-xl hover:scale-105 transition-transform cursor-pointer pl-1 ${isLyrica ? 'bg-purple-600/90' : 'bg-white/95 text-[#171711]'}`}>
+              <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                <div className={`w-14 h-14 rounded-full text-white flex items-center justify-center shadow-xl pl-1 ${isLyrica ? 'bg-purple-600/90' : 'bg-white/95 text-[#171711]'}`}>
                   <Play className={`w-6 h-6 ${isLyrica ? 'fill-white' : 'fill-[#171711]'}`} />
                 </div>
               </div>
@@ -616,14 +677,13 @@ export function ItemDetailView({
           ) : previewImage && !imgError ? (
             /* FORMAT 6: Rich OpenGraph Hero Image for Web Articles & Links */
             <div className="relative w-full h-52 sm:h-72 bg-neutral-900 overflow-hidden border-b border-[#e4e0d5]">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
+              <SourcePreviewImage
                 src={previewImage}
                 alt={title}
-                className="w-full h-full object-cover"
+                href={externalUrl}
                 onError={() => setImgError(true)}
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20" />
+              <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20" />
               {domain && (
                 <div className="absolute top-4 left-4 px-3 py-1 rounded-full bg-black/60 backdrop-blur-md text-white text-xs font-semibold flex items-center gap-1.5 shadow-sm">
                   <span>{domain}</span>
@@ -736,7 +796,9 @@ export function ItemDetailView({
                       : 'Someday'
                     : item.status === 'saved'
                     ? 'Kept'
-                    : 'Archived'}
+                    : isTask
+                      ? 'Completed'
+                      : 'Archived'}
                 </span>
               </div>
             </div>
@@ -772,12 +834,43 @@ export function ItemDetailView({
               <h1 className="text-2xl sm:text-3xl font-black text-[#171711] tracking-tight leading-snug">
                 {title}
               </h1>
-              {description && (!item.url || description !== item.text_content) && (
+              {description && description !== item.text_content && (
                 <p className="text-sm sm:text-base text-[#6c6b63] leading-relaxed">
                   {description}
                 </p>
               )}
             </div>
+
+            {isTask && (
+              <section aria-label="Task completion" className="rounded-2xl border border-[#dfe7ca] bg-[#f8fbf0] p-4 sm:p-5">
+                <button
+                  type="button"
+                  role="checkbox"
+                  aria-checked={taskCompleted}
+                  aria-label={taskCompleted ? 'Reopen completed task' : 'Mark task as complete'}
+                  disabled={taskSaving || Boolean(item.deleted_at)}
+                  onClick={() => void toggleTaskCompletion()}
+                  className="group flex w-full items-center gap-3 text-left disabled:cursor-not-allowed disabled:opacity-60 focus-visible:rounded-lg focus-visible:outline-2 focus-visible:outline-[#7d9454]"
+                >
+                  <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border-2 transition-colors ${
+                    taskCompleted
+                      ? 'border-[#789850] bg-[#e6edb0] text-[#3a5428]'
+                      : 'border-[#abb79c] bg-white text-transparent group-hover:border-[#789850]'
+                  }`}>
+                    <Check className="h-5 w-5" strokeWidth={3} aria-hidden="true" />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className={`block text-sm font-black ${taskCompleted ? 'text-[#63755b] line-through' : 'text-[#24321d]'}`}>
+                      {taskCompleted ? 'Task completed' : 'Mark as completed'}
+                    </span>
+                    <span className="mt-1 block text-xs text-[#7b8773]">
+                      {taskCompleted ? 'Checked off. Select again to reopen this task.' : 'Check this when the task is done.'}
+                    </span>
+                  </span>
+                </button>
+                {taskError && <p role="alert" className="mt-3 text-xs font-semibold text-red-700">{taskError}</p>}
+              </section>
+            )}
 
             {/* Multi-Platform Tags */}
             {tags.length > 0 && (
@@ -831,22 +924,26 @@ export function ItemDetailView({
               </div>
             )}
 
-            {/* Note text content if pure note without structured reader data */}
-            {!item.url && item.text_content && !primaryAttachment && !storedMarkdown && !storedHtml && (
-              <div className="p-4 rounded-2xl bg-[#faf9f5] border border-[#e4e0d5] text-[#171711] text-sm whitespace-pre-wrap leading-relaxed font-mono">
-                {item.text_content}
-              </div>
+            {/* Text for notes and task instructions is content, not article-reader input. */}
+            {!item.url && item.text_content && !primaryAttachment && !showArticleReader &&
+              (!isTask || hasTaskDetails) && (
+              <section className="rounded-2xl border border-[#e4e0d5] bg-[#faf9f5] p-4 sm:p-5">
+                <h2 className="mb-2 text-xs font-black uppercase tracking-wide text-[#78816e]">
+                  {isTask ? 'Task details' : isNote ? 'Note' : 'Saved text'}
+                </h2>
+                <div className="whitespace-pre-wrap break-words text-sm leading-7 text-[#2d3328]">{item.text_content}</div>
+              </section>
             )}
 
             {item.content?.truncated && (
               <p role="status" className="text-sm text-amber-700">This saved snapshot was shortened. Open the source for the full content.</p>
             )}
             {/* Multi-Format Article Reader: Formatted, Markdown, HTML View */}
-            {(storedMarkdown || storedHtml || (item.text_content && !item.text_selector)) && (
+            {showArticleReader && (
               <ArticleReader
-                markdown={storedMarkdown || (!item.text_selector ? item.text_content : null)}
+                markdown={storedMarkdown}
                 htmlContent={storedHtml}
-                rawText={item.text_content}
+                rawText={null}
                 author={storedAuthor}
                 publishedTime={storedPublishedTime}
                 readingTimeMinutes={storedReadingTime}
@@ -884,10 +981,8 @@ export function ItemDetailView({
                   </div>
                 ) : isArticle ? (
                   <div className="flex items-center gap-1.5 text-[#171711]">
-                    <div className="w-3.5 h-3.5 rounded-xs bg-black text-white text-[9px] font-black flex items-center justify-center">
-                      N
-                    </div>
-                    <span className="font-bold">Notion</span>
+                    <Globe className="h-4 w-4" aria-hidden="true" />
+                    <span className="font-bold">Article</span>
                   </div>
                 ) : isPsd ? (
                   <div className="flex items-center gap-1.5 text-[#001e36]">
@@ -904,7 +999,7 @@ export function ItemDetailView({
                 ) : (
                   <div className="flex items-center gap-1.5">
                     <StickyNote className="w-4 h-4 text-[#8c897f]" />
-                    <span>Personal Note</span>
+                    <span>{isTask ? 'Task' : isNote ? 'Personal Note' : 'Saved Item'}</span>
                   </div>
                 )}
                 <span>•</span>
@@ -924,7 +1019,7 @@ export function ItemDetailView({
                       : isVideo
                       ? 'Watch on YouTube'
                       : isArticle
-                      ? 'Open in Notion'
+                      ? 'Read original article'
                       : 'Open Link'}
                   </span>
                   <ExternalLink className="w-3.5 h-3.5" />
