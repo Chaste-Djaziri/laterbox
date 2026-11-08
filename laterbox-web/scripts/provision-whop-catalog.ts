@@ -17,12 +17,15 @@ import { resolve } from 'node:path';
 import {
   WHOP_CATALOG_PLANS, WHOP_CATALOG_PRODUCTS,
   existingWhopPlan, existingWhopProduct,
+  whopCatalogQuery, whopProductCreateBody, whopPlanCreateBody,
   type WhopPlanRecord, type WhopProductRecord,
 } from '../src/lib/billing/whop-catalog';
 
 loadEnvConfig(process.cwd());
 const args = new Set(process.argv.slice(2));
 const apply = args.has('--apply');
+const inspect = args.has('--inspect');
+if (apply && inspect) throw new Error('Use --inspect OR --apply, not both.');
 const production = args.has('--production');
 const sandbox = args.has('--sandbox');
 if (production && sandbox) throw new Error('Choose --production or --sandbox, not both.');
@@ -77,9 +80,8 @@ async function allPages<T>(
   let after: string | undefined;
   const all: T[] = [];
   for (let page = 0; page < 30; page++) {
-    const query = new URLSearchParams({ company_id: business, first: '100' });
-    if (after) query.set('after', after);
-    const result = await request<Page<T>>(`/${resource}?${query.toString()}`);
+    const query = whopCatalogQuery(business, after);
+    const result = await request<Page<T>>(`/${resource}?${query}`);
     if (!Array.isArray(result.data)) throw new Error(`Whop returned an invalid ${resource} response.`);
     all.push(...result.data);
     if (!result.page_info?.has_next_page) return all;
@@ -89,6 +91,35 @@ async function allPages<T>(
     after = result.page_info.end_cursor;
   }
   throw new Error(`Too many Whop ${resource} pages; refusing to create duplicates.`);
+}
+
+/** Read-only pagination trace; prints no credentials, titles, IDs or opaque cursors. */
+async function inspectPagination(
+  request: ReturnType<typeof makeRequest>,
+  resource: 'products' | 'plans',
+  business: string,
+) {
+  const seenIds = new Set<string>();
+  let cursor: string | undefined;
+  console.log(`\nInspecting ${resource} (read-only, first 3 pages maximum)...`);
+  for (let page = 1; page <= 3; page++) {
+    const query = whopCatalogQuery(business, cursor);
+    const result = await request<Page<{id?: string}>>(`/${resource}?${query}`);
+    if (!Array.isArray(result.data)) throw new Error(`Whop returned an invalid ${resource} response.`);
+    const before = seenIds.size;
+    for (const item of result.data) if (item && typeof item.id === 'string') seenIds.add(item.id);
+    const newIds = seenIds.size - before;
+    const hasNext = result.page_info?.has_next_page;
+    const nextCursor = result.page_info?.end_cursor;
+    console.log(`  Page ${page}: rows=${result.data.length}, newIds=${newIds}, hasNext=${String(hasNext)}, cursorChanged=${nextCursor != null && nextCursor !== cursor}`);
+    if (!hasNext) break;
+    if (!nextCursor || nextCursor === cursor) {
+      console.log('  STOP: pagination cursor missing or repeated.');
+      break;
+    }
+    cursor = nextCursor;
+  }
+  console.log('Read-only inspection finished. No products or plans created.');
 }
 
 async function persistLocalPlanIds(
@@ -114,18 +145,18 @@ async function persistLocalPlanIds(
 async function main() {
   if (args.has('--help') || args.has('-h')) {
     describeCatalog();
-    console.log('\nUsage: npm run whop:provision [-- --apply --sandbox|--production]');
+    console.log('\nUsage: npm run whop:provision [-- --inspect|--apply --sandbox|--production]');
     return;
   }
   describeCatalog();
-  if (!apply) {
+  if (!apply && !inspect) {
     console.log('\nDRY RUN: No Whop requests made or products created.');
     console.log('Set WHOP_COMPANY_API_KEY and WHOP_COMPANY_ID in .env.local, then use --apply --sandbox for testing.');
     console.log('Live provisioning: WHOP_CONFIRM_PRODUCTION=CREATE_LIVE_CATALOG npm run whop:provision -- --apply --production');
     return;
   }
-  if (!environment) throw new Error('--apply requires either --sandbox or --production.');
-  if (production && process.env.WHOP_CONFIRM_PRODUCTION !== 'CREATE_LIVE_CATALOG') {
+  if (!environment) throw new Error('--inspect or --apply requires either --sandbox or --production.');
+  if (production && apply && process.env.WHOP_CONFIRM_PRODUCTION !== 'CREATE_LIVE_CATALOG') {
     throw new Error('Live products require WHOP_CONFIRM_PRODUCTION=CREATE_LIVE_CATALOG. Prices will be charged to real customers.');
   }
   if (!companyId || !/^biz_[a-zA-Z0-9_-]+$/.test(companyId)) {
@@ -138,7 +169,12 @@ async function main() {
     ? 'https://api.whop.com/api/v1'
     : 'https://sandbox-api.whop.com/api/v1';
   const request = makeRequest(base, apiKey);
-  console.log(`\nChecking existing ${environment} products and plans for ${companyId}...`);
+  if (inspect) {
+    await inspectPagination(request, 'products', companyId);
+    await inspectPagination(request, 'plans', companyId);
+    return;
+  }
+  console.log(`\\nChecking existing ${environment} products and plans for ${companyId}...`);
   const products = await allPages<WhopProductRecord>(request, 'products', companyId);
   const plans = await allPages<WhopPlanRecord>(request, 'plans', companyId);
   const productIds = new Map<string, string>();
@@ -151,11 +187,7 @@ async function main() {
     }
     const created = await request<WhopProductRecord>('/products', {
       method: 'POST',
-      body: JSON.stringify({
-        company_id: companyId,
-        title: desired.title,
-        description: desired.description,
-      }),
+      body: JSON.stringify(whopProductCreateBody(companyId, desired)),
     });
     if (!created.id?.startsWith('prod_')) throw new Error('Whop did not return a valid product ID.');
     products.push(created);
@@ -173,20 +205,7 @@ async function main() {
     const found = existingWhopPlan(plans, productId, desired);
     const record = found ?? await request<WhopPlanRecord>('/plans', {
       method: 'POST',
-      body: JSON.stringify({
-        company_id: companyId,
-        product_id: productId,
-        title: desired.title,
-        description: `LaterBox ${desired.title} subscription`,
-        plan_type: 'renewal',
-        release_method: 'buy_now',
-        visibility: 'visible',
-        currency: 'usd',
-        billing_period: desired.billingPeriod,
-        initial_price: 0,
-        renewal_price: desired.renewalPrice,
-        unlimited_stock: true,
-      }),
+      body: JSON.stringify(whopPlanCreateBody(companyId, productId, desired)),
     });
     if (!record.id?.startsWith('plan_')) throw new Error('Whop did not return a valid plan ID.');
     if (!found) plans.push(record);

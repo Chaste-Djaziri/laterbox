@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[Web / Whop billing]** Fix catalog provisioning against the current Whop API: use `account_id` for scoped product/plan listings **and** creation instead of unrecognized `company_id`, which accidentally paginated the public product marketplace. Add read-only `--inspect` diagnostics and regression tests preventing unscoped catalog requests.
+
 - **[Web / Whop catalog provisioning]** Add a safe, repeatable Whop product-and-plan provisioning command for Plus and Vault monthly/yearly pricing. Default to dry-run, require explicit confirmation for live plans, reuse matching existing products and plans instead of duplicating, and write resulting plan IDs into the ignored local environment after a successful run.
 
 - **[Web / Local authentication]** Fix `/login` hydration mismatch from browser-only development toolbar state, point the ignored local Supabase env at loopback rather than a stale LAN address, bound initial session and sign-in requests to prevent indefinite loading, recover visibly from network errors, and make password login sign in rather than attempting account creation first. Preserve existing OAuth, OTP and guest flows, with regression tests.

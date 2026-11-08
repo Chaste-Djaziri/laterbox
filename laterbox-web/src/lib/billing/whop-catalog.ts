@@ -83,3 +83,39 @@ export function existingWhopPlan(
   }
   return match;
 }
+
+/** Whop API v1 uses account_id. company_id is ignored on public product listing. */
+export function whopCatalogQuery(accountId: string, after?: string): string {
+  if (!/^biz_[a-zA-Z0-9_-]+$/.test(accountId)) throw new Error('Invalid Whop account ID.');
+  const query = new URLSearchParams({ account_id: accountId, first: '100' });
+  if (after) query.set('after', after);
+  return query.toString();
+}
+
+export function whopProductCreateBody(accountId: string, desired: DesiredWhopProduct) {
+  if (!/^biz_[a-zA-Z0-9_-]+$/.test(accountId)) throw new Error('Invalid Whop account ID.');
+  return {
+    account_id: accountId,
+    title: desired.title,
+    description: desired.description,
+  };
+}
+
+export function whopPlanCreateBody(accountId: string, productId: string, desired: DesiredWhopPlan) {
+  if (!/^biz_[a-zA-Z0-9_-]+$/.test(accountId)) throw new Error('Invalid Whop account ID.');
+  if (!/^prod_[a-zA-Z0-9_-]+$/.test(productId)) throw new Error('Invalid Whop product ID.');
+  return {
+    account_id: accountId,
+    product_id: productId,
+    title: desired.title,
+    description: `LaterBox ${desired.title} subscription`,
+    plan_type: 'renewal' as const,
+    release_method: 'buy_now' as const,
+    visibility: 'visible' as const,
+    currency: 'usd' as const,
+    billing_period: desired.billingPeriod,
+    initial_price: 0,
+    renewal_price: desired.renewalPrice,
+    unlimited_stock: true,
+  };
+}

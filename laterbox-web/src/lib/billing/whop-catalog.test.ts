@@ -3,7 +3,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   WHOP_CATALOG_PLANS, WHOP_CATALOG_PRODUCTS,
-  existingWhopProduct, existingWhopPlan, type WhopPlanRecord,
+  existingWhopProduct, existingWhopPlan, whopCatalogQuery, whopProductCreateBody, whopPlanCreateBody, type WhopPlanRecord,
 } from './whop-catalog';
 
 test('Whop provisioning covers the four existing LaterBox plans at their published USD prices', () => {
@@ -39,4 +39,34 @@ test('reuses existing plans only when billing terms match exactly', () => {
   assert.equal(existingWhopPlan([record], 'prod_other', desired), null);
   assert.throws(() => existingWhopPlan([{ ...record, renewal_price: 20 }], 'prod_123', desired), /different billing terms/);
   assert.throws(() => existingWhopPlan([record, record], 'prod_123', desired), /Multiple/);
+});
+
+test('every Whop catalog list is strictly scoped to account_id, never the public marketplace', () => {
+  const query = new URLSearchParams(whopCatalogQuery('biz_LaterBox123'));
+  assert.equal(query.get('account_id'), 'biz_LaterBox123');
+  assert.equal(query.get('company_id'), null);
+  assert.equal(query.get('first'), '100');
+  assert.equal(query.get('after'), null);
+  const next = new URLSearchParams(whopCatalogQuery('biz_LaterBox123', 'opaque-cursor'));
+  assert.equal(next.get('after'), 'opaque-cursor');
+  assert.equal(next.get('account_id'), 'biz_LaterBox123');
+  assert.throws(() => whopCatalogQuery('not-an-account'), /Invalid Whop account ID/);
+});
+
+test('Whop create requests use account_id and preserve existing LaterBox catalog prices', () => {
+  const product = whopProductCreateBody('biz_LaterBox123', WHOP_CATALOG_PRODUCTS[0]);
+  assert.deepEqual(product, {
+    account_id: 'biz_LaterBox123',
+    title: 'LaterBox Plus',
+    description: WHOP_CATALOG_PRODUCTS[0].description,
+  });
+  const plan = whopPlanCreateBody('biz_LaterBox123', 'prod_Test123', WHOP_CATALOG_PLANS[0]);
+  assert.equal(plan.account_id, 'biz_LaterBox123');
+  assert.equal(plan.product_id, 'prod_Test123');
+  assert.equal(plan.billing_period, 30);
+  assert.equal(plan.renewal_price, 2.99);
+  assert.equal(plan.initial_price, 0);
+  assert.equal(plan.plan_type, 'renewal');
+  assert.equal('company_id' in plan, false);
+  assert.throws(() => whopPlanCreateBody('biz_LaterBox123', 'other', WHOP_CATALOG_PLANS[0]), /Invalid Whop product ID/);
 });
