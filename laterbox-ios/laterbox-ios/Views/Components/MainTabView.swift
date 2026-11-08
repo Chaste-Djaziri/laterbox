@@ -32,8 +32,8 @@ enum MainTab: String, CaseIterable, Identifiable {
 struct MainTabView: View {
     @Environment(\.colorScheme) private var colorScheme
     @State private var selectedTab: MainTab = .inbox
-    @State private var showingStorage = false
-    @StateObject private var storageManager = LocalStorageManager.shared
+    @State private var showingCloudUsage = false
+    @ObservedObject private var coordinator = SyncCoordinator.shared
     @State private var showingCapture = false
     @State private var inboxDetailPushed = false
     @State private var logoReplayToken = 0
@@ -88,22 +88,21 @@ struct MainTabView: View {
                     .whiteStatusBar()
             }
         }
-        .sheet(isPresented: $showingStorage) {
+        .sheet(isPresented: $showingCloudUsage) {
             NavigationStack {
-                StorageManagementView()
+                CloudStorageUsageDetails()
                     .toolbar {
                         ToolbarItem(placement: .topBarLeading) {
-                            Button("Done") { showingStorage = false }
+                            Button("Done") { showingCloudUsage = false }
                         }
                     }
             }
-        }
-        .onAppear {
-            storageManager.refreshBreakdown()
+            .presentationDetents([.medium, .large])
+            .presentationDragIndicator(.visible)
         }
         .onChange(of: inboxRefreshing) { _, isRefreshing in
-            if !isRefreshing {
-                storageManager.refreshBreakdown()
+            if !isRefreshing && coordinator.isAuthenticated && !coordinator.isGuestMode {
+                Task { await coordinator.refreshEntitlement() }
             }
         }
     }
@@ -148,48 +147,25 @@ struct MainTabView: View {
 
                 Button {
                     LBHaptic.light()
-                    storageManager.refreshBreakdown()
-                    showingStorage = true
+                    showingCloudUsage = true
                 } label: {
-                    HStack(spacing: 8) {
-                        Image(systemName: "internaldrive")
-                            .font(.system(size: 16, weight: .medium))
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(storageManager.breakdown.formattedTotal)
-                                .font(.system(size: 11, weight: .semibold, design: .rounded))
-                                .monospacedDigit()
-                                .lineLimit(1)
-                            GeometryReader { geometry in
-                                HStack(spacing: 1) {
-                                    Rectangle()
-                                        .fill(AppTheme.accent)
-                                        .frame(width: max(0, geometry.size.width * storageManager.breakdown.databasePercentage))
-                                    Rectangle()
-                                        .fill(Color.blue.opacity(0.8))
-                                        .frame(width: max(0, geometry.size.width * storageManager.breakdown.attachmentsPercentage))
-                                    Rectangle()
-                                        .fill(Color.orange.opacity(0.8))
-                                        .frame(width: max(0, geometry.size.width * storageManager.breakdown.cachePercentage))
-                                }
-                                .clipShape(Capsule())
-                            }
-                            .frame(width: 66, height: 3)
-                        }
-                    }
-                    .foregroundStyle(InboxAppearance.textPrimary(for: colorScheme))
-                    .padding(.horizontal, 10)
-                    .frame(height: 38)
-                    .background(
-                        InboxAppearance.surface(for: colorScheme),
-                        in: RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    CloudStorageUsageRing(
+                        quota: CloudStorageQuota.from(
+                            coordinator.isAuthenticated && !coordinator.isGuestMode
+                                ? coordinator.billingEntitlement
+                                : nil
+                        ),
+                        isSignedIn: coordinator.isAuthenticated && !coordinator.isGuestMode
                     )
-                    .overlay {
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .strokeBorder(InboxAppearance.border(for: colorScheme), lineWidth: 1)
-                    }
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("On-device storage: \(storageManager.breakdown.formattedTotal). Open storage management.")
+                .accessibilityLabel(
+                    coordinator.isAuthenticated && !coordinator.isGuestMode
+                        ? (CloudStorageQuota.from(coordinator.billingEntitlement).percent.map {
+                            "Cloud storage: \(Int($0.rounded())) percent of plan used. View cloud storage."
+                        } ?? "Cloud storage usage unavailable. View cloud storage.")
+                        : "Sign in to view cloud storage usage"
+                )
                 .accessibilityIdentifier("Inbox Storage Usage")
             }
         }

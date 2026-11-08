@@ -14,18 +14,48 @@ struct MainTabTests {
         #expect(Set(MainTab.allCases.map(\.symbol)).count == 5)
     }
 
-    @Test("Storage indicator reports actual local bytes and composition")
-    func storageUsageHeader() {
-        let breakdown = StorageBreakdown(
-            databaseBytes: 1_000_000,
-            attachmentsBytes: 500_000,
-            cacheBytes: 500_000
-        )
-        #expect(breakdown.totalBytes == 2_000_000)
-        #expect(breakdown.databasePercentage == 0.5)
-        #expect(breakdown.attachmentsPercentage == 0.25)
-        #expect(breakdown.cachePercentage == 0.25)
-        #expect(!breakdown.formattedTotal.isEmpty)
+    @Test("Cloud storage circle follows server quota and web warning thresholds")
+    func cloudQuotaIndicator() {
+        let unavailable = CloudStorageQuota(usedBytes: nil, limitBytes: 500_000_000)
+        #expect(unavailable.percent == nil)
+        #expect(unavailable.ringFraction == nil)
+        #expect(unavailable.level == .unknown)
+
+        let normal = CloudStorageQuota(usedBytes: 100_000_000, limitBytes: 500_000_000)
+        #expect(normal.percent == 20)
+        #expect(normal.ringFraction == 0.2)
+        #expect(normal.level == .normal)
+        #expect(normal.usedLabel == "100.0 MB")
+        #expect(normal.limitLabel == "500.0 MB")
+
+        #expect(CloudStorageQuota(usedBytes: 80, limitBytes: 100).level == .warning)
+        #expect(CloudStorageQuota(usedBytes: 95, limitBytes: 100).level == .critical)
+        #expect(CloudStorageQuota(usedBytes: 100, limitBytes: 100).level == .full)
+        #expect(CloudStorageQuota(usedBytes: 140, limitBytes: 100).ringFraction == 1)
+        #expect(CloudStorageQuota(usedBytes: -1, limitBytes: 100).level == .unknown)
+        #expect(CloudStorageQuota(usedBytes: 0, limitBytes: 0).level == .unknown)
+    }
+
+    @Test("Cloud quota is decoded from billing entitlement, not local device storage")
+    func cloudQuotaEntitlementDecoding() throws {
+        let json = """
+        {
+          "tier": "pro", "status": "active", "provider": "whop",
+          "willCancel": false, "storagePlan": "vault",
+          "storageUsedBytes": 7500000000, "storageLimitBytes": 100000000000
+        }
+        """
+        let entitlement = try JSONDecoder().decode(AccountBillingEntitlement.self, from: Data(json.utf8))
+        #expect(entitlement.storagePlan == "vault")
+        #expect(entitlement.storageUsedBytes == 7_500_000_000)
+        #expect(entitlement.storageLimitBytes == 100_000_000_000)
+        #expect(CloudStorageQuota.from(entitlement).percent == 7.5)
+
+        let oldJSON = """
+        {"tier":"free","status":"free","willCancel":false}
+        """
+        let old = try JSONDecoder().decode(AccountBillingEntitlement.self, from: Data(oldJSON.utf8))
+        #expect(CloudStorageQuota.from(old).percent == nil)
     }
 
     @Test("Only Inbox owns the custom top header")

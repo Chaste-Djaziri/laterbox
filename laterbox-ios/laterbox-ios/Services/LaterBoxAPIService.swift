@@ -59,6 +59,11 @@ public nonisolated struct AccountBillingEntitlement: Decodable, Sendable {
     public let willCancel: Bool
     public let billingInterval: String?
     public let appleEnvironment: String?
+    // Server-owned quota values, shared with the web sidebar.
+    // Nil usage means unavailable, not an empty cloud account.
+    public let storagePlan: String?
+    public let storageLimitBytes: Int64?
+    public let storageUsedBytes: Int64?
 
     public var accessEndDate: Date? {
         guard let accessEndsAt else { return nil }

@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[iOS / Cloud storage indicator]** Match the web sidebar's circular, status-colored cloud quota ring in the Inbox header, using the authenticated billing entitlement's server-reported storage used/limit and free/Plus/Vault plan. Replace local-device storage details with a cloud usage sheet and plans action; never infer paid cloud usage from local files or show invented percentages when quota is unavailable.
+
 - **[iOS / Inbox navigation and storage]** Replace the top-right More menu with a live on-device storage-usage component linking to Storage Management. Push Inbox and Kept item details through a real NavigationStack path, hide the Inbox-only header while a detail is open, restore the native navigation back button and edge-swipe gesture, and keep item actions accessible from its toolbar.
 
 - **[iOS / Startup and tabs]** Remove the five-second in-app splash overlay and its foreground replay, load the main UI immediately while keeping startup import, sync, and entitlement refresh independent. Keep only a blank, system-required adaptive native launch canvas. Show the custom top header only on Inbox; restore native pull-to-refresh feedback on Today, Kept, Library, and secondary mailboxes.
