@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[Marketing / Shell]** Simplify the public footer and shared page layout with platform-first navigation, a consistent final action, meaningful status feedback, and keyboard-accessible main-content navigation.
+
 - **[Marketing / Homepage]** Replace the crowded landing hero with an editorial split layout, a focused free-start CTA, an illustrative library preview, and a clearer real-app demo section.
 
 - **[Marketing / Navigation]** Redesign the responsive public header with a clearer product navigation hierarchy, accessible mobile and resources menus, and focused launch actions.

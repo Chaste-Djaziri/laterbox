@@ -1,462 +1,108 @@
-'use client';
-
-import React, { useState, useEffect } from 'react';
-import Link from 'next/link';
+// laterbox-web/src/components/layout/Footer.tsx
 import Image from 'next/image';
-import {
-  Download,
-  Laptop,
-  Smartphone,
-  Puzzle,
-  Globe2,
-  Sparkles,
-  ShieldCheck,
-  Terminal,
-  ExternalLink,
-  Zap,
-  ArrowUpRight,
-  BookOpen,
-  Keyboard,
-  Layers,
-  FileText,
-  Lock,
-  Activity,
-} from 'lucide-react';
+import Link from 'next/link';
+import { Activity, ArrowRight, ArrowUpRight, Globe2, Mail, Puzzle, Smartphone } from 'lucide-react';
 import { APP_ORIGIN } from '@/lib/auth/config';
 import { APP_VERSION } from '@/lib/version';
 
+const sections = [
+  {
+    title: 'Explore',
+    links: [
+      { label: 'Features', href: '/features' },
+      { label: 'How it works', href: '/#how-it-works' },
+      { label: 'Storage plans', href: '/pricing' },
+      { label: 'Getting started', href: '/guide' },
+    ],
+  },
+  {
+    title: 'Get LaterBox',
+    links: [
+      { label: 'Web app', href: `${APP_ORIGIN}/inbox` },
+      { label: 'Chrome extension', href: 'https://chromewebstore.google.com/detail/laterbox-save-for-later/egiodciikkepjielhbnihmmchkbpeikp' },
+      { label: 'iOS & iPadOS', href: 'https://apps.apple.com/us/app/laterbox-save-for-later/id6804139119' },
+      { label: 'All downloads', href: '/download' },
+    ],
+  },
+  {
+    title: 'Resources',
+    links: [
+      { label: 'About us', href: '/about' },
+      { label: 'Help & guides', href: '/docs' },
+      { label: 'Privacy', href: '/privacy' },
+      { label: 'Terms of service', href: '/terms' },
+      { label: 'Refund policy', href: '/refund' },
+    ],
+  },
+] as const;
+
+function FooterNavLink({ href, children }: { href: string; children: React.ReactNode }) {
+  const isExternal = href.startsWith('https://');
+  const className = 'inline-flex items-center gap-1.5 py-1 text-sm font-medium text-[#abb3a3] transition-colors hover:text-[#e6edb0] focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#e6edb0]';
+  if (isExternal) {
+    return (
+      <a href={href} target="_blank" rel="noopener noreferrer" className={className}>
+        {children}<ArrowUpRight className="h-3 w-3 opacity-50" aria-hidden="true" />
+      </a>
+    );
+  }
+  return <Link href={href} className={className}>{children}</Link>;
+}
+
 export function Footer() {
-  const currentYear = new Date().getFullYear();
-  const [systemStatus, setSystemStatus] = useState<{
-    status: 'operational' | 'degraded' | 'outage';
-    label: string;
-    indicator: 'emerald' | 'amber' | 'rose';
-    statusPageUrl: string;
-  }>({
-    status: 'operational',
-    label: 'All Systems Operational',
-    indicator: 'emerald',
-    statusPageUrl: 'https://status.laterbox.dev',
-  });
-
-  useEffect(() => {
-    let isMounted = true;
-    fetch('/api/system-status')
-      .then(async (res) => {
-        if (!res.ok) return null;
-        const data = (await res.json()) as {
-          status?: 'operational' | 'degraded' | 'outage';
-          label?: string;
-          indicator?: 'emerald' | 'amber' | 'rose';
-          statusPageUrl?: string;
-        };
-        return data;
-      })
-      .then((data) => {
-        if (isMounted && data?.label) {
-          setSystemStatus({
-            status: data.status || 'operational',
-            label: data.label || 'All Systems Operational',
-            indicator: data.indicator || 'emerald',
-            statusPageUrl: data.statusPageUrl || 'https://status.laterbox.dev',
-          });
-        }
-      })
-      .catch(() => {
-        // Fallback default remains operational
-      });
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
-
   return (
-    <footer className="border-t border-[#e4e0d5] bg-[#faf8f2] text-xs text-[#6c6b63] mt-auto">
-      {/* Main Top Footer Grid */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-20">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-10 lg:gap-8">
-          {/* Brand Column (Spans 2 columns on large screens) */}
-          <div className="lg:col-span-2 space-y-5">
-            <Link href="/" className="flex items-center gap-3 group">
-              <div className="w-9 h-9 relative rounded-xl overflow-hidden bg-[#e6edb0] p-1.5 shrink-0 shadow-2xs transition-transform group-hover:scale-105">
-                <Image
-                  src="/branding/laterbox-icon.png"
-                  alt="laterbox"
-                  fill
-                  sizes="36px"
-                  className="object-contain p-0.5"
-                />
-              </div>
-              <span className="text-xl font-black tracking-tight text-[#171711]">
-                laterbox
-              </span>
-            </Link>
-
-            <p className="text-sm text-[#6c6b63] leading-relaxed max-w-sm">
-              The high-speed, save-for-later personal knowledge vault. Save links, notes, and files, organize collections, and return to useful content. Local saving is available in supported clients, with optional synchronization.
-            </p>
-
-            {/* System Status & Version Pill */}
-            <div className="flex flex-wrap items-center gap-3 pt-2">
-              <a
-                href={systemStatus.statusPageUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white border border-[#e4e0d5] text-[11px] font-semibold text-[#171711] shadow-2xs hover:border-[#171711] transition-all group cursor-pointer"
-                title="View Live Status on Better Stack (status.laterbox.dev)"
-              >
-                <span
-                  className={`w-2 h-2 rounded-full animate-pulse ${
-                    systemStatus.indicator === 'rose'
-                      ? 'bg-rose-500'
-                      : systemStatus.indicator === 'amber'
-                      ? 'bg-amber-500'
-                      : 'bg-emerald-500'
-                  }`}
-                />
-                <span>{systemStatus.label}</span>
-                <ArrowUpRight className="w-3 h-3 text-[#9e9b92] group-hover:text-[#171711] transition-colors" />
-              </a>
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#ebe7dc] text-[11px] font-mono font-bold text-[#171711]">
-                <span>v{APP_VERSION}</span>
-              </div>
-            </div>
-
-            {/* Community Links */}
-            <div className="flex items-center gap-3 pt-2">
-              <a
-                href="https://github.com/Chaste-Djaziri/laterbox"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-[#e4e0d5] hover:border-[#171711] hover:text-[#171711] text-[#6c6b63] font-semibold transition-all shadow-2xs"
-              >
-                <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
-                  <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z" />
-                </svg>
-                <span>GitHub</span>
-                <ArrowUpRight className="w-3 h-3 text-[#9e9b92]" />
-              </a>
-              <a
-                href="https://groups.google.com/g/laterbox-testers"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-[#e4e0d5] hover:border-[#171711] hover:text-[#171711] text-[#6c6b63] font-semibold transition-all shadow-2xs"
-              >
-                <Smartphone className="w-3.5 h-3.5" />
-                <span>Android Testers</span>
-                <ArrowUpRight className="w-3 h-3 text-[#9e9b92]" />
-              </a>
-            </div>
+    <footer className="relative isolate overflow-hidden bg-[#192018] text-[#f8faf1]">
+      <div className="pointer-events-none absolute -right-40 -top-48 -z-10 h-[580px] w-[580px] rounded-full bg-[#657841]/15 blur-[115px]" aria-hidden="true" />
+      <div className="mx-auto max-w-[1240px] px-5 sm:px-7 lg:px-8">
+        <div className="flex flex-col gap-7 border-b border-white/10 py-16 sm:py-20 lg:flex-row lg:items-end lg:justify-between lg:gap-10">
+          <div className="max-w-[700px]">
+            <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#afbe90]">A little less to remember</p>
+            <h2 className="mt-4 text-[clamp(2.4rem,4.4vw,4.6rem)] font-black leading-[1.07] tracking-[-0.065em]">
+              Keep the good stuff.<br /><span className="font-serif font-normal italic text-[#e6edb0]">Clear your mind.</span>
+            </h2>
+            <p className="mt-5 max-w-md text-sm leading-7 text-[#abb5a5] sm:text-base">A calmer place for the things you want to come back to, whether that&apos;s five minutes from now or next month.</p>
           </div>
-
-          {/* Column 1: Product */}
-          <div className="space-y-4">
-            <p className="text-xs font-bold uppercase tracking-wider text-[#171711]">
-              Product
-            </p>
-            <ul className="space-y-2.5">
-              <li>
-                <Link
-                  href={`${APP_ORIGIN}/inbox?guest=1`}
-                  className="hover:text-[#171711] transition-colors flex items-center gap-1.5"
-                >
-                  <span>Launch Web App</span>
-                  <span className="px-1.5 py-0.2 rounded bg-[#e6edb0] text-[#171711] text-[9px] font-bold">
-                    Free
-                  </span>
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/features"
-                  className="hover:text-[#171711] transition-colors"
-                >
-                  Pro Toolkit
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/#how-it-works"
-                  className="hover:text-[#171711] transition-colors"
-                >
-                  How It Works
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/guide"
-                  className="hover:text-[#171711] transition-colors"
-                >
-                  Spotlight Hotkeys
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/tutorial"
-                  className="hover:text-[#171711] transition-colors"
-                >
-                  Interactive Tutorial
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href={`${APP_ORIGIN}/inbox?guest=1`}
-                  className="hover:text-[#171711] transition-colors"
-                >
-                  Guest Sandbox
-                </Link>
-              </li>
-            </ul>
-          </div>
-
-          {/* Column 2: Platforms & Downloads */}
-          <div className="space-y-4">
-            <p className="text-xs font-bold uppercase tracking-wider text-[#171711]">
-              Downloads
-            </p>
-            <ul className="space-y-2.5">
-              <li>
-                <a
-                  href="https://apps.apple.com/us/app/laterbox-save-for-later/id6804139119"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="hover:text-[#171711] transition-colors flex items-center justify-between group"
-                >
-                  <span>iOS (App Store)</span>
-                  <span className="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[9px] font-bold">
-                    Live
-                  </span>
-                </a>
-              </li>
-              <li>
-                <Link
-                  href="/download"
-                  className="hover:text-[#171711] transition-colors flex items-center justify-between"
-                >
-                  <span>Android</span>
-                  <span className="px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 text-[9px] font-bold">
-                    In Dev
-                  </span>
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/download"
-                  className="hover:text-[#171711] transition-colors flex items-center justify-between"
-                >
-                  <span>macOS</span>
-                  <span className="text-[10px] text-[#9e9b92]">Soon</span>
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/download"
-                  className="hover:text-[#171711] transition-colors flex items-center justify-between"
-                >
-                  <span>Windows</span>
-                  <span className="text-[10px] text-[#9e9b92]">Soon</span>
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/download"
-                  className="hover:text-[#171711] transition-colors flex items-center justify-between"
-                >
-                  <span>Linux</span>
-                  <span className="text-[10px] text-[#9e9b92]">Soon</span>
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/extension/connect"
-                  className="hover:text-[#171711] transition-colors"
-                >
-                  Browser Extensions
-                </Link>
-              </li>
-            </ul>
-          </div>
-
-          {/* Column 3: Developers & CLI */}
-          <div className="space-y-4">
-            <p className="text-xs font-bold uppercase tracking-wider text-[#171711]">
-              Developers
-            </p>
-            <ul className="space-y-2.5">
-              <li>
-                <a
-                  href="/install.sh"
-                  target="_blank"
-                  className="hover:text-[#171711] transition-colors flex items-center gap-1.5"
-                >
-                  <Terminal className="w-3.5 h-3.5 text-[#171711]" />
-                  <span>install.sh (Mac/Linux)</span>
-                </a>
-              </li>
-              <li>
-                <a
-                  href="/install.ps1"
-                  target="_blank"
-                  className="hover:text-[#171711] transition-colors flex items-center gap-1.5"
-                >
-                  <Terminal className="w-3.5 h-3.5 text-[#171711]" />
-                  <span>install.ps1 (Windows)</span>
-                </a>
-              </li>
-              <li>
-                <Link
-                  href="/extension/connect"
-                  className="hover:text-[#171711] transition-colors"
-                >
-                  Token Key Connect
-                </Link>
-              </li>
-              <li>
-                <a
-                  href="https://github.com/Chaste-Djaziri/laterbox/releases"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="hover:text-[#171711] transition-colors flex items-center gap-1"
-                >
-                  <span>GitHub Releases</span>
-                  <ArrowUpRight className="w-3 h-3 text-[#9e9b92]" />
-                </a>
-              </li>
-              <li>
-                <a
-                  href="https://status.laterbox.dev"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="hover:text-[#171711] transition-colors flex items-center gap-1.5"
-                >
-                  <Activity className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>Status (status.laterbox.dev)</span>
-                  <ArrowUpRight className="w-3 h-3 text-[#9e9b92]" />
-                </a>
-              </li>
-              <li>
-                <a
-                  href="https://docs.laterbox.dev"
-                  className="hover:text-[#171711] transition-colors flex items-center gap-1.5"
-                >
-                  <BookOpen className="w-3.5 h-3.5 text-[#171711]" />
-                  <span>Docs (docs.laterbox.dev)</span>
-                </a>
-              </li>
-              <li>
-                <Link
-                  href="/docs/system-architecture"
-                  className="hover:text-[#171711] transition-colors"
-                >
-                  System Architecture
-                </Link>
-              </li>
-            </ul>
-          </div>
-
-          {/* Column 4: Legal & Privacy */}
-          <div className="space-y-4">
-          <nav aria-label="About LaterBox" className="space-y-3 font-semibold">
-            <Link className="block" href="/about">About LaterBox</Link>
-            <Link className="block" href="/features">Features</Link>
-            <Link className="block" href="/browser-extension">Browser extension</Link>
-          </nav>
-
-            <p className="text-xs font-bold uppercase tracking-wider text-[#171711]">
-              Privacy & Legal
-            </p>
-            <ul className="space-y-2.5">
-              <li>
-                <Link
-                  href="/privacy"
-                  className="hover:text-[#171711] transition-colors flex items-center gap-1.5"
-                >
-                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>Privacy Policy</span>
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/terms"
-                  className="hover:text-[#171711] transition-colors"
-                >
-                  Terms of Service
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/refund"
-                  className="hover:text-[#171711] transition-colors"
-                >
-                  Refund Policy
-                </Link>
-              </li>
-              <li>
-                <span className="text-[#6c6b63] flex items-center gap-1">
-                  <Lock className="w-3 h-3 text-[#171711]" />
-                  <span>Zero Data Tracking</span>
-                </span>
-              </li>
-              <li>
-                <span className="text-[#6c6b63]">
-                  Offline-First Local Vault
-                </span>
-              </li>
-              <li>
-                <span className="text-[#6c6b63]">
-                  1-Click JSON/MD Export
-                </span>
-              </li>
-            </ul>
-          </div>
+          <Link href={`${APP_ORIGIN}/signup`} className="group inline-flex min-h-14 shrink-0 items-center justify-center gap-3 self-start rounded-full bg-[#e6edb0] px-7 text-sm font-black text-[#26321e] shadow-[0_8px_30px_rgba(0,0,0,0.15)] transition-all hover:-translate-y-0.5 hover:bg-[#f0f5ca] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#e6edb0]">
+            Start saving for free <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" aria-hidden="true" />
+          </Link>
         </div>
-      </div>
 
-      {/* Bottom Sub-Footer Bar */}
-      <div className="border-t border-[#e4e0d5] bg-[#f7f5ee] py-6">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2 text-[#6c6b63]">
-            <div className="w-4 h-4 relative rounded bg-[#e6edb0] p-0.5 shrink-0">
-              <Image
-                src="/branding/laterbox-icon.png"
-                alt="laterbox"
-                fill
-                sizes="16px"
-                className="object-contain"
-              />
+        <div className="grid gap-x-9 gap-y-12 py-14 sm:grid-cols-2 sm:py-16 lg:grid-cols-[1.55fr_1fr_1fr_1fr] lg:gap-x-12">
+          <div className="max-w-[280px]">
+            <Link href="/" className="group inline-flex items-center gap-2.5 rounded-md focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#e6edb0]" aria-label="LaterBox homepage">
+              <span className="relative h-10 w-10 overflow-hidden rounded-xl bg-[#e6edb0] shadow-sm">
+                <Image src="/branding/laterbox-icon.png" alt="" fill sizes="40px" className="object-contain p-1" />
+              </span>
+              <span className="text-[25px] font-black tracking-[-0.065em]">laterbox<span className="text-[#e6edb0]">.</span></span>
+            </Link>
+            <p className="mt-5 text-sm leading-7 text-[#aab3a6]">Save links, videos, notes, and ideas in one place. Find them again when it&apos;s time.</p>
+            <div className="mt-5 flex flex-wrap items-center gap-2 text-[11px] font-semibold text-[#bbc8a9]">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 px-3 py-1.5"><Globe2 className="h-3.5 w-3.5" /> Web</span>
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 px-3 py-1.5"><Puzzle className="h-3.5 w-3.5" /> Chrome</span>
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 px-3 py-1.5"><Smartphone className="h-3.5 w-3.5" /> iOS</span>
             </div>
-            <span className="font-extrabold text-[#171711]">laterbox</span>
-            <span className="text-[#9e9b92]">•</span>
-            <span>© {currentYear} laterbox. Engineered for speed, privacy & focus.</span>
           </div>
+          {sections.map(section => (
+            <nav key={section.title} aria-label={section.title}>
+              <h3 className="mb-5 text-xs font-black uppercase tracking-[0.14em] text-[#f5f8ed]">{section.title}</h3>
+              <ul className="space-y-3.5">
+                {section.links.map(link => (
+                  <li key={link.href}><FooterNavLink href={link.href}>{link.label}</FooterNavLink></li>
+                ))}
+              </ul>
+            </nav>
+          ))}
+        </div>
 
-          <div className="flex items-center gap-6 text-[11px] font-semibold text-[#6c6b63]">
-            <a
-              href="https://status.laterbox.dev"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:text-[#171711] transition-colors flex items-center gap-1 font-bold text-emerald-700"
-            >
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              <span>Status</span>
-              <ArrowUpRight className="w-2.5 h-2.5 text-[#9e9b92]" />
-            </a>
-            <Link href="/privacy" className="hover:text-[#171711] transition-colors">
-              Privacy
-            </Link>
-            <Link href="/terms" className="hover:text-[#171711] transition-colors">
-              Terms
-            </Link>
-            <Link href="/refund" className="hover:text-[#171711] transition-colors">
-              Refunds
-            </Link>
-            <a href="https://docs.laterbox.dev" className="hover:text-[#171711] transition-colors">
-              Documentation
-            </a>
-            <Link href="/download" className="hover:text-[#171711] transition-colors">
-              All Platforms
-            </Link>
+        <div className="flex flex-col gap-5 border-t border-white/10 py-7 text-xs text-[#939d90] md:flex-row md:items-center md:justify-between">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+            <span>© {new Date().getFullYear()} LaterBox · Made by MiCorp.</span>
+            <span className="hidden h-1 w-1 rounded-full bg-white/30 md:block" aria-hidden="true" />
+            <span className="font-mono text-[11px] text-[#849181]">v{APP_VERSION}</span>
+          </div>
+          <div className="flex flex-wrap items-center gap-5">
+            <a href="https://status.laterbox.dev" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 transition-colors hover:text-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#e6edb0]"><Activity className="h-3.5 w-3.5" aria-hidden="true"/> System status</a>
+            <a href="mailto:support@micorp.pro" className="inline-flex items-center gap-1.5 transition-colors hover:text-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#e6edb0]"><Mail className="h-3.5 w-3.5" aria-hidden="true"/> Contact support</a>
           </div>
         </div>
       </div>
