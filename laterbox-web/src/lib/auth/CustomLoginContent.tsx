@@ -1,6 +1,7 @@
 'use client';
 
 import { safeReturnPath } from '@/lib/auth/config';
+import { submitPasswordByMode, withAuthTimeout } from '@/lib/auth/flow';
 
 import React, { Suspense, useState, useEffect } from 'react';
 import Image from 'next/image';
@@ -70,36 +71,45 @@ export function CustomLoginContent({ actions, extra, initialMode = 'login' }: { 
   }, [authLoading, user, nextPath, router, awaitingName]);
 
   const handleEmailSubmit = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
+    e?.preventDefault();
     const cleanEmail = email.trim();
     if (!cleanEmail || !cleanEmail.includes('@')) {
       setError('Enter a valid email address.');
       return;
     }
-    setLoading(true);
     setError(null);
     setMessage(null);
 
-    // Try sending OTP code: if code is available (existing user), it delivers directly
-    const result: EmailStartResult = await signInWithOtp(cleanEmail);
-    const err = result.error;
-    if (actions && err) { setError(err.message); setLoading(false); return; }
-    if (result.nextStep === 'password') { setAwaitingPassword(true); setLoading(false); return; }
-    if (!err) {
-      setOtpType(result.nextStep === 'signup' ? 'signup' : 'email');
-      setAwaitingOtp(true);
-      setLoading(false);
+    // Email sign-up collects the password on the next step.
+    if (authMode === 'signup') {
+      setAwaitingPassword(true);
       return;
     }
 
-    // When code is not available (e.g. signup requires password or OTP signups disabled):
-    // Prompt for password
-    setAwaitingPassword(true);
-    setLoading(false);
+    setLoading(true);
+    try {
+      const result: EmailStartResult = await withAuthTimeout(signInWithOtp(cleanEmail));
+      if (result.error) {
+        // Network and OTP errors should be shown, not silently interpreted
+        // as an instruction to switch to the password screen.
+        setError(result.error.message);
+        return;
+      }
+      if (result.nextStep === 'password') {
+        setAwaitingPassword(true);
+        return;
+      }
+      setOtpType(result.nextStep === 'signup' ? 'signup' : 'email');
+      setAwaitingOtp(true);
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Could not connect to authentication. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handlePasswordSubmit = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
+    e?.preventDefault();
     if (!password || password.length < 6) {
       setError('Password must be at least 6 characters.');
       return;
@@ -109,39 +119,30 @@ export function CustomLoginContent({ actions, extra, initialMode = 'login' }: { 
     setMessage(null);
 
     try {
-      // First attempt signUp with password
-      const passwordResult = await signUpWithPassword(email.trim(), password) as Awaited<ReturnType<AuthContextType['signUpWithPassword']>> & { secondFactor?: boolean };
-      const { error: signUpErr,requiresConfirmation } = passwordResult;
-
-      if (signUpErr) {
-        const msg = signUpErr.message.toLowerCase();
-        // If user already registered, attempt sign-in with password
-        if (msg.includes('already registered') || msg.includes('already exists') || msg.includes('user already registered')) {
-          const { error: signInErr } = await signInWithPassword(email.trim(), password);
-          if (signInErr) {
-            setError(signInErr.message);
-            setLoading(false);
-            return;
-          }
-          // Successfully signed in!
-          return;
-        } else {
-          setError(signUpErr.message);
-          setLoading(false);
-          return;
-        }
+      const result = await submitPasswordByMode(
+        authMode,
+        () => signInWithPassword(email.trim(), password),
+        () => signUpWithPassword(email.trim(), password),
+      );
+      if (result.error) {
+        setError(result.error.message);
+        return;
       }
 
-      if (requiresConfirmation) {
-        // Confirmation code sent!
+      if (authMode === 'signup' && result.requiresConfirmation) {
         setAwaitingPassword(false);
-        setSecondFactor(Boolean(passwordResult.secondFactor));
-        setOtpType(passwordResult.secondFactor ? 'email' : 'signup');
+        setSecondFactor(Boolean(result.secondFactor));
+        setOtpType(result.secondFactor ? 'email' : 'signup');
         setAwaitingOtp(true);
-        setMessage(passwordResult.secondFactor ? null : `We sent a verification code to ${email.trim()}.`);
+        setMessage(result.secondFactor ? null : `We sent a verification code to ${email.trim()}.`);
+        return;
       }
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Authentication failed.');
+
+      // The auth provider updates its session. Navigate without waiting for
+      // a second login attempt or accidentally creating an account.
+      router.replace(nextPath);
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Authentication failed. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -156,51 +157,51 @@ export function CustomLoginContent({ actions, extra, initialMode = 'login' }: { 
     setLoading(true);
     setError(null);
     setMessage(null);
-    const result = await verifyEmailOtp(email.trim(), cleanOtp, otpType) as Awaited<ReturnType<AuthContextType['verifyEmailOtp']>> & { isNewAccount?: boolean; secondFactor?: boolean };
-    const { data,error: err } = result;
-    if (err) {
-      setError(err.message);
-      setLoading(false);
-      return;
-    }
+    try {
+      const result = await withAuthTimeout(verifyEmailOtp(email.trim(), cleanOtp, otpType)) as
+        Awaited<ReturnType<AuthContextType['verifyEmailOtp']>> & { isNewAccount?: boolean; secondFactor?: boolean };
+      if (result.error) {
+        setError(result.error.message);
+        return;
+      }
+      if (result.secondFactor) {
+        setSecondFactor(true);
+        setOtp('');
+        return;
+      }
+      if (actions) {
+        setAwaitingOtp(false);
+        if (result.isNewAccount) {
+          setAwaitingName(true);
+        } else {
+          router.replace(nextPath);
+        }
+        return;
+      }
+      const verifiedUser = result.data?.user;
+      const existingName =
+        (verifiedUser?.user_metadata?.display_name as string) ||
+        (verifiedUser?.user_metadata?.name as string) ||
+        (verifiedUser?.user_metadata?.full_name as string) ||
+        (typeof window !== 'undefined' ? localStorage.getItem('laterbox_user_name') : null) ||
+        '';
+      const isNewAccount = Boolean(
+        verifiedUser?.created_at &&
+        verifiedUser?.last_sign_in_at &&
+        Math.abs(new Date(verifiedUser.last_sign_in_at).getTime() - new Date(verifiedUser.created_at).getTime()) < 5000
+      );
 
-    if (result.secondFactor) { setSecondFactor(true); setOtp(''); setLoading(false); return; }
-    if (actions) {
       setAwaitingOtp(false);
-      if (result.isNewAccount) {
+      if (!existingName.trim() || isNewAccount) {
+        if (existingName.trim()) setDisplayName(existingName.trim());
         setAwaitingName(true);
-        setLoading(false);
       } else {
         router.replace(nextPath);
       }
-      return;
-    }
-    const verifiedUser = data?.user;
-    const existingName =
-      (verifiedUser?.user_metadata?.display_name as string) ||
-      (verifiedUser?.user_metadata?.name as string) ||
-      (verifiedUser?.user_metadata?.full_name as string) ||
-      (typeof window !== 'undefined' ? localStorage.getItem('laterbox_user_name') : null) ||
-      '';
-
-    // Check if account was newly created (created_at and last_sign_in_at within 5s)
-    const isNewAccount = Boolean(
-      verifiedUser?.created_at &&
-      verifiedUser?.last_sign_in_at &&
-      Math.abs(new Date(verifiedUser.last_sign_in_at).getTime() - new Date(verifiedUser.created_at).getTime()) < 5000
-    );
-
-    // Only ask if no name is currently saved or if this is brand new account creation
-    if (!existingName.trim() || isNewAccount) {
-      setAwaitingOtp(false);
-      if (existingName.trim()) {
-        setDisplayName(existingName.trim());
-      }
-      setAwaitingName(true);
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Could not verify that code. Please try again.');
+    } finally {
       setLoading(false);
-    } else {
-      setAwaitingOtp(false);
-      router.replace(nextPath);
     }
   };
 
@@ -208,17 +209,17 @@ export function CustomLoginContent({ actions, extra, initialMode = 'login' }: { 
     setLoading(true);
     setError(null);
     setMessage(null);
-    let err = null;
-    if (otpType === 'signup') {
-      const res = await resendSignupOtp(email.trim());
-      err = res.error;
-    } else {
-      const res = await signInWithOtp(email.trim());
-      err = res.error;
+    try {
+      const result = otpType === 'signup'
+        ? await withAuthTimeout(resendSignupOtp(email.trim()))
+        : await withAuthTimeout(signInWithOtp(email.trim()));
+      if (result.error) setError(result.error.message);
+      else setMessage('A new code was sent.');
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Could not resend the code. Please try again.');
+    } finally {
+      setLoading(false);
     }
-    if (err) setError(err.message);
-    else setMessage('A new code was sent.');
-    setLoading(false);
   };
 
   const handleContinueWithoutAccount = () => {
@@ -234,35 +235,25 @@ export function CustomLoginContent({ actions, extra, initialMode = 'login' }: { 
     router.replace(nextPath);
   };
 
-  const handleGoogle = async () => {
-    setLoading(true); setError(null);
-    const result = await signInWithOAuth('google');
-    if (result.error) setError(result.error.message);
-    setLoading(false);
+  const handleOAuth = async (provider: 'google' | 'apple') => {
+    setLoading(true);
+    setError(null);
+    try {
+      const result = await withAuthTimeout(signInWithOAuth(provider));
+      if (result.error) setError(result.error.message);
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Could not start sign-in. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleApple = async () => {
-    setLoading(true); setError(null);
-    const result = await signInWithOAuth('apple');
-    if (result.error) setError(result.error.message);
-    setLoading(false);
-  };
-
-  // If already authenticated, show redirecting state while transition completes
-  if (!authLoading && user && !awaitingName) {
-    return (
-      <main className="min-h-screen bg-[#f7f5ee] flex flex-col items-center justify-center p-6 text-[#181816]">
-        <div className="flex flex-col items-center gap-3">
-          <Loader2 className="w-6 h-6 animate-spin text-zinc-600" />
-          <p className="text-sm text-zinc-600 font-medium">Redirecting to dashboard...</p>
-        </div>
-      </main>
-    );
-  }
+  const handleGoogle = () => handleOAuth('google');
+  const handleApple = () => handleOAuth('apple');
 
   const renderDevToolbar = () => {
     if (process.env.NODE_ENV === 'production') return null;
-    if (typeof window !== 'undefined' && !window.location.search.includes('dev_sim=true')) return null;
+    if (searchParams.get('dev_sim') !== 'true') return null;
     return (
       <div className="mb-4 flex flex-wrap items-center gap-1.5 p-2 rounded-xl bg-black/60 border border-white/20 text-[11px] font-mono text-white/80">
         <span className="font-bold text-white/50 pr-1">Dev Sim:</span>
@@ -361,7 +352,7 @@ export function CustomLoginContent({ actions, extra, initialMode = 'login' }: { 
         {/* Title: Left-aligned */}
         <h1 className="text-[30px] sm:text-[36px] font-black tracking-[-0.045em] leading-[1.15] mb-3 text-[#20281d] text-left">Enter your password</h1>
         <p className="text-[14px] sm:text-[15px] text-[#798275] font-normal leading-6 mb-7 text-left">
-          Create or enter your password for <strong className="text-[#35442e]">{email.trim()}</strong> to continue.
+          {authMode === 'signup' ? 'Create a password for ' : 'Enter your password for '}<strong className="text-[#35442e]">{email.trim()}</strong> to continue.
         </p>
 
         {/* Password Form */}
@@ -371,7 +362,7 @@ export function CustomLoginContent({ actions, extra, initialMode = 'login' }: { 
               id="auth-password"
               aria-label="Password"
               type={showPassword ? 'text' : 'password'}
-              autoComplete="current-password"
+              autoComplete={authMode === 'signup' ? 'new-password' : 'current-password'}
               required
               autoFocus
               value={password}
@@ -451,7 +442,16 @@ export function CustomLoginContent({ actions, extra, initialMode = 'login' }: { 
   return (
     <AuthLayout>
       {renderDevToolbar()}
-      {isAuthenticated && authError && <div role="alert" className="mb-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700"><p>{authError}</p><button type="button" onClick={retryAuth} className="mt-2 underline">Retry account setup</button></div>}
+      {!authLoading && authError && (
+        <div role="alert" className="mb-4 rounded-xl border border-red-200 bg-red-50 p-3.5 text-xs font-semibold leading-5 text-red-700">
+          <p>{authError}</p>
+          {retryAuth && (
+            <button type="button" onClick={retryAuth} className="mt-2 rounded-lg border border-red-200 bg-white px-3 py-1.5 text-xs font-bold text-red-700 hover:bg-red-50">
+              Retry connection
+            </button>
+          )}
+        </div>
+      )}
       {extra}
       {/* Feedback Alerts */}
       {error && (
@@ -479,16 +479,24 @@ export function CustomLoginContent({ actions, extra, initialMode = 'login' }: { 
 
       <h1 className="text-[30px] sm:text-[36px] font-black tracking-[-0.045em] leading-[1.15] mb-3 text-[#20281d] text-left">{authMode === 'login' ? 'Welcome back' : 'Create your account'}</h1>
       <p className="text-[14px] sm:text-[15px] text-[#798275] font-normal leading-6 mb-7 text-left">
-        {authMode === 'login' ? 'Use email, Google, or Apple to sign in.' : 'Create a LaterBox account with Google or Apple.'}
+        {authMode === 'login' ? 'Use email, Google, or Apple to sign in.' : 'Sign up with email, Google, or Apple.'}
       </p>
 
       <form onSubmit={(e) => void handleEmailSubmit(e)} className="w-full space-y-3.5">
-        {authMode === 'login' && <>
-          <input id="auth-email" aria-label="Email address" type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" className="h-14 w-full rounded-2xl border border-[#e1e5db] bg-white px-5 text-[15px] text-[#20281d] placeholder:text-[#a2a9a0] shadow-sm outline-none transition-colors focus:border-[#93ab71] focus:ring-4 focus:ring-[#e6edb0]/55" />
-          <button type="submit" disabled={loading || authLoading || Boolean(isAuthenticated)} className="flex h-14 w-full cursor-pointer items-center justify-center rounded-2xl bg-[#20281d] text-[15px] font-bold text-white shadow-sm transition-colors hover:bg-[#34442c] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#829b60]">
-            {loading || authLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Continue with email'}
+        <input id="auth-email" aria-label="Email address" type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" className="h-14 w-full rounded-2xl border border-[#e1e5db] bg-white px-5 text-[15px] text-[#20281d] placeholder:text-[#a2a9a0] shadow-sm outline-none transition-colors focus:border-[#93ab71] focus:ring-4 focus:ring-[#e6edb0]/55" />
+        <button type="submit" disabled={loading || authLoading || Boolean(isAuthenticated)} className="flex h-14 w-full cursor-pointer items-center justify-center rounded-2xl bg-[#20281d] text-[15px] font-bold text-white shadow-sm transition-colors hover:bg-[#34442c] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#829b60]">
+          {loading || authLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : authMode === 'signup' ? 'Sign up with email' : 'Continue with email'}
+        </button>
+        {authMode === 'login' && (
+          <button
+            type="button"
+            disabled={loading || authLoading || !email.trim().includes('@')}
+            onClick={() => { setAwaitingPassword(true); setError(null); setMessage(null); }}
+            className="min-h-9 w-full rounded-xl text-sm font-semibold text-[#607b4c] transition-colors hover:bg-[#eef4e5] disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            Sign in with a password instead
           </button>
-        </>}
+        )}
 
         <button type="button" disabled={loading || authLoading || Boolean(isAuthenticated)} onClick={() => void handleGoogle()} className="h-14 w-full rounded-2xl border border-[#e0e5d9] bg-white text-[15px] font-bold text-[#263320] shadow-sm transition-colors hover:border-[#afbf95] hover:bg-[#f7faf2] disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#829b60]">
           <span className="inline-flex items-center justify-center gap-3"><GoogleLogo />{authMode === 'signup' ? 'Create account with Google' : 'Continue with Google'}</span>
