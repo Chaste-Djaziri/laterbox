@@ -5,6 +5,7 @@ import { useItems } from '@/lib/store/ItemContext';
 import Link from 'next/link';
 import { resolveReturnPreset, returnLabel, type ReturnPreset } from '@/lib/utils/schedule';
 import { suggestCapture, captureSummary, type CaptureKind } from '@/lib/utils/captureSuggestions';
+import { prepareCaptureDraft } from '@/lib/utils/prepareCaptureDraft';
 import {
   X,
   Link2,
@@ -64,7 +65,7 @@ export function QuickCaptureModal({
   const [customDateTime, setCustomDateTime] = useState<string>('');
   const [isCustomOpen, setIsCustomOpen] = useState(false);
 
-  const [kind, setKind] = useState<'link' | 'note' | 'task' | 'file'>('link');
+  const [kind, setKind] = useState<CaptureKind>('link');
   const [duplicateId, setDuplicateId] = useState<string | null>(null);
   const { saveItem } = useItems();
   const [content, setContent] = useState('');
@@ -84,13 +85,19 @@ export function QuickCaptureModal({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const suggestion = useMemo(
-    () => suggestCapture(content, kind as CaptureKind, files.map(file => file.name)),
-    [content, kind, files]
+    () => suggestCapture(kind === 'task' ? [titleOverride, content].filter(Boolean).join('\n') : content, kind, files.map(file => file.name)),
+    [content, kind, titleOverride, files]
   );
   const effectiveReturnAt = activePreset === 'auto' ? suggestion.returnAt : returnAt;
   const effectiveTitle = titleOverride ?? suggestion.title;
   const effectiveTags = tagsTouched ? selectedTags : suggestion.tags;
-  const contentSummary = captureSummary(content, files.map(file => file.name));
+  const contentSummary = captureSummary(
+    kind === 'task' ? [titleOverride?.trim(), content.trim()].filter(Boolean).join(' — ')
+      : kind === 'note' && titleOverride?.trim() ? [titleOverride.trim(), content.trim()].filter(Boolean).join(' — ')
+      : content,
+    files.map(file => file.name)
+  );
+  const preparedDraft = prepareCaptureDraft({kind, content, title: titleOverride, suggestedTitle: suggestion.title, fileCount: files.length});
 
   // Initialize on modal open
   useEffect(() => {
@@ -139,18 +146,14 @@ export function QuickCaptureModal({
     return () => window.removeEventListener('keydown', handleKeyDown);
   });
 
-  // Auto-detect link or text patterns
-  const handleContentChange = (text: string) => {
-    setContent(text);
-    const trimmed = text.trim();
-    if (files.length > 0) return;
-    if (/^(https?:\/\/|www\.)/i.test(trimmed)) {
-      setKind('link');
-    } else if (/^(- \[ \]|todo:)/i.test(trimmed)) {
-      setKind('task');
-    } else if (trimmed.length > 0 && kind === 'link') {
-      setKind('note');
-    }
+  // The selected capture type is explicit: typing or pasting won't change a
+  // Task into a Note, or a Note into a Link.
+  const handleContentChange = (text: string) => setContent(text);
+
+  const selectKind = (next: CaptureKind) => {
+    setKind(next);
+    setError(null);
+    if (next === 'file') fileInputRef.current?.click();
   };
 
   if (!isOpen) return null;
@@ -159,7 +162,7 @@ export function QuickCaptureModal({
     const arr = Array.from(newFiles);
     if (arr.length === 0) return;
     setFiles((prev) => [...prev, ...arr]);
-    setKind('file');
+    if (kind !== 'task' && kind !== 'note') setKind('file');
   };
 
   const handleRemoveFile = (index: number) => {
@@ -241,10 +244,13 @@ export function QuickCaptureModal({
 
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    const hasContent = content.trim().length > 0;
-    const hasFiles = files.length > 0;
-
-    if (saving || success || (!hasContent && !hasFiles)) return;
+    if (saving || success) return;
+    if (!preparedDraft) {
+      setError(kind === 'task' ? 'Give your task an action title.'
+        : kind === 'note' ? 'Write a note before saving.'
+        : 'Add a link, some text, or an attachment to save.');
+      return;
+    }
     if (activePreset === 'custom' && !returnAt) {
       setError('Choose a valid return time or select an automatic suggestion.');
       return;
@@ -255,14 +261,12 @@ export function QuickCaptureModal({
 
     try {
       const id = crypto.randomUUID();
-      const item = await saveItem(content.trim(), {
+      const item = await saveItem(preparedDraft.value, {
         id,
         files,
         returnAt: effectiveReturnAt,
-        type: files.length ? 'file' : kind === 'task' ? 'task' : kind === 'note' ? 'note' : 'link',
-        // Preserve an explicitly edited title, while letting OpenGraph enrichment
-        // provide a better title for untouched URL captures.
-        title: titleOverride === null ? (kind === 'link' ? undefined : effectiveTitle) : effectiveTitle,
+        type: preparedDraft.type,
+        title: preparedDraft.title,
         tags: effectiveTags,
       });
 
@@ -284,7 +288,7 @@ export function QuickCaptureModal({
     }
   };
 
-  const hasSubmitData = content.trim().length > 0 || files.length > 0;
+  const hasSubmitData = Boolean(preparedDraft);
 
   const steps = [
     { id: 1 as const, label: 'Capture' },
@@ -375,76 +379,141 @@ export function QuickCaptureModal({
 
         {/* Modal Body: Multi-Step Staging */}
         <div className="p-6 sm:p-7 min-h-0 overflow-y-auto flex-1 flex flex-col justify-between">
-          {/* STEP 1: CAPTURE */}
+          {/* STEP 1: CAPTURE — explicit type-specific creation */} 
           {step === 1 && (
-            <div className="space-y-4 animate-in fade-in duration-200">
-              {/* Prompt Label */}
+            <div className="space-y-5 animate-in fade-in duration-200">
               <div>
-                <p className="text-[11px] sm:text-xs font-semibold text-[#8c897f] select-none tracking-wide">
-                  What do you want to deal with later?
+                <p className="text-[11px] font-black uppercase tracking-[0.15em] text-[#8c897f]">
+                  What are you saving?
                 </p>
-              </div>
-
-              {/* Main Prominent Input */}
-              <div className="relative min-h-[100px]">
-                <textarea
-                  ref={textareaRef}
-                  disabled={saving || success}
-                  rows={3}
-                  value={content}
-                  onChange={(e) => handleContentChange(e.target.value)}
-                  onPaste={handlePaste}
-                  placeholder="Paste a link, note, task, or drop files..."
-                  className="w-full text-xl sm:text-2xl font-bold tracking-tight text-[#171711] placeholder:text-[#b4b1a7] bg-transparent border-none outline-none focus:ring-0 resize-none leading-snug p-0"
-                />
-              </div>
-
-              {/* Type Switcher Pills & File Attachment Status */}
-              <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-[#f4f3ed]">
-                <div className="flex flex-wrap items-center gap-1.5">
-                  {(
-                    [
-                      { id: 'link', label: 'Link', icon: Link2 },
-                      { id: 'note', label: 'Note', icon: FileText },
-                      { id: 'task', label: 'Task', icon: CheckSquare },
-                      { id: 'file', label: 'File', icon: Paperclip },
-                    ] as const
-                  ).map((t) => {
-                    const isSelected = kind === t.id;
-                    const IconComponent = t.icon;
+                <div role="group" aria-label="Choose item type" className="mt-3 grid grid-cols-4 gap-2">
+                  {([
+                    { id: 'link', label: 'Link', icon: Link2 },
+                    { id: 'note', label: 'Note', icon: FileText },
+                    { id: 'task', label: 'Task', icon: CheckSquare },
+                    { id: 'file', label: 'File', icon: Paperclip },
+                  ] as const).map(type => {
+                    const Icon = type.icon;
+                    const active = kind === type.id;
                     return (
                       <button
-                        key={t.id}
+                        key={type.id}
                         type="button"
-                        onClick={() => {
-                          setKind(t.id);
-                          if (t.id === 'file') {
-                            fileInputRef.current?.click();
-                          }
-                        }}
-                        className={`inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full transition-all cursor-pointer ${
-                          isSelected
-                            ? 'bg-[#e6edb0] text-[#171711] shadow-xs border border-[#171711]/25 scale-102'
-                            : 'bg-[#f4f3ed] text-[#4a4940] hover:bg-[#e9e7df] border border-transparent'
+                        aria-pressed={active}
+                        disabled={saving || success}
+                        onClick={() => selectKind(type.id)}
+                        className={`flex min-h-[74px] flex-col items-center justify-center gap-1.5 rounded-2xl border px-2 py-3 text-xs font-bold transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7b8e4e] ${
+                          active
+                            ? 'border-[#cbd88c] bg-[#e6edb0] text-[#26311d] shadow-sm'
+                            : 'border-[#e8e7df] bg-[#faf9f5] text-[#777b70] hover:border-[#c8d0af] hover:bg-[#f2f5e9]'
                         }`}
                       >
-                        <IconComponent className="w-3.5 h-3.5" />
-                        <span>{t.label}</span>
+                        <Icon className="h-5 w-5" strokeWidth={active ? 2.3 : 1.9} aria-hidden="true" />
+                        <span>{type.label}</span>
                       </button>
                     );
                   })}
                 </div>
+              </div>
 
-                {/* Quick File Attach Trigger */}
+              {(kind === 'task' || kind === 'note') && (
+                <div className={`flex items-start gap-3 rounded-2xl border p-4 ${
+                  kind === 'task' ? 'border-[#d7e29e] bg-[#f2f7df]' : 'border-[#e6e6df] bg-[#f7f7f2]'
+                }`}>
+                  <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${
+                    kind === 'task' ? 'bg-[#e6edb0] text-[#35452d]' : 'bg-white text-[#586b4d]'
+                  }`}>
+                    {kind === 'task' ? <CheckSquare className="h-5 w-5" aria-hidden="true" /> : <FileText className="h-5 w-5" aria-hidden="true" />}
+                  </span>
+                  <div>
+                    <h3 className="text-sm font-black text-[#26311d]">{kind === 'task' ? 'A task to complete' : 'A note to remember'}</h3>
+                    <p className="mt-1 text-xs leading-5 text-[#6c7466]">
+                      {kind === 'task'
+                        ? 'Write an action you need to do. Schedule when it should come back, then mark it done.'
+                        : 'Capture thoughts, ideas, or information. Notes stay available for reference, without needing a deadline.'}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {kind === 'task' && (
+                <label className="block space-y-2">
+                  <span className="flex items-center gap-2 text-xs font-bold text-[#2a3126]">
+                    <CheckSquare className="h-4 w-4 text-[#7c934d]" aria-hidden="true" />
+                    Task name <span className="text-red-600">*</span>
+                  </span>
+                  <input
+                    type="text"
+                    maxLength={200}
+                    required
+                    value={titleOverride ?? ''}
+                    onChange={event => setTitleOverride(event.target.value)}
+                    placeholder="e.g. Finish the project presentation"
+                    disabled={saving || success}
+                    className="w-full rounded-2xl border border-[#d9e3c9] bg-white px-4 py-3.5 text-base font-bold text-[#171711] outline-none transition-colors placeholder:font-medium placeholder:text-[#a5ada0] focus:border-[#869d5b] focus:ring-2 focus:ring-[#e6edb0]"
+                  />
+                </label>
+              )}
+
+              {kind === 'note' && (
+                <label className="block space-y-2">
+                  <span className="flex items-center gap-2 text-xs font-bold text-[#2a3126]">Note title <span className="font-normal text-[#92958c]">(optional)</span></span>
+                  <input
+                    type="text"
+                    maxLength={200}
+                    value={titleOverride ?? ''}
+                    onChange={event => setTitleOverride(event.target.value)}
+                    placeholder="Give your note a name"
+                    disabled={saving || success}
+                    className="w-full rounded-2xl border border-[#e4e0d5] bg-white px-4 py-3 text-sm font-semibold text-[#171711] outline-none placeholder:font-medium placeholder:text-[#a5ada0] focus:border-[#869d5b] focus:ring-2 focus:ring-[#e6edb0]"
+                  />
+                </label>
+              )}
+
+              <label className="block space-y-2">
+                <span className="flex items-center justify-between text-xs font-bold text-[#2a3126]">
+                  <span>
+                    {kind === 'task' ? 'Task details' : kind === 'note' ? 'Write your note' : kind === 'file' ? 'Add a description' : 'Link or URL'}
+                    {kind === 'task' || kind === 'file' ? <span className="ml-1 font-normal text-[#92958c]">(optional)</span> : null}
+                    {kind === 'note' ? <span className="ml-1 text-red-600">*</span> : null}
+                  </span>
+                  {kind === 'note' && <span className="text-[10px] font-medium text-[#93988f]">Plain text</span>}
+                </span>
+                <textarea
+                  ref={textareaRef}
+                  disabled={saving || success}
+                  rows={kind === 'note' ? 6 : kind === 'task' ? 3 : 4}
+                  value={content}
+                  onChange={event => handleContentChange(event.target.value)}
+                  onPaste={handlePaste}
+                  placeholder={kind === 'task'
+                    ? 'Add extra context, steps, or anything you need to remember…'
+                    : kind === 'note'
+                      ? 'Write down your thoughts, ideas, or anything worth keeping…'
+                      : kind === 'file'
+                        ? 'Describe the files you are saving…'
+                        : 'https://example.com/an-interesting-article'}
+                  className={`w-full resize-y rounded-2xl border border-[#e4e0d5] bg-[#fbfbf8] px-4 py-3.5 text-sm leading-6 text-[#171711] outline-none transition-colors placeholder:text-[#afb2a8] focus:border-[#91a768] focus:ring-2 focus:ring-[#e6edb0] ${
+                    kind === 'note' ? 'min-h-[150px]' : 'min-h-[96px]'
+                  }`}
+                />
+              </label>
+
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <p className="max-w-[315px] text-[11px] leading-5 text-[#8b9086]">
+                  {kind === 'task' ? 'Tasks stay actionable until completed.'
+                    : kind === 'note' ? 'Your note is saved as writing, not a to-do.'
+                      : kind === 'file' ? 'Attach files to keep with your capture.'
+                        : 'Save a URL to revisit whenever you are ready.'}
+                </p>
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full bg-white border border-[#e4e0d5] text-[#171711] hover:bg-[#f4f3ed] transition-colors cursor-pointer"
+                  disabled={saving || success}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-[#e4e0d5] bg-white px-3 py-2 text-xs font-semibold text-[#30372a] transition-colors hover:bg-[#e6edb0] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7b8e4e]"
                 >
-                  <Paperclip className="w-3.5 h-3.5 text-[#6c6b63]" />
-                  <span>
-                    {files.length > 0 ? `${files.length} attached` : 'Attach file'}
-                  </span>
+                  <Paperclip className="h-4 w-4" aria-hidden="true" />
+                  {files.length > 0 ? `${files.length} attached` : 'Attach file'}
                 </button>
               </div>
 
@@ -453,10 +522,10 @@ export function QuickCaptureModal({
                   <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-[#6c752b]" aria-hidden="true" />
                   <div className="min-w-0">
                     <p className="text-xs font-bold text-[#171711]">
-                      Suggested return: {suggestion.returnAt ? returnLabel(suggestion.returnAt) : 'Someday'}
+                      {kind === 'task' ? 'Suggested reminder' : 'Suggested return'}: {suggestion.returnAt ? returnLabel(suggestion.returnAt) : 'Someday'}
                     </p>
-                    <p className="mt-0.5 text-[11px] leading-relaxed text-[#6c6b63]">
-                      {suggestion.reason} Save to LaterBox now, or open Schedule to choose a time.
+                    <p className="mt-1 text-[11px] leading-relaxed text-[#6c6b63]">
+                      {suggestion.reason} Choose Schedule to change it.
                     </p>
                   </div>
                 </div>
@@ -470,7 +539,7 @@ export function QuickCaptureModal({
               {/* Prompt Label */}
               <div>
                 <p className="text-[11px] sm:text-xs font-semibold text-[#8c897f] select-none tracking-wide">
-                  When should LaterBox bring this back?
+                  {kind === 'task' ? 'When should LaterBox remind you about this task?' : kind === 'note' ? 'Would you like this note to resurface?' : 'When should LaterBox bring this back?'}
                 </p>
               </div>
 
@@ -575,7 +644,7 @@ export function QuickCaptureModal({
               {/* Prompt Label */}
               <div>
                 <p className="text-[11px] sm:text-xs font-semibold text-[#8c897f] select-none tracking-wide">
-                  Add tags or manage attachments (optional)
+                  {kind === 'task' ? 'Organize your task (optional)' : kind === 'note' ? 'Organize your note (optional)' : 'Add tags or manage attachments (optional)'}
                 </p>
               </div>
 
@@ -584,7 +653,7 @@ export function QuickCaptureModal({
                 <span className="break-words">{contentSummary}</span>
               </div>
               <label className="block space-y-1.5">
-                <span className="text-xs font-bold text-[#171711]">Title</span>
+                <span className="text-xs font-bold text-[#171711]">{kind === 'task' ? 'Task name' : kind === 'note' ? 'Note title' : 'Title'}</span>
                 <input
                   type="text"
                   maxLength={200}
@@ -595,7 +664,7 @@ export function QuickCaptureModal({
                   className="w-full rounded-xl border border-[#e4e0d5] bg-white px-3 py-2.5 text-sm font-semibold text-[#171711] focus:outline-hidden focus:border-[#171711]"
                 />
                 <span className="block text-[11px] text-[#8c897f]">
-                  Prefilled from your capture. Rename it without changing the original content.
+                  {kind === 'task' ? 'This is the action you will complete. Details stay in the description.' : kind === 'note' ? 'A short title makes this note easier to find.' : 'Prefilled from your capture. Rename it without changing the original content.'}
                 </span>
               </label>
 
@@ -828,7 +897,7 @@ export function QuickCaptureModal({
                   <span>{files.length > 0 ? 'Uploading…' : 'Saving…'}</span>
                 </>
               ) : (
-                <span>Save to LaterBox</span>
+                <span>{kind === 'task' ? 'Create task' : kind === 'note' ? 'Save note' : kind === 'file' ? 'Save files' : 'Save link'}</span>
               )}
             </button>
           </div>

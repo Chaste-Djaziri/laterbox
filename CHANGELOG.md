@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[App / Quick Create]** Give tasks and notes distinct creation workflows: tasks require an actionable title with optional details and reminder scheduling; notes have a writing area, optional title, and no reminder by default. Respect explicit type selection (including URLs and attachments), preserve writing text in storage, add capture payload regression tests, and clarify labels throughout the three-step modal.
+
 - **[App / Reschedule dialog]** Open the email-table Reschedule action in the centered full scheduling modal, replacing the floating picker; add custom 24-hour hour/minute dropdown controls with one-minute precision and preserve existing date selection and save confirmation.
 
 - **[App / Email Toolbar]** Add consistent, styled hover and keyboard-focus tooltips for every in-table reading action, including Back, Star, Keep, Archive, Collections, Reschedule, Copy, Open Source, Delete/Restore, and previous/next. Portal placement prevents the scrollable toolbar from clipping labels.
