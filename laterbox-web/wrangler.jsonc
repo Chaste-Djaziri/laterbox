@@ -56,6 +56,12 @@
 	"upload_source_maps": true,
 	"vars": {
 		"IOS_GEMINI_FALLBACK_ENABLED": "true",
-		"MODEL": "gemini-3.5-flash-lite"
+		"MODEL": "gemini-3.5-flash-lite",
+		"WHOP_COMPANY_ID": "biz_VzpmkYvhtl23Ma",
+		"WHOP_PLUS_MONTHLY_PLAN_ID": "plan_xHUtJJyIKLpLU",
+		"WHOP_PLUS_YEARLY_PLAN_ID": "plan_e52tpQuj8D86e",
+		"WHOP_SANDBOX": "false",
+		"WHOP_VAULT_MONTHLY_PLAN_ID": "plan_zedik0IB8wVaz",
+		"WHOP_VAULT_YEARLY_PLAN_ID": "plan_BJQnA897vsZpY"
 	}
 }
