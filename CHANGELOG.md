@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[Web / Cloudflare CI]** Fix Cloudflare Worker error 10215 during Apple purchase-verification setup by deploying the newly built Worker before updating Apple verification secrets. Preserve the existing validated certificates, encrypted GitHub credentials, and Wrangler diagnostics.
+
 - **[Web / Cloudflare release]** Harden Apple purchase-verification secret provisioning: verify Cloudflare's per-variable size limit, retain dedicated App Store credentials, and surface safely redacted Wrangler diagnostics with actionable Worker permission guidance instead of failing with a generic error. Add isolated tests for failures and sensitive-data redaction.
 
 - **[Web / Dashboard header]** Remove the duplicate Save Item action above the inbox table; keep saving available through the sidebar and its existing capture modal, without changing search, AI Organize, settings, or profile actions.

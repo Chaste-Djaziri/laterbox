@@ -68,16 +68,8 @@ jobs:
           name: laterbox-web-release-${{ github.run_id }}
           path: ${{ runner.temp }}/laterbox-web-${{ steps.release_version.outputs.version }}.tar.gz
           if-no-files-found: error
-      - name: Configure Apple purchase verification
-        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
-        working-directory: laterbox-web
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          APPLE_PRIVATE_KEY: ${{ secrets.APPLE_PRIVATE_KEY }}
-          APPLE_KEY_ID: ${{ secrets.APPLE_KEY_ID }}
-          APPLE_ISSUER_ID: ${{ secrets.APPLE_ISSUER_ID }}
-        run: node scripts/configure-apple-verification.mjs
+      # Wrangler secret bulk deploys a new Worker version. Deploy the release first to
+      # avoid Cloudflare 10215 when a newer Worker version has not been deployed.
       - name: Deploy Cloudflare application
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         working-directory: laterbox-web
@@ -88,6 +80,16 @@ jobs:
           test -n "$CLOUDFLARE_API_TOKEN" || { echo '::error::Missing CLOUDFLARE_API_TOKEN'; exit 1; }
           test -n "$CLOUDFLARE_ACCOUNT_ID" || { echo '::error::Missing CLOUDFLARE_ACCOUNT_ID'; exit 1; }
           npx opennextjs-cloudflare deploy
+      - name: Configure Apple purchase verification
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        working-directory: laterbox-web
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          APPLE_PRIVATE_KEY: ${{ secrets.APPLE_PRIVATE_KEY }}
+          APPLE_KEY_ID: ${{ secrets.APPLE_KEY_ID }}
+          APPLE_ISSUER_ID: ${{ secrets.APPLE_ISSUER_ID }}
+        run: node scripts/configure-apple-verification.mjs
       - uses: actions/upload-artifact@v4
         with:
           name: laterbox-web-${{ github.run_id }}
