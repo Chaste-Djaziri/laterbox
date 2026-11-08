@@ -498,6 +498,8 @@ export function ItemProvider({ children }: { children: ReactNode }) {
   ): Promise<LaterBoxItem> => {
     const trimmed = value.trim();
     const files = options?.files || [];
+    // A typed Task or Note is authored text, even if its only line is a URL.
+    const isWritingCapture = options?.type === 'task' || options?.type === 'note';
 
     if (!trimmed && files.length === 0) {
       throw new Error('Enter a URL, some text, or upload an attachment.');
@@ -507,7 +509,9 @@ export function ItemProvider({ children }: { children: ReactNode }) {
     let textContent: string | null = files.length ? trimmed || null : null;
 
     if (files.length === 0) {
-      if (isUrl(trimmed)) {
+      if (isWritingCapture) {
+        textContent = trimmed || null;
+      } else if (isUrl(trimmed)) {
         normalizedUrl = normalizeUrl(trimmed);
       } else {
         const urlMatch = trimmed.match(/(https?:\/\/[^\s]+)/);
@@ -546,7 +550,9 @@ export function ItemProvider({ children }: { children: ReactNode }) {
         (i) =>
           isActive(i) &&
           !i.deleted_at &&
-          ((normalizedUrl && i.url === normalizedUrl) || (textContent && i.text_content === textContent))
+          ((normalizedUrl && i.url === normalizedUrl) || (textContent && i.text_content === textContent)) &&
+          (!isWritingCapture ||
+            (i.type === options?.type && (i.title || '').trim() === (options?.title || '').trim()))
       );
 
       if (existing) {

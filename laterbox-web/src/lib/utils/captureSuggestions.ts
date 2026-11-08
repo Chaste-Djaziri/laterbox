@@ -61,6 +61,9 @@ export function suggestCapture(
   } else if (/\b(today|tonight|this evening|this afternoon|asap|urgent|in \d+ hours?)\b/i.test(language)) {
     preset = 'laterToday';
     reason = 'You mentioned something time-sensitive.';
+  } else if (/\btomorrow\b/i.test(language)) {
+    preset = 'tomorrow';
+    reason = 'You mentioned tomorrow.';
   } else if (/\b(someday|no rush|no deadline|whenever)\b/i.test(language)) {
     preset = 'someday';
     reason = 'You indicated that there is no deadline.';
@@ -70,6 +73,9 @@ export function suggestCapture(
   } else if (kind === 'file') {
     preset = 'tomorrow';
     reason = 'Suggested for tomorrow so this file does not get forgotten.';
+  } else if (kind === 'note') {
+    preset = 'someday';
+    reason = 'Notes stay accessible without a deadline. Add a reminder if you need one.';
   }
 
   const returnAt = resolveReturnPreset(preset, now);

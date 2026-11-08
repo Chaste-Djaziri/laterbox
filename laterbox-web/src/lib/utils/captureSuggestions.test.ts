@@ -31,7 +31,8 @@ test('files and empty notes retain useful defaults, without fabricated tags', ()
   assert.equal(suggestCapture('', 'file', ['assignment.pdf'], now).title, 'assignment.pdf');
   assert.equal(suggestCapture('', 'file', ['assignment.pdf'], now).preset, 'tomorrow');
   assert.equal(suggestCapture('', 'note', [], now).title, '');
-  assert.equal(suggestCapture('Some thoughts', 'note', [], now).preset, 'tomorrow');
+  assert.equal(suggestCapture('Some thoughts', 'note', [], now).preset, 'someday');
+  assert.equal(suggestCapture('Some thoughts', 'note', [], now).returnAt, null);
   assert.equal(captureSummary('', ['a.pdf', 'b.pdf']), '2 attached files');
   assert.equal(captureSummary('Notes\nMore notes', ['a.pdf']), 'Notes · 1 attached file');
   assert.equal(suggestionLabel(suggestCapture('someday', 'note', [], now)), 'Someday (no deadline)');
