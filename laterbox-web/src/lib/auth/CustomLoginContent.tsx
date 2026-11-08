@@ -345,29 +345,31 @@ export function CustomLoginContent({ actions, extra, initialMode = 'login' }: { 
         {renderDevToolbar()}
         {/* Feedback Alerts */}
         {error && (
-          <div className="w-full mb-4 p-3.5 rounded-[16px] bg-red-50/90 border border-red-200 text-red-700 text-xs font-semibold flex items-center gap-2 text-left animate-in fade-in">
+          <div className="w-full mb-4 p-3.5 rounded-2xl bg-red-50 border border-red-200 text-red-700 text-xs font-semibold flex items-center gap-2 text-left animate-in fade-in">
             <AlertCircle className="w-4 h-4 shrink-0" />
             <span>{error}</span>
           </div>
         )}
 
         {message && (
-          <div className="w-full mb-4 p-3.5 rounded-[16px] bg-emerald-50/90 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center gap-2 text-left animate-in fade-in">
+          <div className="w-full mb-4 p-3.5 rounded-2xl bg-[#eef7e5] border border-[#d7e8c8] text-[#456b38] text-xs font-semibold flex items-center gap-2 text-left animate-in fade-in">
             <CheckCircle2 className="w-4 h-4 shrink-0" />
             <span>{message}</span>
           </div>
         )}
 
         {/* Title: Left-aligned */}
-        <h1 className="text-2xl sm:text-3xl font-black tracking-tight mb-2 text-white text-left">Enter your password</h1>
-        <p className="text-[15px] text-white/80 font-normal tracking-normal mb-6 text-left">
-          Create or enter your password for <strong className="text-white">{email.trim()}</strong> to continue.
+        <h1 className="text-[30px] sm:text-[36px] font-black tracking-[-0.045em] leading-[1.15] mb-3 text-[#20281d] text-left">Enter your password</h1>
+        <p className="text-[14px] sm:text-[15px] text-[#798275] font-normal leading-6 mb-7 text-left">
+          Create or enter your password for <strong className="text-[#35442e]">{email.trim()}</strong> to continue.
         </p>
 
         {/* Password Form */}
         <form onSubmit={(e) => void handlePasswordSubmit(e)} className="w-full space-y-3.5">
           <div className="relative">
             <input
+              id="auth-password"
+              aria-label="Password"
               type={showPassword ? 'text' : 'password'}
               autoComplete="current-password"
               required
@@ -375,12 +377,12 @@ export function CustomLoginContent({ actions, extra, initialMode = 'login' }: { 
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Password (at least 6 characters)"
-              className="w-full h-14 pl-5 pr-12 bg-white rounded-[18px] text-[15px] text-[#181816] placeholder:text-[#9e9b92] focus:outline-none focus:ring-2 focus:ring-white/40 transition-all font-normal"
+              className="h-14 w-full rounded-2xl border border-[#e1e5db] bg-white pl-5 pr-12 text-[15px] text-[#20281d] placeholder:text-[#a2a9a0] shadow-sm outline-none transition-colors focus:border-[#93ab71] focus:ring-4 focus:ring-[#e6edb0]/55"
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-4 top-1/2 -translate-y-1/2 text-[#9e9b92] hover:text-[#181816] transition-colors cursor-pointer p-1"
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-[#9e9b92] hover:text-[#181816] transition-colors cursor-pointer p-1 focus-visible:outline-2 focus-visible:outline-[#829b60]"
               title={showPassword ? 'Hide password' : 'Show password'}
             >
               {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
@@ -391,7 +393,7 @@ export function CustomLoginContent({ actions, extra, initialMode = 'login' }: { 
             <button
               type="submit"
               disabled={loading || password.length < 6}
-              className="w-full h-14 bg-white hover:bg-zinc-100 text-[#181816] font-bold text-[15px] rounded-[18px] shadow-md transition-all duration-150 flex items-center justify-center disabled:opacity-50 cursor-pointer"
+              className="flex h-14 w-full cursor-pointer items-center justify-center rounded-2xl bg-[#20281d] text-[15px] font-bold text-white shadow-sm transition-colors hover:bg-[#34442c] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#829b60]"
             >
               {loading ? (
                 <Loader2 className="w-5 h-5 animate-spin" />
@@ -410,7 +412,7 @@ export function CustomLoginContent({ actions, extra, initialMode = 'login' }: { 
                 setPassword('');
                 setError(null);
               }}
-              className="text-[14px] text-white/80 hover:text-white font-normal transition-colors cursor-pointer py-1"
+              className="cursor-pointer py-1 text-sm font-semibold text-[#627b4b] transition-colors hover:text-[#273c20] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#829b60]"
             >
               Use a different email
             </button>
@@ -449,50 +451,50 @@ export function CustomLoginContent({ actions, extra, initialMode = 'login' }: { 
   return (
     <AuthLayout>
       {renderDevToolbar()}
-      {isAuthenticated && authError && <div role="alert" className="mb-4 text-sm text-red-300"><p>{authError}</p><button type="button" onClick={retryAuth} className="mt-2 underline">Retry account setup</button></div>}
+      {isAuthenticated && authError && <div role="alert" className="mb-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700"><p>{authError}</p><button type="button" onClick={retryAuth} className="mt-2 underline">Retry account setup</button></div>}
       {extra}
       {/* Feedback Alerts */}
       {error && (
-        <div className="w-full mb-4 p-3.5 rounded-[16px] bg-red-500/20 border border-red-400/40 text-red-200 text-xs font-semibold flex items-center gap-2 text-left animate-in fade-in">
+        <div className="w-full mb-4 p-3.5 rounded-2xl bg-red-50 border border-red-200 text-red-700 text-xs font-semibold flex items-center gap-2 text-left animate-in fade-in">
           <AlertCircle className="w-4 h-4 shrink-0" />
           <span>{error}</span>
         </div>
       )}
 
       {message && (
-        <div className="w-full mb-4 p-3.5 rounded-[16px] bg-emerald-500/20 border border-emerald-400/40 text-emerald-200 text-xs font-semibold flex items-center gap-2 text-left animate-in fade-in">
+        <div className="w-full mb-4 p-3.5 rounded-2xl bg-[#eef7e5] border border-[#d7e8c8] text-[#456b38] text-xs font-semibold flex items-center gap-2 text-left animate-in fade-in">
           <CheckCircle2 className="w-4 h-4 shrink-0" />
           <span>{message}</span>
         </div>
       )}
 
       {/* Mode Selector */}
-      <div className="mb-6 flex rounded-[18px] border border-white/20 bg-black/40 p-1">
+      <div className="mb-8 flex rounded-2xl border border-[#e4e8dd] bg-[#edf0e7] p-1">
         {(['login', 'signup'] as const).map(mode => (
-          <button key={mode} type="button" onClick={() => { setAuthMode(mode); setError(null); setMessage(null); }} className={`h-11 flex-1 rounded-[14px] text-sm font-bold transition-colors ${authMode === mode ? 'bg-white text-black' : 'text-white/70 hover:text-white'}`}>
+          <button key={mode} type="button" onClick={() => { setAuthMode(mode); setError(null); setMessage(null); }} className={`h-11 flex-1 rounded-[14px] text-sm font-bold transition-colors ${authMode === mode ? 'bg-white text-[#20281d] shadow-[0_2px_7px_rgba(24,35,18,0.09)]' : 'text-[#7b8773] hover:bg-white/50 hover:text-[#28391f]'}`}>
             {mode === 'login' ? 'Log in' : 'Sign up'}
           </button>
         ))}
       </div>
 
-      <h1 className="text-2xl sm:text-3xl font-black tracking-tight mb-2 text-white text-left">{authMode === 'login' ? 'Welcome back' : 'Create your account'}</h1>
-      <p className="text-[15px] text-white/80 font-normal tracking-normal mb-6 text-left">
+      <h1 className="text-[30px] sm:text-[36px] font-black tracking-[-0.045em] leading-[1.15] mb-3 text-[#20281d] text-left">{authMode === 'login' ? 'Welcome back' : 'Create your account'}</h1>
+      <p className="text-[14px] sm:text-[15px] text-[#798275] font-normal leading-6 mb-7 text-left">
         {authMode === 'login' ? 'Use email, Google, or Apple to sign in.' : 'Create a LaterBox account with Google or Apple.'}
       </p>
 
       <form onSubmit={(e) => void handleEmailSubmit(e)} className="w-full space-y-3.5">
         {authMode === 'login' && <>
-          <input type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" className="w-full h-14 px-5 bg-white rounded-[18px] text-[15px] text-[#181816] placeholder:text-[#9e9b92] focus:outline-none focus:ring-2 focus:ring-white/40 transition-all font-normal" />
-          <button type="submit" disabled={loading || authLoading || Boolean(isAuthenticated)} className="w-full h-14 bg-white hover:bg-zinc-100 text-[#181816] font-bold text-[15px] rounded-[18px] shadow-md transition-all flex items-center justify-center disabled:opacity-50 cursor-pointer">
+          <input id="auth-email" aria-label="Email address" type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" className="h-14 w-full rounded-2xl border border-[#e1e5db] bg-white px-5 text-[15px] text-[#20281d] placeholder:text-[#a2a9a0] shadow-sm outline-none transition-colors focus:border-[#93ab71] focus:ring-4 focus:ring-[#e6edb0]/55" />
+          <button type="submit" disabled={loading || authLoading || Boolean(isAuthenticated)} className="flex h-14 w-full cursor-pointer items-center justify-center rounded-2xl bg-[#20281d] text-[15px] font-bold text-white shadow-sm transition-colors hover:bg-[#34442c] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#829b60]">
             {loading || authLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Continue with email'}
           </button>
         </>}
 
-        <button type="button" disabled={loading || authLoading || Boolean(isAuthenticated)} onClick={() => void handleGoogle()} className="w-full h-14 rounded-[18px] bg-white text-[#181816] text-[15px] font-bold disabled:opacity-50 hover:bg-zinc-100 transition-colors">
+        <button type="button" disabled={loading || authLoading || Boolean(isAuthenticated)} onClick={() => void handleGoogle()} className="h-14 w-full rounded-2xl border border-[#e0e5d9] bg-white text-[15px] font-bold text-[#263320] shadow-sm transition-colors hover:border-[#afbf95] hover:bg-[#f7faf2] disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#829b60]">
           <span className="inline-flex items-center justify-center gap-3"><GoogleLogo />{authMode === 'signup' ? 'Create account with Google' : 'Continue with Google'}</span>
         </button>
 
-        <button type="button" disabled={loading || authLoading || Boolean(isAuthenticated)} onClick={() => void handleApple()} className="w-full h-14 rounded-[18px] bg-white text-[#181816] text-[15px] font-bold disabled:opacity-50 hover:bg-zinc-100 transition-colors cursor-pointer">
+        <button type="button" disabled={loading || authLoading || Boolean(isAuthenticated)} onClick={() => void handleApple()} className="h-14 w-full cursor-pointer rounded-2xl border border-[#e0e5d9] bg-white text-[15px] font-bold text-[#263320] shadow-sm transition-colors hover:border-[#afbf95] hover:bg-[#f7faf2] disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#829b60]">
           <span className="inline-flex items-center justify-center gap-3"><Apple className="size-5" aria-hidden="true" />{authMode === 'signup' ? 'Create account with Apple' : 'Continue with Apple'}</span>
         </button>
 
@@ -501,20 +503,20 @@ export function CustomLoginContent({ actions, extra, initialMode = 'login' }: { 
           <button
             type="button"
             onClick={handleContinueWithoutAccount}
-            className="text-[14px] text-white/85 hover:text-white font-medium transition-colors cursor-pointer py-1"
+            className="cursor-pointer py-1 text-sm font-semibold text-[#627b4b] transition-colors hover:text-[#273c20] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#829b60]"
           >
             Continue without account
           </button>
         </div>
 
         {/* Legal Disclaimer */}
-        <p className="pt-3 text-center text-xs text-white/60">
+        <p className="pt-4 text-center text-[11px] leading-6 text-[#949d8e]">
           By continuing, you agree to our{' '}
-          <Link href="/terms" className="text-white underline hover:text-white/90">
+          <Link href="/terms" className="font-semibold text-[#536943] underline decoration-[#aebf9c] underline-offset-2 hover:text-[#263c21]">
             Terms
           </Link>{' '}
           &{' '}
-          <Link href="/privacy" className="text-white underline hover:text-white/90">
+          <Link href="/privacy" className="font-semibold text-[#536943] underline decoration-[#aebf9c] underline-offset-2 hover:text-[#263c21]">
             Privacy Policy
           </Link>
         </p>
@@ -525,36 +527,90 @@ export function CustomLoginContent({ actions, extra, initialMode = 'login' }: { 
 
 function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
-    <main className="relative min-h-screen w-full flex flex-col justify-between overflow-x-hidden selection:bg-zinc-900 selection:text-white">
-      {/* Full Page Background Image */}
-      <div className="fixed inset-0 z-0 pointer-events-none">
+    <main className="grid min-h-[100dvh] w-full bg-[#f8f9f4] text-[#171711] selection:bg-[#e6edb0] selection:text-[#171711] lg:h-[100dvh] lg:grid-cols-[minmax(0,1fr)_minmax(0,1.08fr)] lg:overflow-hidden">
+      {/* Left: accessible, distraction-free authentication forms. */}
+      <section className="flex min-h-[100dvh] min-w-0 flex-col lg:min-h-0 lg:overflow-y-auto">
+        <header className="flex shrink-0 items-center justify-between px-6 pb-4 pt-7 sm:px-10 sm:pt-9 xl:px-16">
+          <Link
+            href="/"
+            aria-label="LaterBox home"
+            className="inline-flex items-center gap-2.5 rounded-xl focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#748b50]"
+          >
+            <Image
+              src="/branding/laterbox-icon.png"
+              alt=""
+              width={38}
+              height={38}
+              priority
+              className="h-9 w-9 rounded-[11px] object-contain"
+            />
+            <span className="text-[22px] font-black tracking-[-0.065em] text-[#1b2319]">laterbox<span className="text-[#7b9454]">.</span></span>
+          </Link>
+          <Link
+            href="/"
+            className="rounded-full border border-[#e2e7db] bg-white px-3.5 py-2 text-[11px] font-bold text-[#647258] transition-colors hover:border-[#bccf9d] hover:text-[#26381f] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#748b50]"
+          >
+            Back to website
+          </Link>
+        </header>
+
+        <div className="flex w-full flex-1 items-center justify-center px-6 py-10 sm:px-10 lg:py-8 xl:px-16">
+          <div className="w-full max-w-[430px]">
+            {children}
+          </div>
+        </div>
+
+        <footer className="flex shrink-0 flex-wrap items-center justify-between gap-2 px-6 pb-6 pt-4 text-[11px] font-medium text-[#9a9f94] sm:px-10 xl:px-16">
+          <span>© LaterBox · Keep what matters.</span>
+          <span className="flex items-center gap-3">
+            <Link href="/privacy" className="hover:text-[#526744]">Privacy</Link>
+            <Link href="/terms" className="hover:text-[#526744]">Terms</Link>
+          </span>
+        </footer>
+      </section>
+
+      {/* Right: the existing authentic LaterBox artwork, never behind form text. */}
+      <aside
+        aria-label="LaterBox brand illustration"
+        className="relative hidden min-h-0 flex-col overflow-hidden bg-[#1b2819] lg:flex"
+      >
         <Image
           src="/branding/auth-background.png"
-          alt="LaterBox background"
+          alt=""
           fill
           priority
-          sizes="100vw"
+          sizes="(min-width: 1024px) 54vw, 100vw"
           className="object-cover object-center"
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/45 via-black/20 via-40% to-black/90" />
-      </div>
-
-      {/* Top Bar: Brand Logo on the Top Right (larger size) */}
-      <header className="relative z-10 w-full flex items-center justify-end p-6 sm:p-8">
-        <Image
-          src="/branding/laterbox-logo-white.png"
-          alt="LaterBox"
-          width={280}
-          height={93}
-          className="w-48 sm:w-60 md:w-64 h-auto object-contain drop-shadow-2xl"
-          priority
-        />
-      </header>
-
-      {/* Contents on the Bottom (no container box background) */}
-      <div className="relative z-10 w-full max-w-[440px] mx-auto mt-auto mb-6 sm:mb-10 px-4 sm:px-6 text-left">
-        {children}
-      </div>
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-[#132018]/20 via-[#15221a]/10 to-[#10180f]/80" />
+        <div className="relative z-10 flex h-full flex-col justify-between p-10 xl:p-14">
+          <div className="inline-flex self-start items-center gap-2 rounded-full border border-white/25 bg-black/20 px-3.5 py-2 text-[11px] font-bold tracking-wide text-white backdrop-blur-md">
+            <span className="h-2 w-2 rounded-full bg-[#e6edb0]" aria-hidden="true" />
+            Your personal space for later
+          </div>
+          <div className="max-w-[570px] pb-5">
+            <p className="mb-5 text-[11px] font-black uppercase tracking-[0.23em] text-[#e6edb0]">Make room for what matters</p>
+            <h2 className="text-[clamp(2.4rem,4vw,4.7rem)] font-black leading-[1.09] tracking-[-0.055em] text-white">
+              Save it now.<br />
+              Come back<br />
+              when it matters.
+            </h2>
+            <p className="mt-6 max-w-[385px] text-sm leading-7 text-white/80 xl:text-base">
+              Everything worth keeping, from links and ideas to the tasks you want to finish, in one calm place.
+            </p>
+            <div className="mt-9 flex flex-wrap gap-2">
+              {['Capture anything', 'Stay organized', 'Return on time'].map(label => (
+                <span
+                  key={label}
+                  className="rounded-full border border-white/20 bg-white/10 px-3 py-2 text-[11px] font-semibold text-white backdrop-blur-md"
+                >
+                  {label}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+      </aside>
     </main>
   );
 }
@@ -587,15 +643,15 @@ function OtpVerification({
   return (
     <AuthLayout>
       {devToolbar}
-      <h1 id="otp-title" className="text-2xl sm:text-3xl font-black tracking-tight text-white text-left">
+      <h1 id="otp-title" className="text-[30px] sm:text-[36px] font-black leading-tight tracking-[-0.045em] text-[#20281d] text-left">
         {secondFactor ? 'Verify your sign-in' : 'Check your email'}
       </h1>
-      <p className="mt-2 text-sm leading-6 text-white/80 text-left">
-        {secondFactor ? 'Enter the code from your authenticator app.' : <>Enter the verification code sent to <strong className="text-white">{email}</strong>.</>}
+      <p className="mt-3 text-sm leading-6 text-[#798275] text-left">
+        {secondFactor ? 'Enter the code from your authenticator app.' : <>Enter the verification code sent to <strong className="text-[#374c2c]">{email}</strong>.</>}
       </p>
 
-      {error && <p role="alert" className="mt-4 rounded-2xl border border-red-400/40 bg-red-500/20 p-3 text-sm font-semibold text-red-200 text-left">{error}</p>}
-      {message && <p role="status" className="mt-4 rounded-2xl border border-emerald-400/40 bg-emerald-500/20 p-3 text-sm font-semibold text-emerald-200 text-left">{message}</p>}
+      {error && <p role="alert" className="mt-4 rounded-2xl border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-700 text-left">{error}</p>}
+      {message && <p role="status" className="mt-4 rounded-2xl border border-[#d7e8c8] bg-[#eef7e5] p-3 text-sm font-semibold text-[#456b38] text-left">{message}</p>}
 
       <form
         className="mt-6 space-y-3"
@@ -615,17 +671,17 @@ function OtpVerification({
           value={otp}
           onChange={(event) => onOtpChange(event.target.value.replace(/\D/g, '').slice(0, 8))}
           placeholder="00000000"
-          className="h-16 w-full rounded-[18px] bg-white px-5 text-center text-2xl font-black tracking-[0.45em] text-[#181816] focus:outline-none focus:ring-2 focus:ring-white/40"
+          className="h-16 w-full rounded-2xl border border-[#e1e5db] bg-white px-5 text-center text-2xl font-black tracking-[0.35em] text-[#20281d] shadow-sm outline-none focus:border-[#93ab71] focus:ring-4 focus:ring-[#e6edb0]/55"
         />
-        <button type="submit" disabled={busy || otp.length < 6} className="flex h-14 w-full items-center justify-center rounded-[18px] bg-white text-[15px] font-bold text-[#181816] disabled:opacity-50 cursor-pointer">
+        <button type="submit" disabled={busy || otp.length < 6} className="flex h-14 w-full cursor-pointer items-center justify-center rounded-2xl bg-[#20281d] text-[15px] font-bold text-white transition-colors hover:bg-[#34442c] disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#829b60]">
           {busy ? <Loader2 className="size-5 animate-spin" /> : 'Verify code'}
         </button>
         <div className="flex items-center justify-center gap-3 pt-2">
-          {!secondFactor && <><button type="button" disabled={busy} onClick={onResend} className="text-sm font-semibold text-white/90 hover:text-white disabled:opacity-50 cursor-pointer">
+          {!secondFactor && <><button type="button" disabled={busy} onClick={onResend} className="cursor-pointer text-sm font-semibold text-[#536d41] hover:text-[#24391f] disabled:opacity-50">
             Send a new code
           </button>
-          <span className="text-white/40">·</span></>}
-          <button type="button" disabled={busy} onClick={onBack} className="text-sm text-white/80 hover:text-white disabled:opacity-50 cursor-pointer">
+          <span className="text-[#b8c2ae]">·</span></>}
+          <button type="button" disabled={busy} onClick={onBack} className="cursor-pointer text-sm font-semibold text-[#71806b] hover:text-[#263c20] disabled:opacity-50">
             Use a different email
           </button>
         </div>
@@ -646,50 +702,49 @@ function DisplayNameInput({
   onSkip: () => void;
 }) {
   return (
-    <main className="flex min-h-screen items-center justify-center bg-[#f7f5ee] px-4">
-      <section className="flex w-full max-w-md flex-col items-center gap-8">
-        <Image
-          src="/branding/laterbox-icon.png"
-          alt="LaterBox logo"
-          width={64}
-          height={64}
-          className="h-16 w-auto rounded-2xl"
-          priority
+    <AuthLayout>
+      <div className="space-y-3">
+        <span className="inline-flex items-center gap-2 rounded-full border border-[#dde8c7] bg-[#eef5dd] px-3 py-1.5 text-[11px] font-bold text-[#597343]">
+          <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />
+          Almost ready
+        </span>
+        <h1 className="pt-2 text-[30px] font-black leading-tight tracking-[-0.045em] text-[#20281d] sm:text-[36px]">
+          What should we call you?
+        </h1>
+        <p className="text-sm leading-6 text-[#798275]">
+          This is optional. We can use your email if you prefer to skip it.
+        </p>
+      </div>
+      <form
+        onSubmit={event => { event.preventDefault(); onSave(); }}
+        className="mt-7 flex w-full flex-col gap-3.5"
+      >
+        <label htmlFor="display-name" className="text-xs font-extrabold text-[#33402e]">Your name</label>
+        <input
+          id="display-name"
+          type="text"
+          autoComplete="name"
+          autoFocus
+          maxLength={120}
+          value={displayName}
+          onChange={event => onChange(event.target.value)}
+          placeholder="How should we address you?"
+          className="h-14 w-full rounded-2xl border border-[#e1e5db] bg-white px-5 text-[15px] font-semibold text-[#20281d] placeholder:text-[#a2a9a0] shadow-sm outline-none focus:border-[#93ab71] focus:ring-4 focus:ring-[#e6edb0]/55"
         />
-        <div className="flex w-full flex-col items-start gap-2">
-          <h1 className="text-3xl font-black tracking-tight text-[#181816]">
-            What should we call you?
-          </h1>
-          <p className="text-[15px] text-[#6b6961]">
-            Optional — we&#39;ll use your email if you skip this.
-          </p>
-        </div>
-        <form
-          onSubmit={(event) => {
-            event.preventDefault();
-            onSave();
-          }}
-          className="flex w-full flex-col gap-4"
+        <button
+          type="submit"
+          className="mt-2 flex h-14 w-full items-center justify-center rounded-2xl bg-[#20281d] text-[15px] font-bold text-white transition-colors hover:bg-[#34442c] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#829b60]"
         >
-          <label htmlFor="display-name" className="sr-only">Display name</label>
-          <input
-            id="display-name"
-            type="text"
-            autoComplete="name"
-            autoFocus
-            value={displayName}
-            onChange={(event) => onChange(event.target.value)}
-            placeholder="Your name"
-            className="h-16 w-full rounded-[18px] border border-[#d8d3c7] bg-white px-5 text-[17px] font-semibold text-[#181816] placeholder:text-[#9e9b92] focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-900/10"
-          />
-          <button type="submit" className="flex h-14 w-full items-center justify-center rounded-[18px] bg-[#181816] text-[15px] font-bold text-white cursor-pointer">
-            Continue
-          </button>
-          <button type="button" onClick={onSkip} className="flex h-12 w-full items-center justify-center rounded-[18px] border border-[#d8d3c7] bg-transparent text-[15px] font-semibold text-[#6b6961] cursor-pointer">
-            Skip
-          </button>
-        </form>
-      </section>
-    </main>
+          Continue to LaterBox
+        </button>
+        <button
+          type="button"
+          onClick={onSkip}
+          className="flex h-12 w-full items-center justify-center rounded-2xl text-sm font-semibold text-[#657d50] transition-colors hover:bg-[#eef2e6] hover:text-[#2c4121] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#829b60]"
+        >
+          Skip for now
+        </button>
+      </form>
+    </AuthLayout>
   );
 }

@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[Web / Authentication pages]** Redesign Login, Sign Up, OTP, password, and display-name steps as a responsive split layout: bright accessible forms on the left and the existing auth-background visual on the right. Retain existing authentication actions, guest mode, third-party providers, and safe redirect handling.
+
 - **[Web / Settings redesign]** Remove the Overview route from navigation, modernize Notification preferences with accessible on/off switches, delivery/permission state, test and reset actions, refine Schedule controls and defaults, and add usable Apps, Backup, Help and policy links with consistent responsive Settings cards.
 
 - **[Web / Settings sidebar]** Remove the redundant Dashboard backlink, Settings title, and descriptive tagline from the settings-only secondary navigation, keeping the navigation links as the first content in the sidebar.
