@@ -269,13 +269,23 @@ public struct ItemDetailView: View {
     @ViewBuilder
     private var itemHero: some View {
         let mediaType = EmbeddedMediaType.detect(url: item.url)
-        switch mediaType {
-        case .youtube, .vimeo, .spotify, .appleMusic, .pdf:
-            InlineVideoEmbedView(embedType: mediaType, previewImageUrl: item.previewImageUrl)
-                .frame(maxWidth: .infinity)
-                .frame(minHeight: 180)
-                .background(insetSurface)
-        case .webArticle, .none:
+        if let (url, kind) = RemoteMediaKind.directURL(item.url),
+           case .webArticle = mediaType {
+            RemoteMediaPlayerView(
+                sourceURL: url,
+                title: item.title,
+                kind: kind,
+                previewImageURL: item.previewImageUrl.flatMap(URL.init(string:))
+            )
+            .padding(12)
+            .accessibilityIdentifier("Item Direct Media Stream")
+        } else {
+            switch mediaType {
+            case .youtube, .vimeo, .spotify, .appleMusic, .soundcloud, .lyrica:
+                InlineVideoEmbedView(embedType: mediaType, previewImageUrl: item.previewImageUrl)
+                    .frame(maxWidth: .infinity)
+                    .background(insetSurface)
+            case .pdf, .webArticle, .none:
             if let preview = item.previewImageUrl,
                !preview.isEmpty,
                let url = URL(string: preview) {
@@ -333,6 +343,7 @@ public struct ItemDetailView: View {
                 }
                 .padding(16)
                 .background(colorScheme == .dark ? Color(hex: "2B3028") : Color(hex: "F5F8E9"))
+            }
             }
         }
     }
@@ -890,6 +901,25 @@ public struct ItemDetailView: View {
 
             ForEach(files) { file in
                 let fileURL = try? SharedCaptureStore.fileURL(file)
+                if let kind = RemoteMediaKind.detect(name: file.name, mimeType: file.mimeType) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack(spacing: 10) {
+                            fileIcon(for: file.name)
+                                .font(.system(size: 15))
+                                .foregroundStyle(primaryInk)
+                            Text(file.name)
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundStyle(primaryInk)
+                                .lineLimit(1)
+                            Spacer()
+                            Text(kind == .video ? "VIDEO" : "AUDIO")
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundStyle(secondaryInk)
+                        }
+                        RemoteAttachmentMediaView(file: file, kind: kind)
+                    }
+                    .accessibilityIdentifier("Item Media Attachment \(file.id)")
+                } else {
                 Button {
                     if let fileURL {
                         previewDocumentURL = fileURL
@@ -935,6 +965,7 @@ public struct ItemDetailView: View {
                     )
                 }
                 .buttonStyle(.plain)
+                }
             }
         }
     }

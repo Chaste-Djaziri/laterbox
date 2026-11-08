@@ -14,6 +14,54 @@ struct MainTabTests {
         #expect(Set(MainTab.allCases.map(\.symbol)).count == 5)
     }
 
+    @Test("Native remote media classification matches supported streaming codecs")
+    func mediaStreamingClassification() {
+        #expect(RemoteMediaKind.directURL("https://example.com/clips/video.mp4?token=abc")?.1 == .video)
+        #expect(RemoteMediaKind.directURL("https://example.com/audio/song.m4a")?.1 == .audio)
+        #expect(RemoteMediaKind.directURL("https://example.com/live/index.m3u8")?.1 == .video)
+        #expect(RemoteMediaKind.detect(name: "recording.bin", mimeType: "audio/mpeg") == .audio)
+        #expect(RemoteMediaKind.detect(name: "clip.bin", mimeType: "video/mp4") == .video)
+        #expect(RemoteMediaKind.detect(name: "clip.webm", mimeType: "video/webm") == nil)
+        #expect(RemoteMediaKind.detect(name: "track.ogg", mimeType: "audio/ogg") == nil)
+        #expect(RemoteMediaKind.directURL("https://example.com/watch?v=5") == nil)
+        #expect(RemoteMediaKind.directURL("file:///private/tmp/clip.mp4") == nil)
+        #expect(RemoteMediaKind.directURL("javascript:alert(1)") == nil)
+        #expect(RemoteMediaPlayerView.timeLabel(125) == "2:05")
+    }
+
+    @Test("Cloud media attachments remain metadata-only until explicit Download")
+    func cloudMediaAttachmentPlaceholder() {
+        let remote = CloudAttachmentSnapshot(
+            id: "fa2da390-5e30-4794-bb79-ab065311c7cf",
+            item_id: "9610db91-740e-4c54-b711-a4ae3e09eef1",
+            original_file_name: "recording.m4a",
+            file_extension: "m4a",
+            mime_type: "audio/mp4",
+            byte_size: 9_000_000,
+            sha256: String(repeating: "a", count: 64),
+            r2_object_key: "private/example/recording.m4a",
+            deleted_at: nil
+        )
+        let placeholder = LaterBoxAPIService.remoteMediaPlaceholder(remote)
+        #expect(placeholder.id == remote.id)
+        #expect(placeholder.name == "recording.m4a")
+        #expect(placeholder.remoteObjectKey == remote.r2_object_key)
+        #expect(placeholder.byteSize == 9_000_000)
+        #expect(RemoteMediaKind.isRemoteMedia(placeholder))
+    }
+
+    @Test("Remote provider links resolve to embedded media")
+    func mediaServiceEmbeds() {
+        if case .soundcloud = EmbeddedMediaType.detect(url: "https://soundcloud.com/someone/track") {
+        } else { Issue.record("SoundCloud URL should embed") }
+        if case .lyrica = EmbeddedMediaType.detect(url: "https://lyricarw.com/songs/demo-slug") {
+        } else { Issue.record("Lyrica song URL should embed") }
+        if case .youtube = EmbeddedMediaType.detect(url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ") {
+        } else { Issue.record("YouTube embed must remain supported") }
+        if case .spotify = EmbeddedMediaType.detect(url: "https://open.spotify.com/track/12345") {
+        } else { Issue.record("Spotify embed must remain supported") }
+    }
+
     @Test("Cloud storage circle follows server quota and web warning thresholds")
     func cloudQuotaIndicator() {
         let unavailable = CloudStorageQuota(usedBytes: nil, limitBytes: 500_000_000)

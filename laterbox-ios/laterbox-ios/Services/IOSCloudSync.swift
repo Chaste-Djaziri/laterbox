@@ -308,6 +308,39 @@ extension LaterBoxAPIService {
         _ = try await cloudRequest("rpc/publish_item_attachments", token: token, method: "POST", body: ["item": body, "assets": rows])
     }
 
+    /// Short-lived authenticated R2 GET URL. Only signs metadata; callers
+    /// stream via AVPlayer without downloading the whole media file.
+    func signedAttachmentMediaURL(attachmentID: String, token: String) async throws -> URL {
+        let response = try await attachmentFunction(
+            ["action": "prepare-download", "attachmentId": attachmentID],
+            token: token
+        )
+        guard let raw = response["downloadUrl"] as? String,
+              let url = URL(string: raw),
+              url.scheme?.lowercased() == "https" else {
+            throw CloudSyncError.other("The secure media stream URL was unavailable")
+        }
+        return url
+    }
+
+    /// Cloud metadata-only attachment: no file bytes are transferred on sync.
+    /// The existing attachment path is retained so an explicit Download saves
+    /// into the same location used by locally captured files.
+    static func remoteMediaPlaceholder(_ remote: CloudAttachmentSnapshot) -> SharedAttachment {
+        let filename = URL(fileURLWithPath: remote.original_file_name).lastPathComponent
+        let safeName = filename.isEmpty ? "media" : filename
+        return SharedAttachment(
+            id: remote.id,
+            name: safeName,
+            relativePath: "Attachments/\(remote.id.lowercased())/\(safeName)",
+            typeIdentifier: UTType(mimeType: remote.mime_type)?.identifier ?? remote.mime_type,
+            remoteObjectKey: remote.r2_object_key,
+            byteSize: remote.byte_size,
+            sha256: remote.sha256,
+            mimeType: remote.mime_type
+        )
+    }
+
     func downloadAttachment(_ attachment: CloudAttachmentSnapshot, token: String) async throws -> SharedAttachment {
         let response = try await attachmentFunction(["action": "prepare-download", "attachmentId": attachment.id], token: token)
         guard let rawURL = response["downloadUrl"] as? String, let url = URL(string: rawURL) else { throw CloudSyncError.other("Attachment download URL was unavailable") }
@@ -409,6 +442,11 @@ extension SyncCoordinator {
                             assets[index].byteSize = remote.byte_size
                             assets[index].sha256 = remote.sha256
                             assets[index].mimeType = remote.mime_type
+                        } else if remote.r2_object_key != nil,
+                                  RemoteMediaKind.detect(name: remote.original_file_name, mimeType: remote.mime_type) != nil {
+                            // Audio/video remain cloud-only until the user explicitly downloads.
+                            let metadata = LaterBoxAPIService.remoteMediaPlaceholder(remote)
+                            if let index { assets[index] = metadata } else { assets.append(metadata) }
                         } else {
                             let restored = try await attachmentAPI.downloadAttachment(remote, token: token)
                             if let index { assets[index] = restored } else { assets.append(restored) }
@@ -440,9 +478,13 @@ extension SyncCoordinator {
                         let localAssets = existing.attachmentsData.flatMap { try? JSONDecoder().decode([SharedAttachment].self, from: $0) } ?? []
                         let allAssetsAvailable = (snapshot.attachments ?? []).filter { $0.deleted_at == nil }.allSatisfy { remote in
                             localAssets.contains { local in
-                                local.id.caseInsensitiveCompare(remote.id) == .orderedSame && (try? SharedCaptureStore.fileURL(local)).map {
-                                    FileManager.default.fileExists(atPath: $0.path)
-                                } == true
+                                local.id.caseInsensitiveCompare(remote.id) == .orderedSame && (
+                                    (try? SharedCaptureStore.fileURL(local)).map {
+                                        FileManager.default.fileExists(atPath: $0.path)
+                                    } == true ||
+                                    (local.remoteObjectKey != nil &&
+                                     RemoteMediaKind.detect(name: local.name, mimeType: local.mimeType) != nil)
+                                )
                             }
                         }
                         if allAssetsAvailable {
@@ -516,6 +558,9 @@ extension SyncCoordinator {
                         existing.sha256 = attachment.sha256
                         existing.mimeType = attachment.mime_type
                         localAttachments.append(existing)
+                    } else if attachment.r2_object_key != nil,
+                              RemoteMediaKind.detect(name: attachment.original_file_name, mimeType: attachment.mime_type) != nil {
+                        localAttachments.append(LaterBoxAPIService.remoteMediaPlaceholder(attachment))
                     } else {
                         localAttachments.append(try await attachmentAPI.downloadAttachment(attachment, token: token))
                     }

@@ -18,6 +18,8 @@ public enum EmbeddedMediaType: Equatable {
     case vimeo(videoId: String)
     case spotify(embedURL: URL)
     case appleMusic(embedURL: URL)
+    case soundcloud(embedURL: URL)
+    case lyrica(embedURL: URL)
     case pdf(url: URL)
     case webArticle(url: URL)
     case none
@@ -35,30 +37,55 @@ public enum EmbeddedMediaType: Equatable {
         }
 
         // YouTube
-        if host.contains("youtube.com") || host.contains("youtu.be") {
+        if host == "youtube.com" || host.hasSuffix(".youtube.com") ||
+           host == "youtu.be" || host.hasSuffix(".youtu.be") {
             if let videoId = extractYouTubeId(from: parsedURL) {
                 return .youtube(videoId: videoId)
             }
         }
 
         // Vimeo
-        if host.contains("vimeo.com") {
+        if host == "vimeo.com" || host.hasSuffix(".vimeo.com") {
             if let videoId = extractVimeoId(from: parsedURL) {
                 return .vimeo(videoId: videoId)
             }
         }
 
         // Spotify
-        if host.contains("spotify.com") {
+        if host == "spotify.com" || host.hasSuffix(".spotify.com") {
             if let embedURL = convertSpotifyEmbedURL(from: parsedURL) {
                 return .spotify(embedURL: embedURL)
             }
         }
 
         // Apple Music
-        if host.contains("music.apple.com") {
+        if host == "music.apple.com" {
             if let embedURL = convertAppleMusicEmbedURL(from: parsedURL) {
                 return .appleMusic(embedURL: embedURL)
+            }
+        }
+
+        if host == "soundcloud.com" || host.hasSuffix(".soundcloud.com") {
+            var player = URLComponents(string: "https://w.soundcloud.com/player/")
+            player?.queryItems = [
+                URLQueryItem(name: "url", value: parsedURL.absoluteString),
+                URLQueryItem(name: "color", value: "#e6edb0"),
+                URLQueryItem(name: "auto_play", value: "false"),
+                URLQueryItem(name: "show_comments", value: "false")
+            ]
+            if let embed = player?.url {
+                return .soundcloud(embedURL: embed)
+            }
+        }
+
+        if host == "lyricarw.com" || host.hasSuffix(".lyricarw.com") {
+            let path = parsedURL.path.split(separator: "/").map(String.init)
+            if let last = path.last,
+               (path.contains("songs") || (path.contains("embed") && path.contains("song"))),
+               !last.isEmpty,
+               last.allSatisfy({ $0.isASCII && ($0.isLetter || $0.isNumber || $0 == "-" || $0 == "_") }),
+               let embed = URL(string: "https://lyricarw.com/embed/song/\(last)") {
+                return .lyrica(embedURL: embed)
             }
         }
 
@@ -166,6 +193,14 @@ public struct InlineVideoEmbedView: View {
                 case .appleMusic(let embedURL):
                     WebViewEmbed(url: embedURL)
                         .frame(height: 175)
+                        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                case .soundcloud(let embedURL):
+                    WebViewEmbed(url: embedURL)
+                        .frame(height: 166)
+                        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                case .lyrica(let embedURL):
+                    WebViewEmbed(url: embedURL)
+                        .frame(height: 152)
                         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                 default:
                     EmptyView()
