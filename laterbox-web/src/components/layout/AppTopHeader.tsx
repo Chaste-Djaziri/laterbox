@@ -7,11 +7,9 @@ import { DashboardNotifications } from '@/components/notifications/DashboardNoti
 import { useItems } from '@/lib/store/ItemContext';
 import { Collection } from '@/lib/supabase/types';
 import { useAuth } from '@/lib/store/AuthContext';
-import { QuickCaptureModal } from '@/components/inbox/QuickCaptureModal';
 import {
   Search,
   Sparkles,
-  Plus,
   Pencil,
   RefreshCw,
   Settings,
@@ -45,8 +43,6 @@ export function AppTopHeader() {
     searchFilters,
     setSearchFilters,
     handleClearSearch,
-    captureOpen,
-    setCaptureOpen,
   } = useDashboard();
 
   const { user, userName, setUserName, signOut, isGuest } = useAuth();
@@ -225,7 +221,7 @@ export function AppTopHeader() {
         <DashboardNotifications />
       </div>
 
-      {/* Top Header: Title, Centered Search, AI Organize, Save Item, Settings & Profile */}
+      {/* Top Header: Title, Centered Search, AI Organize, Settings & Profile */}
       <div className="shrink-0 flex flex-wrap items-center justify-between gap-3">
         {/* Left: Clean Page Title */}
         <div className="shrink-0">
@@ -327,16 +323,6 @@ export function AppTopHeader() {
                 <span className="hidden sm:inline">AI organize</span>
               </>
             )}
-          </button>
-
-          {/* Save Item / Compose Button */}
-          <button
-            type="button"
-            onClick={() => setCaptureOpen(true)}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-[#171711] text-white hover:bg-black text-xs font-bold shadow-xs transition-all cursor-pointer"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span>Save Item</span>
           </button>
 
           {/* Settings Icon Link */}
@@ -466,8 +452,6 @@ export function AppTopHeader() {
           </div>
         </div>
       </div>
-
-      <QuickCaptureModal isOpen={captureOpen} onClose={() => setCaptureOpen(false)} />
 
       <AiOrganizeModal
         isOpen={aiModalOpen}

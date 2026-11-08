@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[Web / Dashboard header]** Remove the duplicate Save Item action above the inbox table; keep saving available through the sidebar and its existing capture modal, without changing search, AI Organize, settings, or profile actions.
+
 - **[Web / Marketing navigation]** Increase the public marketing header height and sizing, keep it borderless and shadow-free at the top of the page, and reveal a subtle separator and shadow only after scrolling. Dashboard navigation remains unchanged.
 
 - **[Web / Plans styling]** Match the in-app Plans page background to the standard dashboard canvas and swap green-tinted pricing card accents for neutral surfaces, while preserving the public Pricing page style and Whop checkout behavior.
