@@ -5,7 +5,7 @@ import dynamic from 'next/dynamic';
 import { useRouter, usePathname } from 'next/navigation';
 import { LaterBoxItem } from '@/lib/supabase/types';
 import { useItems } from '@/lib/store/ItemContext';
-import { resolveReturnPreset, ReturnPreset, scheduleItems, formatInboxAge } from '@/lib/utils/schedule';
+import { resolveReturnPreset, ReturnPreset, scheduleItems, formatInboxAge, inboxArrivalTimestamp } from '@/lib/utils/schedule';
 import {
   Inbox,
   Tag,
@@ -95,6 +95,7 @@ interface EmailInboxTableProps {
   items: LaterBoxItem[];
   onOpenCapture: () => void;
   title?: string;
+  sortByInboxArrival?: boolean;
   searchQuery?: string;
   isSearchSubmitted?: boolean;
   searchFilters?: InboxSearchFilters;
@@ -131,6 +132,7 @@ export function EmailInboxTable({
   items,
   onOpenCapture,
   title: propTitle,
+  sortByInboxArrival = false,
   searchQuery = '',
   isSearchSubmitted = false,
   searchFilters,
@@ -328,13 +330,17 @@ export function EmailInboxTable({
     }
 
     list = [...list].sort((a, b) => {
-      const timeA = new Date(a.created_at).getTime();
-      const timeB = new Date(b.created_at).getTime();
+      const timeA = sortByInboxArrival
+        ? (inboxArrivalTimestamp(a) ?? new Date(a.created_at).getTime())
+        : new Date(a.created_at).getTime();
+      const timeB = sortByInboxArrival
+        ? (inboxArrivalTimestamp(b) ?? new Date(b.created_at).getTime())
+        : new Date(b.created_at).getTime();
       return sortOrder === 'latest' ? timeB - timeA : timeA - timeB;
     });
 
     return list;
-  }, [isSearchActive, items, searchQuery, filters, currentTabItems, sortOrder]);
+  }, [isSearchActive, items, searchQuery, filters, currentTabItems, sortOrder, sortByInboxArrival]);
 
   const totalItems = processedItems.length;
   const startIndex = (page - 1) * pageSize;
@@ -1753,10 +1759,14 @@ export function EmailInboxTable({
 
                   {/* Date Time (Visible when NOT hovered) */}
                   <span
-                    title={'Saved ' + formatEmailDate(item.created_at)}
+                    title={sortByInboxArrival
+                      ? 'Arrived ' + formatEmailDate(new Date(inboxArrivalTimestamp(item) ?? new Date(item.created_at).getTime()).toISOString())
+                      : 'Saved ' + formatEmailDate(item.created_at)}
                     className="group-hover:hidden text-[11px] sm:text-xs font-semibold text-[#171711] sm:text-[#6c6b63] tabular-nums bg-white/75 backdrop-blur-xs px-2 py-0.5 rounded-md border border-[#e4e0d5]/40 shadow-2xs"
                   >
-                    {formatInboxAge(item, now) ?? formatEmailDate(item.created_at)}
+                    {sortByInboxArrival
+                      ? formatEmailDate(new Date(inboxArrivalTimestamp(item) ?? new Date(item.created_at).getTime()).toISOString())
+                      : formatInboxAge(item, now) ?? formatEmailDate(item.created_at)}
                   </span>
                 </div>
               </div>

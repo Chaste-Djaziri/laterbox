@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[Web / Today view]** Replace the scheduled-focus card layout with the existing email-style dashboard table, showing active items that entered Inbox during the last rolling 24 hours. Use recorded Inbox-entry timestamps, due scheduled return times and creation timestamps for legacy direct-Inbox items; keep date sorting and Today sidebar counts aligned, refresh the rolling window, and add boundary tests.
+
 - **[Web / Dashboard Sidebar]** Move Today, Upcoming and Someday immediately after Inbox in the collapsed navigation rail, retaining each tab's existing icon, count, route and tooltip.
 
 - **[Web / Dashboard Notices]** Replace the single-purpose extension warning with a reusable multi-notice banner module. Rotate active notices on an interval, provide previous/next controls and individually scoped dismissal, support multiple actions per notice, retain the extension setup dialog, warn signed-out guests about device-local data and offer login/signup, and surface authenticated sync problems with a retry action.

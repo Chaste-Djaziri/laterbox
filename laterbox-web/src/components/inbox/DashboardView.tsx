@@ -11,9 +11,10 @@ interface DashboardViewProps {
   loading?: boolean;
   title?: string;
   topBanner?: React.ReactNode;
+  sortByInboxArrival?: boolean;
 }
 
-export function DashboardView({ items, loading, title: propTitle, topBanner }: DashboardViewProps) {
+export function DashboardView({ items, loading, title: propTitle, topBanner, sortByInboxArrival = false }: DashboardViewProps) {
   const {
     title: contextTitle,
     setTitle,
@@ -47,6 +48,7 @@ export function DashboardView({ items, loading, title: propTitle, topBanner }: D
           <EmailInboxTable
             items={items}
             title={activeTitle}
+            sortByInboxArrival={sortByInboxArrival}
             onOpenCapture={() => setCaptureOpen(true)}
             searchQuery={searchQuery}
             isSearchSubmitted={isSearchSubmitted}

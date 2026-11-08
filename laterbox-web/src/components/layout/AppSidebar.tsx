@@ -14,7 +14,7 @@ import {
 import { useItems } from '@/lib/store/ItemContext';
 import { useBilling } from '@/lib/store/BillingContext';
 import { presentEntitlement } from '@/lib/billing/types';
-import { scheduleItems } from '@/lib/utils/schedule';
+import { scheduleItems, recentInboxArrivals } from '@/lib/utils/schedule';
 import { CloudSyncIndicator } from '../ui/CloudSyncIndicator';
 
 interface AppSidebarProps {
@@ -65,11 +65,18 @@ export function AppSidebar({ onOpenCapture }: AppSidebarProps) {
     );
   }, []);
 
+  // Refresh rolling Today counts and trial countdowns without requiring navigation.
   useEffect(() => {
-    if (!entitlement.phaseEndsAt) return;
-    const timer = window.setInterval(() => setNow(new Date()), 60_000);
-    return () => window.clearInterval(timer);
-  }, [entitlement.phaseEndsAt]);
+    const refresh = () => setNow(new Date());
+    const timer = window.setInterval(refresh, 60_000);
+    window.addEventListener('focus', refresh);
+    document.addEventListener('visibilitychange', refresh);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener('focus', refresh);
+      document.removeEventListener('visibilitychange', refresh);
+    };
+  }, []);
 
   useEffect(() => {
     if (collectionsOpen && isCreatingCollection) collectionInputRef.current?.focus();
@@ -113,7 +120,7 @@ export function AppSidebar({ onOpenCapture }: AppSidebarProps) {
     };
   }, [collectionsOpen, updateCollectionPosition]);
 
-  const todayCount = useMemo(() => scheduleItems(items, 'today', now).length, [items, now]);
+  const todayCount = useMemo(() => recentInboxArrivals(items, now).length, [items, now]);
   const upcomingCount = useMemo(() => scheduleItems(items, 'upcoming', now).length, [items, now]);
   const somedayCount = useMemo(() => scheduleItems(items, 'someday', now).length, [items, now]);
   const plan = useMemo(() => presentEntitlement(entitlement, now), [entitlement, now]);
