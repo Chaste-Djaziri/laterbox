@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[Web / Cloudflare release]** Harden Apple purchase-verification secret provisioning: verify Cloudflare's per-variable size limit, retain dedicated App Store credentials, and surface safely redacted Wrangler diagnostics with actionable Worker permission guidance instead of failing with a generic error. Add isolated tests for failures and sensitive-data redaction.
+
 - **[Web / Dashboard header]** Remove the duplicate Save Item action above the inbox table; keep saving available through the sidebar and its existing capture modal, without changing search, AI Organize, settings, or profile actions.
 
 - **[Web / Marketing navigation]** Increase the public marketing header height and sizing, keep it borderless and shadow-free at the top of the page, and reveal a subtle separator and shadow only after scrolling. Dashboard navigation remains unchanged.

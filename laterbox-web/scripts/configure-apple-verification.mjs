@@ -1,6 +1,8 @@
-// Public Apple verification settings only. No App Store private key is required.
+// laterbox-web/scripts/configure-apple-verification.mjs
+// Public certificate roots plus optional dedicated, server-only App Store account-link credentials.
 import { createPrivateKey, X509Certificate } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
+import { assertAppleBindingsFit, wranglerFailure } from './apple-verification-utils.mjs';
 
 const roots = [
   'https://www.apple.com/appleca/AppleIncRootCertificate.cer',
@@ -19,14 +21,23 @@ const encoded = await Promise.all(roots.map(async (url) => {
   }
   return data.toString('base64');
 }));
-console.log(`Validated ${encoded.length} trusted roots downloaded from Apple PKI.`);
+const rootCertificateBundle = encoded.join(',');
+assertAppleBindingsFit({ APPLE_ROOT_CERTIFICATES_BASE64: rootCertificateBundle });
+console.log(`Validated ${encoded.length} trusted roots downloaded from Apple PKI (${Buffer.byteLength(rootCertificateBundle)} bytes).`);
 if (!process.argv.includes('--check-only')) {
   if (!process.env.CLOUDFLARE_ACCOUNT_ID || !process.env.CLOUDFLARE_API_TOKEN) {
     throw new Error('Set the deployment Cloudflare account ID and API token before configuring the existing Worker.');
   }
   const wrangler = 'node_modules/wrangler/bin/wrangler.js';
   const inventory = spawnSync(process.execPath, [wrangler, 'secret', 'list', '--name', 'laterbox-web'], { encoding: 'utf8' });
-  if (inventory.status !== 0) throw new Error('Unable to access the existing laterbox-web Worker in the configured account.');
+  const sensitiveValues = [
+    process.env.CLOUDFLARE_API_TOKEN,
+    process.env.APPLE_PRIVATE_KEY,
+    process.env.APPLE_KEY_ID,
+    process.env.APPLE_ISSUER_ID,
+    rootCertificateBundle,
+  ];
+  if (inventory.status !== 0) throw wranglerFailure(inventory, 'Worker inventory', sensitiveValues);
   const accountLinkCredentials = {};
   const credentialNames = ['APPLE_PRIVATE_KEY', 'APPLE_KEY_ID', 'APPLE_ISSUER_ID'];
   const supplied = credentialNames.filter((name) => process.env[name]);
@@ -38,16 +49,24 @@ if (!process.argv.includes('--check-only')) {
     if (!/^[A-Z0-9]{10}$/.test(process.env.APPLE_KEY_ID) || !/^[0-9a-f-]{36}$/i.test(process.env.APPLE_ISSUER_ID)) throw new Error('Invalid Apple key ID or issuer ID.');
     Object.assign(accountLinkCredentials, { APPLE_PRIVATE_KEY: privateKey, APPLE_KEY_ID: process.env.APPLE_KEY_ID, APPLE_ISSUER_ID: process.env.APPLE_ISSUER_ID });
   }
+  const payload = {
+    ...accountLinkCredentials,
+    APPLE_APP_ID: '6804139119',
+    APPLE_BUNDLE_ID: 'pro.micorp.laterbox',
+    APPLE_ROOT_CERTIFICATES_BASE64: rootCertificateBundle,
+  };
+  assertAppleBindingsFit(payload);
+  console.log(`Uploading ${Object.keys(payload).length} Apple verification variables to existing Worker laterbox-web.`);
   const result = spawnSync(process.execPath, [wrangler, 'secret', 'bulk', '--name', 'laterbox-web'], {
-    input: JSON.stringify({
-      ...accountLinkCredentials,
-      APPLE_APP_ID: '6804139119',
-      APPLE_BUNDLE_ID: 'pro.micorp.laterbox',
-      APPLE_ROOT_CERTIFICATES_BASE64: encoded.join(','),
-    }),
+    input: JSON.stringify(payload),
     encoding: 'utf8',
+    timeout: 60_000,
+    maxBuffer: 4 * 1024 * 1024,
   });
-  if (result.status !== 0) throw new Error('Unable to configure Apple verification on the existing Worker.');
+  if (result.status !== 0) throw wranglerFailure(result, 'Apple secret update', [
+    ...sensitiveValues,
+    ...Object.values(accountLinkCredentials),
+  ]);
   if (supplied.length) console.log('Configured dedicated server-only Apple account-link credentials.');
   else console.log('Existing account-link credentials are retained; missing credentials leave optional account connection unavailable.');
   console.log('Configured Apple verification for the existing LaterBox App Store application.');
