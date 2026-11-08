@@ -27,25 +27,73 @@ struct MainTabView: View {
     @State private var secondaryMailbox: MailboxViewType?
     @State private var showingCapture = false
     @State private var logoReplayToken = 0
+    @State private var inboxPullDistance: CGFloat = 0
+    @State private var inboxRefreshing = false
+    @State private var todayPullDistance: CGFloat = 0
+    @State private var todayRefreshing = false
+    @State private var keptPullDistance: CGFloat = 0
+    @State private var keptRefreshing = false
+    @State private var libraryPullDistance: CGFloat = 0
+    @State private var libraryRefreshing = false
+
+    private var visiblePullDistance: CGFloat {
+        switch selectedTab {
+        case .inbox: inboxPullDistance
+        case .today: todayPullDistance
+        case .kept: keptPullDistance
+        case .library: libraryPullDistance
+        case .settings: 0
+        }
+    }
+
+    private var visibleRefreshing: Bool {
+        switch selectedTab {
+        case .inbox: inboxRefreshing
+        case .today: todayRefreshing
+        case .kept: keptRefreshing
+        case .library: libraryRefreshing
+        case .settings: false
+        }
+    }
 
     var body: some View {
         VStack(spacing: 0) {
+            // Keep the stretched mark above scrolling content while pulling.
             appHeader
+                .zIndex(10)
 
             TabView(selection: $selectedTab) {
-                InboxView(isTabRoot: true)
+                InboxView(
+                    isTabRoot: true,
+                    refreshPull: $inboxPullDistance,
+                    refreshIsRunning: $inboxRefreshing
+                )
                     .tabItem { Label(MainTab.inbox.rawValue, systemImage: MainTab.inbox.symbol) }
                     .tag(MainTab.inbox)
 
-                ReturnsView(initialSegment: .today, isTabRoot: true)
+                ReturnsView(
+                    initialSegment: .today,
+                    isTabRoot: true,
+                    refreshPull: $todayPullDistance,
+                    refreshIsRunning: $todayRefreshing
+                )
                     .tabItem { Label(MainTab.today.rawValue, systemImage: MainTab.today.symbol) }
                     .tag(MainTab.today)
 
-                InboxView(initialMailbox: .kept, isTabRoot: true)
+                InboxView(
+                    initialMailbox: .kept,
+                    isTabRoot: true,
+                    refreshPull: $keptPullDistance,
+                    refreshIsRunning: $keptRefreshing
+                )
                     .tabItem { Label(MainTab.kept.rawValue, systemImage: MainTab.kept.symbol) }
                     .tag(MainTab.kept)
 
-                LibraryView()
+                LibraryView(
+                    isTabRoot: true,
+                    refreshPull: $libraryPullDistance,
+                    refreshIsRunning: $libraryRefreshing
+                )
                     .tabItem { Label(MainTab.library.rawValue, systemImage: MainTab.library.symbol) }
                     .tag(MainTab.library)
 
@@ -81,14 +129,11 @@ struct MainTabView: View {
                 selectedTab = .inbox
                 logoReplayToken += 1
             } label: {
-                LaterBoxVectorMark(
-                    size: 42,
-                    appearance: .light,
-                    animates: true,
+                LaterBoxPullRefreshLogo(
+                    distance: visiblePullDistance,
+                    refreshing: visibleRefreshing,
                     replayToken: logoReplayToken
                 )
-                .frame(width: 44, height: 44)
-                .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .accessibilityLabel("LaterBox home")

@@ -22,11 +22,20 @@ public struct ReturnsView: View {
 
     @State private var selectedSegment: ReturnSegment = .today
     private let isTabRoot: Bool
+    @Binding private var refreshPull: CGFloat
+    @Binding private var refreshIsRunning: Bool
     @State private var snoozeTargetItem: LBItem? = nil
 
-    public init(initialSegment: ReturnSegment = .today, isTabRoot: Bool = false) {
+    public init(
+        initialSegment: ReturnSegment = .today,
+        isTabRoot: Bool = false,
+        refreshPull: Binding<CGFloat> = .constant(0),
+        refreshIsRunning: Binding<Bool> = .constant(false)
+    ) {
         self._selectedSegment = State(initialValue: initialSegment)
         self.isTabRoot = isTabRoot
+        self._refreshPull = refreshPull
+        self._refreshIsRunning = refreshIsRunning
     }
 
     private var deduplicatedItems: [LBItem] {
@@ -169,6 +178,9 @@ public struct ReturnsView: View {
                     // Content Area (Email Table View Cards)
                     ScrollView {
                         VStack(alignment: .leading, spacing: 10) {
+                            if isTabRoot {
+                                LaterBoxPullRefreshMarker()
+                            }
                             HStack {
                                 Text("\(selectedSegment.rawValue) (\(itemsForSegment.count))")
                                     .font(.system(size: 13, weight: .bold))
@@ -239,8 +251,24 @@ public struct ReturnsView: View {
                     }
                     .refreshable {
                         LBHaptic.medium()
+                        await MainActor.run {
+                            if isTabRoot { refreshIsRunning = true }
+                        }
                         await coordinator.syncPendingItems(context: modelContext)
+                        await MainActor.run {
+                            if isTabRoot {
+                                refreshIsRunning = false
+                                refreshPull = 0
+                            }
+                        }
                     }
+                    .coordinateSpace(name: LaterBoxPullRefresh.coordinateSpace)
+                    .onPreferenceChange(LaterBoxPullOffsetKey.self) { distance in
+                        guard isTabRoot, !refreshIsRunning else { return }
+                        let clamped = LaterBoxPullRefresh.distance(distance)
+                        if abs(clamped - refreshPull) > 0.5 { refreshPull = clamped }
+                    }
+                    .tint(.clear)
                 }
             }
             .navigationBarHidden(true)

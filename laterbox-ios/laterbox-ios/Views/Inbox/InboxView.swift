@@ -28,6 +28,8 @@ public struct InboxView: View {
     @State private var selectedMailbox: MailboxViewType
     private let initialMailbox: MailboxViewType
     private let isTabRoot: Bool
+    @Binding private var refreshPull: CGFloat
+    @Binding private var refreshIsRunning: Bool
     @State private var selectedCollection: String? = nil
     @State private var showingPlans: Bool = false
     @State private var navigateToSettings: Bool = false
@@ -50,10 +52,17 @@ public struct InboxView: View {
     @State private var searchStarredOnly: Bool = false
     @State private var searchHasAttachmentOnly: Bool = false
 
-    public init(initialMailbox: MailboxViewType = .inbox, isTabRoot: Bool = false) {
+    public init(
+        initialMailbox: MailboxViewType = .inbox,
+        isTabRoot: Bool = false,
+        refreshPull: Binding<CGFloat> = .constant(0),
+        refreshIsRunning: Binding<Bool> = .constant(false)
+    ) {
         self.initialMailbox = initialMailbox
         self.isTabRoot = isTabRoot
         self._selectedMailbox = State(initialValue: initialMailbox)
+        self._refreshPull = refreshPull
+        self._refreshIsRunning = refreshIsRunning
     }
 
     private func profileMenuRow(_ title: String, icon: String, destructive: Bool = false, action: @escaping () -> Void) -> some View {
@@ -269,6 +278,9 @@ public struct InboxView: View {
                 VStack(spacing: 0) {
                     ScrollView {
                         VStack(alignment: .leading, spacing: 0) {
+                        if isTabRoot {
+                            LaterBoxPullRefreshMarker()
+                        }
                         // 1. Mobile Top Search Bar (Inactive vs Active Expanding state)
                         if !isSearchActive {
                             if isTabRoot {
@@ -760,13 +772,28 @@ public struct InboxView: View {
                 }
                 .refreshable {
                     LBHaptic.medium()
-                    await MainActor.run { isRefreshingInbox = true }
+                    await MainActor.run {
+                        isRefreshingInbox = true
+                        if isTabRoot { refreshIsRunning = true }
+                    }
                     await coordinator.syncPendingItems(context: modelContext, announceFailure: false)
-                    await MainActor.run { isRefreshingInbox = false }
+                    await MainActor.run {
+                        isRefreshingInbox = false
+                        if isTabRoot {
+                            refreshIsRunning = false
+                            refreshPull = 0
+                        }
+                    }
+                }
+                .coordinateSpace(name: LaterBoxPullRefresh.coordinateSpace)
+                .onPreferenceChange(LaterBoxPullOffsetKey.self) { distance in
+                    guard isTabRoot, !refreshIsRunning else { return }
+                    let clamped = LaterBoxPullRefresh.distance(distance)
+                    if abs(clamped - refreshPull) > 0.5 { refreshPull = clamped }
                 }
                 .tint(.clear)
 
-                if isRefreshingInbox {
+                if isRefreshingInbox && !isTabRoot {
                     HStack(spacing: 8) {
                         ProgressView()
                             .progressViewStyle(.circular)

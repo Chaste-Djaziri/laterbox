@@ -39,6 +39,9 @@ public struct LibraryView: View {
     @Query(sort: \LBItem.createdAt, order: .reverse) private var allItems: [LBItem]
     @Query(sort: \LBCollection.name, order: .forward) private var collections: [LBCollection]
     @ObservedObject var coordinator = SyncCoordinator.shared
+    private let isTabRoot: Bool
+    @Binding private var refreshPull: CGFloat
+    @Binding private var refreshIsRunning: Bool
 
     @State private var showingAddCollection: Bool = false
     @State private var newCollectionName: String = ""
@@ -50,7 +53,15 @@ public struct LibraryView: View {
     @State private var collectionToDelete: String? = nil
     @State private var showingDeleteCollectionConfirmation: Bool = false
 
-    public init() {}
+    public init(
+        isTabRoot: Bool = false,
+        refreshPull: Binding<CGFloat> = .constant(0),
+        refreshIsRunning: Binding<Bool> = .constant(false)
+    ) {
+        self.isTabRoot = isTabRoot
+        self._refreshPull = refreshPull
+        self._refreshIsRunning = refreshIsRunning
+    }
 
     private var deduplicatedItems: [LBItem] {
         allItems.deduplicatedForDisplay()
@@ -83,6 +94,9 @@ public struct LibraryView: View {
 
                 ScrollView {
                     VStack(alignment: .leading, spacing: 20) {
+                        if isTabRoot {
+                            LaterBoxPullRefreshMarker()
+                        }
                         // Top Level Header (Scrolls normally, uncontainerized on canvas)
                         HStack(alignment: .center) {
                             HStack(spacing: 8) {
@@ -281,6 +295,27 @@ public struct LibraryView: View {
                     .padding(.top, 12)
                     .padding(.bottom, 24)
                 }
+                .refreshable {
+                    LBHaptic.medium()
+                    await MainActor.run {
+                        if isTabRoot { refreshIsRunning = true }
+                    }
+                    await coordinator.syncPendingItems(context: modelContext, announceFailure: false)
+                    await MainActor.run {
+                        if isTabRoot {
+                            refreshIsRunning = false
+                            refreshPull = 0
+                        }
+                    }
+                }
+                .coordinateSpace(name: LaterBoxPullRefresh.coordinateSpace)
+                .onPreferenceChange(LaterBoxPullOffsetKey.self) { distance in
+                    guard isTabRoot, !refreshIsRunning else { return }
+                    // The Library content has an initial 12pt top padding.
+                    let clamped = LaterBoxPullRefresh.distance(max(0, distance - 12))
+                    if abs(clamped - refreshPull) > 0.5 { refreshPull = clamped }
+                }
+                .tint(.clear)
             }
             .navigationBarHidden(true)
             .alert("New Collection", isPresented: $showingAddCollection) {

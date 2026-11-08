@@ -26,6 +26,19 @@ struct MainTabTests {
         #expect(!LaterBoxSplashTiming.shouldReplay(wasBackgrounded: true, phase: .inactive))
     }
 
+    @Test("Refresh logo stretches only on downward overscroll")
+    func pullRefreshGeometry() {
+        #expect(LaterBoxPullRefresh.distance(-32) == 0)
+        #expect(LaterBoxPullRefresh.distance(0) == 0)
+        #expect(LaterBoxPullRefresh.distance(47) == 47)
+        #expect(LaterBoxPullRefresh.distance(500) == 180)
+        #expect(LaterBoxPullRefresh.distance(.nan) == 0)
+        #expect(LaterBoxPullRefresh.progress(-10) == 0)
+        #expect(LaterBoxPullRefresh.progress(52.5) == 0.5)
+        #expect(LaterBoxPullRefresh.progress(105) == 1)
+        #expect(LaterBoxPullRefresh.progress(200) == 1)
+    }
+
     @Test("Splash uses black on white in Light Mode and white on black in Dark Mode")
     func splashRespectsAppearance() {
         #expect(LaterBoxLoadingMark.foreground(for: .light) == Color.black)
