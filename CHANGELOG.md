@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[Web / Item detail chat]** Replace the full item page's raw personal-note textarea (which exposed synced iOS thread JSON) with a conversation-style Notes & Follow-ups thread and composer. Decode the same shared itemThread format as the Inbox side panel and iOS; support sending, quoted replies, editing/deleting messages, reactions, existing poll votes and file references, legacy plain-text notes, and safe save feedback without destroying thread metadata.
+
 - **[iOS / Detail chat composer]** Restore the item-details chat-style input as a persistent bottom composer above the safe area, preserving quoted replies, adaptive white/graphite styling, and keyboard behavior. Keep the web-aligned item card and thread messages scrollable independently; scroll to the latest note after sending without jumping to notes when opening an item.
 
 - **[iOS / Item detail parity]** Consolidate the item-details screen to match the web's single primary item card: preview, source/date/status metadata, editable title, collections/tags, contextual content, attachments, and original-source action, followed by inline personal notes. Plain tasks get a dedicated completion control, while structured tasks retain the checklist. Remove duplicated section containers and generic “Item Details” navigation title. Keep native push/swipe-back, provide direct favorite and status controls, and collect infrequent copy/share/schedule/collection/delete actions in a compact menu with light/graphite appearance.

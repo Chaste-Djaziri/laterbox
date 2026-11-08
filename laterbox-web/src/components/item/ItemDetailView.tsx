@@ -1062,7 +1062,7 @@ export function ItemDetailView({
         </article>
 
         {/* Personal Note Editor */}
-        <NoteEditor itemId={item.id} initialContent={item.note?.content} />
+        <NoteEditor key={item.id} itemId={item.id} initialContent={item.note?.content} />
       </div>
 
       {/* Add / Manage Collections Modal */}
