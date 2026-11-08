@@ -589,7 +589,7 @@ public struct InboxView: View {
                                     .font(.system(size: 13, weight: .bold))
                                     .foregroundColor(Color.secondary)
 
-                                if selectedCollection != nil || (selectedMailbox != .inbox && selectedMailbox != .kept) {
+                                if selectedCollection != nil || selectedMailbox != .inbox {
                                     Button {
                                         selectedMailbox = .inbox
                                         selectedCollection = nil
