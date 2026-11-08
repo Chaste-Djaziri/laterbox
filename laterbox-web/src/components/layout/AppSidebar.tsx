@@ -120,13 +120,13 @@ export function AppSidebar({ onOpenCapture }: AppSidebarProps) {
 
   const coreLinks = [
     { href: '/inbox', label: 'Inbox', icon: Inbox, count: inboxItems.length },
+    { href: '/today', label: 'Today', icon: Clock, count: todayCount },
+    { href: '/upcoming', label: 'Upcoming', icon: CalendarDays, count: upcomingCount },
+    { href: '/someday', label: 'Someday', icon: CalendarClock, count: somedayCount },
     { href: '/starred', label: 'Starred', icon: Star, count: starredItems.length },
     { href: '/kept', label: 'Kept', icon: CheckCircle2, count: savedItems.length },
     { href: '/archived', label: 'Archived', icon: Archive, count: archivedItems.length },
     { href: '/trash', label: 'Recently Deleted', icon: Trash2, count: deletedItems.length },
-    { href: '/today', label: 'Today', icon: Clock, count: todayCount },
-    { href: '/upcoming', label: 'Upcoming', icon: CalendarDays, count: upcomingCount },
-    { href: '/someday', label: 'Someday', icon: CalendarClock, count: somedayCount },
   ];
 
   const systemLinks = [
