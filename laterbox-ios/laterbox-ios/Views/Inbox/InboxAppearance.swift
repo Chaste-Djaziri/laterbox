@@ -29,7 +29,7 @@ enum InboxAppearance {
     }
 }
 
-/// A restrained, static graphite grain for the Inbox and its fixed header.
+/// A restrained, static graphite grain for the Inbox canvas, visible behind its transparent header.
 /// Drawing two compound paths makes the texture inexpensive to render;
 /// positions are seeded, not randomized per redraw, so nothing flickers.
 struct InboxGrainBackground: View {

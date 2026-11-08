@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[iOS / Inbox header]** Remove the Inbox header's independent background layer; leave its layout transparent so the underlying page's Light Mode white or Dark Mode graphite grain renders continuously behind it, with no visible seam or duplicated texture.
+
 - **[iOS / Dark mode finish]** Replace the Inbox's pure black Dark Mode with a muted graphite-black gradient and subtle, stationary procedural grain; apply the same treatment to its fixed header while retaining a clean white Light Mode, legible cards, and a matching tab-bar background. Keep the texture noninteractive and deterministic for smooth scrolling.
 
 - **[iOS / Inbox return layout]** Keep the Inbox search bar flush beneath its header after returning from an item detail by housing the header inside the Inbox NavigationStack root instead of resizing the outer tab shell during a push/pop. Restore stable navigation-bar safe-area handling and preserve the existing logo refresh, capture, and cloud quota controls.
