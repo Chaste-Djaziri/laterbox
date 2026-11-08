@@ -219,7 +219,7 @@ public struct InboxView: View {
         }.deduplicatedForDisplay()
     }
 
-    /// Reuse the existing vault search and mailbox drawer without duplicating the app header.
+    /// Full-width search; secondary pages are available from the shared header's More menu.
     private var tabbedSearchHeader: some View {
         HStack(spacing: 10) {
             Button {
@@ -247,23 +247,8 @@ public struct InboxView: View {
                 .overlay(Capsule().strokeBorder(Color.black.opacity(0.07), lineWidth: 1))
             }
             .buttonStyle(.plain)
+            .frame(maxWidth: .infinity)
             .accessibilityLabel("Search saved items")
-
-            if initialMailbox == .inbox {
-                Button {
-                    LBHaptic.light()
-                    withAnimation(.spring(response: 0.32, dampingFraction: 0.85)) {
-                        showingSidebar = true
-                    }
-                } label: {
-                    Image(systemName: "line.3.horizontal.decrease")
-                        .font(.system(size: 19, weight: .medium))
-                        .foregroundStyle(AppTheme.textPrimary)
-                        .frame(width: 44, height: 44)
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Browse folders")
-            }
         }
         .padding(.horizontal, 14)
         .padding(.top, 10)
@@ -279,7 +264,11 @@ public struct InboxView: View {
                     ScrollView {
                         VStack(alignment: .leading, spacing: 0) {
                         if isTabRoot {
-                            LaterBoxPullRefreshMarker()
+                            LaterBoxPullRefreshMarker(
+                                distance: $refreshPull,
+                                enabled: !refreshIsRunning
+                            )
+                            .frame(height: 1)
                         }
                         // 1. Mobile Top Search Bar (Inactive vs Active Expanding state)
                         if !isSearchActive {
@@ -771,12 +760,16 @@ public struct InboxView: View {
                     .padding(.bottom, 24)
                 }
                 .refreshable {
+                    let started = Date()
                     LBHaptic.medium()
                     await MainActor.run {
                         isRefreshingInbox = true
                         if isTabRoot { refreshIsRunning = true }
                     }
                     await coordinator.syncPendingItems(context: modelContext, announceFailure: false)
+                    if isTabRoot {
+                        await LaterBoxPullRefresh.holdVisible(since: started)
+                    }
                     await MainActor.run {
                         isRefreshingInbox = false
                         if isTabRoot {
@@ -785,12 +778,7 @@ public struct InboxView: View {
                         }
                     }
                 }
-                .coordinateSpace(name: LaterBoxPullRefresh.coordinateSpace)
-                .onPreferenceChange(LaterBoxPullOffsetKey.self) { distance in
-                    guard isTabRoot, !refreshIsRunning else { return }
-                    let clamped = LaterBoxPullRefresh.distance(distance)
-                    if abs(clamped - refreshPull) > 0.5 { refreshPull = clamped }
-                }
+                .scrollBounceBehavior(.always)
                 .tint(.clear)
 
                 if isRefreshingInbox && !isTabRoot {

@@ -137,6 +137,10 @@ struct MainTabView: View {
             }
             .buttonStyle(.plain)
             .accessibilityLabel("LaterBox home")
+            .accessibilityValue(
+                visibleRefreshing ? "Refreshing" :
+                    visiblePullDistance > 2 ? "Pulling to refresh" : "Ready"
+            )
 
             HStack {
                 Button {

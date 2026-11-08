@@ -95,7 +95,11 @@ public struct LibraryView: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 20) {
                         if isTabRoot {
-                            LaterBoxPullRefreshMarker()
+                            LaterBoxPullRefreshMarker(
+                                distance: $refreshPull,
+                                enabled: !refreshIsRunning
+                            )
+                            .frame(height: 1)
                         }
                         // Top Level Header (Scrolls normally, uncontainerized on canvas)
                         HStack(alignment: .center) {
@@ -296,11 +300,15 @@ public struct LibraryView: View {
                     .padding(.bottom, 24)
                 }
                 .refreshable {
+                    let started = Date()
                     LBHaptic.medium()
                     await MainActor.run {
                         if isTabRoot { refreshIsRunning = true }
                     }
                     await coordinator.syncPendingItems(context: modelContext, announceFailure: false)
+                    if isTabRoot {
+                        await LaterBoxPullRefresh.holdVisible(since: started)
+                    }
                     await MainActor.run {
                         if isTabRoot {
                             refreshIsRunning = false
@@ -308,13 +316,7 @@ public struct LibraryView: View {
                         }
                     }
                 }
-                .coordinateSpace(name: LaterBoxPullRefresh.coordinateSpace)
-                .onPreferenceChange(LaterBoxPullOffsetKey.self) { distance in
-                    guard isTabRoot, !refreshIsRunning else { return }
-                    // The Library content has an initial 12pt top padding.
-                    let clamped = LaterBoxPullRefresh.distance(max(0, distance - 12))
-                    if abs(clamped - refreshPull) > 0.5 { refreshPull = clamped }
-                }
+                .scrollBounceBehavior(.always)
                 .tint(.clear)
             }
             .navigationBarHidden(true)

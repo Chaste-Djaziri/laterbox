@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[iOS / Refresh and search fix]** Repair the unresponsive main-tab pull-to-refresh logo by observing real UIScrollView overscroll instead of an unreliable SwiftUI geometry preference, force bounce on short lists, and keep the logo visibly animated during fast sync. Remove the extra drawer button beside Inbox search so the search field occupies the whole row.
+
 - **[iOS / Pull-to-refresh]** Replace the native refresh spinner with animated feedback on the centered vector LaterBox logo: elastically stretch and enlarge on a downward pull, rotate during actual cloud sync, and spring back when complete. Share the experience across Inbox, Kept, Today and Library while preserving their existing refresh behavior and Reduce Motion support.
 
 - **[iOS / Splash theming]** Use a pure white canvas and black vector-logo fill in Light Mode, and a pure black canvas with white fill in Dark Mode. Derive appearance from the system while the splash is visible (including on foreground replay), restore the app's existing appearance afterward, and retain the five-second motion and transparent vector cutouts.

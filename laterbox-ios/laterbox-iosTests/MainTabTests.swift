@@ -37,6 +37,13 @@ struct MainTabTests {
         #expect(LaterBoxPullRefresh.progress(52.5) == 0.5)
         #expect(LaterBoxPullRefresh.progress(105) == 1)
         #expect(LaterBoxPullRefresh.progress(200) == 1)
+
+        // A real UIScrollView rests at -adjustedContentInset.top.
+        #expect(LaterBoxPullRefresh.overscroll(contentOffsetY: -48, adjustedTopInset: 48) == 0)
+        #expect(LaterBoxPullRefresh.overscroll(contentOffsetY: -108, adjustedTopInset: 48) == 60)
+        #expect(LaterBoxPullRefresh.overscroll(contentOffsetY: 24, adjustedTopInset: 48) == 0)
+        #expect(LaterBoxPullRefresh.overscroll(contentOffsetY: -300, adjustedTopInset: 48) == 180)
+        #expect(LaterBoxPullRefresh.minimumVisibleSeconds >= 1)
     }
 
     @Test("Splash uses black on white in Light Mode and white on black in Dark Mode")

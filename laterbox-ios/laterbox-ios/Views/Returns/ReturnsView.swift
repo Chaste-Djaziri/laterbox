@@ -179,7 +179,11 @@ public struct ReturnsView: View {
                     ScrollView {
                         VStack(alignment: .leading, spacing: 10) {
                             if isTabRoot {
-                                LaterBoxPullRefreshMarker()
+                                LaterBoxPullRefreshMarker(
+                                    distance: $refreshPull,
+                                    enabled: !refreshIsRunning
+                                )
+                                .frame(height: 1)
                             }
                             HStack {
                                 Text("\(selectedSegment.rawValue) (\(itemsForSegment.count))")
@@ -250,11 +254,15 @@ public struct ReturnsView: View {
                         .padding(.bottom, 30)
                     }
                     .refreshable {
+                        let started = Date()
                         LBHaptic.medium()
                         await MainActor.run {
                             if isTabRoot { refreshIsRunning = true }
                         }
                         await coordinator.syncPendingItems(context: modelContext)
+                        if isTabRoot {
+                            await LaterBoxPullRefresh.holdVisible(since: started)
+                        }
                         await MainActor.run {
                             if isTabRoot {
                                 refreshIsRunning = false
@@ -262,12 +270,7 @@ public struct ReturnsView: View {
                             }
                         }
                     }
-                    .coordinateSpace(name: LaterBoxPullRefresh.coordinateSpace)
-                    .onPreferenceChange(LaterBoxPullOffsetKey.self) { distance in
-                        guard isTabRoot, !refreshIsRunning else { return }
-                        let clamped = LaterBoxPullRefresh.distance(distance)
-                        if abs(clamped - refreshPull) > 0.5 { refreshPull = clamped }
-                    }
+                    .scrollBounceBehavior(.always)
                     .tint(.clear)
                 }
             }
