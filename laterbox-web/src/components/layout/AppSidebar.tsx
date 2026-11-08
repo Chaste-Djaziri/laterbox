@@ -16,6 +16,7 @@ import { useBilling } from '@/lib/store/BillingContext';
 import { presentEntitlement } from '@/lib/billing/types';
 import { scheduleItems, recentInboxArrivals } from '@/lib/utils/schedule';
 import { CloudSyncIndicator } from '../ui/CloudSyncIndicator';
+import { StorageUsageIndicator } from './StorageUsageIndicator';
 
 interface AppSidebarProps {
   onOpenCapture: () => void;
@@ -345,10 +346,8 @@ export function AppSidebar({ onOpenCapture }: AppSidebarProps) {
         >
           <Crown className="h-[25px] w-[25px]" strokeWidth={1.9} aria-hidden="true" />
         </Link>
-        <div
-          className="flex h-[52px] w-[52px] items-center justify-center"
-          {...tooltipHandlers('Sync status')}
-        >
+        <StorageUsageIndicator />
+        <div className="flex h-[52px] w-[52px] items-center justify-center">
           <CloudSyncIndicator
             compact
             className="!flex !h-[52px] !w-[52px] !items-center !justify-center !rounded-2xl [&_svg]:!h-[25px] [&_svg]:!w-[25px]"

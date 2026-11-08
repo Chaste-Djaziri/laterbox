@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[Web / Sidebar status]** Surface account cloud-sync status for all signed-in users, including Free, and show live storage usage with accessible capacity detail, near-full/full warning levels, and plan upgrade action directly from the sidebar rail.
+
 - **[Web / Plans and pricing]** Keep marketing intro only on public pricing, remove account usage/progress summary from both pricing and in-app plans, and start in-app plans directly with billing cadence and storage tiers.
 
 - **[Web / Billing]** Refresh LaterBox plans and checkout with Whop-sourced live plan prices, a responsive purchase summary, transparent checkout totals, and native Apple Pay/Google Pay availability through Whop's secure payment element. Do not show stale hard-coded prices when Whop pricing is unavailable.
