@@ -95,7 +95,7 @@ public final class SyncCoordinator: ObservableObject {
         currentUserEmail != nil && !(currentUserEmail?.isEmpty ?? true)
     }
 
-    public var hasCloudPro: Bool { !isGuestMode && isAuthenticated && accountPro }
+    public var hasCloudPro: Bool { !isGuestMode && isAuthenticated } // Legacy name: authenticated sync is free.
 
     public var isProUser: Bool {
         isPro
@@ -187,7 +187,7 @@ public final class SyncCoordinator: ObservableObject {
 
     public var syncHeaderTitle: String {
         guard hasCloudPro else {
-            return storeKitPro ? "Connect Pro to sync" : "Get Pro to sync"
+            return "Sign in to sync"
         }
         return syncState.rawValue
     }

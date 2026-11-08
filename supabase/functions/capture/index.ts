@@ -109,9 +109,7 @@ export const createCaptureHandler = (
 
     const userId = await authenticate(token, dependencies);
     if (userId === null) return json({ error: "Invalid access token" }, 401);
-    if (!token.startsWith("lb_ext_") && !await dependencies.hasProAccess(userId)) {
-      return json({ error: "LaterBox Pro is required for connected capture" }, 403);
-    }
+    // Authenticated connected capture is free. Storage quotas apply to file uploads, not links.
 
     if (token.startsWith("lb_ext_")) capture.source = "browserExtension";
     const itemId = dependencies.createId();

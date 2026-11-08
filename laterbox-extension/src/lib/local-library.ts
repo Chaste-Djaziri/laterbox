@@ -38,11 +38,10 @@ export function isTrustedDashboardOrigin(origin: string): boolean {
 }
 
 export async function isLocalMode(): Promise<boolean> {
-  const { captureMode, accessToken, hasProPlan } = await browser.storage.local.get(['captureMode', 'accessToken', 'hasProPlan']);
+  const { captureMode, accessToken } = await browser.storage.local.get(['captureMode', 'accessToken']);
   if (captureMode === 'local') return true;
-  if (captureMode === 'account' && hasProPlan === true) return false;
-  // Authenticated Free users save locally on device without syncing to cloud
-  if (accessToken && hasProPlan !== true) return true;
+  // Any connected account syncs to the cloud; storage tiers only limit file bytes.
+  if (accessToken) return false;
   return !captureMode && !accessToken && import.meta.env?.VITE_LATERBOX_WEB_URL === LOCAL_ORIGIN;
 }
 

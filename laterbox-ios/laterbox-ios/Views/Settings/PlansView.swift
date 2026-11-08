@@ -491,7 +491,7 @@ public struct PlansView: View {
                 Task { await storeKit.manageSubscription() }
             }) {
                 HStack(spacing: 6) {
-                    Text(storeKit.managementProvider == "paddle" ? "Manage Subscription with Paddle" : "Manage Subscription in App Store")
+                    Text(storeKit.managementProvider == "paddle" ? "Manage Subscription with Paddle" : storeKit.managementProvider == "whop" ? "Manage Subscription with Whop" : "Manage Subscription in App Store")
                         .font(.subheadline.weight(.semibold))
                     Image(systemName: "arrow.up.right")
                         .font(.caption.weight(.bold))

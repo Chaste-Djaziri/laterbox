@@ -143,7 +143,8 @@ Deno.test("free capture inserts verified scoped extension sessions with service 
   assertEquals(insert!.headers.get("authorization"), "Bearer service-role-key");
 });
 
-Deno.test("capture rejects connected capture without Pro", async () => {
+Deno.test("authenticated Free accounts can save connected browser captures", async () => {
+  const writes: string[] = [];
   const handler = createCaptureHandler({
     supabaseUrl: "https://project.supabase.co",
     anonKey: "publishable-key",
@@ -151,22 +152,20 @@ Deno.test("capture rejects connected capture without Pro", async () => {
     fetch: async (input) => {
       const request = new Request(input);
       if (request.url.endsWith("/auth/v1/user")) return Response.json({ id: userId });
-      throw new Error("capture insert should not be called");
+      if (request.url.endsWith("/rest/v1/items") || request.url.endsWith("/rest/v1/item_metadata")) {
+        writes.push(request.url);
+        return Response.json({}, { status: 201 });
+      }
+      throw new Error("Unexpected capture write");
     },
   });
-
-  const response = await handler(
-    new Request("https://example.test/capture", {
-      method: "POST",
-      headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
-      body: JSON.stringify({ url: "https://example.com", source: "browserExtension" }),
-    }),
-  );
-
-  assertEquals(response.status, 403);
-  assertEquals(await response.json(), {
-    error: "LaterBox Pro is required for connected capture",
-  });
+  const response = await handler(new Request("https://example.test/capture", {
+    method: "POST",
+    headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
+    body: JSON.stringify({ url: "https://example.com", source: "browserExtension" }),
+  }));
+  assertEquals(response.status, 201);
+  assert(writes.some(url => url.endsWith("/rest/v1/items")));
 });
 
 Deno.test('rich captures require atomic RPC acknowledgement and preserve snapshots',async()=>{

@@ -24,7 +24,7 @@ const allowedOrigins = new Set([
   "http://localhost:5173",
 ]);
 
-const maxBytes = 5 * 1024 * 1024 * 1024; // 5 GiB
+const maxBytes = 100 * 1024 * 1024; // Match the 100 MiB attachments schema limit
 
 type AttachmentBody = {
   action?: unknown;
@@ -134,6 +134,7 @@ async function prepareUpload(
 ): Promise<Response> {
   const attachment = validateAttachment(body);
   await verifyItemOwnership(attachment.itemId, userId);
+  await reserveUploadQuota(attachment, userId);
   const objectKey = objectKeyFor(userId, attachment.id, attachment.extension);
   const uploadUrl = await getSignedUrl(
     r2Client(),
@@ -170,6 +171,7 @@ async function completeUpload(
 ): Promise<Response> {
   const attachment = validateAttachment(body);
   await verifyItemOwnership(attachment.itemId, userId);
+  await reserveUploadQuota(attachment, userId);
   const objectKey = objectKeyFor(userId, attachment.id, attachment.extension);
   const head = await r2Client().send(
     new HeadObjectCommand({ Bucket: requiredEnv("R2_BUCKET"), Key: objectKey }),
@@ -330,6 +332,30 @@ function validateAttachment(body: AttachmentBody): ValidAttachment {
     byteSize: Number(byteSize),
     sha256,
   };
+}
+
+/** Create a server-only quota reservation BEFORE producing a signed upload URL. */
+async function reserveUploadQuota(attachment: ValidAttachment, userId: string): Promise<void> {
+  const serviceKey = requiredEnv("SUPABASE_SERVICE_ROLE_KEY");
+  const response = await fetch(`${requiredEnv("SUPABASE_URL")}/rest/v1/rpc/reserve_storage_upload`, {
+    method: "POST",
+    headers: {
+      apikey: serviceKey,
+      authorization: `Bearer ${serviceKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      target_user_id: userId,
+      target_attachment_id: attachment.id,
+      requested_bytes: attachment.byteSize,
+    }),
+  });
+  if (!response.ok) {
+    throw new Error(`Storage quota verification failed (HTTP ${response.status})`);
+  }
+  if (await response.json() !== true) {
+    throw new RequestError("Cloud storage quota exceeded. Free up space or upgrade your plan.", 413);
+  }
 }
 
 async function authenticateUser(token: string): Promise<string | null> {

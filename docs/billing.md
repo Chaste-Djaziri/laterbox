@@ -1,5 +1,7 @@
 # LaterBox billing
 
+> **Whop storage plan transition (repository implementation, not a live release):** For new web subscriptions, see [Whop storage rollout](whop-storage-migration.md). Free cross-device sync and server-metered cloud file quotas replace the former Pro-only cloud model after migrations and client deployment. Preserve existing Paddle subscriptions and Apple StoreKit purchases during the migration. The Paddle procedures below are retained for legacy paid accounts.
+
 LaterBox uses a provider-neutral entitlement model. Paddle powers web and direct desktop billing. StoreKit 2 powers iOS and Mac App Store purchases, while both providers unlock the same LaterBox account.
 
 ## Sandbox configuration

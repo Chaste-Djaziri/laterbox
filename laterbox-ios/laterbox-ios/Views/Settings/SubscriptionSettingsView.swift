@@ -105,8 +105,8 @@ public struct SubscriptionSettingsView: View {
                                 Task { await storeKit.manageSubscription() }
                             }) {
                                 HStack(spacing: 8) {
-                                    Image(systemName: storeKit.managementProvider == "paddle" ? "creditcard" : "applelogo")
-                                    Text(storeKit.managementProvider == "paddle" ? "Manage Paddle Subscription" : "Manage Apple Subscription")
+                                    Image(systemName: ["paddle", "whop"].contains(storeKit.managementProvider ?? "") ? "creditcard" : "applelogo")
+                                    Text(storeKit.managementProvider == "paddle" ? "Manage Paddle Subscription" : storeKit.managementProvider == "whop" ? "Manage Whop Subscription" : "Manage Apple Subscription")
                                         .font(.subheadline.weight(.semibold))
                                     Spacer()
                                     Image(systemName: "arrow.up.right")
@@ -161,7 +161,7 @@ public struct SubscriptionSettingsView: View {
                                 .font(.caption)
                         }
                         if let entitlement = coordinator.billingEntitlement, entitlement.provider != nil {
-                            Text("Managed by \(entitlement.provider == "apple" ? "Apple" : "Paddle"). To switch payment providers, cancel renewal there and subscribe with the other provider after access ends.")
+                            Text("Managed by \(entitlement.provider == "apple" ? "Apple" : entitlement.provider == "whop" ? "Whop" : "Paddle"). To switch payment providers, cancel renewal there and subscribe with the other provider after access ends.")
                                 .font(.caption)
                                 .foregroundColor(AppTheme.textSecondary)
                             if let end = entitlement.accessEndDate {

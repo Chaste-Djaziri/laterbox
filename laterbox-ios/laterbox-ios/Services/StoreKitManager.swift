@@ -328,7 +328,7 @@ public final class StoreKitManager: ObservableObject {
         let coordinator = SyncCoordinator.shared
         errorMessage = nil
         do {
-            if (provider ?? managementProvider) == "paddle" {
+            if ["paddle", "whop"].contains(provider ?? managementProvider ?? "") {
                 guard let token = coordinator.authToken else { throw URLError(.userAuthenticationRequired) }
                 let url = try await LaterBoxAPIService.shared.paddleManagementURL(token: token)
                 await UIApplication.shared.open(url)

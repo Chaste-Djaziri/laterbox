@@ -13,7 +13,7 @@ interface StoredLocalAttachment {
 function restoreFile(record: StoredLocalAttachment): File {
   const file = record.file as File;
   if (!record.fileName) return file; // Keep older IndexedDB records readable.
-  if (file.name === record.fileName && file instanceof File) return file;
+  if (file.name === record.fileName && file instanceof File && file.type) return file;
   return new File([record.file], record.fileName, {
     type: record.fileType || record.file.type || 'application/octet-stream',
   });

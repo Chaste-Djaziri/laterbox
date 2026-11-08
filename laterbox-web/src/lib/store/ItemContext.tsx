@@ -6,7 +6,6 @@ import React, { createContext, useContext, useEffect, useState, useMemo, useCall
 import { getSupabaseClient } from '../supabase/client';
 import { LaterBoxItem, ItemStatus, InboxFilterType, Collection, Attachment, ItemMetadata, ItemContent } from '../supabase/types';
 import { useAuth } from './AuthContext';
-import { useBilling } from './BillingContext';
 import { normalizeUrl, isUrl, extractDomain } from '../utils/url';
 import { storeLocalAttachment, deleteLocalAttachment } from '../utils/local-attachments';
 import { restoredAttachmentFile, isWebBackup, type WebBackup } from '../utils/web-backup';
@@ -87,7 +86,8 @@ const DEFAULT_GUEST_ITEMS: LaterBoxItem[] = [];
 
 export function ItemProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
-  const { isPro } = useBilling();
+  // Account sync is free; paid plans control cloud bytes, not metadata synchronization.
+  const canCloudSync = Boolean(user?.id);
   const [items, setItems] = useState<LaterBoxItem[]>([]);
   const [deletedItems, setDeletedItems] = useState<LaterBoxItem[]>([]);
   const [now, setNow] = useState(() => new Date());
@@ -164,8 +164,8 @@ export function ItemProvider({ children }: { children: ReactNode }) {
   }, [user?.id]);
 
   useEffect(() => {
-    // Pro users sync automatically with the cloud; Free users import extension captures into local device storage
-    if (user && isPro) return;
+    // Signed-in accounts sync automatically; guest libraries import extension captures locally.
+    if (user && canCloudSync) return;
     let disposed = false;
     let running = false;
     const importCaptures = async () => {
@@ -183,7 +183,7 @@ export function ItemProvider({ children }: { children: ReactNode }) {
     const refresh = () => { if (!disposed) loadLocalData(); };
     window.addEventListener('storage', refresh);
     return () => { disposed = true; clearInterval(timer); window.removeEventListener('storage', refresh); };
-  }, [user, isPro, loadLocalData]);
+  }, [user, canCloudSync, loadLocalData]);
 
   // Migrate guest items to authenticated user on login and upload to Supabase
   const migrateGuestItems = useCallback(async (userId: string) => {
@@ -210,7 +210,7 @@ export function ItemProvider({ children }: { children: ReactNode }) {
       const mergedLocal = [...currentUserItems, ...newlyMigrated.filter(i => !userItemIds.has(i.id))];
       localStorage.setItem(userKey, JSON.stringify(mergedLocal));
 
-      if (isPro) {
+      if (canCloudSync) {
         const supabase = getSupabaseClient();
         for (const item of newlyMigrated) {
           // Upsert to Supabase
@@ -239,11 +239,11 @@ export function ItemProvider({ children }: { children: ReactNode }) {
     } catch (err) {
       console.warn('[ItemContext] Error migrating guest items:', err);
     }
-  }, [isPro]);
+  }, [canCloudSync]);
 
   const checkRemoteChanges = useCallback(async () => {
     const version = ++remoteCheckVersion.current;
-    if (!user || !user.id || !isPro) {
+    if (!user || !user.id || !canCloudSync) {
       setPendingPullCount(0);
       setPendingPushCount(0);
       return;
@@ -256,10 +256,10 @@ export function ItemProvider({ children }: { children: ReactNode }) {
     } catch {
       // ignore
     }
-  }, [user?.id, isPro]);
+  }, [user?.id, canCloudSync]);
 
   const pullChanges = useCallback(async () => {
-    if (!user || !user.id || !isPro) return;
+    if (!user || !user.id || !canCloudSync) return;
     setIsPulling(true);
     setSyncStatus('syncing');
     try {
@@ -279,10 +279,10 @@ export function ItemProvider({ children }: { children: ReactNode }) {
       setIsPulling(false);
       void checkRemoteChanges();
     }
-  }, [user?.id, isPro, handleAuthFailure, checkRemoteChanges]);
+  }, [user?.id, canCloudSync, handleAuthFailure, checkRemoteChanges]);
 
   const pushChanges = useCallback(async () => {
-    if (!user || !user.id || !isPro) return;
+    if (!user || !user.id || !canCloudSync) return;
     setIsPushing(true);
     setSyncStatus('syncing');
     try {
@@ -295,10 +295,10 @@ export function ItemProvider({ children }: { children: ReactNode }) {
       setIsPushing(false);
       void checkRemoteChanges();
     }
-  }, [user?.id, isPro, handleAuthFailure, checkRemoteChanges]);
+  }, [user?.id, canCloudSync, handleAuthFailure, checkRemoteChanges]);
 
   const pullAndPushChanges = useCallback(async () => {
-    if (!user || !user.id || !isPro) return;
+    if (!user || !user.id || !canCloudSync) return;
     setIsPulling(true);
     setIsPushing(true);
     setSyncStatus('syncing');
@@ -320,7 +320,7 @@ export function ItemProvider({ children }: { children: ReactNode }) {
       setIsPushing(false);
       void checkRemoteChanges();
     }
-  }, [user?.id, isPro, handleAuthFailure, checkRemoteChanges]);
+  }, [user?.id, canCloudSync, handleAuthFailure, checkRemoteChanges]);
 
   // Fetch from Supabase
   const fetchData = useCallback(async () => {
@@ -331,8 +331,8 @@ export function ItemProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    // For Free users, load and display local data on this device without syncing to cloud
-    if (!isPro) {
+    // Guest-only libraries remain local; signed-in Free accounts use cloud sync.
+    if (!canCloudSync) {
       loadLocalData();
       await migrateGuestItems(user.id);
       loadLocalData();
@@ -381,14 +381,14 @@ export function ItemProvider({ children }: { children: ReactNode }) {
       setLoading(false);
       void checkRemoteChanges();
     }
-  }, [user?.id, isPro, loadLocalData, handleAuthFailure, migrateGuestItems, checkRemoteChanges]);
+  }, [user?.id, canCloudSync, loadLocalData, handleAuthFailure, migrateGuestItems, checkRemoteChanges]);
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
 
   useEffect(() => {
-    if (!user || !user.id || !isPro) return;
+    if (!user || !user.id || !canCloudSync) return;
     void checkRemoteChanges();
     const interval = setInterval(() => {
       void checkRemoteChanges();
@@ -401,7 +401,7 @@ export function ItemProvider({ children }: { children: ReactNode }) {
       window.removeEventListener('focus', onFocus);
       window.removeEventListener('online', onFocus);
     };
-  }, [user?.id, isPro, checkRemoteChanges]);
+  }, [user?.id, canCloudSync, checkRemoteChanges]);
 
   /** Apply only new IDs, after a verified archive preview. Existing records are never overwritten. */
   const restoreWebBackup = async (backup: WebBackup) => {
@@ -482,7 +482,7 @@ export function ItemProvider({ children }: { children: ReactNode }) {
 
     // Account-associated items use the existing, retryable cloud outbox. No
     // synchronous network request can make a local backup restore destructive.
-    if (owner && isPro) {
+    if (owner && canCloudSync) {
       for (const item of newActive) queueCapture(item);
     }
     return {
@@ -628,7 +628,7 @@ export function ItemProvider({ children }: { children: ReactNode }) {
     const updated = [newItem, ...items];
     setItems(updated);
     saveLocalData(updated);
-    if (isPro) {
+    if (canCloudSync) {
       queueCapture(newItem);
     }
 
@@ -753,7 +753,7 @@ export function ItemProvider({ children }: { children: ReactNode }) {
   };
 
   const safeSyncPending = async (userId: string) => {
-    if (!isPro) {
+    if (!canCloudSync) {
       try { await pushCloudChanges(userId, true); }
       catch { setSyncStatus('error'); }
       return;
@@ -1076,7 +1076,7 @@ export function ItemProvider({ children }: { children: ReactNode }) {
 
   const deleteCollection = async (id: string) => {
     const now = new Date().toISOString();
-    if (user && isPro) {
+    if (user && canCloudSync) {
       const supabase = getSupabaseClient();
       const { error: membershipError } = await supabase.from('collection_items')
         .update({ deleted_at: now, updated_at: now }).eq('collection_id', id).eq('user_id', user.id);
@@ -1103,7 +1103,7 @@ export function ItemProvider({ children }: { children: ReactNode }) {
       throw new Error('A collection with that name already exists.');
     }
     const now = new Date().toISOString();
-    if (user && isPro) {
+    if (user && canCloudSync) {
       const supabase = getSupabaseClient();
       const { error } = await supabase.from('collections').update({ name: trimmed, updated_at: now })
         .eq('id', id).eq('user_id', user.id);

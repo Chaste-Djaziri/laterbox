@@ -111,15 +111,14 @@ disconnectButton.addEventListener("click", () => {
 async function updateConnectionState(): Promise<boolean> {
   const token = await getAccessToken();
   const userId = await getConnectedUserId();
-  const { hasProPlan } = await browser.storage.local.get("hasProPlan");
   const connected = token.startsWith("lb_ext_") && userId.length > 0;
   const pending = !connected && (await getPendingConnection()) !== null;
 
   const label = document.getElementById("capture-mode-label");
   if (label) {
-    label.textContent = hasProPlan === true
-      ? "Pro plan · Cloud sync active"
-      : "Free plan · Saves locally on this device";
+    label.textContent = connected
+      ? "Connected · Cloud sync active"
+      : "Guest · Saves locally on this device";
   }
 
   disconnectedPanel.hidden = connected || pending;
@@ -129,7 +128,7 @@ async function updateConnectionState(): Promise<boolean> {
   disconnectButton.hidden = !connected;
   openPanelButton.hidden = !browserCapabilities.supportsSidePanel;
 
-  if (connected && hasProPlan === true) {
+  if (connected) {
     const flushed = await flushQueue();
     if (flushed > 0) {
       setStatus(`Synced ${flushed} queued capture${flushed === 1 ? "" : "s"}.`);
@@ -262,7 +261,7 @@ document.querySelector('#configure-shortcuts')!.addEventListener('click',()=>{
 });
 function renderCaptureState(state:{status?:string;pending?:number}) {
   if(state.status==='queued')setStatus(`Offline or service unavailable. ${state.pending || 0} pending saves will sync to your account automatically.`, 'error');
-  if(state.status==='proRequired')setStatus('LaterBox Pro is required to save and sync.', 'error');
+  if(state.status==='proRequired')setStatus('Connect a LaterBox account to sync your saves.', 'error');
 }
 void browser.storage.local.get(['captureState','connectionError']).then(values=>{if(values.captureState)renderCaptureState(values.captureState);if(values.connectionError)setStatus(values.connectionError,'error');});
 browser.storage.onChanged.addListener((changes,area)=>{
