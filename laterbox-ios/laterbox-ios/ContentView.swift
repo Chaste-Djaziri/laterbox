@@ -44,7 +44,7 @@ struct ContentView: View {
                     .whiteStatusBar()
                     .transition(.opacity)
             } else {
-                InboxView()
+                MainTabView()
                     .darkStatusBar()
                     .sheet(isPresented: $coordinator.showingQuickCapture) {
                         QuickCaptureSheet()

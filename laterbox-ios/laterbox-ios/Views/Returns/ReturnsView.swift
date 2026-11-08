@@ -21,10 +21,12 @@ public struct ReturnsView: View {
     @ObservedObject var coordinator = SyncCoordinator.shared
 
     @State private var selectedSegment: ReturnSegment = .today
+    private let isTabRoot: Bool
     @State private var snoozeTargetItem: LBItem? = nil
 
-    public init(initialSegment: ReturnSegment = .today) {
+    public init(initialSegment: ReturnSegment = .today, isTabRoot: Bool = false) {
         self._selectedSegment = State(initialValue: initialSegment)
+        self.isTabRoot = isTabRoot
     }
 
     private var deduplicatedItems: [LBItem] {
@@ -92,6 +94,7 @@ public struct ReturnsView: View {
                 VStack(spacing: 0) {
                     // Top Navigation Header
                     HStack {
+                        if !isTabRoot {
                         Button {
                             dismiss()
                             LBHaptic.light()
@@ -105,18 +108,21 @@ public struct ReturnsView: View {
                             .foregroundColor(AppTheme.textPrimary)
                         }
                         .buttonStyle(.plain)
+                        }
 
                         Spacer()
 
-                        Text("Returns Schedule")
+                        Text(isTabRoot ? "Returns" : "Returns Schedule")
                             .font(.system(size: 16, weight: .bold))
                             .foregroundColor(AppTheme.textPrimary)
 
                         Spacer()
 
                         // Balance back button width
-                        Color.clear
-                            .frame(width: 50, height: 20)
+                        if !isTabRoot {
+                            Color.clear
+                                .frame(width: 50, height: 20)
+                        }
                     }
                     .padding(.horizontal, 16)
                     .padding(.top, 14)

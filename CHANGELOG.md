@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[iOS / Navigation]** Replace the Inbox-only root with a five-tab navigation system (Inbox, Today, Kept, Library, Settings), move Quick Save to the top-left of a shared header with the LaterBox icon centered, retain secondary mailbox navigation through a More menu, and remove the overlapping Inbox floating action and bottom subscription bar from tabbed layouts.
+
 - **[Web / Deployment CI]** Trigger a fresh main-branch web release and log the Cloudflare 10215 deployment-order safeguard, ensuring the release workflow deploys the latest Worker before updating Apple verification secrets.
 
 - **[Web / Cloudflare CI]** Fix Cloudflare Worker error 10215 during Apple purchase-verification setup by deploying the newly built Worker before updating Apple verification secrets. Preserve the existing validated certificates, encrypted GitHub credentials, and Wrangler diagnostics.

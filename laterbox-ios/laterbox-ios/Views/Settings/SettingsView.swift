@@ -21,8 +21,11 @@ public struct SettingsView: View {
     @State private var showingSignOutAlert = false
     @State private var showingExitGuestAlert = false
     @State private var showingAuthSheet = false
+    private let isTabRoot: Bool
 
-    public init() {}
+    public init(isTabRoot: Bool = false) {
+        self.isTabRoot = isTabRoot
+    }
 
     public var body: some View {
         ZStack {
@@ -34,6 +37,7 @@ public struct SettingsView: View {
                     // Header Bar (left back button, centered title, right sync dot)
                     ZStack {
                         HStack {
+                            if !isTabRoot {
                             Button {
                                 dismiss()
                                 LBHaptic.light()
@@ -47,6 +51,7 @@ public struct SettingsView: View {
                             }
                             .buttonStyle(.plain)
                             .accessibilityLabel("Back to Inbox")
+                            }
 
                             Spacer()
 

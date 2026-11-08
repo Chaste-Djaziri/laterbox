@@ -25,7 +25,9 @@ public struct InboxView: View {
 
     @State private var showingSidebar: Bool = false
     @State private var showingOrganizer: Bool = false
-    @State private var selectedMailbox: MailboxViewType = .inbox
+    @State private var selectedMailbox: MailboxViewType
+    private let initialMailbox: MailboxViewType
+    private let isTabRoot: Bool
     @State private var selectedCollection: String? = nil
     @State private var showingPlans: Bool = false
     @State private var navigateToSettings: Bool = false
@@ -48,7 +50,11 @@ public struct InboxView: View {
     @State private var searchStarredOnly: Bool = false
     @State private var searchHasAttachmentOnly: Bool = false
 
-    public init() {}
+    public init(initialMailbox: MailboxViewType = .inbox, isTabRoot: Bool = false) {
+        self.initialMailbox = initialMailbox
+        self.isTabRoot = isTabRoot
+        self._selectedMailbox = State(initialValue: initialMailbox)
+    }
 
     private func profileMenuRow(_ title: String, icon: String, destructive: Bool = false, action: @escaping () -> Void) -> some View {
         Button(action: action) {
@@ -204,6 +210,57 @@ public struct InboxView: View {
         }.deduplicatedForDisplay()
     }
 
+    /// Reuse the existing vault search and mailbox drawer without duplicating the app header.
+    private var tabbedSearchHeader: some View {
+        HStack(spacing: 10) {
+            Button {
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.82)) {
+                    isSearchActive = true
+                }
+                isSearchFocused = true
+                LBHaptic.light()
+            } label: {
+                HStack(spacing: 10) {
+                    Image(systemName: "magnifyingglass")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundStyle(AppTheme.textSecondary)
+                    Text("Search your LaterBox")
+                        .font(.system(size: 15))
+                        .foregroundStyle(AppTheme.textSecondary)
+                    Spacer(minLength: 0)
+                    Image(systemName: "sparkles")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundStyle(AppTheme.textPrimary)
+                }
+                .padding(.horizontal, 15)
+                .frame(height: 46)
+                .background(Color.white, in: Capsule())
+                .overlay(Capsule().strokeBorder(Color.black.opacity(0.07), lineWidth: 1))
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Search saved items")
+
+            if initialMailbox == .inbox {
+                Button {
+                    LBHaptic.light()
+                    withAnimation(.spring(response: 0.32, dampingFraction: 0.85)) {
+                        showingSidebar = true
+                    }
+                } label: {
+                    Image(systemName: "line.3.horizontal.decrease")
+                        .font(.system(size: 19, weight: .medium))
+                        .foregroundStyle(AppTheme.textPrimary)
+                        .frame(width: 44, height: 44)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Browse folders")
+            }
+        }
+        .padding(.horizontal, 14)
+        .padding(.top, 10)
+        .padding(.bottom, 8)
+    }
+
     public var body: some View {
         NavigationStack {
             ZStack {
@@ -214,6 +271,9 @@ public struct InboxView: View {
                         VStack(alignment: .leading, spacing: 0) {
                         // 1. Mobile Top Search Bar (Inactive vs Active Expanding state)
                         if !isSearchActive {
+                            if isTabRoot {
+                                tabbedSearchHeader
+                            } else {
                             // Standard Top Bar
                             HStack(spacing: 10) {
                                 Button {
@@ -321,6 +381,7 @@ public struct InboxView: View {
                             .padding(.horizontal, 14)
                             .padding(.top, 10)
                             .padding(.bottom, 8)
+                            }
                         } else {
                             // Active Expanded Search Top Bar (Matching Image 1 & 2 layout)
                             HStack(spacing: 10) {
@@ -720,11 +781,15 @@ public struct InboxView: View {
                     .transition(.move(edge: .top).combined(with: .opacity))
                 }
 
-                bottomStatusBar
+                if !isTabRoot {
+                    bottomStatusBar
+                }
             }
-            .ignoresSafeArea(edges: .bottom)
+            .ignoresSafeArea(edges: isTabRoot ? [] : .bottom)
 
-            // Floating Action Button (+)
+            // The main five-tab shell owns Quick Save in its top-left header.
+            if !isTabRoot {
+            // Floating Action Button (+) for standalone navigation.
             VStack {
                 Spacer()
                 HStack {
@@ -750,6 +815,7 @@ public struct InboxView: View {
             .ignoresSafeArea(edges: .bottom)
             .zIndex(95)
             .transaction { $0.animation = nil }
+            }
 
                 // Dimming backdrop
                 if showingSidebar {

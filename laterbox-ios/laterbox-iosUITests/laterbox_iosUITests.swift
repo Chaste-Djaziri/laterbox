@@ -27,6 +27,32 @@ final class laterbox_iosUITests: XCTestCase {
     }
 
     @MainActor
+    func testMainTabBarAndHeaderControls() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["-lb_guest_mode", "YES", "-lb_user_email", ""]
+        app.launch()
+
+        let tabBar = app.tabBars.firstMatch
+        XCTAssertTrue(tabBar.waitForExistence(timeout: 15))
+        for name in ["Inbox", "Today", "Kept", "Library", "Settings"] {
+            XCTAssertTrue(tabBar.buttons[name].exists, "\(name) must be a primary navigation tab")
+        }
+
+        XCTAssertTrue(app.buttons["Capture Item"].exists, "Quick capture belongs in the top-left app header")
+        XCTAssertTrue(app.buttons["LaterBox home"].exists, "LaterBox icon belongs in the centered header")
+        XCTAssertTrue(app.buttons["More LaterBox Pages"].exists, "Secondary pages need an entry point")
+
+        tabBar.buttons["Today"].tap()
+        XCTAssertTrue(app.staticTexts["Returns"].waitForExistence(timeout: 5))
+        tabBar.buttons["Kept"].tap()
+        XCTAssertTrue(app.staticTexts["Kept"].waitForExistence(timeout: 5))
+        tabBar.buttons["Library"].tap()
+        XCTAssertTrue(app.staticTexts["Library"].waitForExistence(timeout: 5))
+        tabBar.buttons["Settings"].tap()
+        XCTAssertTrue(app.staticTexts["Settings"].waitForExistence(timeout: 5))
+    }
+
+    @MainActor
     func testGuestSubscriptionReviewWalkthrough() throws {
         let file = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().appendingPathComponent("laterbox-ios/Products.storekit")
         let session = try SKTestSession(contentsOf: file)
@@ -37,19 +63,10 @@ final class laterbox_iosUITests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments = ["-lb_guest_mode", "YES", "-lb_user_email", ""]
         app.launch()
-        // The profile popover can be placed outside the viewport on compact
-        // simulator layouts. Navigate via the real, scrollable sidebar.
-        let sidebar = app.buttons["Open sidebar"]
-        XCTAssertTrue(sidebar.waitForExistence(timeout: 15))
-        sidebar.tap()
-        let settings = app.buttons["Settings"].firstMatch
-        XCTAssertTrue(settings.waitForExistence(timeout: 5))
-        for _ in 0..<8 where !settings.isHittable {
-            let drawerScroll = app.scrollViews.allElementsBoundByIndex.last
-            if let drawerScroll { drawerScroll.swipeUp() } else { app.swipeUp() }
-        }
-        XCTAssertTrue(settings.isHittable)
-        settings.tap()
+        // Settings is now a primary bottom tab, not a sidebar-only destination.
+        let settingsTab = app.tabBars.buttons["Settings"]
+        XCTAssertTrue(settingsTab.waitForExistence(timeout: 15))
+        settingsTab.tap()
         // Settings was reorganized: the destination is now Subscription,
         // while Plans is a separate shortcut in the sidebar.
         let subscriptions = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Subscription")).firstMatch
