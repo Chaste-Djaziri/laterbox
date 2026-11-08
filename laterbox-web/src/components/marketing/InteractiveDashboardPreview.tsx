@@ -161,19 +161,34 @@ export function InteractiveDashboardPreview({ id, className = '' }: { id?: strin
     <button
       key={target}
       type="button"
+      aria-label={mobile ? undefined : label}
       aria-current={view === target ? 'page' : undefined}
       onClick={() => navigate(target)}
-      className={`group inline-flex items-center gap-2.5 text-left text-[12px] font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#768b4e] ${
-        mobile ? 'shrink-0 rounded-full border px-3.5 py-2.5' : 'w-full rounded-xl px-3 py-2.5'
+      className={`group relative inline-flex shrink-0 items-center justify-center font-semibold transition-all duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#768b4e] ${
+        mobile
+          ? 'gap-2.5 rounded-full border px-3.5 py-2.5 text-[12px]'
+          : 'h-[52px] w-[52px] rounded-2xl border border-transparent'
       } ${
         view === target
-          ? 'border-[#d3df9e] bg-[#e6edb0] text-[#29351d]'
-          : mobile ? 'border-[#e6e9df] bg-white text-[#6b7566] hover:bg-[#f1f5e7]' : 'border-transparent text-[#72796c] hover:bg-white hover:text-[#29351d]'
+          ? 'border-[#d3df9e] bg-[#e6edb0] text-[#29351d] shadow-[0_2px_6px_rgba(46,64,29,0.06)]'
+          : mobile
+            ? 'border-[#e6e9df] bg-white text-[#6b7566] hover:bg-[#f1f5e7]'
+            : 'text-[#7c8676] hover:bg-white hover:text-[#29351d]'
       }`}
     >
-      <Icon className="h-4 w-4 shrink-0" strokeWidth={view === target ? 2.5 : 1.8} aria-hidden="true" />
-      <span>{label}</span>
-      {!mobile && target !== 'home' && <span className={`ml-auto rounded-md px-1.5 text-[10px] ${view === target ? 'bg-white/65' : 'text-[#a4aa9e]'}`}>{demoCount(items, target)}</span>}
+      <Icon
+        className={mobile ? 'h-4 w-4 shrink-0' : 'h-[25px] w-[25px] shrink-0'}
+        strokeWidth={view === target ? 2.3 : 1.9}
+        aria-hidden="true"
+      />
+      {mobile ? <span>{label}</span> : (
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute left-[calc(100%+12px)] top-1/2 z-50 -translate-y-1/2 whitespace-nowrap rounded-lg bg-[#263120] px-3 py-2 text-xs font-bold text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
+        >
+          {label}
+        </span>
+      )}
     </button>
   );
 
@@ -195,20 +210,51 @@ export function InteractiveDashboardPreview({ id, className = '' }: { id?: strin
       </div>
 
       <div className="flex min-h-[620px] flex-col lg:flex-row">
-        <aside className="hidden w-[210px] shrink-0 flex-col border-r border-[#ecece4] bg-[#f7f8f3] p-4 lg:flex">
-          <div className="flex items-center gap-2 px-2 py-3">
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#e6edb0] text-[#303b24]"><Bookmark className="h-5 w-5" /></span>
-            <div><p className="text-[15px] font-black tracking-[-0.05em] text-[#20261c]">laterbox<span className="text-[#91a664]">.</span></p><p className="text-[10px] text-[#9a9e93]">Your sample space</p></div>
-          </div>
-          <button ref={addButton} type="button" onClick={showAdd} className="mt-4 inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-[#23271f] px-3 text-xs font-bold text-white transition-colors hover:bg-[#3b452f] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#768b4e]">
-            <Plus className="h-4 w-4" /> Quick save
+        <aside
+          aria-label="Sample dashboard sidebar"
+          className="relative z-20 hidden w-[84px] shrink-0 flex-col items-center border-r border-[#ecece4] bg-[#f7f8f3] px-2 py-4 lg:flex"
+        >
+          <span
+            role="img"
+            aria-label="LaterBox"
+            className="flex h-[52px] w-[52px] items-center justify-center rounded-2xl bg-[#e6edb0] text-[#303b24]"
+          >
+            <Bookmark className="h-[27px] w-[27px]" strokeWidth={2.2} aria-hidden="true" />
+          </span>
+          <div className="my-4 h-px w-9 bg-[#e1e6d8]" aria-hidden="true" />
+          <button
+            ref={addButton}
+            type="button"
+            aria-label="Quick save demo link"
+            onClick={showAdd}
+            className="group relative flex h-[52px] w-[52px] items-center justify-center rounded-2xl bg-[#232b1f] text-[#e6edb0] transition-all hover:bg-[#384a2b] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#768b4e]"
+          >
+            <Plus className="h-[27px] w-[27px]" strokeWidth={2.4} aria-hidden="true" />
+            <span
+              aria-hidden="true"
+              className="pointer-events-none absolute left-[calc(100%+12px)] top-1/2 z-50 -translate-y-1/2 whitespace-nowrap rounded-lg bg-[#263120] px-3 py-2 text-xs font-bold text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
+            >
+              Quick save
+            </span>
           </button>
-          <nav aria-label="Sample dashboard sections" className="mt-6 space-y-1">
+          <nav aria-label="Sample dashboard sections" className="mt-5 flex w-full flex-col items-center gap-1.5">
             {navigation.map(item => renderNavButton(item))}
           </nav>
-          <div className="mt-auto rounded-2xl border border-[#e3e8d6] bg-white px-3.5 py-4">
-            <div className="flex items-center gap-2 text-[11px] font-bold text-[#405535]"><Sparkles className="h-3.5 w-3.5" /> Give it a try</div>
-            <p className="mt-2 text-[11px] leading-5 text-[#81897a]">Tap items, save a link, or choose when to return. It all stays inside this preview.</p>
+          <div className="mt-auto w-full border-t border-[#e1e6d8] pt-4">
+            <button
+              type="button"
+              aria-label="Reset sample dashboard"
+              onClick={reset}
+              className="group relative mx-auto flex h-[52px] w-[52px] items-center justify-center rounded-2xl text-[#7c8676] transition-colors hover:bg-white hover:text-[#29351d] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#768b4e]"
+            >
+              <RotateCcw className="h-[23px] w-[23px]" strokeWidth={1.9} aria-hidden="true" />
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute left-[calc(100%+12px)] top-1/2 z-50 -translate-y-1/2 whitespace-nowrap rounded-lg bg-[#263120] px-3 py-2 text-xs font-bold text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
+              >
+                Reset demo
+              </span>
+            </button>
           </div>
         </aside>
 
