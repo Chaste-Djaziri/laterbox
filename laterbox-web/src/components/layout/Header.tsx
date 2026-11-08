@@ -1,163 +1,174 @@
+// laterbox-web/src/components/layout/Header.tsx
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import Link from 'next/link';
+import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { ArrowRight, ChevronDown, Menu, X } from 'lucide-react';
 import { APP_ORIGIN } from '@/lib/auth/config';
 import { useAuth } from '@/lib/store/AuthContext';
-import { Bolt, LogIn, Menu, X } from 'lucide-react';
+
+const primaryLinks = [
+  { href: '/features', label: 'Features' },
+  { href: '/#how-it-works', label: 'How it works' },
+  { href: '/browser-extension', label: 'Browser extension' },
+  { href: '/pricing', label: 'Pricing' },
+] as const;
+
+const resourceLinks = [
+  { href: '/about', label: 'About LaterBox', detail: 'The thinking behind the product' },
+  { href: '/download', label: 'Apps & downloads', detail: 'Bring LaterBox to your devices' },
+  { href: '/guide', label: 'Getting started', detail: 'Your first save, step by step' },
+] as const;
 
 export function Header() {
   const pathname = usePathname();
-  const { user, isAuthenticated, loading, continueAsGuest } = useAuth();
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { isAuthenticated, user, loading } = useAuth();
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [resourcesOpen, setResourcesOpen] = useState(false);
+  const resourcesRef = useRef<HTMLDivElement>(null);
+  const isSignedIn = Boolean(user || isAuthenticated);
+  const dashboardHref = `${APP_ORIGIN}/inbox`;
+  const primaryActionHref = isSignedIn ? dashboardHref : `${APP_ORIGIN}/signup`;
+  const primaryActionLabel = isSignedIn ? 'Open app' : 'Get started free';
 
-  // Close mobile menu on route change
   useEffect(() => {
-    setIsMobileMenuOpen(false);
-  }, [pathname]);
+    if (!mobileOpen && !resourcesOpen) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setMobileOpen(false);
+        setResourcesOpen(false);
+      }
+    };
+    const closeResourcesOutside = (event: PointerEvent) => {
+      if (resourcesRef.current && !resourcesRef.current.contains(event.target as Node)) {
+        setResourcesOpen(false);
+      }
+    };
+    document.addEventListener('keydown', closeOnEscape);
+    document.addEventListener('pointerdown', closeResourcesOutside);
+    return () => {
+      document.removeEventListener('keydown', closeOnEscape);
+      document.removeEventListener('pointerdown', closeResourcesOutside);
+    };
+  }, [mobileOpen, resourcesOpen]);
 
-  const navLinks = [
-    { href: '/features', label: 'Features' },
-    { href: '/about', label: 'About LaterBox' },
-    { href: '/browser-extension', label: 'Browser extension' },
-    { href: '/download', label: 'Downloads' },
-    { href: '/pricing', label: 'Pricing' },
-    { href: '/guide', label: 'Getting started' },
-  ];
+  const activeLink = (href: string) => href !== '/#how-it-works' && pathname === href;
+  const closeMobile = () => setMobileOpen(false);
 
   return (
-    <header className="sticky top-0 z-50 w-full bg-[#f7f5ee]/90 backdrop-blur-md border-b border-[#e4e0d5]/60">
-      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="w-full flex items-center justify-between xl:grid xl:grid-cols-[1fr_auto_1fr] py-3.5 sm:py-4">
-          {/* Brand Logo */}
-          <Link href="/" className="flex items-center gap-2 sm:gap-3 shrink-0 md:justify-self-start">
-            <div className="w-[34px] h-[34px] sm:w-[42px] sm:h-[42px] relative rounded-xl overflow-hidden shadow-xs bg-[#e6edb0] p-1 sm:p-1.5 shrink-0">
-              <Image
-                src="/branding/laterbox-icon.png"
-                alt="laterbox"
-                fill
-                sizes="(max-width: 640px) 34px, 42px"
-                className="object-contain p-0.5"
-                priority
-              />
-            </div>
-            <span className="text-lg sm:text-2xl font-black tracking-tight text-[#171711]">
-              laterbox
+    <>
+      <div className="bg-[#181b14] text-white">
+        <div className="mx-auto flex min-h-9 max-w-[1240px] items-center justify-center gap-2 px-4 py-2 text-center text-[11px] font-medium tracking-[0.01em] sm:text-xs">
+          <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#e6edb0]" aria-hidden="true" />
+          <span>Less tab clutter. More room to think.</span>
+          <Link href="/#how-it-works" className="inline-flex items-center gap-1 font-bold text-[#e6edb0] underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#e6edb0]">
+            See how it works <ArrowRight className="h-3 w-3" aria-hidden="true" />
+          </Link>
+        </div>
+      </div>
+
+      <header className="sticky top-0 z-50 w-full border-b border-[#e6e7de] bg-[#f8f8f3]/95 shadow-[0_5px_24px_rgba(24,27,20,0.035)] backdrop-blur-xl">
+        <div className="mx-auto flex h-[70px] max-w-[1240px] items-center justify-between gap-4 px-4 sm:px-6 lg:gap-6 lg:px-8">
+          <Link
+            href="/"
+            onClick={closeMobile}
+            className="group inline-flex shrink-0 items-center gap-2.5 rounded-lg focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#678144]"
+            aria-label="LaterBox, go to homepage"
+          >
+            <span className="relative flex h-9 w-9 items-center justify-center overflow-hidden rounded-[11px] border border-[#cbd79c] bg-[#e6edb0] shadow-[0_3px_10px_rgba(23,23,17,0.08)] transition-transform duration-200 group-hover:-rotate-3 sm:h-10 sm:w-10">
+              <Image src="/branding/laterbox-icon.png" alt="" fill priority sizes="40px" className="object-contain p-1" />
             </span>
+            <span className="text-[23px] font-black tracking-[-0.065em] text-[#181b14]">laterbox<span className="text-[#84934f]">.</span></span>
           </Link>
 
-          {/* Nav Links (Pages Only) */}
-          <nav className="hidden xl:flex items-center gap-4 2xl:gap-6 text-xs 2xl:text-sm font-semibold text-[#6c6b63] justify-self-center whitespace-nowrap">
-            {navLinks.map((link) => {
-              const isActive = pathname === link.href || (link.href === '/pricing' && pathname === '/plans');
-              return (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className={`relative py-1 ${
-                    isActive
-                      ? 'text-[#171711] font-bold'
-                      : 'hover:text-[#171711]'
-                  }`}
-                >
-                  <span>{link.label}</span>
-                  {isActive && (
-                    <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#171711] rounded-full" />
-                  )}
-                </Link>
-              );
-            })}
+          <nav aria-label="Main navigation" className="hidden items-center gap-0.5 lg:flex xl:gap-1">
+            {primaryLinks.map(link => (
+              <Link
+                key={link.href}
+                href={link.href}
+                aria-current={activeLink(link.href) ? 'page' : undefined}
+                className={`rounded-full px-3 py-2.5 text-[13px] font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#678144] xl:px-4 xl:text-sm ${
+                  activeLink(link.href) ? 'bg-[#e6edb0] text-[#181b14]' : 'text-[#606458] hover:bg-white hover:text-[#181b14]'
+                }`}
+              >{link.label}</Link>
+            ))}
+            <div className="relative" ref={resourcesRef}>
+              <button
+                type="button"
+                aria-expanded={resourcesOpen}
+                aria-controls="laterbox-resources-menu"
+                aria-haspopup="true"
+                onClick={() => setResourcesOpen(value => !value)}
+                className={`inline-flex items-center gap-1.5 rounded-full px-3 py-2.5 text-[13px] font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#678144] xl:px-4 xl:text-sm ${
+                  resourcesOpen ? 'bg-white text-[#181b14]' : 'text-[#606458] hover:bg-white hover:text-[#181b14]'
+                }`}
+              >
+                More <ChevronDown className={`h-3.5 w-3.5 transition-transform ${resourcesOpen ? 'rotate-180' : ''}`} aria-hidden="true" />
+              </button>
+              {resourcesOpen && (
+                <div id="laterbox-resources-menu" className="absolute left-1/2 top-[calc(100%+14px)] z-50 w-[290px] -translate-x-1/2 rounded-[20px] border border-[#e5e8db] bg-white p-2.5 shadow-[0_25px_80px_rgba(24,27,20,0.14)]">
+                  <p className="px-3 pb-1.5 pt-2 text-[10px] font-black uppercase tracking-[0.18em] text-[#939a87]">Explore LaterBox</p>
+                  {resourceLinks.map(link => (
+                    <Link key={link.href} href={link.href} onClick={() => setResourcesOpen(false)}
+                      className="block rounded-xl px-3 py-3 transition-colors hover:bg-[#f4f7eb] focus-visible:outline-2 focus-visible:outline-[#678144]">
+                      <span className="block text-sm font-bold text-[#1b2018]">{link.label}</span>
+                      <span className="mt-0.5 block text-xs text-[#7d8375]">{link.detail}</span>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
           </nav>
 
-          {/* Auth / Launch Actions & Mobile Toggle */}
-          <div className="flex items-center gap-1.5 sm:gap-3 shrink-0 md:justify-self-end">
-            {loading ? <span className="h-10 w-24" aria-label="Checking login" aria-busy="true" /> : (user || isAuthenticated) ? (
-              <Link
-                href={`${APP_ORIGIN}/`}
-                className="inline-flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-full text-xs sm:text-sm font-extrabold text-white bg-[#171711] hover:bg-black active:bg-[#0f0f0e] shadow-xs whitespace-nowrap shrink-0"
-              >
-                <Bolt className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                <span>Open app</span>
+          <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+            {!isSignedIn && !loading && (
+              <Link href={`${APP_ORIGIN}/login`} className="hidden rounded-full px-3 py-2 text-sm font-semibold text-[#545a4e] transition-colors hover:text-[#181b14] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#678144] sm:inline-flex">
+                Log in
               </Link>
-            ) : (
-              <>
-                <Link
-                  href={`${APP_ORIGIN}/login`}
-                  className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-2 text-xs sm:text-sm font-bold text-[#171711] hover:bg-[#ebe7dc]/60 rounded-xl shrink-0"
-                >
-                  <LogIn className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                  <span>Log in</span>
-                </Link>
-                <Link
-                  href={`${APP_ORIGIN}/inbox?guest=1`}
-                  onClick={() => continueAsGuest()}
-                  className="inline-flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-full text-xs sm:text-sm font-extrabold text-white bg-[#171711] hover:bg-black active:bg-[#0f0f0e] shadow-xs cursor-pointer whitespace-nowrap shrink-0"
-                >
-                  <Bolt className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                  <span>Launch App</span>
-                </Link>
-              </>
             )}
-
-            {/* Mobile Menu Toggle Button */}
+            <Link href={primaryActionHref} className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-full bg-[#181b14] px-3.5 text-xs font-bold text-white shadow-[0_4px_12px_rgba(24,27,20,0.11)] transition-all hover:-translate-y-0.5 hover:bg-[#30392a] hover:shadow-[0_8px_22px_rgba(24,27,20,0.17)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#678144] sm:px-5 sm:text-sm">
+              <span>{loading ? 'Open LaterBox' : primaryActionLabel}</span>
+              <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
+            </Link>
             <button
               type="button"
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="xl:hidden p-1.5 sm:p-2 rounded-xl text-[#171711] hover:bg-[#ebe7dc]/70 active:bg-[#ebe7dc] shrink-0"
-              aria-label="Toggle navigation menu"
+              aria-label={mobileOpen ? 'Close navigation' : 'Open navigation'}
+              aria-expanded={mobileOpen}
+              aria-controls="laterbox-mobile-navigation"
+              onClick={() => setMobileOpen(value => !value)}
+              className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-[#e0e4d8] bg-white text-[#181b14] transition-colors hover:bg-[#e6edb0] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#678144] lg:hidden"
             >
-              {isMobileMenuOpen ? (
-                <X className="w-5 h-5" />
-              ) : (
-                <Menu className="w-5 h-5" />
-              )}
+              {mobileOpen ? <X className="h-5 w-5" aria-hidden="true" /> : <Menu className="h-5 w-5" aria-hidden="true" />}
             </button>
           </div>
         </div>
 
-        {/* Mobile Navigation Drawer */}
-        {isMobileMenuOpen && (
-          <div className="xl:hidden pb-4 pt-1">
-            <div className="p-3.5 sm:p-4 rounded-2xl bg-white border border-[#e4e0d5] shadow-xl shadow-black/[0.04]">
-              <div className="space-y-1">
-                {navLinks.map((link) => {
-                  const isActive = pathname === link.href || (link.href === '/pricing' && pathname === '/plans');
-                  return (
-                    <Link
-                      key={link.href}
-                      href={link.href}
-                      className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-semibold ${
-                        isActive
-                          ? 'bg-[#e6edb0]/60 text-[#171711] font-bold'
-                          : 'text-[#6c6b63] hover:text-[#171711] hover:bg-[#faf8f2]'
-                      }`}
-                    >
-                      <span>{link.label}</span>
-                      {isActive && (
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#171711]" />
-                      )}
-                    </Link>
-                  );
-                })}
-
-                {!loading && !user && !isAuthenticated && (
-                  <div className="pt-2.5 border-t border-[#f0ede4] mt-2 space-y-1">
-                    <Link
-                      href={`${APP_ORIGIN}/login`}
-                      className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-sm font-bold text-[#171711] hover:bg-[#faf8f2]"
-                    >
-                      <LogIn className="w-4 h-4 text-[#6c6b63]" />
-                      <span>Log in</span>
-                    </Link>
-                  </div>
-                )}
-              </div>
+        {mobileOpen && (
+          <nav id="laterbox-mobile-navigation" aria-label="Mobile navigation" className="border-t border-[#e6e8df] bg-[#f8f8f3] px-4 pb-5 pt-3 shadow-[0_16px_25px_rgba(24,27,20,0.06)] sm:px-6 lg:hidden">
+            <div className="mx-auto max-w-[1240px]">
+              <p className="px-3 pb-2 pt-2 text-[10px] font-black uppercase tracking-[0.18em] text-[#92998a]">Discover</p>
+              {[...primaryLinks, ...resourceLinks].map(link => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  onClick={closeMobile}
+                  aria-current={activeLink(link.href) ? 'page' : undefined}
+                  className={`flex min-h-12 items-center justify-between rounded-xl px-3.5 text-[15px] font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-[#678144] ${
+                    activeLink(link.href) ? 'bg-[#e6edb0] text-[#1b2018]' : 'text-[#485044] hover:bg-white'
+                  }`}
+                >
+                  {link.label}<ArrowRight className="h-4 w-4 text-[#959d8b]" aria-hidden="true" />
+                </Link>
+              ))}
+              {!isSignedIn && !loading && (
+                <Link href={`${APP_ORIGIN}/login`} onClick={closeMobile} className="mt-3 flex min-h-12 items-center justify-center rounded-xl border border-[#dfe5d5] bg-white px-4 text-sm font-bold text-[#1b2018] sm:hidden">Log in to your account</Link>
+              )}
             </div>
-          </div>
+          </nav>
         )}
-      </div>
-    </header>
+      </header>
+    </>
   );
 }

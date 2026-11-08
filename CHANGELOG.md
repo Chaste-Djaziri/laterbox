@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[Marketing / Navigation]** Redesign the responsive public header with a clearer product navigation hierarchy, accessible mobile and resources menus, and focused launch actions.
+
 - **[Billing / Reliability]** Reuse account-owned pending Whop checkout sessions and reject mismatched or orphaned paid membership events; cover webhook account binding, replay protection and plan mismatches with regression tests.
 
 - **[Web / Pricing]** Introduce Free, Plus and Vault storage pricing across public and app plans, update Settings billing access, and remove obsolete refund-page trial claims for new Whop subscriptions.
