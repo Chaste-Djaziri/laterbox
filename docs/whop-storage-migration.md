@@ -33,6 +33,59 @@ Use distinct Whop sandbox accounts, API tokens, plan IDs and webhook verificatio
 
 Configure Whop's webhook endpoint as `https://app.laterbox.dev/api/billing/whop/webhook`, after deploying the API. Subscribe to payment and membership lifecycle events. Verify a real sandbox event and the SDK's webhook signature algorithm. Rate-limit abuse-prone endpoints at your edge.
 
+## Production deployment: Cloudflare, not Supabase Edge secrets
+
+The deployed Next.js app uses OpenNext and **Cloudflare Worker `laterbox-web`**
+(see `laterbox-web/wrangler.jsonc`). Routes
+`/api/billing/checkout`, `/api/billing/whop/webhook`, and the account billing
+portal run in that Worker. Configure the production credentials **in Cloudflare**
+so those routes can read them through `process.env`.
+
+Recommended deployment values:
+
+| Setting | Runtime | Type |
+| --- | --- | --- |
+| `WHOP_COMPANY_API_KEY` | Cloudflare Worker `laterbox-web` | Encrypted Secret |
+| `WHOP_WEBHOOK_SECRET` | Cloudflare Worker `laterbox-web` | Encrypted Secret |
+| `WHOP_SANDBOX=false` | Cloudflare Worker `laterbox-web` | Non-secret variable |
+| Four `WHOP_*_PLAN_ID` settings | Cloudflare Worker `laterbox-web` | Non-secret variables |
+
+Open Cloudflare → Workers & Pages → `laterbox-web` → Settings →
+Variables and Secrets. Add the two credentials with **Secret** type, the
+environment switch and four recurring plan IDs as normal variables. This
+avoids writing sensitive values into terminal history or source control.
+When using Wrangler instead, `wrangler secret put` prompts securely
+for each value but may create and deploy a new Worker version immediately;
+coordinate this with a staged rollout.
+
+**Local Next.js:** use the tracked, blank template at
+`laterbox-web/.env.example`; add real **sandbox** values only to the existing,
+ignored `laterbox-web/.env.local`. Do not overwrite unrelated existing
+environment settings. Cloudflare local preview via Wrangler may require an
+ignored `laterbox-web/.dev.vars`; do not assume it reads `.env.local`.
+
+**Supabase Edge Secrets are not shared with Cloudflare Workers.** Set Whop
+credentials in Supabase only if billing endpoints are later migrated to
+Supabase Edge Functions. Existing Supabase file-storage functions keep their
+own secrets. Never publish keys as `NEXT_PUBLIC_*`, and rotate any secret
+accidentally exposed in logs or commits.
+
+## Key creation and verification
+
+In the Whop Laterbox developer dashboard, create a **company API key**
+scoped to the billing operations the backend actually needs (checkout
+configuration creation, payment and membership lookup, billing management
+as applicable). Confirm the exact scope names with Whop's current UI.
+Create a separate, signed **webhook endpoint** for
+`https://app.laterbox.dev/api/billing/whop/webhook`; its signing secret is
+different from the company API key. Enable payment success and membership
+lifecycle events used by `process-whop.ts`. Do not reuse production keys
+while testing against Whop sandbox.
+
+The dashboard may show a newly created key **only once**. Copy it directly
+into an encrypted secret store or a Git-ignored local file; **never paste it
+into an issue, a commit, or a chat transcript**.
+
 ## Database sequencing
 
 1. Back up the Supabase database and snapshot current billing subscription rows.
