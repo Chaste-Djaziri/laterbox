@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[Billing / Whop]** Begin the provider-safe transition to authenticated embedded Whop checkout, storage tiers and verified webhooks. Retain legacy Paddle and App Store subscription management until customer migration is complete.
+
 - **[Web / Collections]** Merge duplicate same-name collections and their item memberships safely, including cloud recovery, local cache normalization, and prevention of repeated collection creation.
 
 - **[Web / Analytics]** Install the Whop Pixel site-wide in the Next.js document head for the LaterBox business, including the initial page-view event.
