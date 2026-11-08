@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[Web / Cloudflare production configuration]** Add secure production deployment helpers that read the ignored production `.env`, sync encrypted Whop billing and Supabase runtime variables to the `laterbox-web` Worker without exposing credentials, and build with production Supabase and `https://app.laterbox.dev` instead of local overrides. Production Worker updated; custom-domain routing requires access to the `laterbox.dev` Cloudflare zone.
+
 - **[Web / Whop billing]** Fix catalog provisioning against the current Whop API: use `account_id` for scoped product/plan listings **and** creation instead of unrecognized `company_id`, which accidentally paginated the public product marketplace. Add read-only `--inspect` diagnostics and regression tests preventing unscoped catalog requests.
 
 - **[Web / Whop catalog provisioning]** Add a safe, repeatable Whop product-and-plan provisioning command for Plus and Vault monthly/yearly pricing. Default to dry-run, require explicit confirmation for live plans, reuse matching existing products and plans instead of duplicating, and write resulting plan IDs into the ignored local environment after a successful run.

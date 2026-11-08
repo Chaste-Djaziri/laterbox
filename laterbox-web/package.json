@@ -10,6 +10,8 @@
     "start": "next start",
     "lint": "eslint src scripts next.config.ts open-next.config.ts",
     "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
+    "cf:sync-secrets": "node scripts/cloudflare-production.mjs sync-secrets",
+    "cf:deploy-production": "node scripts/cloudflare-production.mjs deploy",
     "upload": "opennextjs-cloudflare build && opennextjs-cloudflare upload",
     "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
     "test": "tsx --test src/**/*.test.ts",
