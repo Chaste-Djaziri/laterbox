@@ -37,7 +37,7 @@ export function StoragePricingPage({ inApp = false }: { inApp?: boolean }) {
   const plusSavings = yearlySavings(prices?.plus_month, prices?.plus_year);
 
   return (
-    <main className={`min-h-screen overflow-hidden bg-[#f8f9f4] text-[#171b14] ${inApp ? 'px-4 py-10 sm:px-8' : 'px-4 py-16 sm:px-8'}`}>
+    <main className={`min-h-screen overflow-hidden text-[#171711] ${inApp ? 'bg-[#f7f5ee] px-4 py-10 sm:px-8' : 'bg-[#f8f9f4] px-4 py-16 sm:px-8'}`}>
       <div className="mx-auto max-w-6xl">
         {!inApp && (
           <>
@@ -89,14 +89,14 @@ export function StoragePricingPage({ inApp = false }: { inApp?: boolean }) {
             const href = isFree ? '/inbox' : `/checkout?plan=${tier.key}&interval=${interval}`;
             const destination = user || isFree ? href : `/login?next=${encodeURIComponent(href)}`;
             return (
-              <section key={tier.key} className={`group relative flex flex-col overflow-hidden rounded-[30px] border p-7 transition-transform duration-300 hover:-translate-y-1 sm:p-8 ${featured ? 'border-[#20291b] bg-[#1b2218] text-white shadow-[0_24px_60px_rgba(29,39,20,.16)]' : 'border-[#e0e4d9] bg-white shadow-[0_12px_32px_rgba(28,39,21,.04)]'}`}>
-                {featured && <div className="pointer-events-none absolute -right-16 -top-24 h-56 w-56 rounded-full bg-[#c7df86]/10 blur-2xl" />}
+              <section key={tier.key} className={`group relative flex flex-col overflow-hidden rounded-[30px] border p-7 transition-transform duration-300 hover:-translate-y-1 sm:p-8 ${featured ? inApp ? 'border-[#282821] bg-[#171711] text-white shadow-[0_18px_50px_rgba(23,23,17,.12)]' : 'border-[#20291b] bg-[#1b2218] text-white shadow-[0_24px_60px_rgba(29,39,20,.16)]' : inApp ? 'border-[#e4e0d5] bg-white shadow-[0_12px_32px_rgba(23,23,17,.04)]' : 'border-[#e0e4d9] bg-white shadow-[0_12px_32px_rgba(28,39,21,.04)]'}`}>
+                {featured && !inApp && <div className="pointer-events-none absolute -right-16 -top-24 h-56 w-56 rounded-full bg-[#c7df86]/10 blur-2xl" />}
                 <div className="relative flex items-center justify-between">
-                  <span className={`inline-flex size-11 items-center justify-center rounded-2xl ${featured ? 'bg-[#e6edb0] text-[#20291b]' : 'bg-[#f0f4e5] text-[#748851]'}`}>
+                  <span className={`inline-flex size-11 items-center justify-center rounded-2xl ${inApp ? featured ? 'bg-white/15 text-white' : 'bg-[#f2f0eb] text-[#56554f]' : featured ? 'bg-[#e6edb0] text-[#20291b]' : 'bg-[#f0f4e5] text-[#748851]'}`}>
                     {tier.key === 'vault' ? <HardDrive size={21} /> : tier.key === 'plus' ? <Zap size={21} /> : <Cloud size={21} />}
                   </span>
-                  {featured && <span className="rounded-full border border-[#a8b989]/30 bg-[#e6edb0]/10 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-[#e6edb0]">Most popular</span>}
-                  {saving != null && saving > 0 && !featured && <span className="rounded-full bg-[#edf5d8] px-3 py-1.5 text-[11px] font-black text-[#526f2b]">Save {saving}%</span>}
+                  {featured && <span className={`rounded-full border px-3 py-1.5 text-[10px] font-black uppercase tracking-widest ${inApp ? 'border-white/20 bg-white/10 text-white' : 'border-[#a8b989]/30 bg-[#e6edb0]/10 text-[#e6edb0]'}`}>Most popular</span>}
+                  {saving != null && saving > 0 && !featured && <span className={`rounded-full px-3 py-1.5 text-[11px] font-black ${inApp ? 'bg-[#f2f0eb] text-[#504f47]' : 'bg-[#edf5d8] text-[#526f2b]'}`}>Save {saving}%</span>}
                 </div>
                 <h2 className="mt-7 text-2xl font-black tracking-tight">LaterBox {tier.name}</h2>
                 <p className={`mt-2 min-h-12 text-sm leading-6 ${featured ? 'text-[#bbc6b5]' : 'text-[#737e6d]'}`}>{tier.description}</p>
@@ -118,13 +118,13 @@ export function StoragePricingPage({ inApp = false }: { inApp?: boolean }) {
                   )}
                 </div>
                 <div className={`my-7 h-px ${featured ? 'bg-white/15' : 'bg-[#edf0e9]'}`} />
-                <div className="flex items-baseline justify-between"><strong className="text-sm">Included with {tier.name}</strong><span className={`text-xs font-bold ${featured ? 'text-[#e6edb0]' : 'text-[#71865e]'}`}>{tier.size}</span></div>
+                <div className="flex items-baseline justify-between"><strong className="text-sm">Included with {tier.name}</strong><span className={`text-xs font-bold ${featured ? inApp ? 'text-white' : 'text-[#e6edb0]' : inApp ? 'text-[#66645c]' : 'text-[#71865e]'}`}>{tier.size}</span></div>
                 <ul className="mt-5 flex-1 space-y-3.5">
                   {tier.features.map(feature => <li key={feature} className="flex items-start gap-2.5 text-[13px] leading-5">
-                    <Check size={17} className={`mt-0.5 shrink-0 ${featured ? 'text-[#d2e5a2]' : 'text-[#8ca66c]'}`}/><span className={featured ? 'text-[#e4eadf]' : 'text-[#4d5b46]'}>{feature}</span>
+                    <Check size={17} className={`mt-0.5 shrink-0 ${featured ? inApp ? 'text-[#deded7]' : 'text-[#d2e5a2]' : inApp ? 'text-[#74736a]' : 'text-[#8ca66c]'}`}/><span className={featured ? 'text-[#e4eadf]' : 'text-[#4d5b46]'}>{feature}</span>
                   </li>)}
                 </ul>
-                <Link href={destination} className={`mt-9 flex items-center justify-center gap-2 rounded-2xl px-5 py-3.5 text-sm font-black transition-colors ${featured ? 'bg-[#e6edb0] text-[#1c2516] hover:bg-[#d7e29f]' : 'bg-[#1b2218] text-white hover:bg-[#34402d]'}`}>
+                <Link href={destination} className={`mt-9 flex items-center justify-center gap-2 rounded-2xl px-5 py-3.5 text-sm font-black transition-colors ${featured ? inApp ? 'bg-white text-[#171711] hover:bg-[#eeeae1]' : 'bg-[#e6edb0] text-[#1c2516] hover:bg-[#d7e29f]' : inApp ? 'bg-[#171711] text-white hover:bg-[#34342d]' : 'bg-[#1b2218] text-white hover:bg-[#34402d]'}`}>
                   {isFree ? 'Continue with Free' : active ? 'View ' + tier.name : 'Get ' + tier.name}
                   <ArrowRight size={16} />
                 </Link>
@@ -140,7 +140,7 @@ export function StoragePricingPage({ inApp = false }: { inApp?: boolean }) {
           </div>
         )}
 
-        <section className="mt-16 grid gap-6 rounded-[28px] border border-[#e2e7da] bg-white px-7 py-8 sm:grid-cols-3 sm:px-10">
+        <section className={`mt-16 grid gap-6 rounded-[28px] border bg-white px-7 py-8 sm:grid-cols-3 sm:px-10 ${inApp ? 'border-[#e4e0d5]' : 'border-[#e2e7da]'}`}>
           <div className="flex gap-3"><ShieldCheck className="mt-0.5 shrink-0 text-[#778e54]" size={22}/><div><h3 className="text-sm font-black">Your data, always yours</h3><p className="mt-1 text-xs leading-5 text-[#7e8974]">Cancel a paid plan without losing access to your regular bookmarks.</p></div></div>
           <div className="flex gap-3"><Cloud className="mt-0.5 shrink-0 text-[#778e54]" size={22}/><div><h3 className="text-sm font-black">Sync for everyone</h3><p className="mt-1 text-xs leading-5 text-[#7e8974]">A Free account can sync your links across compatible LaterBox apps.</p></div></div>
           <div className="flex gap-3"><LockKeyhole className="mt-0.5 shrink-0 text-[#778e54]" size={22}/><div><h3 className="text-sm font-black">Secure payments</h3><p className="mt-1 text-xs leading-5 text-[#7e8974]">Whop handles payments, taxes, and available express wallets.</p></div></div>
