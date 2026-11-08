@@ -1,5 +1,11 @@
 # Free extension and local library
 
+- **[Web / Settings redesign]** Remove the Overview route from navigation, modernize Notification preferences with accessible on/off switches, delivery/permission state, test and reset actions, refine Schedule controls and defaults, and add usable Apps, Backup, Help and policy links with consistent responsive Settings cards.
+
+- **[Web / Settings sidebar]** Remove the redundant Dashboard backlink, Settings title, and descriptive tagline from the settings-only secondary navigation, keeping the navigation links as the first content in the sidebar.
+
+- **[Web / Settings navigation]** Replace the single scrolling Settings page with a dedicated `/settings` sub-navigation sidebar and deep-linkable routes for Account & Security, Schedule, Notifications, Sync & Storage, Backup & Restore, Apps, Billing, Updates, and Legal. `/settings` now opens Account & Security, and old Overview links redirect there. Preserve existing settings actions, forms, account deletion safeguards, billing management and cloud-sync behavior.
+
 - **[Web / Today view]** Replace the scheduled-focus card layout with the existing email-style dashboard table, showing active items that entered Inbox during the last rolling 24 hours. Use recorded Inbox-entry timestamps, due scheduled return times and creation timestamps for legacy direct-Inbox items; keep date sorting and Today sidebar counts aligned, refresh the rolling window, and add boundary tests.
 
 - **[Web / Dashboard Sidebar]** Move Today, Upcoming and Someday immediately after Inbox in the collapsed navigation rail, retaining each tab's existing icon, count, route and tooltip.
