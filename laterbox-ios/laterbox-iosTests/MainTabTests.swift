@@ -13,6 +13,19 @@ struct MainTabTests {
         #expect(Set(MainTab.allCases.map(\.symbol)).count == 5)
     }
 
+    @Test("Five-second splash replays only after returning from background")
+    func splashReplayTiming() {
+        #expect(LaterBoxSplashTiming.totalDurationSeconds == 5.0)
+        #expect(
+            Double(LaterBoxSplashTiming.leadInMilliseconds + LaterBoxSplashTiming.remainingMilliseconds) / 1_000
+                == LaterBoxSplashTiming.totalDurationSeconds
+        )
+        #expect(LaterBoxSplashTiming.fillDurationSeconds < LaterBoxSplashTiming.totalDurationSeconds)
+        #expect(LaterBoxSplashTiming.shouldReplay(wasBackgrounded: true, phase: .active))
+        #expect(!LaterBoxSplashTiming.shouldReplay(wasBackgrounded: false, phase: .active))
+        #expect(!LaterBoxSplashTiming.shouldReplay(wasBackgrounded: true, phase: .inactive))
+    }
+
     @Test("Splash fill clamps to the valid loading range")
     func splashFillProgress() {
         #expect(LaterBoxLoadingMark.normalizedProgress(-0.2) == 0)

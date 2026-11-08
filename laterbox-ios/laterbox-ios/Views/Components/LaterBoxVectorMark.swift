@@ -91,8 +91,6 @@ struct LaterBoxVectorMark: View {
 /// Draws the brand ink from bottom to top as a local startup stage completes.
 /// Both copies use the same transparent vector paths; only the colored fill is masked.
 struct LaterBoxLoadingMark: View {
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
     var size: CGFloat = 164
     var progress: Double
     var emptyInk: Color = Color(hex: "171711").opacity(0.16)
@@ -123,10 +121,6 @@ struct LaterBoxLoadingMark: View {
                 }
         }
         .frame(width: size, height: size)
-        .animation(
-            reduceMotion ? nil : .easeInOut(duration: 0.45),
-            value: Self.normalizedProgress(progress)
-        )
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("LaterBox loading")
         .accessibilityValue("\(Int(Self.normalizedProgress(progress) * 100)) percent")

@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[iOS / Splash animation]** Keep the SwiftUI logo fill splash visible for five seconds at cold launch and replay the same animation whenever the app returns from background; prevent overlapping replay completions and continue local/cloud startup independently.
+
 - **[iOS / Launch splash]** Use the transparent SwiftUI cube mark on launch and replace the separate spinner with a brand-green, bottom-to-top fill reflecting local startup stages. Complete the fill before transitioning to the app, without waiting for network or StoreKit; respect Reduce Motion.
 
 - **[iOS / Brand identity]** Recreate the uploaded LaterBox cube monogram as editable, background-free SwiftUI vector paths, supporting adaptive light/dark ink colors, custom tint and subtle reduce-motion-aware assembly animation. Replace the centered image asset in the five-tab header with the vector mark.

@@ -8,6 +8,18 @@
 import SwiftUI
 import SwiftData
 
+/// A temporary five-second brand animation, shared by cold launches and foreground re-entry.
+enum LaterBoxSplashTiming {
+    static let totalDurationSeconds = 5.0
+    static let fillDurationSeconds = 4.75
+    static let leadInMilliseconds = 50
+    static let remainingMilliseconds = 4_950
+
+    static func shouldReplay(wasBackgrounded: Bool, phase: ScenePhase) -> Bool {
+        wasBackgrounded && phase == .active
+    }
+}
+
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
     @StateObject private var coordinator = SyncCoordinator.shared
@@ -22,7 +34,9 @@ struct ContentView: View {
     @State private var isLaunching = true
     @State private var launchStarted = false
     @State private var launchStatus = "Preparing your vault"
-    @State private var launchProgress = 0.04
+    @State private var launchProgress = 0.0
+    @State private var splashGeneration = 0
+    @State private var wasBackgrounded = false
     @State private var showingSyncReport = false
     @State private var syncReportMessage = ""
 
@@ -192,6 +206,12 @@ struct ContentView: View {
         }
         .onChange(of: scenePhase) { _, newPhase in
             if newPhase == .active {
+                if LaterBoxSplashTiming.shouldReplay(wasBackgrounded: wasBackgrounded, phase: newPhase) {
+                    wasBackgrounded = false
+                    if launchStarted {
+                        startSplashAnimation(status: "Welcome back")
+                    }
+                }
                 try? SharedCaptureImporter.refresh(context: modelContext)
                 Task {
                     await StoreKitManager.shared.updatePurchasedProducts()
@@ -202,6 +222,7 @@ struct ContentView: View {
                 openPendingQuickSaveControl()
             }
             if newPhase == .background {
+                wasBackgrounded = true
                 lockManager.lockAppIfNeeded()
             }
         }
@@ -236,21 +257,13 @@ struct ContentView: View {
 
     @MainActor
     private func prepareLaunch() async {
-        // Local content must be imported before showing the inbox.
+        // Import saved content locally, then play the five-second visual demo.
+        // Neither networking nor StoreKit can extend the splash duration.
         launchStatus = "Loading saved items"
-        withAnimation(reduceMotion ? nil : .easeOut(duration: 0.35)) {
-            launchProgress = 0.32
-        }
         try? SharedCaptureImporter.refresh(context: modelContext)
+        startSplashAnimation(status: "Opening LaterBox")
 
-        // These milestones reflect local launch work, not network or StoreKit progress.
-        // Cloud refresh remains independent so offline launches are never held hostage.
-        withAnimation(reduceMotion ? nil : .easeOut(duration: 0.4)) {
-            launchProgress = 0.85
-        }
-        await finishLaunch()
-
-        // Refresh optional cloud/account state independently of splash lifetime.
+        // Refresh cloud and purchase state independently of the animation.
         Task {
             await StoreKitManager.shared.updatePurchasedProducts()
             await coordinator.refreshEntitlement()
@@ -258,23 +271,40 @@ struct ContentView: View {
     }
 
     @MainActor
-    private func finishLaunch() async {
-        guard isLaunching, !Task.isCancelled else { return }
-        launchStatus = "Opening LaterBox"
-        withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.42)) {
-            launchProgress = 1
+    private func startSplashAnimation(status: String) {
+        // A foreground replay supersedes any pending cold-launch completion.
+        splashGeneration += 1
+        let generation = splashGeneration
+        var reset = Transaction()
+        reset.disablesAnimations = true
+        withTransaction(reset) {
+            launchProgress = 0
+            isLaunching = true
         }
+        launchStatus = status
 
-        // Let the user see the logo finish filling, without waiting on network.
-        // Accessibility Reduce Motion skips the visual hold.
-        if !reduceMotion {
-            try? await Task.sleep(for: .milliseconds(480))
+        Task { @MainActor in
+            do {
+                // Render the unfilled logo before animating its color.
+                try await Task.sleep(for: .milliseconds(LaterBoxSplashTiming.leadInMilliseconds))
+                guard generation == splashGeneration else { return }
+
+                withAnimation(reduceMotion ? nil : .linear(duration: LaterBoxSplashTiming.fillDurationSeconds)) {
+                    launchProgress = 1
+                }
+
+                // Exactly five seconds of splash visibility for this UI iteration.
+                try await Task.sleep(for: .milliseconds(LaterBoxSplashTiming.remainingMilliseconds))
+                guard generation == splashGeneration else { return }
+                withAnimation(reduceMotion ? nil : .easeOut(duration: 0.2)) {
+                    isLaunching = false
+                }
+                openPendingQuickSaveControl()
+            } catch {
+                // Cancellation should never dismiss a newer splash replay.
+                return
+            }
         }
-        guard !Task.isCancelled else { return }
-        withAnimation(reduceMotion ? nil : .easeOut(duration: 0.25)) {
-            isLaunching = false
-        }
-        openPendingQuickSaveControl()
     }
 
     private func openPendingQuickSaveControl() {
