@@ -3,7 +3,6 @@
 import React from 'react';
 import { useItems } from '@/lib/store/ItemContext';
 import { useAuth } from '@/lib/store/AuthContext';
-import { useBilling } from '@/lib/store/BillingContext';
 import {
   Cloud,
   CloudOff,
@@ -35,19 +34,18 @@ export function CloudSyncIndicator({
     isPushing,
   } = useItems();
   const { user, isGuest } = useAuth();
-  const { isPro } = useBilling();
 
   const getStatusDetails = () => {
-    if (isGuest || !user || !isPro) {
+    if (isGuest || !user) {
       return {
         icon: <CloudOff className="w-3.5 h-3.5 text-[#8e8d87]" />,
         label: 'Offline (local)',
         tooltip: isGuest
           ? 'Guest mode — items stored locally in browser storage.'
-          : 'Free plan — items stored locally on this device. Upgrade to Pro for cloud sync.',
+          : 'Sign in to sync your items across devices.',
         color: 'bg-white border border-[#e4e0d5] text-[#6c6b63]',
         badge: null,
-        onClick: () => window.location.assign('/plans'),
+        onClick: () => window.location.assign('/login'),
       };
     }
 
@@ -157,7 +155,9 @@ export function CloudSyncIndicator({
   if (compact) {
     return (
       <button
+        type="button"
         onClick={status.onClick}
+        aria-label={`${status.label}: ${status.tooltip}`}
         title={status.tooltip}
         className={`relative p-1.5 rounded-lg hover:bg-[#ebe7dc]/70 transition-colors focus:outline-none cursor-pointer ${className}`}
       >
