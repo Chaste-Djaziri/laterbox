@@ -1,7 +1,7 @@
 // laterbox-web/src/components/layout/AppSidebar.tsx
 'use client';
 
-import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
@@ -40,9 +40,28 @@ export function AppSidebar({ onOpenCapture }: AppSidebarProps) {
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [collectionError, setCollectionError] = useState('');
 
+  const sidebarRef = useRef<HTMLElement>(null);
   const collectionPanelRef = useRef<HTMLDivElement>(null);
   const collectionButtonRef = useRef<HTMLButtonElement>(null);
   const collectionInputRef = useRef<HTMLInputElement>(null);
+  const [panelAnchor, setPanelAnchor] = useState({ top: 88, arrowTop: 82 });
+
+  const updateCollectionPosition = useCallback(() => {
+    const button = collectionButtonRef.current;
+    const sidebar = sidebarRef.current;
+    if (!button || !sidebar) return;
+
+    const iconRect = button.getBoundingClientRect();
+    const sidebarRect = sidebar.getBoundingClientRect();
+    const panelHeight = Math.min(420, window.innerHeight - 32);
+    const anchorY = iconRect.top + iconRect.height / 2 - sidebarRect.top;
+    const maxTop = Math.max(16, window.innerHeight - 16 - panelHeight - sidebarRect.top);
+    const top = Math.max(16, Math.min(anchorY - 72, maxTop));
+    const arrowTop = Math.max(24, Math.min(anchorY - top, panelHeight - 24));
+    setPanelAnchor(previous =>
+      previous.top === top && previous.arrowTop === arrowTop ? previous : { top, arrowTop }
+    );
+  }, []);
 
   useEffect(() => {
     if (!entitlement.phaseEndsAt) return;
@@ -81,6 +100,16 @@ export function AppSidebar({ onOpenCapture }: AppSidebarProps) {
       document.removeEventListener('keydown', onKeyDown);
     };
   }, [collectionsOpen]);
+
+  useEffect(() => {
+    if (!collectionsOpen) return;
+    window.addEventListener('resize', updateCollectionPosition);
+    document.addEventListener('scroll', updateCollectionPosition, true);
+    return () => {
+      window.removeEventListener('resize', updateCollectionPosition);
+      document.removeEventListener('scroll', updateCollectionPosition, true);
+    };
+  }, [collectionsOpen, updateCollectionPosition]);
 
   const todayCount = useMemo(() => scheduleItems(items, 'today', now).length, [items, now]);
   const upcomingCount = useMemo(() => scheduleItems(items, 'upcoming', now).length, [items, now]);
@@ -205,8 +234,9 @@ export function AppSidebar({ onOpenCapture }: AppSidebarProps) {
 
   return (
     <aside
+      ref={sidebarRef}
       aria-label="Dashboard sidebar"
-      className="relative z-30 flex h-screen w-[84px] shrink-0 flex-col items-center border-r border-[#e6e3d7] bg-[#f7f5ee] px-3 pb-3 pt-4"
+      className="relative z-30 flex h-screen w-[84px] shrink-0 flex-col items-center bg-[#f7f5ee] px-3 pb-3 pt-4"
     >
       <Link
         href="/inbox"
@@ -246,6 +276,7 @@ export function AppSidebar({ onOpenCapture }: AppSidebarProps) {
           onClick={() => {
             if (collectionsOpen) closeCollections();
             else {
+              updateCollectionPosition();
               setCollectionsOpen(true);
               setCollectionError('');
             }
@@ -289,8 +320,14 @@ export function AppSidebar({ onOpenCapture }: AppSidebarProps) {
           id="laterbox-collections-panel"
           role="region"
           aria-label="Manage collections"
-          className="absolute left-[calc(100%+8px)] top-[88px] z-50 flex max-h-[calc(100dvh-106px)] w-[min(340px,calc(100vw-112px))] flex-col overflow-hidden rounded-[22px] border border-[#e4e0d5] bg-white text-[#171711] shadow-[0_22px_75px_rgba(23,23,17,0.18)]"
+          style={{ top: panelAnchor.top }}
+          className="absolute left-[calc(100%+8px)] z-50 flex h-[420px] max-h-[calc(100dvh-32px)] w-[320px] max-w-[calc(100vw-112px)] flex-col rounded-[22px] border border-[#e4e0d5] bg-white text-[#171711] shadow-[0_22px_75px_rgba(23,23,17,0.18)]"
         >
+          <span
+            aria-hidden="true"
+            style={{ top: panelAnchor.arrowTop - 9 }}
+            className="pointer-events-none absolute -left-[9px] z-10 h-[18px] w-[18px] rotate-45 border-b border-l border-[#e4e0d5] bg-white"
+          />
           <div className="flex shrink-0 items-start justify-between gap-3 border-b border-[#f0ede5] px-5 py-4">
             <div>
               <h2 className="text-sm font-black tracking-tight">Collections</h2>
@@ -306,7 +343,7 @@ export function AppSidebar({ onOpenCapture }: AppSidebarProps) {
             </button>
           </div>
 
-          <div className="min-h-0 space-y-3 overflow-y-auto p-3.5">
+          <div className="shrink-0 space-y-3 border-b border-[#f0ede5] p-3.5">
             <button
               type="button"
               onClick={() => {
@@ -343,7 +380,12 @@ export function AppSidebar({ onOpenCapture }: AppSidebarProps) {
               </form>
             )}
 
-            <nav aria-label="Your collections" className="space-y-1">
+          </div>
+
+          <nav
+            aria-label="Your collections"
+            className="min-h-0 flex-1 space-y-1 overflow-y-auto overscroll-contain px-3.5 py-3 [scrollbar-width:thin]"
+          >
               {collections.map(col => {
                 const href = `/library/${col.id}`;
                 const active = pathname === href;
@@ -420,9 +462,8 @@ export function AppSidebar({ onOpenCapture }: AppSidebarProps) {
                   No collections yet. Make one to group your saved things.
                 </p>
               )}
-            </nav>
-            {collectionError && <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-xs font-semibold text-red-700">{collectionError}</p>}
-          </div>
+          </nav>
+          {collectionError && <p role="alert" className="shrink-0 border-t border-[#f0ede5] bg-red-50 px-4 py-3 text-xs font-semibold text-red-700">{collectionError}</p>}
         </div>
       )}
     </aside>

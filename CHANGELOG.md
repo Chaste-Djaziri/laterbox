@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[App / Collections Flyout]** Remove the desktop icon rail’s right border and anchor a fixed-size Collections popover beside its folder icon, with a visual pointer and an independently scrollable collection list while keeping creation and management accessible.
+
 - **[App / Sidebar]** Switch the authenticated desktop dashboard to a compact, large-icon-only navigation rail; keep tooltips, counts, quick capture, plan status, sync and collection management available through an accessible flyout.
 
 - **[Marketing / Dashboard Preview]** Collapse the interactive sample dashboard sidebar into a compact icon-only navigation rail with larger icons, tooltip labels, and a prominent quick-save action. Keep the real app layout untouched.
