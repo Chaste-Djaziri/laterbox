@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[Marketing / Homepage]** Replace the crowded landing hero with an editorial split layout, a focused free-start CTA, an illustrative library preview, and a clearer real-app demo section.
+
 - **[Marketing / Navigation]** Redesign the responsive public header with a clearer product navigation hierarchy, accessible mobile and resources menus, and focused launch actions.
 
 - **[Billing / Reliability]** Reuse account-owned pending Whop checkout sessions and reject mismatched or orphaned paid membership events; cover webhook account binding, replay protection and plan mismatches with regression tests.
