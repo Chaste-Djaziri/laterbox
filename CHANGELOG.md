@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[iOS / Item detail parity]** Consolidate the item-details screen to match the web's single primary item card: preview, source/date/status metadata, editable title, collections/tags, contextual content, attachments, and original-source action, followed by inline personal notes. Plain tasks get a dedicated completion control, while structured tasks retain the checklist. Remove duplicated section containers and generic “Item Details” navigation title. Keep native push/swipe-back, provide direct favorite and status controls, and collect infrequent copy/share/schedule/collection/delete actions in a compact menu with light/graphite appearance.
+
 - **[iOS / Item details appearance]** Give pushed and modal item-details screens true Light and Dark Mode support, with the white/graphite-grain Inbox canvas, adaptive cards and text, readable attachment/checklist/summary/highlight/notes sections, and a theme-aware bottom composer. Update the embedded captured-content reader and collection/tag/scheduling sheets so no hard-coded light surfaces remain in Dark Mode, while retaining native back/swipe navigation.
 
 - **[iOS / Cloud storage popup]** Use the same graphite gradient and subtle static grain as Inbox for the cloud storage sheet in Dark Mode, with transparent scroll and navigation chrome rather than a separate black panel. Preserve the white Light Mode canvas and ensure the quota card and actions remain legible in both appearances.

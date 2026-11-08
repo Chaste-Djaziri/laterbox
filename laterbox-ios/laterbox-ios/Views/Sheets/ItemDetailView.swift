@@ -63,6 +63,7 @@ public struct ItemDetailView: View {
     @State private var showingSchedulePicker: Bool = false
     @State private var scheduledDate: Date = Date().addingTimeInterval(86400)
     @State private var newChecklistTaskText: String = ""
+    @State private var didCopySource = false
 
     public var isModal: Bool
     public var usesNativeNavigation: Bool
@@ -85,14 +86,6 @@ public struct ItemDetailView: View {
         return item.parsedContentType.rawValue.capitalized
     }
 
-    private var senderInitial: String {
-        let name = domainOrSender
-        if let first = name.first {
-            return String(first).uppercased()
-        }
-        return "L"
-    }
-
     public var body: some View {
         ZStack {
             // The same adaptive white / graphite grain as the Inbox.
@@ -106,127 +99,41 @@ public struct ItemDetailView: View {
                     topNavigationBar
                 }
 
-                // 2. Focused scrollable body: Show what the user came back for
+                // Match web detail hierarchy: one item card instead of a stack
+                // of independent metadata, media and content panels.
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 14) {
-                        // Return Schedule Banner (if scheduled)
+                    VStack(spacing: 18) {
                         if item.status == ItemStatus.inbox.rawValue {
                             inboxAgeBanner
-                        } else if let ret = item.returnAt {
-                            returnScheduleBanner(ret: ret)
+                        } else if let date = item.returnAt {
+                            returnScheduleBanner(ret: date)
                         }
 
-                        // Attachments & Files Card (if any)
-                        if let data = item.attachmentsData,
-                           let files = try? JSONDecoder().decode([SharedAttachment].self, from: data),
-                           !files.isEmpty {
-                            attachmentsCard(files: files)
-                        }
+                        webStyleItemCard
 
-                        // Embedded In-App Media Player (YouTube, Vimeo, Spotify, Apple Music)
-                        let mediaType = EmbeddedMediaType.detect(url: item.url)
-                        if mediaType != .none && mediaType != .webArticle(url: URL(string: item.url ?? "")!) {
-                            VStack(alignment: .leading, spacing: 6) {
-                                InlineVideoEmbedView(embedType: mediaType, previewImageUrl: item.previewImageUrl)
-                            }
-                            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                            .shadow(color: Color.black.opacity(0.04), radius: 6, y: 2)
-                        } else if let preview = item.previewImageUrl, !preview.isEmpty, URL(string: preview) != nil {
-                            // Rich Visual Banner (OpenGraph Preview Image)
-                            RichMediaBanner(
-                                type: item.parsedContentType,
-                                url: item.url,
-                                title: item.title,
-                                previewImageUrl: item.previewImageUrl
-                            )
-                            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                            .shadow(color: Color.black.opacity(0.04), radius: 6, y: 2)
-                        }
-
-                        // Main Header Card (Title, Domain, Metadata, Collections/Tags)
-                        mainHeaderCard
-
-                        // Captured Highlight Quote (if saved via extension text highlight)
-                        if let highlight = item.textSelector, !highlight.isEmpty, let text = item.textContent, !text.isEmpty {
-                            capturedHighlightCard(text: text)
-                        }
-
-                        // AI Summary Card (if present)
-                        if !item.summary.isEmpty {
-                            aiSummaryCard
-                        }
-
-                        // Tasks / Captured Content / Full Article Text Viewer
-                        let captured = item.textContent?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-                        let formatted = item.formattedContent.trimmingCharacters(in: .whitespacesAndNewlines)
-                        if item.parsedContentType == .task || isTaskChecklistContent(captured) {
-                            taskChecklistCard(content: captured)
-                        } else if (!captured.isEmpty && item.textSelector == nil) || !formatted.isEmpty {
-                            RichCapturedContentViewer(
-                                title: "Captured Content",
-                                content: !captured.isEmpty ? captured : formatted,
-                                formattedHTML: !formatted.isEmpty ? formatted : nil
-                            )
-                            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                            .shadow(color: Color.black.opacity(0.04), radius: 6, y: 2)
-                        }
-
-                        // Personal Notes & Follow-ups Section (Clean & Non-intrusive)
+                        // Personal notes live beneath the item, as on the web.
                         notesAndFollowUpsCard
                     }
+                    .frame(maxWidth: 660)
+                    .frame(maxWidth: .infinity)
                     .padding(.horizontal, 14)
-                    .padding(.top, 10)
-                    .padding(.bottom, 20)
+                    .padding(.top, 12)
+                    .padding(.bottom, 24)
                 }
 
-                // 3. Docked Bottom Input Bar for quick notes & follow-ups
-                bottomChatInputBar
             }
         }
         .toolbar(usesNativeNavigation ? .visible : .hidden, for: .navigationBar)
         // Let the graphite page show through the pushed system navigation bar.
         .toolbarBackground(.hidden, for: .navigationBar)
-        .navigationTitle(usesNativeNavigation ? "Item Details" : "")
+        .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             if usesNativeNavigation {
                 ToolbarItemGroup(placement: .topBarTrailing) {
-                    Button {
-                        coordinator.toggleFavorite(item: item, context: modelContext)
-                        LBHaptic.medium()
-                    } label: {
-                        Image(systemName: item.favorite ? "star.fill" : "star")
-                    }
-                    .accessibilityLabel(item.favorite ? "Unstar item" : "Star item")
-
-                    Menu {
-                        Button(
-                            item.status == ItemStatus.inbox.rawValue || item.status == ItemStatus.deferred.rawValue
-                                ? "Keep"
-                                : item.status == ItemStatus.saved.rawValue ? "Archive" : "Move to Inbox",
-                            systemImage: "checkmark.circle"
-                        ) {
-                            performStatusAction()
-                        }
-                        Button("Add to Collection", systemImage: "folder.badge.plus") {
-                            showingCollectionSheet = true
-                        }
-                        Button("Schedule", systemImage: "clock") {
-                            showingSchedulePicker = true
-                        }
-                        if let rawURL = item.url, let url = URL(string: rawURL) {
-                            ShareLink(item: url) {
-                                Label("Share Link", systemImage: "square.and.arrow.up")
-                            }
-                        }
-                        Divider()
-                        Button("Delete Item", systemImage: "trash", role: .destructive) {
-                            showingDeleteConfirm = true
-                        }
-                    } label: {
-                        Image(systemName: "ellipsis.circle")
-                    }
-                    .accessibilityLabel("More item actions")
+                    favoriteAction
+                    statusActionButton
+                    moreItemActionsMenu
                 }
             }
         }
@@ -285,138 +192,312 @@ public struct ItemDetailView: View {
         }
     }
 
-    // MARK: - 1. Top Navigation Bar (Controls at top right like web)
-    private var topNavigationBar: some View {
+    // MARK: - Web-aligned primary item card
+
+    private var webStyleItemCard: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            itemHero
+
+            VStack(alignment: .leading, spacing: 18) {
+                sourceMetadataRow
+
+                // Editable item title and description are the visual focal point.
+                headerTitleAndDescription
+                headerTagsPreview
+                headerActionControlsRow
+
+                let captured = item.textContent?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                let formatted = item.formattedContent.trimmingCharacters(in: .whitespacesAndNewlines)
+
+                if item.parsedContentType == .task {
+                    if isTaskChecklistContent(captured) {
+                        taskChecklistCard(content: captured)
+                    } else {
+                        simpleTaskCompletionCard(content: captured)
+                    }
+                } else if isTaskChecklistContent(captured) {
+                    taskChecklistCard(content: captured)
+                }
+
+                if let highlight = item.textSelector, !highlight.isEmpty,
+                   !captured.isEmpty {
+                    capturedHighlightCard(text: captured)
+                } else if item.parsedContentType != .task &&
+                            (!captured.isEmpty || !formatted.isEmpty) {
+                    RichCapturedContentViewer(
+                        title: item.parsedContentType == .note ? "Note" : "Saved Content",
+                        content: !captured.isEmpty ? captured : formatted,
+                        formattedHTML: !formatted.isEmpty ? formatted : nil
+                    )
+                }
+
+                if !item.summary.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    Divider().overlay(detailBorder)
+                    aiSummaryCard
+                }
+
+                if let data = item.attachmentsData,
+                   let files = try? JSONDecoder().decode([SharedAttachment].self, from: data),
+                   !files.isEmpty {
+                    Divider().overlay(detailBorder)
+                    attachmentsCard(files: files)
+                }
+
+                itemSourceFooter
+            }
+            .padding(18)
+        }
+        .background(detailSurface, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .strokeBorder(detailBorder, lineWidth: 1)
+        }
+        .accessibilityIdentifier("Item Detail Main Card")
+    }
+
+    @ViewBuilder
+    private var itemHero: some View {
+        let mediaType = EmbeddedMediaType.detect(url: item.url)
+        switch mediaType {
+        case .youtube, .vimeo, .spotify, .appleMusic, .pdf:
+            InlineVideoEmbedView(embedType: mediaType, previewImageUrl: item.previewImageUrl)
+                .frame(maxWidth: .infinity)
+                .frame(minHeight: 180)
+                .background(insetSurface)
+        case .webArticle, .none:
+            if let preview = item.previewImageUrl,
+               !preview.isEmpty,
+               let url = URL(string: preview) {
+                Button {
+                    if item.url != nil { showingSafariReader = true }
+                } label: {
+                    AsyncImage(url: url) { phase in
+                        switch phase {
+                        case .success(let image):
+                            image.resizable().scaledToFill()
+                        case .empty:
+                            ZStack {
+                                insetSurface
+                                ProgressView()
+                            }
+                        case .failure:
+                            sourceImageFallback
+                        @unknown default:
+                            sourceImageFallback
+                        }
+                    }
+                    .frame(height: 208)
+                    .frame(maxWidth: .infinity)
+                    .clipped()
+                    .overlay(alignment: .bottomTrailing) {
+                        if item.url != nil {
+                            Label("Open source", systemImage: "arrow.up.right")
+                                .font(.system(size: 11, weight: .semibold))
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 7)
+                                .foregroundStyle(.white)
+                                .background(Color.black.opacity(0.7), in: Capsule())
+                                .padding(12)
+                        }
+                    }
+                }
+                .buttonStyle(.plain)
+                .disabled(item.url == nil)
+            } else if item.parsedContentType == .task || item.parsedContentType == .note {
+                HStack(spacing: 12) {
+                    Image(systemName: item.parsedContentType == .task ? "checklist" : "note.text")
+                        .font(.system(size: 22, weight: .semibold))
+                        .frame(width: 42, height: 42)
+                        .background(AppTheme.accent, in: RoundedRectangle(cornerRadius: 13))
+                        .foregroundStyle(Color(hex: "171711"))
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(item.parsedContentType == .task ? "Task" : "Personal note")
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundStyle(primaryInk)
+                        Text("Saved to LaterBox")
+                            .font(.system(size: 12))
+                            .foregroundStyle(secondaryInk)
+                    }
+                    Spacer()
+                }
+                .padding(16)
+                .background(colorScheme == .dark ? Color(hex: "2B3028") : Color(hex: "F5F8E9"))
+            }
+        }
+    }
+
+    private var sourceImageFallback: some View {
+        ZStack {
+            insetSurface
+            Image(systemName: "link")
+                .font(.system(size: 29))
+                .foregroundStyle(secondaryInk)
+        }
+    }
+
+    private var sourceMetadataRow: some View {
         HStack(spacing: 8) {
-            // Left: Back Button
+            Image(systemName: item.url == nil ? "note.text" : "link")
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(secondaryInk)
+
+            Text(domainOrSender)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(primaryInk)
+                .lineLimit(1)
+
+            Text("·")
+                .foregroundStyle(secondaryInk)
+
+            Text(item.createdAt, style: .relative)
+                .font(.system(size: 11))
+                .foregroundStyle(secondaryInk)
+                .lineLimit(1)
+
+            Spacer(minLength: 0)
+
+            Text(itemStatusLabel)
+                .font(.system(size: 10, weight: .bold))
+                .foregroundStyle(itemStatusInk)
+                .padding(.horizontal, 9)
+                .padding(.vertical, 5)
+                .background(itemStatusFill, in: Capsule())
+        }
+    }
+
+    private var itemStatusLabel: String {
+        switch item.parsedStatus {
+        case .inbox: "Inbox"
+        case .deferred: "Scheduled"
+        case .saved: "Kept"
+        case .archived: item.parsedContentType == .task ? "Completed" : "Archived"
+        default: "Saved"
+        }
+    }
+
+    private var itemStatusInk: Color {
+        if item.parsedStatus == .saved { return Color(hex: "171711") }
+        if colorScheme == .dark { return Color(hex: "BBD5F0") }
+        return Color(hex: "0369A1")
+    }
+
+    private var itemStatusFill: Color {
+        if item.parsedStatus == .saved { return AppTheme.accent }
+        return colorScheme == .dark ? Color(hex: "27394A") : Color(hex: "E0F2FE")
+    }
+
+    @ViewBuilder
+    private var itemSourceFooter: some View {
+        if let urlText = item.url, let url = URL(string: urlText), url.scheme == "https" || url.scheme == "http" {
+            Divider().overlay(detailBorder)
+            HStack(spacing: 10) {
+                Label(item.parsedContentType.rawValue.capitalized, systemImage: "bookmark")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(secondaryInk)
+                Spacer()
+                Button {
+                    showingSafariReader = true
+                    LBHaptic.light()
+                } label: {
+                    Label("Open original", systemImage: "arrow.up.right")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(colorScheme == .dark ? Color(hex: "171711") : Color.white)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 10)
+                        .background(colorScheme == .dark ? AppTheme.accent : Color(hex: "171711"), in: Capsule())
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("Open Original Item")
+            }
+        }
+    }
+
+    // MARK: - Navigation controls
+
+    // The native Back button owns the swipe-back transition on pushed details.
+    // Modal details use the same compact actions alongside a Done control.
+    private var topNavigationBar: some View {
+        HStack(spacing: 10) {
             Button {
                 dismiss()
                 LBHaptic.light()
             } label: {
-                HStack(spacing: 4) {
-                    Image(systemName: isModal ? "xmark" : "chevron.left")
-                        .font(.system(size: isModal ? 14 : 16, weight: .bold))
-                    Text(isModal ? "Done" : "Back")
-                        .font(.system(size: 14, weight: .semibold))
-                }
-                .foregroundColor(primaryInk)
-                .padding(.vertical, 8)
-                .padding(.horizontal, 4)
+                Label(isModal ? "Done" : "Back", systemImage: isModal ? "xmark" : "chevron.left")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(primaryInk)
             }
             .buttonStyle(.plain)
 
-            Spacer()
-
-            // Right Action Controls: Grouped together exactly like web
-            HStack(spacing: 6) {
-                // 1. Star / Favorite Button
-                Button {
-                    coordinator.toggleFavorite(item: item, context: modelContext)
-                    LBHaptic.medium()
-                } label: {
-                    Image(systemName: item.favorite ? "star.fill" : "star")
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundColor(item.favorite ? Color(hex: "F59E0B") : secondaryInk)
-                        .frame(width: 34, height: 34)
-                        .background(item.favorite ? (colorScheme == .dark ? Color(hex: "45351C") : Color(hex: "FEF3C7")) : detailSurface, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                .strokeBorder(detailBorder, lineWidth: 1)
-                        )
-                }
-                .buttonStyle(.plain)
-
-                // 2. Keep / Archive / Move to Inbox Status Action Pill
-                statusActionButton
-
-                // 4. Collections Button
-                Button {
-                    showingCollectionSheet = true
-                    LBHaptic.light()
-                } label: {
-                    Image(systemName: (item.collectionName != nil && !item.collectionName!.isEmpty) ? "folder.fill" : "folder.badge.plus")
-                        .font(.system(size: 14, weight: .semibold))
-                         .foregroundColor(colorScheme == .dark ? Color(hex: "7DD3FC") : Color(hex: "0369A1"))
-                        .frame(width: 34, height: 34)
-                        .background(detailSurface, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                .strokeBorder(detailBorder, lineWidth: 1)
-                        )
-                }
-                .buttonStyle(.plain)
-
-                // 4. Share / Copy Link Button
-                if let urlStr = item.url, let url = URL(string: urlStr) {
-                    ShareLink(item: url) {
-                        Image(systemName: "square.and.arrow.up")
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundColor(secondaryInk)
-                            .frame(width: 34, height: 34)
-                            .background(detailSurface, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                    .strokeBorder(detailBorder, lineWidth: 1)
-                            )
-                    }
-                    .buttonStyle(.plain)
-                } else {
-                    Button {
-                        let textToCopy = item.title + (item.textContent.map { "\n\n\($0)" } ?? "")
-                        UIPasteboard.general.string = textToCopy
-                        LBHaptic.success()
-                    } label: {
-                        Image(systemName: "doc.on.doc")
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundColor(secondaryInk)
-                            .frame(width: 34, height: 34)
-                            .background(detailSurface, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                    .strokeBorder(detailBorder, lineWidth: 1)
-                            )
-                    }
-                    .buttonStyle(.plain)
-                }
-
-                // 5. External Safari Link (if URL exists)
-                if let urlStr = item.url, let url = URL(string: urlStr) {
-                    Link(destination: url) {
-                        Image(systemName: "arrow.up.right.square")
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundColor(secondaryInk)
-                            .frame(width: 34, height: 34)
-                            .background(detailSurface, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                    .strokeBorder(detailBorder, lineWidth: 1)
-                            )
-                    }
-                    .buttonStyle(.plain)
-                }
-
-                // 6. Delete Button
-                Button {
-                    showingDeleteConfirm = true
-                    LBHaptic.light()
-                } label: {
-                    Image(systemName: "trash")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(Color(hex: "EF4444"))
-                        .frame(width: 34, height: 34)
-                        .background(detailSurface, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                .strokeBorder(detailBorder, lineWidth: 1)
-                        )
-                }
-                .buttonStyle(.plain)
-            }
+            Spacer(minLength: 0)
+            favoriteAction
+            statusActionButton
+            moreItemActionsMenu
         }
-        .padding(.horizontal, 14)
-        .padding(.top, 8)
-        .padding(.bottom, 8)
+        .padding(.horizontal, 16)
+        .frame(height: 54)
         .background(Color.clear)
+    }
+
+    private var favoriteAction: some View {
+        Button {
+            coordinator.toggleFavorite(item: item, context: modelContext)
+            LBHaptic.medium()
+        } label: {
+            Image(systemName: item.favorite ? "star.fill" : "star")
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundStyle(item.favorite ? Color(hex: "F59E0B") : primaryInk)
+                .frame(width: 34, height: 34)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(item.favorite ? "Unstar item" : "Star item")
+    }
+
+    private var moreItemActionsMenu: some View {
+        Menu {
+            Button("Manage Collections", systemImage: "folder.badge.plus") {
+                showingCollectionSheet = true
+            }
+            Button("Schedule Return", systemImage: "clock") {
+                showingSchedulePicker = true
+            }
+            Button("Edit Tags", systemImage: "tag") {
+                showingTagsSheet = true
+            }
+
+            Divider()
+
+            Button(didCopySource ? "Copied" : (item.url == nil ? "Copy Text" : "Copy Link"),
+                   systemImage: didCopySource ? "checkmark" : "doc.on.doc") {
+                let copyValue = item.url ?? item.textContent ?? item.title
+                UIPasteboard.general.string = copyValue
+                didCopySource = true
+                LBHaptic.success()
+            }
+
+            if let rawURL = item.url,
+               let url = URL(string: rawURL),
+               url.scheme == "https" || url.scheme == "http" {
+                Button("Open Original", systemImage: "arrow.up.right") {
+                    showingSafariReader = true
+                }
+                ShareLink(item: url) {
+                    Label("Share Link", systemImage: "square.and.arrow.up")
+                }
+            }
+
+            Divider()
+            Button("Delete Item", systemImage: "trash", role: .destructive) {
+                showingDeleteConfirm = true
+            }
+        } label: {
+            Image(systemName: "ellipsis.circle")
+                .font(.system(size: 19, weight: .medium))
+                .foregroundStyle(primaryInk)
+                .frame(width: 34, height: 34)
+        }
+        .accessibilityLabel("More item actions")
+        .accessibilityIdentifier("Item Detail Actions")
     }
 
     // MARK: - Status Action Button (Keep / Archive / Move to Inbox)
@@ -577,53 +658,7 @@ public struct ItemDetailView: View {
         .shadow(color: Color.black.opacity(0.02), radius: 4, y: 1)
     }
 
-    // MARK: - 3. Main Header Card
-    private var mainHeaderCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            headerSenderRow
-            headerTitleAndDescription
-            headerTagsPreview
-            headerActionControlsRow
-        }
-        .padding(16)
-        .background(detailSurface)
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .strokeBorder(detailBorder, lineWidth: 1)
-        )
-        .shadow(color: Color.black.opacity(0.03), radius: 6, y: 2)
-    }
-
-    private var headerSenderRow: some View {
-        HStack(spacing: 8) {
-            ZStack {
-                Circle()
-                    .fill(Color(hex: "171711"))
-                    .frame(width: 22, height: 22)
-                Text(senderInitial)
-                    .font(.system(size: 10, weight: .black))
-                    .foregroundColor(Color(hex: "E6EDB0"))
-            }
-
-            Text(domainOrSender)
-                .font(.system(size: 13, weight: .bold))
-                .foregroundColor(primaryInk)
-
-            Text(item.parsedContentType.rawValue.capitalized)
-                .font(.system(size: 10, weight: .bold))
-                .padding(.horizontal, 7)
-                .padding(.vertical, 3)
-                .background(Color(hex: "E6EDB0"), in: Capsule())
-                .foregroundColor(Color(hex: "171711"))
-
-            Spacer()
-
-            Text(item.createdAt, format: .dateTime.month().day().year())
-                .font(.system(size: 11, weight: .medium))
-                .foregroundColor(Color.secondary)
-        }
-    }
+    // MARK: - Metadata and editable title
 
     private var headerTitleAndDescription: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -738,6 +773,59 @@ public struct ItemDetailView: View {
                 }
             }
             .padding(.top, 2)
+        }
+    }
+
+    // Plain tasks use the web's single completion control; only structured
+    // checklist tasks render the full editable checklist.
+    private func simpleTaskCompletionCard(content: String) -> some View {
+        let isCompleted = item.parsedStatus == .archived
+        return VStack(alignment: .leading, spacing: 12) {
+            Button {
+                if isCompleted {
+                    item.status = ItemStatus.inbox.rawValue
+                    item.inboxEnteredAt = Date()
+                } else {
+                    item.status = ItemStatus.archived.rawValue
+                    item.returnAt = nil
+                }
+                persistEdit()
+                Task { await coordinator.syncPendingItems(context: modelContext) }
+                LBHaptic.medium()
+            } label: {
+                HStack(spacing: 12) {
+                    Image(systemName: isCompleted ? "checkmark.square.fill" : "square")
+                        .font(.system(size: 25, weight: .medium))
+                        .foregroundStyle(isCompleted ? Color(hex: "7D9B58") : secondaryInk)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(isCompleted ? "Task completed" : "Mark as completed")
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundStyle(primaryInk)
+                        Text(isCompleted ? "Tap to reopen this task" : "Complete this when you are finished")
+                            .font(.system(size: 12))
+                            .foregroundStyle(secondaryInk)
+                    }
+                    Spacer(minLength: 0)
+                }
+                .padding(14)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(colorScheme == .dark ? Color(hex: "2B3028") : Color(hex: "F8FBF0"),
+                            in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .strokeBorder(detailBorder, lineWidth: 1)
+                }
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(isCompleted ? "Reopen task" : "Mark task as completed")
+
+            if !content.isEmpty && content != item.title {
+                Text(content)
+                    .font(.system(size: 14))
+                    .foregroundStyle(primaryInk)
+                    .textSelection(.enabled)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
         }
     }
 
@@ -860,13 +948,7 @@ public struct ItemDetailView: View {
         }
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(detailSurface)
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .strokeBorder(detailBorder, lineWidth: 1)
-        )
-        .shadow(color: Color.black.opacity(0.03), radius: 6, y: 2)
+
     }
 
     // MARK: - 6. Tasks & To-Do Checklist Card
@@ -1165,6 +1247,8 @@ public struct ItemDetailView: View {
                     .foregroundColor(.secondary)
                     .padding(.vertical, 4)
             }
+            inlineNotesComposer
+                .padding(.top, 4)
         }
         .padding(14)
         .background(detailSurface)
@@ -1176,83 +1260,61 @@ public struct ItemDetailView: View {
         .shadow(color: Color.black.opacity(0.02), radius: 4, y: 1)
     }
 
-    // MARK: - Bottom Input Bar
-    private var bottomChatInputBar: some View {
-        VStack(spacing: 0) {
-            // Quoted reply banner if replying to a specific snippet
+    // Web detail pages keep personal notes beneath the primary item card.
+    // This editor sits in the notes section instead of occupying screen space
+    // as a permanent bottom dock during article reading.
+    private var inlineNotesComposer: some View {
+        VStack(spacing: 8) {
             if let snippet = quotedSnippet {
                 HStack(spacing: 8) {
-                    Image(systemName: "arrowshape.turn.up.left.fill")
-                        .font(.system(size: 11))
-                        .foregroundColor(Color.secondary)
-
+                    Image(systemName: "quote.bubble")
                     Text("Replying to: \"\(snippet)\"")
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundColor(primaryInk)
                         .lineLimit(1)
-
                     Spacer()
-
                     Button {
                         quotedSnippet = nil
-                        LBHaptic.light()
                     } label: {
                         Image(systemName: "xmark.circle.fill")
-                            .font(.system(size: 14))
-                            .foregroundColor(Color.secondary)
                     }
                     .buttonStyle(.plain)
                 }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 6)
-                .background(insetSurface)
-                .transition(.opacity.combined(with: .move(edge: .bottom)))
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(secondaryInk)
+                .padding(.horizontal, 9)
             }
 
-            // Input Pill
-            HStack(spacing: 10) {
-                TextField("Add a note or thought...", text: $noteDraftText, axis: .vertical)
+            HStack(alignment: .bottom, spacing: 10) {
+                TextField("Add a personal note...", text: $noteDraftText, axis: .vertical)
                     .font(.system(size: 14))
-                    .foregroundColor(primaryInk)
-                    .lineLimit(1...4)
+                    .foregroundStyle(primaryInk)
+                    .lineLimit(1...5)
                     .focused($isNoteFocused)
                     .submitLabel(.send)
-                    .padding(.leading, 6)
-                    .onSubmit {
-                        sendNote()
-                    }
+                    .onSubmit { sendNote() }
+                    .padding(.vertical, 4)
 
                 let canSend = !noteDraftText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                 Button {
                     sendNote()
                 } label: {
-                    ZStack {
-                        Circle()
-                             .fill(canSend ? Color(hex: "171711") : subtleFill)
-                            .frame(width: 32, height: 32)
-                        Image(systemName: "arrow.up")
-                            .font(.system(size: 13, weight: .bold))
-                             .foregroundColor(canSend ? Color(hex: "E6EDB0") : mutedSymbol)
-                    }
+                    Image(systemName: "arrow.up")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundStyle(canSend ? Color(hex: "171711") : secondaryInk)
+                        .frame(width: 32, height: 32)
+                        .background(canSend ? AppTheme.accent : subtleFill, in: Circle())
                 }
                 .buttonStyle(.plain)
                 .disabled(!canSend)
+                .accessibilityLabel("Add note")
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
-            .background(detailSurface)
-            .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
+            .background(insetSurface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
                     .strokeBorder(detailBorder, lineWidth: 1)
-            )
-            .shadow(color: Color.black.opacity(0.06), radius: 8, y: 3)
-            .padding(.horizontal, 14)
-            .padding(.top, 6)
-            .padding(.bottom, 8)
+            }
         }
-        // Let the single underlying page canvas reach the safe area.
-        .background(Color.clear)
     }
 
     // MARK: - Follow-up Entry Card

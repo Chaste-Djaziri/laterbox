@@ -92,6 +92,9 @@ final class laterbox_iosUITests: XCTestCase {
         }
         row.tap()
         XCTAssertFalse(header.exists, "Inbox header must disappear on pushed details")
+        XCTAssertFalse(app.staticTexts["Item Details"].exists, "Avoid a generic detail title")
+        XCTAssertTrue(app.buttons["Item Detail Actions"].waitForExistence(timeout: 5),
+                      "Item details must retain the web-aligned More actions")
 
         // Native iOS edge swipe should return directly to the Inbox root.
         let start = app.coordinate(withNormalizedOffset: CGVector(dx: 0.02, dy: 0.42))
