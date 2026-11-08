@@ -61,11 +61,8 @@ struct MainTabTests {
     @Test("Only Inbox owns the custom top header")
     func headerVisibility() {
         #expect(MainTab.inbox.showsAppHeader)
-        #expect(MainTab.inbox.shouldShowHeader(itemDetailPushed: false))
-        #expect(!MainTab.inbox.shouldShowHeader(itemDetailPushed: true))
         for tab in MainTab.allCases where tab != .inbox {
             #expect(!tab.showsAppHeader)
-            #expect(!tab.shouldShowHeader(itemDetailPushed: false))
         }
     }
 

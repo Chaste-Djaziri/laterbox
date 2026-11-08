@@ -30,9 +30,9 @@ public struct InboxView: View {
     private let initialMailbox: MailboxViewType
     private let isTabRoot: Bool
     private var usesHeaderRefreshLogo: Bool { isTabRoot && initialMailbox == .inbox }
-    @Binding private var refreshPull: CGFloat
-    @Binding private var refreshIsRunning: Bool
-    @Binding private var detailIsPushed: Bool
+    // Refresh feedback is local to the Inbox root. It no longer changes the tab shell's height.
+    @State private var refreshPull: CGFloat = 0
+    @State private var refreshIsRunning = false
     @State private var itemPath: [String] = []
     @State private var selectedCollection: String? = nil
     @State private var showingPlans: Bool = false
@@ -56,19 +56,10 @@ public struct InboxView: View {
     @State private var searchStarredOnly: Bool = false
     @State private var searchHasAttachmentOnly: Bool = false
 
-    public init(
-        initialMailbox: MailboxViewType = .inbox,
-        isTabRoot: Bool = false,
-        refreshPull: Binding<CGFloat> = .constant(0),
-        refreshIsRunning: Binding<Bool> = .constant(false),
-        detailIsPushed: Binding<Bool> = .constant(false)
-    ) {
+    public init(initialMailbox: MailboxViewType = .inbox, isTabRoot: Bool = false) {
         self.initialMailbox = initialMailbox
         self.isTabRoot = isTabRoot
         self._selectedMailbox = State(initialValue: initialMailbox)
-        self._refreshPull = refreshPull
-        self._refreshIsRunning = refreshIsRunning
-        self._detailIsPushed = detailIsPushed
     }
 
     private func profileMenuRow(_ title: String, icon: String, destructive: Bool = false, action: @escaping () -> Void) -> some View {
@@ -267,6 +258,15 @@ public struct InboxView: View {
                 InboxAppearance.background(for: colorScheme).ignoresSafeArea()
 
                 VStack(spacing: 0) {
+                    // The header is part of this navigation root, not the outer
+                    // TabView. A push removes it without resizing the Inbox shell.
+                    if usesHeaderRefreshLogo {
+                        InboxHeaderView(
+                            refreshPull: $refreshPull,
+                            refreshIsRunning: $refreshIsRunning
+                        )
+                    }
+
                     ScrollView {
                         VStack(alignment: .leading, spacing: 0) {
                         if usesHeaderRefreshLogo {
@@ -642,6 +642,7 @@ public struct InboxView: View {
                                                     )
                                                 }
                                                 .buttonStyle(.plain)
+                                                .accessibilityIdentifier("Inbox Item Row \(item.id)")
                                         // Reset UIKit swipe state when an item moves between mailboxes.
                                         .id("\(item.status)-search-\(item.id)")
                                             }
@@ -755,6 +756,7 @@ public struct InboxView: View {
                                             )
                                         }
                                         .buttonStyle(.plain)
+                                        .accessibilityIdentifier("Inbox Item Row \(item.id)")
                                         // Reset UIKit swipe state when an item moves between mailboxes.
                                         .id("\(selectedMailbox.rawValue)-\(selectedCollection ?? "")-\(item.id)")
                                     }
@@ -903,7 +905,7 @@ public struct InboxView: View {
                 )
                 .zIndex(100)
             }
-            .navigationBarHidden(true)
+            .toolbar(.hidden, for: .navigationBar)
             .navigationDestination(for: String.self) { id in
                 if let item = allItems.first(where: { $0.id == id }) {
                     ItemDetailView(item: item, usesNativeNavigation: true)
@@ -912,9 +914,6 @@ public struct InboxView: View {
                         .navigationTitle("Item")
                         .navigationBarTitleDisplayMode(.inline)
                 }
-            }
-            .onChange(of: itemPath) { _, path in
-                detailIsPushed = !path.isEmpty
             }
             .confirmationDialog(
                 "Delete All Items?",

@@ -72,6 +72,39 @@ final class laterbox_iosUITests: XCTestCase {
     }
 
     @MainActor
+    func testInboxSearchStaysAlignedAfterItemPushAndSwipeBack() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["-lb_guest_mode", "YES", "-lb_user_email", ""]
+        app.launch()
+
+        let search = app.buttons["Search saved items"]
+        let header = app.buttons["LaterBox home"]
+        XCTAssertTrue(search.waitForExistence(timeout: 15))
+        XCTAssertTrue(header.exists)
+        let originalSearchY = search.frame.minY
+
+        // This visual navigation regression needs at least one item in the test library.
+        let row = app.buttons.matching(
+            NSPredicate(format: "identifier BEGINSWITH %@", "Inbox Item Row ")
+        ).firstMatch
+        guard row.waitForExistence(timeout: 3) else {
+            throw XCTSkip("Requires an Inbox item to verify detail navigation and return geometry")
+        }
+        row.tap()
+        XCTAssertFalse(header.exists, "Inbox header must disappear on pushed details")
+
+        // Native iOS edge swipe should return directly to the Inbox root.
+        let start = app.coordinate(withNormalizedOffset: CGVector(dx: 0.02, dy: 0.42))
+        let end = app.coordinate(withNormalizedOffset: CGVector(dx: 0.78, dy: 0.42))
+        start.press(forDuration: 0.05, thenDragTo: end)
+
+        XCTAssertTrue(header.waitForExistence(timeout: 5))
+        XCTAssertTrue(search.waitForExistence(timeout: 5))
+        XCTAssertEqual(search.frame.minY, originalSearchY, accuracy: 3,
+            "Returning from item details must not leave a top gap above Inbox search")
+    }
+
+    @MainActor
     func testGuestSubscriptionReviewWalkthrough() throws {
         let file = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().appendingPathComponent("laterbox-ios/Products.storekit")
         let session = try SKTestSession(contentsOf: file)

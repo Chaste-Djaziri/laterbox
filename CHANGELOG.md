@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[iOS / Inbox return layout]** Keep the Inbox search bar flush beneath its header after returning from an item detail by housing the header inside the Inbox NavigationStack root instead of resizing the outer tab shell during a push/pop. Restore stable navigation-bar safe-area handling and preserve the existing logo refresh, capture, and cloud quota controls.
+
 - **[iOS / Cloud storage indicator]** Match the web sidebar's circular, status-colored cloud quota ring in the Inbox header, using the authenticated billing entitlement's server-reported storage used/limit and free/Plus/Vault plan. Replace local-device storage details with a cloud usage sheet and plans action; never infer paid cloud usage from local files or show invented percentages when quota is unavailable.
 
 - **[iOS / Inbox navigation and storage]** Replace the top-right More menu with a live on-device storage-usage component linking to Storage Management. Push Inbox and Kept item details through a real NavigationStack path, hide the Inbox-only header while a detail is open, restore the native navigation back button and edge-swipe gesture, and keep item actions accessible from its toolbar.
