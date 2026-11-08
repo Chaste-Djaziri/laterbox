@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[App / Sidebar Tooltips]** Display styled, keyboard-accessible icon labels beside the real dashboard sidebar on hover or focus, including navigation, quick save, collections, plan, and sync. Tooltip layer remains visible outside the rail’s clipped scroll container.
+
 - **[App / Collections Flyout]** Remove the desktop icon rail’s right border and anchor a fixed-size Collections popover beside its folder icon, with a visual pointer and an independently scrollable collection list while keeping creation and management accessible.
 
 - **[App / Sidebar]** Switch the authenticated desktop dashboard to a compact, large-icon-only navigation rail; keep tooltips, counts, quick capture, plan status, sync and collection management available through an accessible flyout.

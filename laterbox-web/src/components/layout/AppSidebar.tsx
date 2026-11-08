@@ -1,9 +1,10 @@
 // laterbox-web/src/components/layout/AppSidebar.tsx
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type FocusEvent, type FormEvent, type MouseEvent } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { createPortal } from 'react-dom';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   Archive, CalendarClock, CalendarDays, Check, CheckCircle2, Clock, Compass,
@@ -39,6 +40,7 @@ export function AppSidebar({ onOpenCapture }: AppSidebarProps) {
   const [busyCollection, setBusyCollection] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [collectionError, setCollectionError] = useState('');
+  const [tooltip, setTooltip] = useState<{ label: string; left: number; top: number } | null>(null);
 
   const sidebarRef = useRef<HTMLElement>(null);
   const collectionPanelRef = useRef<HTMLDivElement>(null);
@@ -141,6 +143,32 @@ export function AppSidebar({ onOpenCapture }: AppSidebarProps) {
     return pathname === href || pathname.startsWith(`${href}/`);
   };
 
+  const showTooltip = (element: HTMLElement, label: string) => {
+    const bounds = element.getBoundingClientRect();
+    setTooltip({
+      label,
+      left: bounds.right + 14,
+      top: Math.max(24, Math.min(window.innerHeight - 24, bounds.top + bounds.height / 2)),
+    });
+  };
+
+  const tooltipHandlers = (label: string) => ({
+    onMouseEnter: (event: MouseEvent<HTMLElement>) => showTooltip(event.currentTarget, label),
+    onMouseLeave: () => setTooltip(null),
+    onFocus: (event: FocusEvent<HTMLElement>) => showTooltip(event.currentTarget, label),
+    onBlur: () => setTooltip(null),
+  });
+
+  useEffect(() => {
+    const hideOnScroll = () => setTooltip(null);
+    document.addEventListener('scroll', hideOnScroll, true);
+    window.addEventListener('resize', hideOnScroll);
+    return () => {
+      document.removeEventListener('scroll', hideOnScroll, true);
+      window.removeEventListener('resize', hideOnScroll);
+    };
+  }, []);
+
   const railItemClass = (active: boolean) =>
     `relative group flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-2xl border transition-all duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#758a50] ${
       active
@@ -160,7 +188,8 @@ export function AppSidebar({ onOpenCapture }: AppSidebarProps) {
         href={href}
         aria-label={label}
         aria-current={active ? 'page' : undefined}
-        title={count ? `${label} (${count})` : label}
+        {...tooltipHandlers(count ? `${label} (${count})` : label)}
+        onClick={() => setTooltip(null)}
         className={railItemClass(active)}
       >
         <Icon className="h-[26px] w-[26px]" strokeWidth={active ? 2.3 : 1.85} aria-hidden="true" />
@@ -241,7 +270,8 @@ export function AppSidebar({ onOpenCapture }: AppSidebarProps) {
       <Link
         href="/inbox"
         aria-label="LaterBox home"
-        title="LaterBox home"
+        {...tooltipHandlers('LaterBox home')}
+        onClick={() => setTooltip(null)}
         className="relative flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-2xl bg-[#e6edb0] transition-transform hover:-rotate-3 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#758a50]"
       >
         <Image src="/branding/laterbox-icon.png" alt="" fill priority sizes="52px" className="object-contain p-1.5" />
@@ -253,7 +283,7 @@ export function AppSidebar({ onOpenCapture }: AppSidebarProps) {
         type="button"
         onClick={onOpenCapture}
         aria-label="Save item"
-        title="Save Item (Control + Option + L)"
+        {...tooltipHandlers('Save Item · Ctrl + Alt + L')}
         className="group flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-2xl bg-[#171711] text-[#e6edb0] shadow-[0_6px_14px_rgba(23,23,17,0.12)] transition-all hover:-translate-y-0.5 hover:bg-[#30372a] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#758a50]"
       >
         <Plus className="h-[28px] w-[28px] transition-transform group-hover:rotate-90" strokeWidth={2.6} aria-hidden="true" />
@@ -272,8 +302,9 @@ export function AppSidebar({ onOpenCapture }: AppSidebarProps) {
           aria-label="Collections"
           aria-expanded={collectionsOpen}
           aria-controls="laterbox-collections-panel"
-          title="Collections"
+          {...tooltipHandlers('Collections')}
           onClick={() => {
+            setTooltip(null);
             if (collectionsOpen) closeCollections();
             else {
               updateCollectionPosition();
@@ -300,13 +331,17 @@ export function AppSidebar({ onOpenCapture }: AppSidebarProps) {
         <Link
           href="/plans"
           aria-label={`Plans — ${plan.label || 'Free Plan'}`}
-          title={`Plans — ${plan.label || 'Free Plan'}`}
+          {...tooltipHandlers(`Plans · ${plan.label || 'Free Plan'}`)}
+          onClick={() => setTooltip(null)}
           aria-current={isActive('/plans') ? 'page' : undefined}
           className={railItemClass(isActive('/plans'))}
         >
           <Crown className="h-[25px] w-[25px]" strokeWidth={1.9} aria-hidden="true" />
         </Link>
-        <div className="flex h-[52px] w-[52px] items-center justify-center">
+        <div
+          className="flex h-[52px] w-[52px] items-center justify-center"
+          {...tooltipHandlers('Sync status')}
+        >
           <CloudSyncIndicator
             compact
             className="!flex !h-[52px] !w-[52px] !items-center !justify-center !rounded-2xl [&_svg]:!h-[25px] [&_svg]:!w-[25px]"
@@ -465,6 +500,18 @@ export function AppSidebar({ onOpenCapture }: AppSidebarProps) {
           </nav>
           {collectionError && <p role="alert" className="shrink-0 border-t border-[#f0ede5] bg-red-50 px-4 py-3 text-xs font-semibold text-red-700">{collectionError}</p>}
         </div>
+      )}
+      {tooltip && typeof document !== 'undefined' && createPortal(
+        <div
+          role="tooltip"
+          aria-hidden="true"
+          style={{ left: tooltip.left, top: tooltip.top, transform: 'translateY(-50%)' }}
+          className="pointer-events-none fixed z-[1000] max-w-[230px] whitespace-nowrap rounded-xl bg-[#20271c] px-3 py-2 text-xs font-bold text-white shadow-[0_10px_28px_rgba(19,24,14,0.24)]"
+        >
+          <span className="absolute -left-1 top-1/2 h-2 w-2 -translate-y-1/2 rotate-45 bg-[#20271c]" />
+          {tooltip.label}
+        </div>,
+        document.body
       )}
     </aside>
   );
