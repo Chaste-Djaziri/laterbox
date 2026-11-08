@@ -148,6 +148,7 @@ public struct HTMLContentView: UIViewRepresentable {
 // MARK: - Markdown Content View
 
 public struct MarkdownContentView: View {
+    @Environment(\.colorScheme) private var colorScheme
     public let text: String
 
     public init(text: String) {
@@ -158,7 +159,7 @@ public struct MarkdownContentView: View {
         VStack(alignment: .leading, spacing: 10) {
             Text(LocalizedStringKey(text))
                 .font(.subheadline)
-                .foregroundColor(AppTheme.textPrimary)
+                .foregroundColor(InboxAppearance.textPrimary(for: colorScheme))
                 .lineSpacing(4)
                 .textSelection(.enabled)
                 .tint(AppTheme.accent)
@@ -170,6 +171,7 @@ public struct MarkdownContentView: View {
 // MARK: - Rich Content Viewer Card (For Captured Text & Articles)
 
 public struct RichCapturedContentViewer: View {
+    @Environment(\.colorScheme) private var colorScheme
     public let title: String
     public let content: String
     public let formattedHTML: String?
@@ -190,10 +192,10 @@ public struct RichCapturedContentViewer: View {
                 HStack(spacing: 6) {
                     Image(systemName: "doc.text.magnifyingglass")
                         .font(.caption.weight(.bold))
-                        .foregroundColor(AppTheme.textSecondary)
+                        .foregroundColor(InboxAppearance.textSecondary(for: colorScheme))
                     Text(title.uppercased())
                         .font(.caption.weight(.bold))
-                        .foregroundColor(AppTheme.textSecondary)
+                        .foregroundColor(InboxAppearance.textSecondary(for: colorScheme))
                         .tracking(0.6)
                 }
 
@@ -217,9 +219,9 @@ public struct RichCapturedContentViewer: View {
                     }
                     .padding(.horizontal, 9)
                     .padding(.vertical, 5)
-                    .background(Capsule().fill(copiedToast ? AppTheme.accent : AppTheme.background))
-                    .overlay(Capsule().strokeBorder(AppTheme.cardBorder, lineWidth: 1))
-                    .foregroundColor(AppTheme.textPrimary)
+                    .background(Capsule().fill(copiedToast ? AppTheme.accent : InboxAppearance.surface(for: colorScheme)))
+                    .overlay(Capsule().strokeBorder(InboxAppearance.border(for: colorScheme), lineWidth: 1))
+                    .foregroundColor(copiedToast ? Color(hex: "171711") : InboxAppearance.textPrimary(for: colorScheme))
                 }
                 .buttonStyle(.plain)
             }
@@ -242,7 +244,7 @@ public struct RichCapturedContentViewer: View {
                         Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
                             .font(.caption2.weight(.bold))
                     }
-                    .foregroundColor(AppTheme.accent)
+                    .foregroundColor(colorScheme == .dark ? AppTheme.accent : Color(hex: "496A33"))
                     .frame(maxWidth: .infinity, alignment: .center)
                     .padding(.top, 4)
                 }
@@ -250,7 +252,14 @@ public struct RichCapturedContentViewer: View {
             }
         }
         .padding(16)
-        .liquidGlassCard(cornerRadius: 18)
+        .background(
+            InboxAppearance.surface(for: colorScheme),
+            in: RoundedRectangle(cornerRadius: 18, style: .continuous)
+        )
+        .overlay {
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .strokeBorder(InboxAppearance.border(for: colorScheme), lineWidth: 1)
+        }
     }
 }
 

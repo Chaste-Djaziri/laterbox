@@ -18,7 +18,29 @@ struct IdentifiableURL: Identifiable {
 public struct ItemDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.colorScheme) private var colorScheme
     @Bindable public var item: LBItem
+
+    // Shared with the Inbox: white in Light Mode, graphite/grain in Dark Mode.
+    private var primaryInk: Color { InboxAppearance.textPrimary(for: colorScheme) }
+    private var secondaryInk: Color { InboxAppearance.textSecondary(for: colorScheme) }
+    private var detailSurface: Color { InboxAppearance.surface(for: colorScheme) }
+    private var detailBorder: Color { InboxAppearance.border(for: colorScheme) }
+    private var insetSurface: Color {
+        colorScheme == .dark ? Color(hex: "303438") : Color(hex: "F7F5EE")
+    }
+    private var subtleFill: Color {
+        colorScheme == .dark ? Color.white.opacity(0.08) : Color.black.opacity(0.04)
+    }
+    private var mutedSymbol: Color {
+        colorScheme == .dark ? Color.white.opacity(0.44) : Color.black.opacity(0.3)
+    }
+    private var highlightSurface: Color {
+        colorScheme == .dark ? Color(hex: "413525") : Color(hex: "FEF3C7").opacity(0.7)
+    }
+    private var highlightInk: Color {
+        colorScheme == .dark ? Color(hex: "FFE0A2") : Color(hex: "92400E")
+    }
     @ObservedObject var coordinator = SyncCoordinator.shared
     @Query(sort: \LBCollection.name) private var availableCollections: [LBCollection]
 
@@ -73,8 +95,8 @@ public struct ItemDetailView: View {
 
     public var body: some View {
         ZStack {
-            // Warm signature canvas background matching web & mobile inbox
-            AppTheme.canvasBackground
+            // The same adaptive white / graphite grain as the Inbox.
+            InboxGrainBackground()
                 .ignoresSafeArea()
 
             VStack(spacing: 0) {
@@ -162,6 +184,8 @@ public struct ItemDetailView: View {
             }
         }
         .toolbar(usesNativeNavigation ? .visible : .hidden, for: .navigationBar)
+        // Let the graphite page show through the pushed system navigation bar.
+        .toolbarBackground(.hidden, for: .navigationBar)
         .navigationTitle(usesNativeNavigation ? "Item Details" : "")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -275,7 +299,7 @@ public struct ItemDetailView: View {
                     Text(isModal ? "Done" : "Back")
                         .font(.system(size: 14, weight: .semibold))
                 }
-                .foregroundColor(AppTheme.textPrimary)
+                .foregroundColor(primaryInk)
                 .padding(.vertical, 8)
                 .padding(.horizontal, 4)
             }
@@ -292,12 +316,12 @@ public struct ItemDetailView: View {
                 } label: {
                     Image(systemName: item.favorite ? "star.fill" : "star")
                         .font(.system(size: 15, weight: .semibold))
-                        .foregroundColor(item.favorite ? Color(hex: "F59E0B") : Color(hex: "6C6B63"))
+                        .foregroundColor(item.favorite ? Color(hex: "F59E0B") : secondaryInk)
                         .frame(width: 34, height: 34)
-                        .background(item.favorite ? Color(hex: "FEF3C7") : Color.white, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                        .background(item.favorite ? (colorScheme == .dark ? Color(hex: "45351C") : Color(hex: "FEF3C7")) : detailSurface, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
                         .overlay(
                             RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                .strokeBorder(Color.black.opacity(0.08), lineWidth: 1)
+                                .strokeBorder(detailBorder, lineWidth: 1)
                         )
                 }
                 .buttonStyle(.plain)
@@ -312,12 +336,12 @@ public struct ItemDetailView: View {
                 } label: {
                     Image(systemName: (item.collectionName != nil && !item.collectionName!.isEmpty) ? "folder.fill" : "folder.badge.plus")
                         .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(Color(hex: "0369A1"))
+                         .foregroundColor(colorScheme == .dark ? Color(hex: "7DD3FC") : Color(hex: "0369A1"))
                         .frame(width: 34, height: 34)
-                        .background(Color.white, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                        .background(detailSurface, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
                         .overlay(
                             RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                .strokeBorder(Color.black.opacity(0.08), lineWidth: 1)
+                                .strokeBorder(detailBorder, lineWidth: 1)
                         )
                 }
                 .buttonStyle(.plain)
@@ -327,12 +351,12 @@ public struct ItemDetailView: View {
                     ShareLink(item: url) {
                         Image(systemName: "square.and.arrow.up")
                             .font(.system(size: 14, weight: .semibold))
-                            .foregroundColor(Color(hex: "6C6B63"))
+                            .foregroundColor(secondaryInk)
                             .frame(width: 34, height: 34)
-                            .background(Color.white, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                            .background(detailSurface, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
                             .overlay(
                                 RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                    .strokeBorder(Color.black.opacity(0.08), lineWidth: 1)
+                                    .strokeBorder(detailBorder, lineWidth: 1)
                             )
                     }
                     .buttonStyle(.plain)
@@ -344,12 +368,12 @@ public struct ItemDetailView: View {
                     } label: {
                         Image(systemName: "doc.on.doc")
                             .font(.system(size: 14, weight: .semibold))
-                            .foregroundColor(Color(hex: "6C6B63"))
+                            .foregroundColor(secondaryInk)
                             .frame(width: 34, height: 34)
-                            .background(Color.white, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                            .background(detailSurface, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
                             .overlay(
                                 RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                    .strokeBorder(Color.black.opacity(0.08), lineWidth: 1)
+                                    .strokeBorder(detailBorder, lineWidth: 1)
                             )
                     }
                     .buttonStyle(.plain)
@@ -360,12 +384,12 @@ public struct ItemDetailView: View {
                     Link(destination: url) {
                         Image(systemName: "arrow.up.right.square")
                             .font(.system(size: 14, weight: .semibold))
-                            .foregroundColor(Color(hex: "6C6B63"))
+                            .foregroundColor(secondaryInk)
                             .frame(width: 34, height: 34)
-                            .background(Color.white, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                            .background(detailSurface, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
                             .overlay(
                                 RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                    .strokeBorder(Color.black.opacity(0.08), lineWidth: 1)
+                                    .strokeBorder(detailBorder, lineWidth: 1)
                             )
                     }
                     .buttonStyle(.plain)
@@ -380,10 +404,10 @@ public struct ItemDetailView: View {
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundColor(Color(hex: "EF4444"))
                         .frame(width: 34, height: 34)
-                        .background(Color.white, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                        .background(detailSurface, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
                         .overlay(
                             RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                .strokeBorder(Color.black.opacity(0.08), lineWidth: 1)
+                                .strokeBorder(detailBorder, lineWidth: 1)
                         )
                 }
                 .buttonStyle(.plain)
@@ -392,7 +416,7 @@ public struct ItemDetailView: View {
         .padding(.horizontal, 14)
         .padding(.top, 8)
         .padding(.bottom, 8)
-        .background(AppTheme.canvasBackground)
+        .background(Color.clear)
     }
 
     // MARK: - Status Action Button (Keep / Archive / Move to Inbox)
@@ -440,13 +464,13 @@ public struct ItemDetailView: View {
             .background(
                 (item.status == ItemStatus.inbox.rawValue || item.status == ItemStatus.deferred.rawValue)
                     ? Color(hex: "E6EDB0")
-                    : Color.white,
+                    : detailSurface,
                 in: RoundedRectangle(cornerRadius: 10, style: .continuous)
             )
-            .foregroundColor(Color(hex: "171711"))
+            .foregroundColor(colorScheme == .dark && item.status != ItemStatus.inbox.rawValue && item.status != ItemStatus.deferred.rawValue ? primaryInk : Color(hex: "171711"))
             .overlay(
                 RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .strokeBorder(Color.black.opacity(0.08), lineWidth: 1)
+                    .strokeBorder(detailBorder, lineWidth: 1)
             )
         }
         .buttonStyle(.plain)
@@ -457,14 +481,14 @@ public struct ItemDetailView: View {
         HStack(spacing: 10) {
             Image(systemName: "tray.full.fill")
                 .font(.system(size: 16))
-                .foregroundStyle(AppTheme.textPrimary)
+                 .foregroundStyle(Color(hex: "171711"))
                 .frame(width: 30, height: 30)
                 .background(AppTheme.accent, in: Circle())
 
             VStack(alignment: .leading, spacing: 2) {
                 Text("In Inbox")
                     .font(.system(size: 12, weight: .bold))
-                    .foregroundStyle(AppTheme.textPrimary)
+                    .foregroundStyle(primaryInk)
                 HStack(spacing: 3) {
                     Text("Entered Inbox")
                     Text(item.inboxEnteredAt ?? item.createdAt, style: .relative)
@@ -481,14 +505,14 @@ public struct ItemDetailView: View {
                 LBHaptic.light()
             }
             .font(.system(size: 11, weight: .bold))
-            .foregroundStyle(AppTheme.textPrimary)
+            .foregroundStyle(primaryInk)
             .padding(.horizontal, 10)
             .padding(.vertical, 5)
-            .background(Color.black.opacity(0.04), in: Capsule())
+            .background(subtleFill, in: Capsule())
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
-        .background(Color.white, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .background(detailSurface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
 
     private func returnScheduleBanner(ret: Date) -> some View {
@@ -506,7 +530,7 @@ public struct ItemDetailView: View {
             VStack(alignment: .leading, spacing: 1) {
                 Text(isTodayOrOverdue ? "Due Today" : "Scheduled Return")
                     .font(.system(size: 12, weight: .bold))
-                    .foregroundColor(AppTheme.textPrimary)
+                    .foregroundColor(primaryInk)
                 Text(ret, format: .dateTime.month().day().year().hour().minute())
                     .font(.system(size: 11))
                     .foregroundColor(Color.secondary)
@@ -520,10 +544,10 @@ public struct ItemDetailView: View {
                 LBHaptic.light()
             }
             .font(.system(size: 11, weight: .bold))
-            .foregroundColor(AppTheme.textPrimary)
+            .foregroundColor(primaryInk)
             .padding(.horizontal, 10)
             .padding(.vertical, 5)
-            .background(Color.black.opacity(0.04), in: Capsule())
+            .background(subtleFill, in: Capsule())
 
             Button {
                 item.returnAt = nil
@@ -544,11 +568,11 @@ public struct ItemDetailView: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
-        .background(Color.white)
+        .background(detailSurface)
         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .strokeBorder(Color.black.opacity(0.06), lineWidth: 1)
+                .strokeBorder(detailBorder, lineWidth: 1)
         )
         .shadow(color: Color.black.opacity(0.02), radius: 4, y: 1)
     }
@@ -562,11 +586,11 @@ public struct ItemDetailView: View {
             headerActionControlsRow
         }
         .padding(16)
-        .background(Color.white)
+        .background(detailSurface)
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .strokeBorder(Color.black.opacity(0.06), lineWidth: 1)
+                .strokeBorder(detailBorder, lineWidth: 1)
         )
         .shadow(color: Color.black.opacity(0.03), radius: 6, y: 2)
     }
@@ -584,7 +608,7 @@ public struct ItemDetailView: View {
 
             Text(domainOrSender)
                 .font(.system(size: 13, weight: .bold))
-                .foregroundColor(AppTheme.textPrimary)
+                .foregroundColor(primaryInk)
 
             Text(item.parsedContentType.rawValue.capitalized)
                 .font(.system(size: 10, weight: .bold))
@@ -605,7 +629,7 @@ public struct ItemDetailView: View {
         VStack(alignment: .leading, spacing: 10) {
             TextField("Title", text: $editedTitle, axis: .vertical)
                 .font(.system(size: 18, weight: .bold))
-                .foregroundColor(AppTheme.textPrimary)
+                .foregroundColor(primaryInk)
                 .lineLimit(1...5)
                 .onChange(of: editedTitle) { _, newVal in
                     item.title = newVal
@@ -615,7 +639,7 @@ public struct ItemDetailView: View {
             if let desc = item.metadataDescription, !desc.isEmpty, !LinkMetadataLoader.isGenericDescription(desc) {
                 Text(desc)
                     .font(.system(size: 13, weight: .regular))
-                    .foregroundColor(Color(hex: "45443F"))
+                    .foregroundColor(secondaryInk)
                     .lineLimit(4)
                     .lineSpacing(2)
             }
@@ -643,11 +667,11 @@ public struct ItemDetailView: View {
                             Image(systemName: "chevron.right")
                                 .font(.system(size: 8, weight: .bold))
                         }
-                        .foregroundColor(AppTheme.textPrimary)
+                        .foregroundColor(primaryInk)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4.5)
-                        .background(Color.black.opacity(0.05), in: Capsule())
-                        .overlay(Capsule().strokeBorder(Color.black.opacity(0.08), lineWidth: 1))
+                        .background(subtleFill, in: Capsule())
+                        .overlay(Capsule().strokeBorder(detailBorder, lineWidth: 1))
                     }
                     .buttonStyle(.plain)
                 }
@@ -676,14 +700,14 @@ public struct ItemDetailView: View {
                                 .lineLimit(1)
                                 .truncationMode(.tail)
                         }
-                        .foregroundColor(Color(hex: "0369A1"))
+                         .foregroundColor(colorScheme == .dark ? Color(hex: "7DD3FC") : Color(hex: "0369A1"))
                         .padding(.horizontal, 10)
                         .padding(.vertical, 6)
                         .frame(minHeight: 32)
-                        .background(Color(hex: "E0F2FE"), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                         .background(colorScheme == .dark ? Color(hex: "173344") : Color(hex: "E0F2FE"), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
                         .overlay(
                             RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                .strokeBorder(Color(hex: "BAE6FD"), lineWidth: 1)
+                                 .strokeBorder(colorScheme == .dark ? Color(hex: "28536B") : Color(hex: "BAE6FD"), lineWidth: 1)
                         )
                     }
                     .buttonStyle(.plain)
@@ -702,12 +726,12 @@ public struct ItemDetailView: View {
                             Text("Reader")
                                 .font(.system(size: 12, weight: .bold))
                         }
-                        .foregroundColor(AppTheme.textPrimary)
+                        .foregroundColor(primaryInk)
                         .padding(.horizontal, 12)
                         .padding(.vertical, 6)
                         .frame(minHeight: 32)
-                        .background(Color(hex: "F7F5EE"), in: Capsule())
-                        .overlay(Capsule().strokeBorder(Color.black.opacity(0.12), lineWidth: 1))
+                        .background(insetSurface, in: Capsule())
+                        .overlay(Capsule().strokeBorder(detailBorder, lineWidth: 1))
                     }
                     .buttonStyle(.plain)
                     .fixedSize()
@@ -727,21 +751,21 @@ public struct ItemDetailView: View {
                     .font(.system(size: 10, weight: .bold))
                     .tracking(0.5)
             }
-            .foregroundColor(Color(hex: "B45309"))
+             .foregroundColor(colorScheme == .dark ? Color(hex: "FFC374") : Color(hex: "B45309"))
 
             Text("“\(text)”")
                 .font(.system(size: 14, weight: .medium))
-                .foregroundColor(Color(hex: "92400E"))
+                 .foregroundColor(highlightInk)
                 .italic()
                 .lineSpacing(3)
         }
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(hex: "FEF3C7").opacity(0.7))
+        .background(highlightSurface)
         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .strokeBorder(Color(hex: "FDE68A"), lineWidth: 1)
+                 .strokeBorder(colorScheme == .dark ? Color(hex: "745632") : Color(hex: "FDE68A"), lineWidth: 1)
         )
     }
 
@@ -759,10 +783,10 @@ public struct ItemDetailView: View {
                 if files.allSatisfy({ $0.remoteObjectKey != nil }) {
                     Label("Cloud synced", systemImage: "checkmark.icloud.fill")
                         .font(.system(size: 10, weight: .semibold))
-                        .foregroundColor(Color(hex: "166534"))
+                         .foregroundColor(colorScheme == .dark ? Color(hex: "86EFAC") : Color(hex: "166534"))
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)
-                        .background(Color(hex: "DCFCE7"), in: Capsule())
+                         .background(colorScheme == .dark ? Color(hex: "173B2D") : Color(hex: "DCFCE7"), in: Capsule())
                 }
             }
 
@@ -776,14 +800,14 @@ public struct ItemDetailView: View {
                     HStack(spacing: 12) {
                         fileIcon(for: file.name)
                             .font(.system(size: 18))
-                            .foregroundColor(Color(hex: "171711"))
+                             .foregroundColor(primaryInk)
                             .frame(width: 36, height: 36)
-                            .background(Color(hex: "F7F5EE"), in: RoundedRectangle(cornerRadius: 10))
+                            .background(insetSurface, in: RoundedRectangle(cornerRadius: 10))
 
                         VStack(alignment: .leading, spacing: 2) {
                             Text(file.name)
                                 .font(.system(size: 13, weight: .semibold))
-                                .foregroundColor(AppTheme.textPrimary)
+                                .foregroundColor(primaryInk)
                                 .lineLimit(1)
                             Text(file.typeIdentifier.uppercased())
                                 .font(.system(size: 10, weight: .bold))
@@ -805,11 +829,11 @@ public struct ItemDetailView: View {
                     }
                     .padding(.horizontal, 14)
                     .padding(.vertical, 10)
-                    .background(Color.white)
+                    .background(detailSurface)
                     .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                     .overlay(
                         RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .strokeBorder(Color.black.opacity(0.06), lineWidth: 1)
+                            .strokeBorder(detailBorder, lineWidth: 1)
                     )
                 }
                 .buttonStyle(.plain)
@@ -823,24 +847,24 @@ public struct ItemDetailView: View {
             HStack(spacing: 6) {
                 Image(systemName: "sparkles")
                     .font(.system(size: 13, weight: .bold))
-                    .foregroundColor(Color(hex: "1A73E8"))
+                    .foregroundColor(colorScheme == .dark ? Color(hex: "7DD3FC") : Color(hex: "1A73E8"))
                 Text("AI Summary")
                     .font(.system(size: 13, weight: .bold))
-                    .foregroundColor(AppTheme.textPrimary)
+                    .foregroundColor(primaryInk)
             }
 
             Text(item.summary)
                 .font(.system(size: 13, weight: .regular))
-                .foregroundColor(Color(hex: "45443F"))
+                .foregroundColor(secondaryInk)
                 .lineSpacing(3)
         }
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.white)
+        .background(detailSurface)
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .strokeBorder(Color.black.opacity(0.06), lineWidth: 1)
+                .strokeBorder(detailBorder, lineWidth: 1)
         )
         .shadow(color: Color.black.opacity(0.03), radius: 6, y: 2)
     }
@@ -954,10 +978,10 @@ public struct ItemDetailView: View {
                 HStack(spacing: 6) {
                     Image(systemName: "checklist")
                         .font(.system(size: 13, weight: .bold))
-                        .foregroundColor(Color(hex: "0284C7"))
+                         .foregroundColor(colorScheme == .dark ? Color(hex: "7DD3FC") : Color(hex: "0284C7"))
                     Text("TASKS & TO-DO")
                         .font(.system(size: 11, weight: .bold))
-                        .foregroundColor(AppTheme.textPrimary)
+                        .foregroundColor(primaryInk)
                         .tracking(0.6)
                 }
 
@@ -967,7 +991,9 @@ public struct ItemDetailView: View {
                     HStack(spacing: 5) {
                         Text("\(completedCount)/\(totalCount)")
                             .font(.system(size: 11, weight: .bold, design: .rounded))
-                            .foregroundColor(completedCount == totalCount ? Color(hex: "16A34A") : Color(hex: "0284C7"))
+                            .foregroundColor(completedCount == totalCount
+                                ? (colorScheme == .dark ? Color(hex: "4ADE80") : Color(hex: "16A34A"))
+                                : (colorScheme == .dark ? Color(hex: "7DD3FC") : Color(hex: "0284C7")))
 
                         if completedCount == totalCount && totalCount > 0 {
                             Image(systemName: "checkmark.circle.fill")
@@ -978,7 +1004,9 @@ public struct ItemDetailView: View {
                     .padding(.horizontal, 8)
                     .padding(.vertical, 3)
                     .background(
-                        (completedCount == totalCount ? Color(hex: "DCFCE7") : Color(hex: "E0F2FE")),
+                        colorScheme == .dark
+                            ? (completedCount == totalCount ? Color(hex: "173B2D") : Color(hex: "173344"))
+                            : (completedCount == totalCount ? Color(hex: "DCFCE7") : Color(hex: "E0F2FE")),
                         in: Capsule()
                     )
                 }
@@ -989,7 +1017,7 @@ public struct ItemDetailView: View {
                 GeometryReader { geo in
                     ZStack(alignment: .leading) {
                         Capsule()
-                            .fill(Color.black.opacity(0.06))
+                            .fill(subtleFill)
                             .frame(height: 5)
 
                         Capsule()
@@ -1007,7 +1035,7 @@ public struct ItemDetailView: View {
                     ForEach(Array(prelude.enumerated()), id: \.offset) { _, line in
                         Text(line)
                             .font(.system(size: 13, weight: .medium))
-                            .foregroundColor(Color(hex: "45443F"))
+                            .foregroundColor(secondaryInk)
                     }
                 }
                 .padding(.bottom, 2)
@@ -1023,14 +1051,14 @@ public struct ItemDetailView: View {
                             } label: {
                                 Image(systemName: task.isDone ? "checkmark.circle.fill" : "circle")
                                     .font(.system(size: 20, weight: .semibold))
-                                    .foregroundColor(task.isDone ? Color(hex: "16A34A") : Color.black.opacity(0.3))
+                                     .foregroundColor(task.isDone ? Color(hex: "4ADE80") : mutedSymbol)
                                     .frame(width: 28, height: 28)
                             }
                             .buttonStyle(.plain)
 
                             Text(task.text)
                                 .font(.system(size: 14, weight: .medium))
-                                .foregroundColor(task.isDone ? Color.secondary : AppTheme.textPrimary)
+                                .foregroundColor(task.isDone ? Color.secondary : primaryInk)
                                 .strikethrough(task.isDone, color: Color.secondary.opacity(0.7))
                                 .lineLimit(nil)
                                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -1044,7 +1072,7 @@ public struct ItemDetailView: View {
                             } label: {
                                 Image(systemName: "xmark")
                                     .font(.system(size: 11, weight: .semibold))
-                                    .foregroundColor(Color.black.opacity(0.25))
+                                     .foregroundColor(mutedSymbol)
                                     .frame(width: 24, height: 24)
                             }
                             .buttonStyle(.plain)
@@ -1052,7 +1080,7 @@ public struct ItemDetailView: View {
                         .padding(.vertical, 4)
                         .padding(.horizontal, 8)
                         .background(
-                            task.isDone ? Color.black.opacity(0.02) : Color.clear,
+                            task.isDone ? subtleFill : Color.clear,
                             in: RoundedRectangle(cornerRadius: 8, style: .continuous)
                         )
                     }
@@ -1068,11 +1096,11 @@ public struct ItemDetailView: View {
             HStack(spacing: 8) {
                 Image(systemName: "plus")
                     .font(.system(size: 13, weight: .semibold))
-                    .foregroundColor(Color(hex: "0284C7"))
+                    .foregroundColor(colorScheme == .dark ? Color(hex: "7DD3FC") : Color(hex: "0284C7"))
 
                 TextField("Add a new task or item...", text: $newChecklistTaskText)
                     .font(.system(size: 13))
-                    .foregroundColor(AppTheme.textPrimary)
+                    .foregroundColor(primaryInk)
                     .submitLabel(.done)
                     .onSubmit {
                         addChecklistTask()
@@ -1094,19 +1122,19 @@ public struct ItemDetailView: View {
             }
             .padding(.horizontal, 10)
             .padding(.vertical, 8)
-            .background(Color(hex: "F8FAFC"), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+             .background(insetSurface, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .strokeBorder(Color(hex: "E2E8F0"), lineWidth: 1)
+                     .strokeBorder(detailBorder, lineWidth: 1)
             )
         }
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.white)
+        .background(detailSurface)
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .strokeBorder(Color.black.opacity(0.06), lineWidth: 1)
+                .strokeBorder(detailBorder, lineWidth: 1)
         )
         .shadow(color: Color.black.opacity(0.03), radius: 6, y: 2)
     }
@@ -1139,11 +1167,11 @@ public struct ItemDetailView: View {
             }
         }
         .padding(14)
-        .background(Color.white)
+        .background(detailSurface)
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .strokeBorder(Color.black.opacity(0.06), lineWidth: 1)
+                .strokeBorder(detailBorder, lineWidth: 1)
         )
         .shadow(color: Color.black.opacity(0.02), radius: 4, y: 1)
     }
@@ -1160,7 +1188,7 @@ public struct ItemDetailView: View {
 
                     Text("Replying to: \"\(snippet)\"")
                         .font(.system(size: 11, weight: .semibold))
-                        .foregroundColor(AppTheme.textPrimary)
+                        .foregroundColor(primaryInk)
                         .lineLimit(1)
 
                     Spacer()
@@ -1177,7 +1205,7 @@ public struct ItemDetailView: View {
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 6)
-                .background(Color(hex: "F7F5EE"))
+                .background(insetSurface)
                 .transition(.opacity.combined(with: .move(edge: .bottom)))
             }
 
@@ -1185,7 +1213,7 @@ public struct ItemDetailView: View {
             HStack(spacing: 10) {
                 TextField("Add a note or thought...", text: $noteDraftText, axis: .vertical)
                     .font(.system(size: 14))
-                    .foregroundColor(AppTheme.textPrimary)
+                    .foregroundColor(primaryInk)
                     .lineLimit(1...4)
                     .focused($isNoteFocused)
                     .submitLabel(.send)
@@ -1200,11 +1228,11 @@ public struct ItemDetailView: View {
                 } label: {
                     ZStack {
                         Circle()
-                            .fill(canSend ? Color(hex: "171711") : Color.black.opacity(0.12))
+                             .fill(canSend ? Color(hex: "171711") : subtleFill)
                             .frame(width: 32, height: 32)
                         Image(systemName: "arrow.up")
                             .font(.system(size: 13, weight: .bold))
-                            .foregroundColor(canSend ? Color(hex: "E6EDB0") : Color.white)
+                             .foregroundColor(canSend ? Color(hex: "E6EDB0") : mutedSymbol)
                     }
                 }
                 .buttonStyle(.plain)
@@ -1212,21 +1240,19 @@ public struct ItemDetailView: View {
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
-            .background(Color.white)
+            .background(detailSurface)
             .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: 24, style: .continuous)
-                    .strokeBorder(Color.black.opacity(0.1), lineWidth: 1)
+                    .strokeBorder(detailBorder, lineWidth: 1)
             )
             .shadow(color: Color.black.opacity(0.06), radius: 8, y: 3)
             .padding(.horizontal, 14)
             .padding(.top, 6)
             .padding(.bottom, 8)
         }
-        .background(
-            AppTheme.canvasBackground
-                .shadow(color: Color.black.opacity(0.03), radius: 4, y: -2)
-        )
+        // Let the single underlying page canvas reach the safe area.
+        .background(Color.clear)
     }
 
     // MARK: - Follow-up Entry Card
@@ -1244,7 +1270,7 @@ public struct ItemDetailView: View {
 
                 Text(entry.authorName ?? "Me")
                     .font(.system(size: 12, weight: .bold))
-                    .foregroundColor(AppTheme.textPrimary)
+                    .foregroundColor(primaryInk)
 
                 Text(entry.formattedRelativeTime)
                     .font(.system(size: 10))
@@ -1278,7 +1304,7 @@ public struct ItemDetailView: View {
             if let snippet = entry.attachedSnippet, !snippet.isEmpty {
                 HStack(alignment: .top, spacing: 6) {
                     Rectangle()
-                        .fill(Color(hex: "171711"))
+                         .fill(colorScheme == .dark ? AppTheme.accent : Color(hex: "171711"))
                         .frame(width: 2)
                     Text("\"\(snippet)\"")
                         .font(.system(size: 11, weight: .regular))
@@ -1288,17 +1314,17 @@ public struct ItemDetailView: View {
                 }
                 .padding(.horizontal, 8)
                 .padding(.vertical, 4)
-                .background(Color(hex: "F7F5EE"), in: RoundedRectangle(cornerRadius: 6))
+                .background(insetSurface, in: RoundedRectangle(cornerRadius: 6))
             }
 
             Text(entry.content)
                 .font(.system(size: 13, weight: .regular))
-                .foregroundColor(AppTheme.textPrimary)
+                .foregroundColor(primaryInk)
                 .lineSpacing(2)
                 .textSelection(.enabled)
         }
         .padding(12)
-        .background(Color(hex: "FAFAF8"))
+        .background(insetSurface)
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
@@ -1310,7 +1336,7 @@ public struct ItemDetailView: View {
                     if let current = item.collectionName, !current.isEmpty {
                         HStack {
                             Image(systemName: "folder.fill")
-                                .foregroundColor(Color(hex: "0369A1"))
+                                 .foregroundColor(colorScheme == .dark ? Color(hex: "7DD3FC") : Color(hex: "0369A1"))
                             Text(current)
                                 .font(.system(size: 15, weight: .semibold))
                             Spacer()
@@ -1331,6 +1357,7 @@ public struct ItemDetailView: View {
                             .foregroundColor(.secondary)
                     }
                 }
+                .listRowBackground(detailSurface)
 
                 Section("Available Collections") {
                     ForEach(availableCollections) { coll in
@@ -1347,17 +1374,18 @@ public struct ItemDetailView: View {
                                     .foregroundColor(Color(hex: coll.colorHex))
                                 Text(coll.name)
                                     .font(.system(size: 15, weight: .medium))
-                                    .foregroundColor(AppTheme.textPrimary)
+                                    .foregroundColor(primaryInk)
                                 Spacer()
                                 if item.collectionName == coll.name {
                                     Image(systemName: "checkmark")
                                         .font(.system(size: 13, weight: .bold))
-                                        .foregroundColor(Color(hex: "0369A1"))
+                                         .foregroundColor(colorScheme == .dark ? Color(hex: "7DD3FC") : Color(hex: "0369A1"))
                                 }
                             }
                         }
                     }
                 }
+                .listRowBackground(detailSurface)
 
                 Section("Create New Collection") {
                     HStack {
@@ -1380,7 +1408,10 @@ public struct ItemDetailView: View {
                         .font(.system(size: 13, weight: .bold))
                     }
                 }
+                .listRowBackground(detailSurface)
             }
+            .scrollContentBackground(.hidden)
+            .background(Color.clear)
             .navigationTitle("Collections")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -1389,6 +1420,8 @@ public struct ItemDetailView: View {
                 }
             }
         }
+        .toolbarBackground(.hidden, for: .navigationBar)
+        .presentationBackground { InboxGrainBackground() }
         .presentationDetents([.medium, .large])
     }
 
@@ -1404,16 +1437,16 @@ public struct ItemDetailView: View {
                     .foregroundColor(Color.secondary.opacity(0.8))
                 Text(tag)
                     .font(.system(size: 11, weight: .semibold))
-                    .foregroundColor(AppTheme.textPrimary)
+                    .foregroundColor(primaryInk)
             }
             .lineLimit(1)
             .truncationMode(.tail)
             .padding(.horizontal, 8)
             .padding(.vertical, 4.5)
-            .background(Color.black.opacity(0.04), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+            .background(subtleFill, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: 6, style: .continuous)
-                    .strokeBorder(Color.black.opacity(0.06), lineWidth: 0.5)
+                    .strokeBorder(detailBorder, lineWidth: 0.5)
             )
         }
         .buttonStyle(.plain)
@@ -1428,7 +1461,7 @@ public struct ItemDetailView: View {
                         VStack(alignment: .leading, spacing: 3) {
                             Text("\(item.tags.count) \(item.tags.count == 1 ? "Tag" : "Tags")")
                                 .font(.system(size: 20, weight: .bold))
-                                .foregroundColor(AppTheme.textPrimary)
+                                .foregroundColor(primaryInk)
                             Text("Tags associated with this item. Tap any tag to copy.")
                                 .font(.system(size: 13))
                                 .foregroundColor(Color.secondary)
@@ -1462,7 +1495,7 @@ public struct ItemDetailView: View {
                     }
                     .padding(.horizontal, 12)
                     .padding(.vertical, 8)
-                    .background(Color.black.opacity(0.04), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    .background(subtleFill, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
 
                     // All Tags in Flow Layout
                     if item.tags.isEmpty {
@@ -1484,7 +1517,7 @@ public struct ItemDetailView: View {
                                                 .foregroundColor(Color.secondary)
                                             Text(tag)
                                                 .font(.system(size: 13, weight: .medium))
-                                                .foregroundColor(AppTheme.textPrimary)
+                                                .foregroundColor(primaryInk)
                                         }
                                     }
                                     .buttonStyle(.plain)
@@ -1501,10 +1534,10 @@ public struct ItemDetailView: View {
                                 }
                                 .padding(.horizontal, 10)
                                 .padding(.vertical, 6)
-                                .background(Color.black.opacity(0.05), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                                .background(subtleFill, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                        .strokeBorder(Color.black.opacity(0.08), lineWidth: 0.5)
+                                        .strokeBorder(detailBorder, lineWidth: 0.5)
                                 )
                             }
                         }
@@ -1512,7 +1545,7 @@ public struct ItemDetailView: View {
                 }
                 .padding(20)
             }
-            .background(AppTheme.canvasBackground.ignoresSafeArea())
+            .background(Color.clear)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -1520,10 +1553,12 @@ public struct ItemDetailView: View {
                         showingTagsSheet = false
                     }
                     .font(.system(size: 15, weight: .bold))
-                    .foregroundColor(AppTheme.textPrimary)
+                    .foregroundColor(primaryInk)
                 }
             }
         }
+        .toolbarBackground(.hidden, for: .navigationBar)
+        .presentationBackground { InboxGrainBackground() }
         .presentationDetents([.fraction(0.5), .large])
         .presentationDragIndicator(.visible)
     }

@@ -60,6 +60,12 @@ public enum SnoozePreset: String, CaseIterable, Identifiable {
 
 public struct SnoozeDatePickerSheet: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var colorScheme
+
+    private var ink: Color { InboxAppearance.textPrimary(for: colorScheme) }
+    private var secondaryInk: Color { InboxAppearance.textSecondary(for: colorScheme) }
+    private var surface: Color { InboxAppearance.surface(for: colorScheme) }
+    private var border: Color { InboxAppearance.border(for: colorScheme) }
 
     public var itemTitle: String?
     public var initialDate: Date?
@@ -104,7 +110,7 @@ public struct SnoozeDatePickerSheet: View {
     public var body: some View {
         NavigationStack {
             ZStack {
-                AppTheme.canvasBackground
+                InboxGrainBackground()
                     .ignoresSafeArea()
 
                 ScrollView {
@@ -135,7 +141,7 @@ public struct SnoozeDatePickerSheet: View {
                         VStack(alignment: .leading, spacing: 10) {
                             Text("QUICK PRESETS")
                                 .font(.system(size: 11, weight: .bold))
-                                .foregroundColor(AppTheme.textSecondary)
+                                .foregroundColor(secondaryInk)
                                 .padding(.horizontal, 2)
 
                             LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)], spacing: 10) {
@@ -152,13 +158,13 @@ public struct SnoozeDatePickerSheet: View {
                                                 .font(.system(size: 13, weight: .semibold))
                                             Spacer()
                                         }
-                                        .foregroundColor(isSelected ? Color(hex: "171711") : AppTheme.textPrimary)
+                                        .foregroundColor(isSelected ? Color(hex: "171711") : ink)
                                         .padding(.horizontal, 12)
                                         .padding(.vertical, 11)
-                                        .background(isSelected ? Color(hex: "E6EDB0") : Color.white, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                                        .background(isSelected ? Color(hex: "E6EDB0") : surface, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
                                         .overlay(
                                             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                                .strokeBorder(isSelected ? Color.black.opacity(0.12) : Color.black.opacity(0.07), lineWidth: 1)
+                                                .strokeBorder(border, lineWidth: 1)
                                         )
                                     }
                                     .buttonStyle(.plain)
@@ -171,7 +177,7 @@ public struct SnoozeDatePickerSheet: View {
                             HStack {
                                 Text("EXACT DATE & TIME")
                                     .font(.system(size: 11, weight: .bold))
-                                    .foregroundColor(AppTheme.textSecondary)
+                                    .foregroundColor(secondaryInk)
 
                                 Spacer()
 
@@ -191,7 +197,7 @@ public struct SnoozeDatePickerSheet: View {
                                     displayedComponents: [.date, .hourAndMinute]
                                 )
                                 .datePickerStyle(.graphical)
-                                .tint(Color(hex: "171711"))
+                                .tint(colorScheme == .dark ? AppTheme.accent : Color(hex: "171711"))
                                 .disabled(isSomedaySelected)
                                 .opacity(isSomedaySelected ? 0.45 : 1.0)
                                 .onChange(of: selectedDate) { _, _ in
@@ -200,10 +206,10 @@ public struct SnoozeDatePickerSheet: View {
                                 }
                             }
                             .padding(14)
-                            .background(Color.white, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                            .background(surface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
                             .overlay(
                                 RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                    .strokeBorder(Color.black.opacity(0.07), lineWidth: 1)
+                                    .strokeBorder(border, lineWidth: 1)
                             )
                         }
 
@@ -239,7 +245,7 @@ public struct SnoozeDatePickerSheet: View {
                         dismiss()
                     }
                     .font(.system(size: 14, weight: .medium))
-                    .foregroundColor(AppTheme.textPrimary)
+                    .foregroundColor(ink)
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button {
@@ -261,6 +267,7 @@ public struct SnoozeDatePickerSheet: View {
                 }
             }
         }
+        .presentationBackground { InboxGrainBackground() }
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
     }

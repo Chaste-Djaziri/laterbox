@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[iOS / Item details appearance]** Give pushed and modal item-details screens true Light and Dark Mode support, with the white/graphite-grain Inbox canvas, adaptive cards and text, readable attachment/checklist/summary/highlight/notes sections, and a theme-aware bottom composer. Update the embedded captured-content reader and collection/tag/scheduling sheets so no hard-coded light surfaces remain in Dark Mode, while retaining native back/swipe navigation.
+
 - **[iOS / Cloud storage popup]** Use the same graphite gradient and subtle static grain as Inbox for the cloud storage sheet in Dark Mode, with transparent scroll and navigation chrome rather than a separate black panel. Preserve the white Light Mode canvas and ensure the quota card and actions remain legible in both appearances.
 
 - **[iOS / Inbox header]** Remove the Inbox header's independent background layer; leave its layout transparent so the underlying page's Light Mode white or Dark Mode graphite grain renders continuously behind it, with no visible seam or duplicated texture.
