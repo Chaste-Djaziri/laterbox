@@ -30,11 +30,12 @@ public enum LibraryCategory: String, CaseIterable, Identifiable {
     }
 
     public var iconForeground: Color {
-        AppTheme.textPrimary
+        Color(hex: "171711")
     }
 }
 
 public struct LibraryView: View {
+    @Environment(\.colorScheme) private var colorScheme
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \LBItem.createdAt, order: .reverse) private var allItems: [LBItem]
     @Query(sort: \LBCollection.name, order: .forward) private var collections: [LBCollection]
@@ -78,22 +79,28 @@ public struct LibraryView: View {
     public var body: some View {
         NavigationStack {
             ZStack {
-                LiquidGlassBackground()
+                InboxGrainBackground().ignoresSafeArea()
 
                 ScrollView {
                     VStack(alignment: .leading, spacing: 20) {
                         // Top Level Header (Scrolls normally, uncontainerized on canvas)
                         HStack(alignment: .center) {
-                            HStack(spacing: 8) {
+                            HStack(spacing: 11) {
                                 Image("LaterboxIconGreen")
                                     .resizable()
                                     .scaledToFit()
-                                    .frame(width: 28, height: 28)
-                                    .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+                                    .frame(width: 36, height: 36)
+                                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
 
-                                Text("Library")
-                                    .font(.system(size: 24, weight: .bold))
-                                    .foregroundColor(AppTheme.textPrimary)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Library")
+                                        .font(.system(size: 27, weight: .bold, design: .rounded))
+                                        .foregroundColor(InboxAppearance.textPrimary(for: colorScheme))
+
+                                    Text("Your saved space")
+                                        .font(.system(size: 12, weight: .medium))
+                                        .foregroundColor(InboxAppearance.textSecondary(for: colorScheme))
+                                }
                             }
 
                             Spacer()
@@ -111,7 +118,7 @@ public struct LibraryView: View {
                                         .frame(width: 7, height: 7)
                                     Text(coordinator.syncHeaderTitle)
                                         .font(.caption2.weight(.medium))
-                                        .foregroundColor(AppTheme.textSecondary)
+                                        .foregroundColor(InboxAppearance.textSecondary(for: colorScheme))
                                 }
                             }
                             .buttonStyle(.plain)
@@ -137,27 +144,27 @@ public struct LibraryView: View {
 
                                             Text("\(itemCount(for: category))")
                                                 .font(.system(size: 18, weight: .bold, design: .rounded))
-                                                .foregroundColor(AppTheme.textPrimary)
+                                                .foregroundColor(InboxAppearance.textPrimary(for: colorScheme))
                                         }
 
                                         VStack(alignment: .leading, spacing: 3) {
                                             Text(category.rawValue)
                                                 .font(.subheadline.weight(.bold))
-                                                .foregroundColor(AppTheme.textPrimary)
+                                                .foregroundColor(InboxAppearance.textPrimary(for: colorScheme))
                                                 .lineLimit(1)
 
                                             HStack(spacing: 3) {
                                                 Text("View items")
                                                     .font(.caption2.weight(.medium))
-                                                    .foregroundColor(AppTheme.textSecondary)
+                                                    .foregroundColor(InboxAppearance.textSecondary(for: colorScheme))
                                                 Image(systemName: "chevron.right")
                                                     .font(.system(size: 8, weight: .bold))
-                                                    .foregroundColor(AppTheme.textSecondary)
+                                                    .foregroundColor(InboxAppearance.textSecondary(for: colorScheme))
                                             }
                                         }
                                     }
                                     .padding(14)
-                                    .liquidGlassCard(cornerRadius: 18, borderOpacity: 0.18, isInteractive: true)
+                                    .libraryCard(for: colorScheme, cornerRadius: 18)
                                 }
                                 .buttonStyle(.plain)
                             }
@@ -168,7 +175,7 @@ public struct LibraryView: View {
                             HStack(alignment: .center) {
                                 Text("COLLECTIONS")
                                     .font(.caption.weight(.bold))
-                                    .foregroundColor(AppTheme.textSecondary)
+                                    .foregroundColor(InboxAppearance.textSecondary(for: colorScheme))
                                     .tracking(0.6)
 
                                 Spacer()
@@ -183,7 +190,7 @@ public struct LibraryView: View {
                                         Text("Create Collection")
                                             .font(.caption.weight(.bold))
                                     }
-                                    .foregroundColor(AppTheme.textPrimary)
+                                    .foregroundColor(Color(hex: "171711"))
                                     .padding(.horizontal, 10)
                                     .padding(.vertical, 6)
                                     .background(
@@ -192,7 +199,7 @@ public struct LibraryView: View {
                                     )
                                     .overlay(
                                         Capsule()
-                                            .strokeBorder(AppTheme.cardBorder, lineWidth: 1)
+                                            .strokeBorder(InboxAppearance.border(for: colorScheme), lineWidth: 1)
                                     )
                                 }
                                 .buttonStyle(.plain)
@@ -204,19 +211,19 @@ public struct LibraryView: View {
                                 VStack(spacing: 12) {
                                     Image(systemName: "folder.badge.plus")
                                         .font(.system(size: 34))
-                                        .foregroundColor(AppTheme.textSecondary.opacity(0.4))
+                                        .foregroundColor(InboxAppearance.textSecondary(for: colorScheme).opacity(0.55))
                                     Text("No collections yet")
                                         .font(.subheadline.weight(.semibold))
-                                        .foregroundColor(AppTheme.textPrimary)
+                                        .foregroundColor(InboxAppearance.textPrimary(for: colorScheme))
                                     Text("Tap '+ Create Collection' to organize your items into custom folders.")
                                         .font(.caption)
-                                        .foregroundColor(AppTheme.textSecondary)
+                                        .foregroundColor(InboxAppearance.textSecondary(for: colorScheme))
                                         .multilineTextAlignment(.center)
                                 }
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 28)
                                 .padding(.horizontal, 20)
-                                .liquidGlassCard(cornerRadius: 18)
+                                .libraryCard(for: colorScheme, cornerRadius: 18)
                             } else {
                                 LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
                                     ForEach(allCollectionNames, id: \.self) { name in
@@ -230,29 +237,29 @@ public struct LibraryView: View {
                                                             .frame(width: 36, height: 36)
                                                         Image(systemName: "folder.fill")
                                                             .font(.system(size: 16))
-                                                            .foregroundColor(AppTheme.textPrimary)
+                                                            .foregroundColor(Color(hex: "171711"))
                                                     }
 
                                                     Spacer()
 
                                                     Text("\(count)")
                                                         .font(.subheadline.weight(.bold))
-                                                        .foregroundColor(AppTheme.textSecondary)
+                                                        .foregroundColor(InboxAppearance.textSecondary(for: colorScheme))
                                                 }
 
                                                 VStack(alignment: .leading, spacing: 2) {
                                                     Text(name)
                                                         .font(.subheadline.weight(.bold))
-                                                        .foregroundColor(AppTheme.textPrimary)
+                                                        .foregroundColor(InboxAppearance.textPrimary(for: colorScheme))
                                                         .lineLimit(1)
 
                                                     Text("Open folder →")
                                                         .font(.caption2.weight(.medium))
-                                                        .foregroundColor(AppTheme.textSecondary)
+                                                        .foregroundColor(InboxAppearance.textSecondary(for: colorScheme))
                                                 }
                                             }
                                             .padding(14)
-                                            .liquidGlassCard(cornerRadius: 18, borderOpacity: 0.18, isInteractive: true)
+                                            .libraryCard(for: colorScheme, cornerRadius: 18)
                                         }
                                         .buttonStyle(.plain)
                                         .contextMenu {
@@ -381,6 +388,7 @@ public struct LibraryView: View {
 public struct LibrarySectionDetailView: View {
     public let category: LibraryCategory
 
+    @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \LBItem.createdAt, order: .reverse) private var allItems: [LBItem]
@@ -416,7 +424,7 @@ public struct LibrarySectionDetailView: View {
 
     public var body: some View {
         ZStack {
-            LiquidGlassBackground()
+            InboxGrainBackground().ignoresSafeArea()
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
@@ -432,16 +440,16 @@ public struct LibrarySectionDetailView: View {
                                 Text("Library")
                                     .font(.subheadline.weight(.semibold))
                             }
-                            .foregroundColor(AppTheme.textPrimary)
+                            .foregroundColor(InboxAppearance.textPrimary(for: colorScheme))
                             .padding(.horizontal, 10)
                             .padding(.vertical, 6)
                             .background(
                                 Capsule()
-                                    .fill(AppTheme.cardBackground)
+                                    .fill(InboxAppearance.surface(for: colorScheme))
                             )
                             .overlay(
                                 Capsule()
-                                    .strokeBorder(AppTheme.cardBorder, lineWidth: 1)
+                                    .strokeBorder(InboxAppearance.border(for: colorScheme), lineWidth: 1)
                             )
                         }
                         .buttonStyle(.plain)
@@ -455,15 +463,15 @@ public struct LibrarySectionDetailView: View {
                         }) {
                             Image(systemName: isGridView ? "list.bullet" : "square.grid.2x2")
                                 .font(.system(size: 14, weight: .semibold))
-                                .foregroundColor(AppTheme.textPrimary)
+                                .foregroundColor(InboxAppearance.textPrimary(for: colorScheme))
                                 .padding(8)
                                 .background(
                                     RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                        .fill(AppTheme.cardBackground)
+                                        .fill(InboxAppearance.surface(for: colorScheme))
                                 )
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                        .strokeBorder(AppTheme.cardBorder, lineWidth: 1)
+                                        .strokeBorder(InboxAppearance.border(for: colorScheme), lineWidth: 1)
                                 )
                         }
                         .buttonStyle(.plain)
@@ -501,30 +509,30 @@ public struct LibrarySectionDetailView: View {
 
                         Text(category.rawValue)
                             .font(.system(size: 24, weight: .bold))
-                            .foregroundColor(AppTheme.textPrimary)
+                            .foregroundColor(InboxAppearance.textPrimary(for: colorScheme))
 
                         Spacer()
 
                         Text("\(sectionItems.count) Items")
                             .font(.caption.weight(.bold))
-                            .foregroundColor(AppTheme.textSecondary)
+                            .foregroundColor(InboxAppearance.textSecondary(for: colorScheme))
                     }
 
                     // Search Bar
                     HStack(spacing: 10) {
                         Image(systemName: "magnifyingglass")
                             .font(.system(size: 14, weight: .semibold))
-                            .foregroundColor(AppTheme.textSecondary)
+                            .foregroundColor(InboxAppearance.textSecondary(for: colorScheme))
 
                         TextField("Filter \(category.rawValue.lowercased())...", text: $searchText)
                             .task(id: searchText + allItems.map { $0.updatedAt.ISO8601Format() }.joined()) { search.update(searchText, items: allItems, includeDeleted: category == .deleted) }
                             .font(.subheadline)
-                            .foregroundColor(AppTheme.textPrimary)
+                            .foregroundColor(InboxAppearance.textPrimary(for: colorScheme))
 
                         if !searchText.isEmpty {
                             Button(action: { searchText = "" }) {
                                 Image(systemName: "xmark.circle.fill")
-                                    .foregroundColor(AppTheme.textSecondary)
+                                    .foregroundColor(InboxAppearance.textSecondary(for: colorScheme))
                             }
                             .buttonStyle(.plain)
                         }
@@ -533,11 +541,11 @@ public struct LibrarySectionDetailView: View {
                     .padding(.vertical, 9)
                     .background(
                         RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .fill(AppTheme.cardBackground)
+                            .fill(InboxAppearance.surface(for: colorScheme))
                     )
                     .overlay(
                         RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .strokeBorder(AppTheme.cardBorder, lineWidth: 1)
+                            .strokeBorder(InboxAppearance.border(for: colorScheme), lineWidth: 1)
                     )
 
                     // Content
@@ -545,18 +553,18 @@ public struct LibrarySectionDetailView: View {
                         VStack(spacing: 14) {
                             Image(systemName: category.systemIcon)
                                 .font(.system(size: 40))
-                                .foregroundColor(AppTheme.textSecondary.opacity(0.4))
-                            Text("No \(category.rawValue)")
+                                .foregroundColor(InboxAppearance.textSecondary(for: colorScheme).opacity(0.55))
+                            Text(searchText.isEmpty ? "No \(category.rawValue)" : "No matching items")
                                 .font(.headline)
-                                .foregroundColor(AppTheme.textPrimary)
-                            Text("Items filed under \(category.rawValue.lowercased()) will appear here.")
+                                .foregroundColor(InboxAppearance.textPrimary(for: colorScheme))
+                            Text(searchText.isEmpty ? "Items filed under \(category.rawValue.lowercased()) will appear here." : "Try a different search or clear the filter.")
                                 .font(.caption)
-                                .foregroundColor(AppTheme.textSecondary)
+                                .foregroundColor(InboxAppearance.textSecondary(for: colorScheme))
                                 .multilineTextAlignment(.center)
                         }
                         .frame(maxWidth: .infinity)
                         .padding(48)
-                        .liquidGlassCard(cornerRadius: 20)
+                        .libraryCard(for: colorScheme, cornerRadius: 20)
                     } else if isGridView {
                         LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
                             ForEach(sectionItems) { item in
@@ -567,22 +575,25 @@ public struct LibrarySectionDetailView: View {
                             }
                         }
                     } else {
-                        ForEach(sectionItems) { item in
-                            if category == .deleted {
-                                deletedItemCard(item: item)
-                            } else {
-                                NavigationLink(destination: ItemDetailView(item: item, usesNativeNavigation: true)) {
-                                    ItemCardView(
-                                        item: item,
-                                        onMarkDone: { coordinator.markDone(item: item, context: modelContext) },
-                                        onToggleFavorite: { coordinator.toggleFavorite(item: item, context: modelContext) },
-                                        onSchedule: {
-                                            coordinator.scheduleItem(item: item, date: Calendar.current.date(byAdding: .day, value: 1, to: Date())!, context: modelContext)
-                                        },
-                                        onDelete: { coordinator.deleteItem(item: item, context: modelContext) }
-                                    )
+                        LazyVStack(spacing: 4) {
+                            ForEach(Array(sectionItems.enumerated()), id: \.element.id) { index, item in
+                                if category == .deleted {
+                                    deletedItemCard(item: item)
+                                } else {
+                                    NavigationLink(destination: ItemDetailView(item: item, usesNativeNavigation: true)) {
+                                        EmailInboxRowView(
+                                            item: item,
+                                            topRadius: index == 0 ? 14 : 5,
+                                            bottomRadius: index == sectionItems.count - 1 ? 14 : 5,
+                                            onToggleFavorite: { coordinator.toggleFavorite(item: item, context: modelContext) },
+                                            onMarkDone: { coordinator.markDone(item: item, context: modelContext) },
+                                            onSchedule: { date in coordinator.scheduleItem(item: item, date: date, context: modelContext) },
+                                            onDelete: { coordinator.deleteItem(item: item, context: modelContext) }
+                                        )
+                                    }
+                                    .buttonStyle(.plain)
+                                    .id("\(item.status)-library-\(item.id)")
                                 }
-                                .buttonStyle(.plain)
                             }
                         }
                     }
@@ -610,7 +621,7 @@ public struct LibrarySectionDetailView: View {
             HStack(spacing: 8) {
                 Text(item.parsedContentType.rawValue.capitalized)
                     .font(.caption2.weight(.bold))
-                    .foregroundColor(AppTheme.textSecondary)
+                    .foregroundColor(InboxAppearance.textSecondary(for: colorScheme))
                 Spacer()
                 Text("Deleted")
                     .font(.caption2.weight(.bold))
@@ -619,7 +630,7 @@ public struct LibrarySectionDetailView: View {
 
             Text(item.title)
                 .font(.headline)
-                .foregroundColor(AppTheme.textPrimary)
+                .foregroundColor(InboxAppearance.textPrimary(for: colorScheme))
                 .lineLimit(2)
 
             HStack(spacing: 10) {
@@ -632,7 +643,7 @@ public struct LibrarySectionDetailView: View {
                         Text("Restore")
                             .font(.caption.weight(.semibold))
                     }
-                    .foregroundColor(AppTheme.textPrimary)
+                    .foregroundColor(Color(hex: "171711"))
                     .padding(.horizontal, 10)
                     .padding(.vertical, 6)
                     .background(
@@ -665,23 +676,23 @@ public struct LibrarySectionDetailView: View {
             }
         }
         .padding(16)
-        .liquidGlassCard(cornerRadius: 18, borderOpacity: 0.18)
+        .libraryCard(for: colorScheme, cornerRadius: 18)
     }
 
     private func compactGridCard(for item: LBItem) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             ZStack {
                 RoundedRectangle(cornerRadius: 10)
-                    .fill(Color.white.opacity(0.06))
+                    .fill(InboxAppearance.background(for: colorScheme))
                     .frame(height: 70)
                 Image(systemName: item.parsedContentType.systemIcon)
                     .font(.title2)
-                    .foregroundColor(AppTheme.textPrimary)
+                    .foregroundColor(InboxAppearance.textPrimary(for: colorScheme))
             }
 
             Text(item.title)
                 .font(.subheadline.weight(.semibold))
-                .foregroundColor(AppTheme.textPrimary)
+                .foregroundColor(InboxAppearance.textPrimary(for: colorScheme))
                 .lineLimit(2)
 
             Spacer()
@@ -689,7 +700,7 @@ public struct LibrarySectionDetailView: View {
             HStack {
                 Text(item.parsedContentType.rawValue.capitalized)
                     .font(.caption2)
-                    .foregroundColor(AppTheme.textSecondary)
+                    .foregroundColor(InboxAppearance.textSecondary(for: colorScheme))
                     .lineLimit(1)
                 Spacer()
                 if item.favorite {
@@ -701,7 +712,7 @@ public struct LibrarySectionDetailView: View {
         }
         .padding(12)
         .frame(height: 160)
-        .liquidGlassCard(cornerRadius: 16, borderOpacity: 0.2)
+        .libraryCard(for: colorScheme, cornerRadius: 16)
     }
 }
 
@@ -709,6 +720,7 @@ public struct LibrarySectionDetailView: View {
 public struct CollectionDetailView: View {
     @State public var collectionName: String
 
+    @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \LBItem.createdAt, order: .reverse) private var allItems: [LBItem]
@@ -735,7 +747,7 @@ public struct CollectionDetailView: View {
 
     public var body: some View {
         ZStack {
-            LiquidGlassBackground()
+            InboxGrainBackground().ignoresSafeArea()
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
@@ -751,16 +763,16 @@ public struct CollectionDetailView: View {
                                 Text("Library")
                                     .font(.subheadline.weight(.semibold))
                             }
-                            .foregroundColor(AppTheme.textPrimary)
+                            .foregroundColor(InboxAppearance.textPrimary(for: colorScheme))
                             .padding(.horizontal, 10)
                             .padding(.vertical, 6)
                             .background(
                                 Capsule()
-                                    .fill(AppTheme.cardBackground)
+                                    .fill(InboxAppearance.surface(for: colorScheme))
                             )
                             .overlay(
                                 Capsule()
-                                    .strokeBorder(AppTheme.cardBorder, lineWidth: 1)
+                                    .strokeBorder(InboxAppearance.border(for: colorScheme), lineWidth: 1)
                             )
                         }
                         .buttonStyle(.plain)
@@ -774,15 +786,15 @@ public struct CollectionDetailView: View {
                         }) {
                             Image(systemName: isGridView ? "list.bullet" : "square.grid.2x2")
                                 .font(.system(size: 14, weight: .semibold))
-                                .foregroundColor(AppTheme.textPrimary)
+                                .foregroundColor(InboxAppearance.textPrimary(for: colorScheme))
                                 .padding(8)
                                 .background(
                                     RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                        .fill(AppTheme.cardBackground)
+                                        .fill(InboxAppearance.surface(for: colorScheme))
                                 )
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                        .strokeBorder(AppTheme.cardBorder, lineWidth: 1)
+                                        .strokeBorder(InboxAppearance.border(for: colorScheme), lineWidth: 1)
                                 )
                         }
                         .buttonStyle(.plain)
@@ -804,15 +816,15 @@ public struct CollectionDetailView: View {
                         } label: {
                             Image(systemName: "ellipsis")
                                 .font(.system(size: 14, weight: .semibold))
-                                .foregroundColor(AppTheme.textPrimary)
+                                .foregroundColor(InboxAppearance.textPrimary(for: colorScheme))
                                 .padding(8)
                                 .background(
                                     RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                        .fill(AppTheme.cardBackground)
+                                        .fill(InboxAppearance.surface(for: colorScheme))
                                 )
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                        .strokeBorder(AppTheme.cardBorder, lineWidth: 1)
+                                        .strokeBorder(InboxAppearance.border(for: colorScheme), lineWidth: 1)
                                 )
                         }
                     }
@@ -826,36 +838,36 @@ public struct CollectionDetailView: View {
                                 .frame(width: 32, height: 32)
                             Image(systemName: "folder.fill")
                                 .font(.system(size: 15))
-                                .foregroundColor(AppTheme.textPrimary)
+                                .foregroundColor(Color(hex: "171711"))
                         }
 
                         Text(collectionName)
                             .font(.system(size: 24, weight: .bold))
-                            .foregroundColor(AppTheme.textPrimary)
+                            .foregroundColor(InboxAppearance.textPrimary(for: colorScheme))
                             .lineLimit(1)
 
                         Spacer()
 
                         Text("\(collectionItems.count) Items")
                             .font(.caption.weight(.bold))
-                            .foregroundColor(AppTheme.textSecondary)
+                            .foregroundColor(InboxAppearance.textSecondary(for: colorScheme))
                     }
 
                     // Search Bar
                     HStack(spacing: 10) {
                         Image(systemName: "magnifyingglass")
                             .font(.system(size: 14, weight: .semibold))
-                            .foregroundColor(AppTheme.textSecondary)
+                            .foregroundColor(InboxAppearance.textSecondary(for: colorScheme))
 
                         TextField("Search in \(collectionName)...", text: $searchText)
                             .task(id: searchText + allItems.map { $0.updatedAt.ISO8601Format() }.joined()) { search.update(searchText, items: allItems) }
                             .font(.subheadline)
-                            .foregroundColor(AppTheme.textPrimary)
+                            .foregroundColor(InboxAppearance.textPrimary(for: colorScheme))
 
                         if !searchText.isEmpty {
                             Button(action: { searchText = "" }) {
                                 Image(systemName: "xmark.circle.fill")
-                                    .foregroundColor(AppTheme.textSecondary)
+                                    .foregroundColor(InboxAppearance.textSecondary(for: colorScheme))
                             }
                             .buttonStyle(.plain)
                         }
@@ -864,11 +876,11 @@ public struct CollectionDetailView: View {
                     .padding(.vertical, 9)
                     .background(
                         RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .fill(AppTheme.cardBackground)
+                            .fill(InboxAppearance.surface(for: colorScheme))
                     )
                     .overlay(
                         RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .strokeBorder(AppTheme.cardBorder, lineWidth: 1)
+                            .strokeBorder(InboxAppearance.border(for: colorScheme), lineWidth: 1)
                     )
 
                     // Content
@@ -876,18 +888,18 @@ public struct CollectionDetailView: View {
                         VStack(spacing: 14) {
                             Image(systemName: "folder.badge.questionmark")
                                 .font(.system(size: 40))
-                                .foregroundColor(AppTheme.textSecondary.opacity(0.4))
-                            Text("No items in \(collectionName)")
+                                .foregroundColor(InboxAppearance.textSecondary(for: colorScheme).opacity(0.55))
+                            Text(searchText.isEmpty ? "No items in \(collectionName)" : "No matching items")
                                 .font(.headline)
-                                .foregroundColor(AppTheme.textPrimary)
-                            Text("Assign items to this collection from their detail sheet to keep them organized.")
+                                .foregroundColor(InboxAppearance.textPrimary(for: colorScheme))
+                            Text(searchText.isEmpty ? "Assign items to this collection from their detail sheet to keep them organized." : "Try a different search or clear the filter.")
                                 .font(.caption)
-                                .foregroundColor(AppTheme.textSecondary)
+                                .foregroundColor(InboxAppearance.textSecondary(for: colorScheme))
                                 .multilineTextAlignment(.center)
                         }
                         .frame(maxWidth: .infinity)
                         .padding(48)
-                        .liquidGlassCard(cornerRadius: 20)
+                        .libraryCard(for: colorScheme, cornerRadius: 20)
                     } else if isGridView {
                         LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
                             ForEach(collectionItems) { item in
@@ -898,19 +910,22 @@ public struct CollectionDetailView: View {
                             }
                         }
                     } else {
-                        ForEach(collectionItems) { item in
-                            NavigationLink(destination: ItemDetailView(item: item, usesNativeNavigation: true)) {
-                                ItemCardView(
-                                    item: item,
-                                    onMarkDone: { coordinator.markDone(item: item, context: modelContext) },
-                                    onToggleFavorite: { coordinator.toggleFavorite(item: item, context: modelContext) },
-                                    onSchedule: {
-                                        coordinator.scheduleItem(item: item, date: Calendar.current.date(byAdding: .day, value: 1, to: Date())!, context: modelContext)
-                                    },
-                                    onDelete: { coordinator.deleteItem(item: item, context: modelContext) }
-                                )
+                        LazyVStack(spacing: 4) {
+                            ForEach(Array(collectionItems.enumerated()), id: \.element.id) { index, item in
+                                NavigationLink(destination: ItemDetailView(item: item, usesNativeNavigation: true)) {
+                                    EmailInboxRowView(
+                                        item: item,
+                                        topRadius: index == 0 ? 14 : 5,
+                                        bottomRadius: index == collectionItems.count - 1 ? 14 : 5,
+                                        onToggleFavorite: { coordinator.toggleFavorite(item: item, context: modelContext) },
+                                        onMarkDone: { coordinator.markDone(item: item, context: modelContext) },
+                                        onSchedule: { date in coordinator.scheduleItem(item: item, date: date, context: modelContext) },
+                                        onDelete: { coordinator.deleteItem(item: item, context: modelContext) }
+                                    )
+                                }
+                                .buttonStyle(.plain)
+                                .id("\(item.status)-collection-\(item.id)")
                             }
-                            .buttonStyle(.plain)
                         }
                     }
                 }
@@ -971,16 +986,16 @@ public struct CollectionDetailView: View {
         VStack(alignment: .leading, spacing: 8) {
             ZStack {
                 RoundedRectangle(cornerRadius: 10)
-                    .fill(Color.white.opacity(0.06))
+                    .fill(InboxAppearance.background(for: colorScheme))
                     .frame(height: 70)
                 Image(systemName: item.parsedContentType.systemIcon)
                     .font(.title2)
-                    .foregroundColor(AppTheme.textPrimary)
+                    .foregroundColor(InboxAppearance.textPrimary(for: colorScheme))
             }
 
             Text(item.title)
                 .font(.subheadline.weight(.semibold))
-                .foregroundColor(AppTheme.textPrimary)
+                .foregroundColor(InboxAppearance.textPrimary(for: colorScheme))
                 .lineLimit(2)
 
             Spacer()
@@ -988,7 +1003,7 @@ public struct CollectionDetailView: View {
             HStack {
                 Text(item.parsedContentType.rawValue.capitalized)
                     .font(.caption2)
-                    .foregroundColor(AppTheme.textSecondary)
+                    .foregroundColor(InboxAppearance.textSecondary(for: colorScheme))
                     .lineLimit(1)
                 Spacer()
                 if item.favorite {
@@ -1000,6 +1015,21 @@ public struct CollectionDetailView: View {
         }
         .padding(12)
         .frame(height: 160)
-        .liquidGlassCard(cornerRadius: 16, borderOpacity: 0.2)
+        .libraryCard(for: colorScheme, cornerRadius: 16)
+    }
+}
+
+
+// MARK: - Library surfaces use the same adaptive neutral palette as the Inbox.
+private extension View {
+    func libraryCard(for scheme: ColorScheme, cornerRadius: CGFloat = 18) -> some View {
+        background(
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                .fill(InboxAppearance.surface(for: scheme))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                .strokeBorder(InboxAppearance.border(for: scheme), lineWidth: 1)
+        )
     }
 }
