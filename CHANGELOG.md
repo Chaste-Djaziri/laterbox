@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[Billing / Reliability]** Reuse account-owned pending Whop checkout sessions and reject mismatched or orphaned paid membership events; cover webhook account binding, replay protection and plan mismatches with regression tests.
+
 - **[Web / Pricing]** Introduce Free, Plus and Vault storage pricing across public and app plans, update Settings billing access, and remove obsolete refund-page trial claims for new Whop subscriptions.
 
 - **[Cloud / Storage]** Open account-based sync on Web, iOS and browser capture, with server-side storage quotas, reservation checks and safe limits on file uploads.

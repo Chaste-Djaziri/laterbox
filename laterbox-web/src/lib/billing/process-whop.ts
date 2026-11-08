@@ -31,9 +31,11 @@ async function updateMembership(membership: WhopMembership, owner: string | null
   if (existingError) throw existingError;
 
   // For renewals and cancellations, subscription ownership MUST already exist.
+  if (existing && owner && owner !== existing.user_id) {
+    throw new Error('Whop purchase intent conflicts with the previously linked LaterBox account.');
+  }
   const userId = existing?.user_id ?? owner;
   if (!userId) return; // Out-of-order lifecycle event; initial paid event will bind it.
-  if (existing && existing.user_id !== userId) throw new Error('Cross-account Whop subscription conflict.');
   if (existing && existing.customer_id !== membership.user_id) throw new Error('Whop buyer changed unexpectedly.');
   const changed = validTimestamp(membership.updated_at);
   if (!changed) throw new Error('Whop did not provide a membership timestamp.');
@@ -107,6 +109,17 @@ async function paymentSucceeded(paymentId: string): Promise<void> {
       throw new Error('Whop checkout intent or plan mismatch.');
     }
     owner = intent.user_id;
+  }
+  if (!owner) {
+    const { data: linked, error } = await admin.from('billing_subscriptions')
+      .select('user_id').eq('provider','whop')
+      .eq('subscription_id',membership.id).maybeSingle();
+    if (error) throw error;
+    if (!linked?.user_id) {
+      // Never acknowledge a successful charge that has no LaterBox owner.
+      // Whop can retry; support can resolve truly orphaned purchases.
+      throw new Error('Paid Whop membership is missing a trusted LaterBox checkout intent.');
+    }
   }
   await updateMembership(membership, owner);
   if (intentId && owner) {

@@ -35,6 +35,19 @@ export async function POST(request: Request) {
       }, { status: 409 });
     }
 
+    // A client retry should reuse a still-valid account-owned checkout, not
+    // create an unnecessary second opportunity to charge the same subscriber.
+    const { data: pending, error: pendingError } = await admin.from('billing_checkout_intents')
+      .select('id,checkout_id').eq('user_id', user.id).eq('provider','whop')
+      .eq('plan_key', key).eq('plan_id',planId).eq('status','pending')
+      .gt('expires_at', new Date().toISOString())
+      .not('checkout_id','is',null)
+      .order('created_at', { ascending:false }).limit(1).maybeSingle();
+    if (pendingError) throw pendingError;
+    if (pending?.checkout_id) return NextResponse.json({
+      checkoutId: pending.checkout_id, intentId: pending.id, environment: whopEnvironment(),
+    }, { headers: { 'Cache-Control': 'private, no-store' } });
+
     const intentId = crypto.randomUUID();
     const { error: intentError } = await admin.from('billing_checkout_intents').insert({
       id: intentId,
