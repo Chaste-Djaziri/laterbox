@@ -1,7 +1,7 @@
 // laterbox-ios/laterbox-ios/Views/Components/MainTabView.swift
 import SwiftUI
 
-/// Five primary destinations. Secondary mailboxes live in More and in the Library.
+/// Five primary destinations. Secondary mailboxes live inside the Library.
 enum MainTab: String, CaseIterable, Identifiable {
     case inbox = "Inbox"
     case today = "Today"
@@ -13,6 +13,10 @@ enum MainTab: String, CaseIterable, Identifiable {
 
     /// The custom brand/capture/More header belongs exclusively to Inbox.
     var showsAppHeader: Bool { self == .inbox }
+
+    func shouldShowHeader(itemDetailPushed: Bool) -> Bool {
+        showsAppHeader && !itemDetailPushed
+    }
 
     var symbol: String {
         switch self {
@@ -28,8 +32,10 @@ enum MainTab: String, CaseIterable, Identifiable {
 struct MainTabView: View {
     @Environment(\.colorScheme) private var colorScheme
     @State private var selectedTab: MainTab = .inbox
-    @State private var secondaryMailbox: MailboxViewType?
+    @State private var showingStorage = false
+    @StateObject private var storageManager = LocalStorageManager.shared
     @State private var showingCapture = false
+    @State private var inboxDetailPushed = false
     @State private var logoReplayToken = 0
     @State private var inboxPullDistance: CGFloat = 0
     @State private var inboxRefreshing = false
@@ -37,7 +43,7 @@ struct MainTabView: View {
     var body: some View {
         VStack(spacing: 0) {
             // The header and logo refresh indicator are Inbox-only.
-            if selectedTab.showsAppHeader {
+            if selectedTab.shouldShowHeader(itemDetailPushed: inboxDetailPushed) {
                 appHeader
                     .zIndex(10)
             }
@@ -46,7 +52,8 @@ struct MainTabView: View {
                 InboxView(
                     isTabRoot: true,
                     refreshPull: $inboxPullDistance,
-                    refreshIsRunning: $inboxRefreshing
+                    refreshIsRunning: $inboxRefreshing,
+                    detailIsPushed: $inboxDetailPushed
                 )
                     .tabItem { Label(MainTab.inbox.rawValue, systemImage: MainTab.inbox.symbol) }
                     .tag(MainTab.inbox)
@@ -81,10 +88,23 @@ struct MainTabView: View {
                     .whiteStatusBar()
             }
         }
-        .sheet(item: $secondaryMailbox) { mailbox in
-            InboxView(initialMailbox: mailbox, isTabRoot: true)
-                .presentationDragIndicator(.visible)
-                .presentationDetents([.large])
+        .sheet(isPresented: $showingStorage) {
+            NavigationStack {
+                StorageManagementView()
+                    .toolbar {
+                        ToolbarItem(placement: .topBarLeading) {
+                            Button("Done") { showingStorage = false }
+                        }
+                    }
+            }
+        }
+        .onAppear {
+            storageManager.refreshBreakdown()
+        }
+        .onChange(of: inboxRefreshing) { _, isRefreshing in
+            if !isRefreshing {
+                storageManager.refreshBreakdown()
+            }
         }
     }
 
@@ -126,26 +146,51 @@ struct MainTabView: View {
 
                 Spacer()
 
-                Menu {
-                    Section("Saved views") {
-                        Button("Starred", systemImage: "star") { secondaryMailbox = .starred }
-                        Button("Returns schedule", systemImage: "calendar.badge.clock") { selectedTab = .today }
-                        Button("Someday", systemImage: "clock.arrow.circlepath") { secondaryMailbox = .someday }
-                        Button("Archived", systemImage: "archivebox") { secondaryMailbox = .archived }
-                        Button("Recently Deleted", systemImage: "trash") { secondaryMailbox = .trash }
-                    }
-                    Section("Account") {
-                        Button("Settings", systemImage: "gearshape") { selectedTab = .settings }
-                    }
+                Button {
+                    LBHaptic.light()
+                    storageManager.refreshBreakdown()
+                    showingStorage = true
                 } label: {
-                    Image(systemName: "line.3.horizontal")
-                        .font(.system(size: 19, weight: .medium))
-                        .foregroundStyle(InboxAppearance.textPrimary(for: colorScheme))
-                        .frame(width: 44, height: 44)
-                        .contentShape(Rectangle())
+                    HStack(spacing: 8) {
+                        Image(systemName: "internaldrive")
+                            .font(.system(size: 16, weight: .medium))
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(storageManager.breakdown.formattedTotal)
+                                .font(.system(size: 11, weight: .semibold, design: .rounded))
+                                .monospacedDigit()
+                                .lineLimit(1)
+                            GeometryReader { geometry in
+                                HStack(spacing: 1) {
+                                    Rectangle()
+                                        .fill(AppTheme.accent)
+                                        .frame(width: max(0, geometry.size.width * storageManager.breakdown.databasePercentage))
+                                    Rectangle()
+                                        .fill(Color.blue.opacity(0.8))
+                                        .frame(width: max(0, geometry.size.width * storageManager.breakdown.attachmentsPercentage))
+                                    Rectangle()
+                                        .fill(Color.orange.opacity(0.8))
+                                        .frame(width: max(0, geometry.size.width * storageManager.breakdown.cachePercentage))
+                                }
+                                .clipShape(Capsule())
+                            }
+                            .frame(width: 66, height: 3)
+                        }
+                    }
+                    .foregroundStyle(InboxAppearance.textPrimary(for: colorScheme))
+                    .padding(.horizontal, 10)
+                    .frame(height: 38)
+                    .background(
+                        InboxAppearance.surface(for: colorScheme),
+                        in: RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    )
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .strokeBorder(InboxAppearance.border(for: colorScheme), lineWidth: 1)
+                    }
                 }
-                .accessibilityLabel("More pages")
-                .accessibilityIdentifier("More LaterBox Pages")
+                .buttonStyle(.plain)
+                .accessibilityLabel("On-device storage: \(storageManager.breakdown.formattedTotal). Open storage management.")
+                .accessibilityIdentifier("Inbox Storage Usage")
             }
         }
         .frame(height: 58)

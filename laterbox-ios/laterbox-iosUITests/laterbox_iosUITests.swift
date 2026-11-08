@@ -40,7 +40,12 @@ final class laterbox_iosUITests: XCTestCase {
 
         XCTAssertTrue(app.buttons["Capture Item"].exists, "Quick capture belongs in the top-left app header")
         XCTAssertTrue(app.buttons["LaterBox home"].exists, "LaterBox icon belongs in the centered header")
-        XCTAssertTrue(app.buttons["More LaterBox Pages"].exists, "Secondary pages need an entry point")
+        let storageUsage = app.buttons["Inbox Storage Usage"]
+        XCTAssertTrue(storageUsage.exists, "Storage usage replaces the More menu")
+        XCTAssertFalse(app.buttons["More LaterBox Pages"].exists, "The three-line menu is removed")
+        storageUsage.tap()
+        XCTAssertTrue(app.staticTexts["STORAGE USAGE"].waitForExistence(timeout: 5))
+        app.buttons["Done"].tap()
         XCTAssertTrue(app.buttons["Search saved items"].exists, "Inbox search should remain visible")
         XCTAssertFalse(app.buttons["Browse folders"].exists, "No duplicate sidebar opener beside search")
 

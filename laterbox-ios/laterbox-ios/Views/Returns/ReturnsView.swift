@@ -217,7 +217,7 @@ public struct ReturnsView: View {
                                         let topRadius: CGFloat = isFirst ? 12 : 4
                                         let bottomRadius: CGFloat = isLast ? 12 : 4
 
-                                        NavigationLink(destination: ItemDetailView(item: item)) {
+                                        NavigationLink(destination: ItemDetailView(item: item, usesNativeNavigation: true)) {
                                             EmailInboxRowView(
                                                 item: item,
                                                 topRadius: topRadius,
@@ -313,7 +313,7 @@ struct TodayFocusList: View {
                 .foregroundStyle(AppTheme.textPrimary)
             ForEach(items, id: \.id) { item in
                 VStack(alignment: .leading, spacing: 12) {
-                    NavigationLink(destination: ItemDetailView(item: item)) {
+                    NavigationLink(destination: ItemDetailView(item: item, usesNativeNavigation: true)) {
                         VStack(alignment: .leading, spacing: 4) {
                             Text(item.title.isEmpty ? "Untitled item" : item.title)
                                 .font(.subheadline.weight(.semibold))

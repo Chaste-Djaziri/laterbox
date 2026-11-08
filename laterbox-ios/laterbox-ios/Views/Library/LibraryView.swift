@@ -560,7 +560,7 @@ public struct LibrarySectionDetailView: View {
                     } else if isGridView {
                         LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
                             ForEach(sectionItems) { item in
-                                NavigationLink(destination: ItemDetailView(item: item)) {
+                                NavigationLink(destination: ItemDetailView(item: item, usesNativeNavigation: true)) {
                                     compactGridCard(for: item)
                                 }
                                 .buttonStyle(.plain)
@@ -571,7 +571,7 @@ public struct LibrarySectionDetailView: View {
                             if category == .deleted {
                                 deletedItemCard(item: item)
                             } else {
-                                NavigationLink(destination: ItemDetailView(item: item)) {
+                                NavigationLink(destination: ItemDetailView(item: item, usesNativeNavigation: true)) {
                                     ItemCardView(
                                         item: item,
                                         onMarkDone: { coordinator.markDone(item: item, context: modelContext) },
@@ -891,7 +891,7 @@ public struct CollectionDetailView: View {
                     } else if isGridView {
                         LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
                             ForEach(collectionItems) { item in
-                                NavigationLink(destination: ItemDetailView(item: item)) {
+                                NavigationLink(destination: ItemDetailView(item: item, usesNativeNavigation: true)) {
                                     compactGridCard(for: item)
                                 }
                                 .buttonStyle(.plain)
@@ -899,7 +899,7 @@ public struct CollectionDetailView: View {
                         }
                     } else {
                         ForEach(collectionItems) { item in
-                            NavigationLink(destination: ItemDetailView(item: item)) {
+                            NavigationLink(destination: ItemDetailView(item: item, usesNativeNavigation: true)) {
                                 ItemCardView(
                                     item: item,
                                     onMarkDone: { coordinator.markDone(item: item, context: modelContext) },

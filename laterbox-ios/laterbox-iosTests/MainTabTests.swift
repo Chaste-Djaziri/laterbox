@@ -14,11 +14,28 @@ struct MainTabTests {
         #expect(Set(MainTab.allCases.map(\.symbol)).count == 5)
     }
 
+    @Test("Storage indicator reports actual local bytes and composition")
+    func storageUsageHeader() {
+        let breakdown = StorageBreakdown(
+            databaseBytes: 1_000_000,
+            attachmentsBytes: 500_000,
+            cacheBytes: 500_000
+        )
+        #expect(breakdown.totalBytes == 2_000_000)
+        #expect(breakdown.databasePercentage == 0.5)
+        #expect(breakdown.attachmentsPercentage == 0.25)
+        #expect(breakdown.cachePercentage == 0.25)
+        #expect(!breakdown.formattedTotal.isEmpty)
+    }
+
     @Test("Only Inbox owns the custom top header")
     func headerVisibility() {
         #expect(MainTab.inbox.showsAppHeader)
+        #expect(MainTab.inbox.shouldShowHeader(itemDetailPushed: false))
+        #expect(!MainTab.inbox.shouldShowHeader(itemDetailPushed: true))
         for tab in MainTab.allCases where tab != .inbox {
             #expect(!tab.showsAppHeader)
+            #expect(!tab.shouldShowHeader(itemDetailPushed: false))
         }
     }
 

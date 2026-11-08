@@ -43,10 +43,12 @@ public struct ItemDetailView: View {
     @State private var newChecklistTaskText: String = ""
 
     public var isModal: Bool
+    public var usesNativeNavigation: Bool
 
-    public init(item: LBItem, isModal: Bool = false) {
+    public init(item: LBItem, isModal: Bool = false, usesNativeNavigation: Bool = false) {
         self.item = item
         self.isModal = isModal
+        self.usesNativeNavigation = usesNativeNavigation
         self._editedTitle = State(initialValue: item.title)
         self._threadData = State(initialValue: ItemThreadParser.parse(from: item.noteContent))
     }
@@ -76,8 +78,11 @@ public struct ItemDetailView: View {
                 .ignoresSafeArea()
 
             VStack(spacing: 0) {
-                // 1. Top Navigation Bar with web-aligned action controls at top right
-                topNavigationBar
+                // Pushed details use the native navigation bar and edge-swipe back.
+                // Modal details retain their custom controls.
+                if !usesNativeNavigation {
+                    topNavigationBar
+                }
 
                 // 2. Focused scrollable body: Show what the user came back for
                 ScrollView {
@@ -156,7 +161,52 @@ public struct ItemDetailView: View {
                 bottomChatInputBar
             }
         }
-        .navigationBarHidden(true)
+        .toolbar(usesNativeNavigation ? .visible : .hidden, for: .navigationBar)
+        .navigationTitle(usesNativeNavigation ? "Item Details" : "")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            if usesNativeNavigation {
+                ToolbarItemGroup(placement: .topBarTrailing) {
+                    Button {
+                        coordinator.toggleFavorite(item: item, context: modelContext)
+                        LBHaptic.medium()
+                    } label: {
+                        Image(systemName: item.favorite ? "star.fill" : "star")
+                    }
+                    .accessibilityLabel(item.favorite ? "Unstar item" : "Star item")
+
+                    Menu {
+                        Button(
+                            item.status == ItemStatus.inbox.rawValue || item.status == ItemStatus.deferred.rawValue
+                                ? "Keep"
+                                : item.status == ItemStatus.saved.rawValue ? "Archive" : "Move to Inbox",
+                            systemImage: "checkmark.circle"
+                        ) {
+                            performStatusAction()
+                        }
+                        Button("Add to Collection", systemImage: "folder.badge.plus") {
+                            showingCollectionSheet = true
+                        }
+                        Button("Schedule", systemImage: "clock") {
+                            showingSchedulePicker = true
+                        }
+                        if let rawURL = item.url, let url = URL(string: rawURL) {
+                            ShareLink(item: url) {
+                                Label("Share Link", systemImage: "square.and.arrow.up")
+                            }
+                        }
+                        Divider()
+                        Button("Delete Item", systemImage: "trash", role: .destructive) {
+                            showingDeleteConfirm = true
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis.circle")
+                    }
+                    .accessibilityLabel("More item actions")
+                }
+            }
+        }
+        .toolbar(usesNativeNavigation ? .hidden : .automatic, for: .tabBar)
         .sheet(isPresented: $showingSafariReader) {
             if let urlStr = item.url, let url = URL(string: urlStr) {
                 SFSafariViewWrapper(url: url, entersReaderIfAvailable: true)
@@ -346,22 +396,26 @@ public struct ItemDetailView: View {
     }
 
     // MARK: - Status Action Button (Keep / Archive / Move to Inbox)
+    private func performStatusAction() {
+        if item.status == ItemStatus.inbox.rawValue || item.status == ItemStatus.deferred.rawValue {
+            coordinator.markDone(item: item, context: modelContext)
+        } else if item.status == ItemStatus.saved.rawValue {
+            item.status = ItemStatus.archived.rawValue
+            persistEdit()
+            Task { await coordinator.syncPendingItems(context: modelContext) }
+            LBHaptic.medium()
+        } else {
+            item.status = ItemStatus.inbox.rawValue
+            item.inboxEnteredAt = Date()
+            persistEdit()
+            Task { await coordinator.syncPendingItems(context: modelContext) }
+            LBHaptic.light()
+        }
+    }
+
     private var statusActionButton: some View {
         Button {
-            if item.status == ItemStatus.inbox.rawValue || item.status == ItemStatus.deferred.rawValue {
-                coordinator.markDone(item: item, context: modelContext) // Moves to saved (Kept)
-            } else if item.status == ItemStatus.saved.rawValue {
-                item.status = ItemStatus.archived.rawValue
-                persistEdit()
-                Task { await coordinator.syncPendingItems(context: modelContext) }
-                LBHaptic.medium()
-            } else {
-                item.status = ItemStatus.inbox.rawValue
-                item.inboxEnteredAt = Date()
-                persistEdit()
-                Task { await coordinator.syncPendingItems(context: modelContext) }
-                LBHaptic.light()
-            }
+            performStatusAction()
         } label: {
             HStack(spacing: 4) {
                 if item.status == ItemStatus.inbox.rawValue || item.status == ItemStatus.deferred.rawValue {

@@ -32,6 +32,8 @@ public struct InboxView: View {
     private var usesHeaderRefreshLogo: Bool { isTabRoot && initialMailbox == .inbox }
     @Binding private var refreshPull: CGFloat
     @Binding private var refreshIsRunning: Bool
+    @Binding private var detailIsPushed: Bool
+    @State private var itemPath: [String] = []
     @State private var selectedCollection: String? = nil
     @State private var showingPlans: Bool = false
     @State private var navigateToSettings: Bool = false
@@ -58,13 +60,15 @@ public struct InboxView: View {
         initialMailbox: MailboxViewType = .inbox,
         isTabRoot: Bool = false,
         refreshPull: Binding<CGFloat> = .constant(0),
-        refreshIsRunning: Binding<Bool> = .constant(false)
+        refreshIsRunning: Binding<Bool> = .constant(false),
+        detailIsPushed: Binding<Bool> = .constant(false)
     ) {
         self.initialMailbox = initialMailbox
         self.isTabRoot = isTabRoot
         self._selectedMailbox = State(initialValue: initialMailbox)
         self._refreshPull = refreshPull
         self._refreshIsRunning = refreshIsRunning
+        self._detailIsPushed = detailIsPushed
     }
 
     private func profileMenuRow(_ title: String, icon: String, destructive: Bool = false, action: @escaping () -> Void) -> some View {
@@ -258,7 +262,7 @@ public struct InboxView: View {
     }
 
     public var body: some View {
-        NavigationStack {
+        NavigationStack(path: $itemPath) {
             ZStack {
                 InboxAppearance.background(for: colorScheme).ignoresSafeArea()
 
@@ -622,7 +626,7 @@ public struct InboxView: View {
                                                 let topRadius: CGFloat = isFirst ? 12 : 4
                                                 let bottomRadius: CGFloat = isLast ? 12 : 4
 
-                                                NavigationLink(destination: ItemDetailView(item: item)) {
+                                                NavigationLink(value: item.id) {
                                                     EmailInboxRowView(
                                                         item: item,
                                                         topRadius: topRadius,
@@ -735,7 +739,7 @@ public struct InboxView: View {
                                         let topRadius: CGFloat = isFirst ? 12 : 4
                                         let bottomRadius: CGFloat = isLast ? 12 : 4
 
-                                        NavigationLink(destination: ItemDetailView(item: item)) {
+                                        NavigationLink(value: item.id) {
                                             EmailInboxRowView(
                                                 item: item,
                                                 topRadius: topRadius,
@@ -900,6 +904,18 @@ public struct InboxView: View {
                 .zIndex(100)
             }
             .navigationBarHidden(true)
+            .navigationDestination(for: String.self) { id in
+                if let item = allItems.first(where: { $0.id == id }) {
+                    ItemDetailView(item: item, usesNativeNavigation: true)
+                } else {
+                    ContentUnavailableView("Item unavailable", systemImage: "doc.questionmark")
+                        .navigationTitle("Item")
+                        .navigationBarTitleDisplayMode(.inline)
+                }
+            }
+            .onChange(of: itemPath) { _, path in
+                detailIsPushed = !path.isEmpty
+            }
             .confirmationDialog(
                 "Delete All Items?",
                 isPresented: $showingEmptyTrashConfirm,
