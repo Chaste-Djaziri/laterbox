@@ -1,6 +1,10 @@
 'use client';
 
+import { useRef } from 'react';
 import Link from 'next/link';
+import gsap from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { useGSAP } from '@gsap/react';
 import { APP_ORIGIN } from '@/lib/auth/config';
 import { useAuth } from '@/lib/store/AuthContext';
 import { Apple, Sparkles, ArrowRight, Compass } from 'lucide-react';
@@ -21,31 +25,339 @@ import { LandingFaqSection } from '@/components/marketing/LandingFaqSection';
 
 export default function LandingPage() {
   const { continueAsGuest } = useAuth();
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useGSAP(
+    () => {
+      if (typeof window === 'undefined') return;
+
+      const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (prefersReducedMotion) return;
+
+      gsap.registerPlugin(ScrollTrigger);
+
+      // Hero Timeline on mount
+      const heroTl = gsap.timeline({ defaults: { ease: 'power3.out' } });
+      heroTl
+        .from('.gsap-hero-badge', { opacity: 0, y: -16, duration: 0.6 })
+        .from('.gsap-hero-title', { opacity: 0, y: 28, duration: 0.75 }, '-=0.35')
+        .from('.gsap-hero-sub', { opacity: 0, y: 18, duration: 0.6 }, '-=0.4')
+        .from('.gsap-hero-cta > *', { opacity: 0, y: 16, stagger: 0.08, duration: 0.5 }, '-=0.3')
+        .from('.gsap-hero-meta', { opacity: 0, y: 10, duration: 0.5 }, '-=0.25')
+        .from('.gsap-hero-preview', { opacity: 0, y: 35, scale: 0.98, duration: 0.8 }, '-=0.3');
+
+      // Problem Section ScrollTrigger
+      gsap.from('.gsap-problem-title', {
+        scrollTrigger: {
+          trigger: '.gsap-problem-section',
+          start: 'top 80%',
+        },
+        opacity: 0,
+        y: 30,
+        duration: 0.7,
+        ease: 'power3.out',
+      });
+
+      gsap.from('.gsap-problem-card', {
+        scrollTrigger: {
+          trigger: '.gsap-problem-grid',
+          start: 'top 80%',
+        },
+        opacity: 0,
+        y: 40,
+        stagger: 0.1,
+        duration: 0.65,
+        ease: 'back.out(1.2)',
+      });
+
+      gsap.from('.gsap-problem-punchline', {
+        scrollTrigger: {
+          trigger: '.gsap-problem-punchline',
+          start: 'top 85%',
+        },
+        opacity: 0,
+        y: 20,
+        duration: 0.6,
+        ease: 'power2.out',
+      });
+
+      // When later becomes now (dark section)
+      gsap.from('.gsap-now-heading', {
+        scrollTrigger: {
+          trigger: '.gsap-now-section',
+          start: 'top 80%',
+        },
+        opacity: 0,
+        y: 30,
+        duration: 0.7,
+        ease: 'power3.out',
+      });
+
+      gsap.from('.gsap-now-card', {
+        scrollTrigger: {
+          trigger: '.gsap-now-section',
+          start: 'top 75%',
+        },
+        opacity: 0,
+        y: 35,
+        scale: 0.96,
+        duration: 0.75,
+        ease: 'power3.out',
+      });
+
+      // Not another todo list
+      gsap.from('.gsap-not-todo-heading', {
+        scrollTrigger: {
+          trigger: '.gsap-not-todo-section',
+          start: 'top 80%',
+        },
+        opacity: 0,
+        y: 25,
+        duration: 0.6,
+        ease: 'power3.out',
+      });
+
+      gsap.from('.gsap-not-todo-row', {
+        scrollTrigger: {
+          trigger: '.gsap-not-todo-table',
+          start: 'top 80%',
+        },
+        opacity: 0,
+        x: -20,
+        stagger: 0.08,
+        duration: 0.5,
+        ease: 'power2.out',
+      });
+
+      // Someday vault
+      gsap.from('.gsap-someday-text', {
+        scrollTrigger: {
+          trigger: '.gsap-someday-section',
+          start: 'top 80%',
+        },
+        opacity: 0,
+        y: 30,
+        duration: 0.7,
+        ease: 'power3.out',
+      });
+
+      gsap.from('.gsap-someday-deck', {
+        scrollTrigger: {
+          trigger: '.gsap-someday-section',
+          start: 'top 75%',
+        },
+        opacity: 0,
+        scale: 0.94,
+        y: 25,
+        duration: 0.75,
+        ease: 'power3.out',
+      });
+
+      // Designed to stay out of your way
+      gsap.from('.gsap-stay-heading, .gsap-stay-subheading', {
+        scrollTrigger: {
+          trigger: '.gsap-stay-section',
+          start: 'top 80%',
+        },
+        opacity: 0,
+        y: 25,
+        stagger: 0.1,
+        duration: 0.65,
+        ease: 'power3.out',
+      });
+
+      gsap.from('.gsap-stay-card', {
+        scrollTrigger: {
+          trigger: '.gsap-stay-section',
+          start: 'top 75%',
+        },
+        opacity: 0,
+        y: 30,
+        stagger: 0.12,
+        duration: 0.65,
+        ease: 'power3.out',
+      });
+
+      // Your LaterBox Your Rules
+      gsap.from('.gsap-rules-text', {
+        scrollTrigger: {
+          trigger: '.gsap-rules-section',
+          start: 'top 80%',
+        },
+        opacity: 0,
+        y: 30,
+        duration: 0.7,
+        ease: 'power3.out',
+      });
+
+      gsap.from('.gsap-rules-visual', {
+        scrollTrigger: {
+          trigger: '.gsap-rules-section',
+          start: 'top 75%',
+        },
+        opacity: 0,
+        y: 35,
+        duration: 0.8,
+        ease: 'power3.out',
+      });
+
+      // One shortcut away
+      gsap.from('.gsap-shortcut-content', {
+        scrollTrigger: {
+          trigger: '.gsap-shortcut-section',
+          start: 'top 80%',
+        },
+        opacity: 0,
+        y: 30,
+        duration: 0.7,
+        ease: 'power3.out',
+      });
+
+      // Your things stay
+      gsap.from('.gsap-things-heading', {
+        scrollTrigger: {
+          trigger: '.gsap-things-section',
+          start: 'top 80%',
+        },
+        opacity: 0,
+        y: 30,
+        duration: 0.7,
+        ease: 'power3.out',
+      });
+
+      gsap.from('.gsap-things-card', {
+        scrollTrigger: {
+          trigger: '.gsap-things-grid',
+          start: 'top 80%',
+        },
+        opacity: 0,
+        y: 35,
+        stagger: 0.12,
+        duration: 0.6,
+        ease: 'power3.out',
+      });
+
+      // Less mental clutter
+      gsap.from('.gsap-clutter-heading', {
+        scrollTrigger: {
+          trigger: '.gsap-clutter-section',
+          start: 'top 80%',
+        },
+        opacity: 0,
+        y: 25,
+        duration: 0.7,
+        ease: 'power3.out',
+      });
+
+      gsap.from('.gsap-clutter-pill', {
+        scrollTrigger: {
+          trigger: '.gsap-clutter-section',
+          start: 'top 75%',
+        },
+        opacity: 0,
+        scale: 0.9,
+        stagger: 0.08,
+        duration: 0.5,
+        ease: 'back.out(1.4)',
+      });
+
+      // Wont forget it later
+      gsap.from('.gsap-wont-forget-text', {
+        scrollTrigger: {
+          trigger: '.gsap-wont-forget-section',
+          start: 'top 80%',
+        },
+        opacity: 0,
+        y: 30,
+        duration: 0.75,
+        ease: 'power3.out',
+      });
+
+      gsap.from('.gsap-wont-forget-line', {
+        scrollTrigger: {
+          trigger: '.gsap-wont-forget-section',
+          start: 'top 75%',
+        },
+        scaleX: 0,
+        duration: 0.8,
+        ease: 'power3.out',
+      });
+
+      // FAQ
+      gsap.from('.gsap-faq-header', {
+        scrollTrigger: {
+          trigger: '.gsap-faq-section',
+          start: 'top 80%',
+        },
+        opacity: 0,
+        y: 25,
+        duration: 0.65,
+        ease: 'power3.out',
+      });
+
+      gsap.from('.gsap-faq-item', {
+        scrollTrigger: {
+          trigger: '.gsap-faq-section',
+          start: 'top 75%',
+        },
+        opacity: 0,
+        y: 20,
+        stagger: 0.05,
+        duration: 0.5,
+        ease: 'power2.out',
+      });
+
+      // Marketing platforms
+      gsap.from('.gsap-platforms-header', {
+        scrollTrigger: {
+          trigger: '.gsap-platforms-section',
+          start: 'top 80%',
+        },
+        opacity: 0,
+        y: 25,
+        duration: 0.65,
+        ease: 'power3.out',
+      });
+
+      gsap.from('.gsap-platform-card', {
+        scrollTrigger: {
+          trigger: '.gsap-platforms-section',
+          start: 'top 75%',
+        },
+        opacity: 0,
+        y: 35,
+        stagger: 0.12,
+        duration: 0.65,
+        ease: 'power3.out',
+      });
+    },
+    { scope: containerRef }
+  );
 
   return (
-    <div className="selection:bg-[#171711] selection:text-white">
+    <div ref={containerRef} className="selection:bg-[#171711] selection:text-white">
       {/* Hero Section */}
       <section className="relative pt-12 sm:pt-20 pb-16 sm:pb-24 overflow-hidden">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 text-center relative z-10">
           {/* Pro Pill Badge */}
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#e6edb0] border border-[#d0db84] text-[#171711] text-xs font-extrabold mb-8 shadow-xs">
+          <div className="gsap-hero-badge inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#e6edb0] border border-[#d0db84] text-[#171711] text-xs font-extrabold mb-8 shadow-xs">
             <Sparkles className="w-3.5 h-3.5 text-[#171711]" />
-            <span>LaterBox Pro • Built for Power Users, Developers & Curators</span>
+            <span>LaterBox Pro • Built for Power Users, Developers &amp; Curators</span>
           </div>
 
           {/* Main Hero Heading */}
-          <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black tracking-tight text-[#171711] leading-[1.08] mb-6">
+          <h1 className="gsap-hero-title text-4xl sm:text-6xl lg:text-7xl font-black tracking-tight text-[#171711] leading-[1.08] mb-6">
             LaterBox: save now. <br />
             Return to it <span className="font-serif italic font-normal">later.</span>
           </h1>
 
           {/* Subheading */}
-          <p className="max-w-2xl mx-auto text-base sm:text-xl text-[#6c6b63] leading-relaxed mb-10">
+          <p className="gsap-hero-sub max-w-2xl mx-auto text-base sm:text-xl text-[#6c6b63] leading-relaxed mb-10">
             Your save-for-later app and bookmark manager for links, articles, videos, notes, and files. Organize collections and find what you saved when you need it.
           </p>
 
           {/* Action CTAs */}
-          <div className="flex flex-wrap items-center justify-center gap-3.5">
+          <div className="gsap-hero-cta flex flex-wrap items-center justify-center gap-3.5">
             <Link
               href={`${APP_ORIGIN}/inbox?guest=1`}
               className="inline-flex items-center gap-2 px-7 py-3.5 rounded-full bg-[#171711] hover:bg-[#282723] active:bg-[#0f0f0e] text-white font-extrabold text-sm sm:text-base shadow-sm transition-all duration-150 group"
@@ -59,7 +371,7 @@ export default function LandingPage() {
               className="inline-flex items-center gap-2 px-6 py-3.5 rounded-full bg-white border border-[#e4e0d5] text-[#171711] hover:bg-[#ebe7dc]/50 font-bold text-sm sm:text-base shadow-xs transition-all"
             >
               <Apple className="w-4 h-4 text-[#171711]" />
-              <span>Get for iOS & Downloads</span>
+              <span>Get for iOS &amp; Downloads</span>
             </Link>
 
             <Link
@@ -73,7 +385,7 @@ export default function LandingPage() {
           </div>
 
           {/* Meta Trust Badges */}
-          <div className="mt-8 text-xs text-[#6c6b63] space-y-1 font-medium">
+          <div className="gsap-hero-meta mt-8 text-xs text-[#6c6b63] space-y-1 font-medium">
             <p className="flex items-center justify-center gap-2">
               <span>Free</span>
               <span>•</span>
@@ -96,8 +408,8 @@ export default function LandingPage() {
           </div>
         </div>
 
-        {/* Hero Dashboard Preview Container with identical max-w-6xl dimensions as Designed to stay section */}
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+        {/* Hero Dashboard Preview Container */}
+        <div className="gsap-hero-preview max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           {/* Floating Try It Badge Indicator */}
           <div className="mt-12 sm:mt-16 flex justify-start pl-6 sm:pl-10 mb-[-12px] relative z-20">
             <a
@@ -119,14 +431,13 @@ export default function LandingPage() {
         </div>
       </section>
 
-
       {/* ============================================================ */}
       {/* "We all have a place called Later" Problem Section */}
       {/* ============================================================ */}
-      <section className="py-20 sm:py-28 px-4 sm:px-6 relative overflow-hidden bg-white border-b border-[#e4e0d5]">
+      <section className="gsap-problem-section py-20 sm:py-28 px-4 sm:px-6 relative overflow-hidden bg-white border-b border-[#e4e0d5]">
         <div className="max-w-4xl mx-auto text-center">
           {/* Main Statement Heading */}
-          <h2 className="text-3xl sm:text-5xl lg:text-6xl font-black tracking-tight text-[#171711] uppercase leading-tight">
+          <h2 className="gsap-problem-title text-3xl sm:text-5xl lg:text-6xl font-black tracking-tight text-[#171711] uppercase leading-tight">
             We all have a place <br />
             called <br />
             <span className="font-serif italic font-normal text-4xl sm:text-6xl lg:text-7xl normal-case tracking-normal block mt-2">
@@ -135,9 +446,9 @@ export default function LandingPage() {
           </h2>
 
           {/* 2x2 Behavioral Quote Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-7 max-w-2xl mx-auto mt-14 sm:mt-16 p-2">
+          <div className="gsap-problem-grid grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-7 max-w-2xl mx-auto mt-14 sm:mt-16 p-2">
             {/* Card 1: Watch Later (-2.5 deg tilt) */}
-            <div className="rounded-2xl sm:rounded-3xl bg-white border border-[#e4e0d5] p-8 sm:p-10 text-center shadow-[0_8px_30px_rgb(0,0,0,0.03)] -rotate-[2.5deg] hover:rotate-0 hover:scale-[1.02] hover:border-[#171711] hover:shadow-[0_12px_40px_rgba(23,23,17,0.08)] transition-all duration-300 ease-out flex flex-col items-center justify-center space-y-3.5 group cursor-pointer relative z-10 hover:z-20">
+            <div className="gsap-problem-card rounded-2xl sm:rounded-3xl bg-white border border-[#e4e0d5] p-8 sm:p-10 text-center shadow-[0_8px_30px_rgb(0,0,0,0.03)] -rotate-[2.5deg] hover:rotate-0 hover:scale-[1.02] hover:border-[#171711] hover:shadow-[0_12px_40px_rgba(23,23,17,0.08)] transition-all duration-300 ease-out flex flex-col items-center justify-center space-y-3.5 group cursor-pointer relative z-10 hover:z-20">
               <p className="text-lg sm:text-xl font-bold text-[#171711]">
                 &ldquo;I&apos;ll watch it later.&rdquo;
               </p>
@@ -147,7 +458,7 @@ export default function LandingPage() {
             </div>
 
             {/* Card 2: Bookmarks (+2.5 deg tilt) */}
-            <div className="rounded-2xl sm:rounded-3xl bg-white border border-[#e4e0d5] p-8 sm:p-10 text-center shadow-[0_8px_30px_rgb(0,0,0,0.03)] rotate-[2.5deg] hover:rotate-0 hover:scale-[1.02] hover:border-[#171711] hover:shadow-[0_12px_40px_rgba(23,23,17,0.08)] transition-all duration-300 ease-out flex flex-col items-center justify-center space-y-3.5 group cursor-pointer relative z-10 hover:z-20">
+            <div className="gsap-problem-card rounded-2xl sm:rounded-3xl bg-white border border-[#e4e0d5] p-8 sm:p-10 text-center shadow-[0_8px_30px_rgb(0,0,0,0.03)] rotate-[2.5deg] hover:rotate-0 hover:scale-[1.02] hover:border-[#171711] hover:shadow-[0_12px_40px_rgba(23,23,17,0.08)] transition-all duration-300 ease-out flex flex-col items-center justify-center space-y-3.5 group cursor-pointer relative z-10 hover:z-20">
               <p className="text-lg sm:text-xl font-bold text-[#171711]">
                 &ldquo;I&apos;ll read it later.&rdquo;
               </p>
@@ -157,7 +468,7 @@ export default function LandingPage() {
             </div>
 
             {/* Card 3: Downloads (-2 deg tilt) */}
-            <div className="rounded-2xl sm:rounded-3xl bg-white border border-[#e4e0d5] p-8 sm:p-10 text-center shadow-[0_8px_30px_rgb(0,0,0,0.03)] -rotate-[2deg] hover:rotate-0 hover:scale-[1.02] hover:border-[#171711] hover:shadow-[0_12px_40px_rgba(23,23,17,0.08)] transition-all duration-300 ease-out flex flex-col items-center justify-center space-y-3.5 group cursor-pointer relative z-10 hover:z-20">
+            <div className="gsap-problem-card rounded-2xl sm:rounded-3xl bg-white border border-[#e4e0d5] p-8 sm:p-10 text-center shadow-[0_8px_30px_rgb(0,0,0,0.03)] -rotate-[2deg] hover:rotate-0 hover:scale-[1.02] hover:border-[#171711] hover:shadow-[0_12px_40px_rgba(23,23,17,0.08)] transition-all duration-300 ease-out flex flex-col items-center justify-center space-y-3.5 group cursor-pointer relative z-10 hover:z-20">
               <p className="text-lg sm:text-xl font-bold text-[#171711]">
                 &ldquo;I&apos;ll finish it later.&rdquo;
               </p>
@@ -167,7 +478,7 @@ export default function LandingPage() {
             </div>
 
             {/* Card 4: Open Tabs (+2 deg tilt) */}
-            <div className="rounded-2xl sm:rounded-3xl bg-white border border-[#e4e0d5] p-8 sm:p-10 text-center shadow-[0_8px_30px_rgb(0,0,0,0.03)] rotate-[2deg] hover:rotate-0 hover:scale-[1.02] hover:border-[#171711] hover:shadow-[0_12px_40px_rgba(23,23,17,0.08)] transition-all duration-300 ease-out flex flex-col items-center justify-center space-y-3.5 group cursor-pointer relative z-10 hover:z-20">
+            <div className="gsap-problem-card rounded-2xl sm:rounded-3xl bg-white border border-[#e4e0d5] p-8 sm:p-10 text-center shadow-[0_8px_30px_rgb(0,0,0,0.03)] rotate-[2deg] hover:rotate-0 hover:scale-[1.02] hover:border-[#171711] hover:shadow-[0_12px_40px_rgba(23,23,17,0.08)] transition-all duration-300 ease-out flex flex-col items-center justify-center space-y-3.5 group cursor-pointer relative z-10 hover:z-20">
               <p className="text-lg sm:text-xl font-bold text-[#171711]">
                 &ldquo;I&apos;ll reply later.&rdquo;
               </p>
@@ -178,7 +489,7 @@ export default function LandingPage() {
           </div>
 
           {/* Bottom Punchline */}
-          <div className="mt-14 sm:mt-18 text-center space-y-1">
+          <div className="gsap-problem-punchline mt-14 sm:mt-18 text-center space-y-1">
             <p className="text-xl sm:text-2xl text-[#171711] font-medium">
               Most things we save for later
             </p>
@@ -217,7 +528,7 @@ export default function LandingPage() {
       <SomedayVaultSection />
 
       {/* ============================================================ */}
-      {/* "Designed to stay out of your way." App Dashboard Showcase */}
+      {/* "Designed to stay out of your way." Core Philosophy Section */}
       {/* ============================================================ */}
       <DesignedToStayOutOfWaySection />
 
@@ -242,27 +553,45 @@ export default function LandingPage() {
       <LessMentalClutterSection />
 
       {/* ============================================================ */}
-      {/* "The Ultimate Windows Productivity Organizer" Feature Tabs */}
-      {/* ============================================================ */}
-
-
-      {/* ============================================================ */}
       {/* "You don't need to do everything now." Core Statement */}
       {/* ============================================================ */}
       <WontForgetItLaterSection />
 
       {/* ============================================================ */}
-      <nav aria-label="Learn about LaterBox" className="mx-auto flex max-w-5xl flex-wrap justify-center gap-6 px-6 py-10 font-bold underline">
-        <Link href="/features">Explore LaterBox features</Link>
-        <Link href="/about">About LaterBox</Link>
-        <Link href="/browser-extension">Save with the browser extension</Link>
+      {/* Discovery Navigation Bar */}
+      {/* ============================================================ */}
+      <nav aria-label="Learn about LaterBox" className="mx-auto flex max-w-5xl flex-wrap justify-center gap-3.5 px-6 py-12">
+        <Link
+          href="/features"
+          className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full bg-white border border-[#e4e0d5] text-[#171711] text-xs font-bold hover:border-[#171711] hover:bg-[#faf8f5] shadow-2xs transition-all"
+        >
+          <span>Explore LaterBox features</span>
+          <ArrowRight className="w-3.5 h-3.5 text-[#6c6b63]" />
+        </Link>
+        <Link
+          href="/about"
+          className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full bg-white border border-[#e4e0d5] text-[#171711] text-xs font-bold hover:border-[#171711] hover:bg-[#faf8f5] shadow-2xs transition-all"
+        >
+          <span>About LaterBox &amp; Philosophy</span>
+          <ArrowRight className="w-3.5 h-3.5 text-[#6c6b63]" />
+        </Link>
+        <Link
+          href="/browser-extension"
+          className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full bg-white border border-[#e4e0d5] text-[#171711] text-xs font-bold hover:border-[#171711] hover:bg-[#faf8f5] shadow-2xs transition-all"
+        >
+          <span>Save with Browser Extension</span>
+          <ArrowRight className="w-3.5 h-3.5 text-[#6c6b63]" />
+        </Link>
       </nav>
+
+      {/* ============================================================ */}
       {/* 2-Column Landing FAQ Section */}
       {/* ============================================================ */}
       <LandingFaqSection />
 
-
-
+      {/* ============================================================ */}
+      {/* Multi-Platform Ecosystem Cards */}
+      {/* ============================================================ */}
       <MarketingPlatformsSection />
     </div>
   );
