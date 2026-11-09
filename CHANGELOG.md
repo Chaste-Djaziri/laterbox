@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[Web / Marketing mobile hero full height preview]** Expand the mobile iOS screenshot container to display the full image height naturally without truncation or gradient overlays, showcasing the complete inbox view and bottom navigation bar within a phone frame.
+
 - **[Web / Marketing mobile hero app preview]** On mobile screens, replace the desktop interactive table preview with a native iOS app screenshot framed in a phone container with an elegant bottom fade-out and download link, preserving the full desktop interactive sandbox on desktop (`md:` and up).
 
 - **[Web / Marketing action buttons visibility fix]** Ensure all action buttons remain visible and interactive across the hero section and preview: convert hero entrance GSAP tweens to `fromTo` with `clearProps: 'all'` so CTA buttons never get stuck in an unrendered zero-opacity state, restore bulk action buttons (Archive, Delete, Star, Snooze) in the table toolbar when items are selected, and add CSS `group-hover:flex` fallback to email row hover action shortcuts.
