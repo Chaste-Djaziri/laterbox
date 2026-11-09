@@ -19,6 +19,7 @@
   },
   "dependencies": {
     "@apple/app-store-server-library": "^3.1.0",
+    "@gsap/react": "^2.1.2",
     "@opennextjs/cloudflare": "^1.19.9",
     "@paddle/paddle-js": "^1.4.2",
     "@supabase/supabase-js": "^2.112.3",
@@ -28,6 +29,7 @@
     "@whop/sdk": "^2.4.0",
     "clsx": "^2.1.1",
     "date-fns": "^4.4.0",
+    "gsap": "^3.15.1",
     "jose": "^6.2.12",
     "lucide-react": "^1.33.0",
     "next": "16.2.11",
