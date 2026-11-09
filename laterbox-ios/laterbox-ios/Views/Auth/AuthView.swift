@@ -154,7 +154,7 @@ struct AuthView: View {
                                 .frame(width: 42, height: 42)
                                 .accessibilityHidden(true)
                             Text("laterbox")
-                                .font(.system(size: 22, weight: .bold, design: .rounded))
+                                .font(.system(size: 22, weight: .bold))
                                 .tracking(-0.8)
                                 .foregroundStyle(primaryText)
                                 .accessibilityLabel("LaterBox")
@@ -175,12 +175,13 @@ struct AuthView: View {
 
                         VStack(alignment: .leading, spacing: 7) {
                             Text(headerTitle)
-                                .font(.system(size: 33, weight: .bold, design: .rounded))
-                                .tracking(-0.9)
+                                // Match the Welcome screen's San Francisco heading.
+                                .font(.system(size: 38, weight: .bold))
+                                .lineSpacing(-3)
                                 .foregroundStyle(primaryText)
                                 .fixedSize(horizontal: false, vertical: true)
                             Text(headerSubtitle)
-                                .font(.system(size: 15))
+                                .font(.system(size: 17, weight: .regular))
                                 .foregroundStyle(secondaryText)
                                 .fixedSize(horizontal: false, vertical: true)
                                 .lineSpacing(3)
@@ -421,8 +422,11 @@ struct AuthView: View {
                                 request.requestedScopes = [.fullName, .email]
                             }, onCompletion: handleAppleResult)
                             .signInWithAppleButtonStyle(colorScheme == .dark ? .white : .black)
-                            .frame(maxWidth: .infinity)
+                            // Apple's native control enforces a 375pt maximum width.
+                            // Expand the container, not the UIKit button, on wide phones/iPads.
+                            .frame(maxWidth: 375)
                             .frame(height: 54)
+                            .frame(maxWidth: .infinity)
                             .clipShape(RoundedRectangle(cornerRadius: 15))
                             .disabled(isLoading)
 
