@@ -939,9 +939,7 @@ public struct InboxView: View {
                 titleVisibility: .visible
             ) {
                 Button("Exit & Clear Data", role: .destructive) {
-                    do {
-                        try coordinator.exitGuest(context: modelContext)
-                    } catch {
+                    coordinator.signOutAfterDialog(context: modelContext) { error in
                         signOutFailureMessage = error.localizedDescription
                         showingSignOutFailure = true
                     }
@@ -956,9 +954,7 @@ public struct InboxView: View {
                 titleVisibility: .visible
             ) {
                 Button("Sign Out & Clear Device", role: .destructive) {
-                    do {
-                        try coordinator.signOutAndEraseLocalData(context: modelContext)
-                    } catch {
+                    coordinator.signOutAfterDialog(context: modelContext) { error in
                         signOutFailureMessage = error.localizedDescription
                         showingSignOutFailure = true
                     }

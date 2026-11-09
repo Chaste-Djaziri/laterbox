@@ -48,6 +48,7 @@ struct AuthView: View {
     @State private var errorMessage: String? = nil
     @State private var infoMessage: String? = nil
     @State private var activeLegalDocument: LegalDocument? = nil
+    @State private var openedFromActiveLibrary = false
 
     private let isPreviewSimulatorEnabled: Bool
 
@@ -517,6 +518,11 @@ struct AuthView: View {
         }
         .navigationBarBackButtonHidden(true)
         .navigationBarTitleDisplayMode(.inline)
+        .onAppear {
+            // Welcome disappears when sign-in changes the root session.
+            // Other callers present auth above an existing library.
+            openedFromActiveLibrary = coordinator.hasAccess
+        }
         .sheet(item: $activeLegalDocument) { document in
             SFSafariViewWrapper(url: document.url, entersReaderIfAvailable: false)
                 .ignoresSafeArea()
@@ -544,6 +550,14 @@ struct AuthView: View {
         .overlay {
             RoundedRectangle(cornerRadius: 15, style: .continuous)
                 .strokeBorder(subtleBorder, lineWidth: 1)
+        }
+    }
+
+    private func finishSuccessfulAuthentication() {
+        // Prevent duplicate navigation updates on login. ContentView owns
+        // switching away from Welcome; only guest/library sheets need dismiss.
+        if openedFromActiveLibrary {
+            dismiss()
         }
     }
 
@@ -745,7 +759,7 @@ struct AuthView: View {
                 await MainActor.run {
                     isLoading = false
                     LBHaptic.success()
-                    dismiss()
+                    finishSuccessfulAuthentication()
                 }
             } catch {
                 await MainActor.run {
@@ -808,17 +822,20 @@ struct AuthView: View {
         } else {
             Task {
                 let cleanEmail = email.trimmingCharacters(in: .whitespacesAndNewlines)
-                try? await coordinator.resolveLoginData(
-                    merge: true,
-                    email: cleanEmail,
-                    userId: userId,
-                    token: token,
-                    refreshToken: refreshToken,
-                    context: modelContext
-                )
-                await MainActor.run {
+                do {
+                    try await coordinator.resolveLoginData(
+                        merge: true,
+                        email: cleanEmail,
+                        userId: userId,
+                        token: token,
+                        refreshToken: refreshToken,
+                        context: modelContext
+                    )
                     LBHaptic.success()
-                    dismiss()
+                    finishSuccessfulAuthentication()
+                } catch {
+                    errorMessage = "Could not complete sign-in: \(error.localizedDescription)"
+                    LBHaptic.error()
                 }
             }
         }
@@ -845,7 +862,7 @@ struct AuthView: View {
                 await MainActor.run {
                     isLoading = false
                     LBHaptic.success()
-                    dismiss()
+                    finishSuccessfulAuthentication()
                 }
             } catch {
                 await MainActor.run {

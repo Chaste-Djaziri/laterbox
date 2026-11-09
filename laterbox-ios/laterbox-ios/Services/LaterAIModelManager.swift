@@ -171,83 +171,108 @@ enum AIProviderType: String, CaseIterable, Identifiable, Codable {
 final class LaterAIModelManager: ObservableObject {
     static let shared = LaterAIModelManager()
 
+    // Suppress preference writes while resetting user data on sign out.
+    private var isResettingForSignOut = false
+
     @Published var selectedProvider: AIProviderType = .local {
         didSet {
-            UserDefaults.standard.set(selectedProvider.rawValue, forKey: "laterbox_selected_ai_provider")
-            syncToSharedSettings()
+            if !isResettingForSignOut {
+                UserDefaults.standard.set(selectedProvider.rawValue, forKey: "laterbox_selected_ai_provider")
+                syncToSharedSettings()
+            }
         }
     }
     @Published var enableSearchRefine: Bool = true
     @Published var isOnDeviceModelEnabled: Bool {
         didSet {
-            UserDefaults.standard.set(isOnDeviceModelEnabled, forKey: "laterbox_enable_on_device_model")
-            syncToSharedSettings()
+            if !isResettingForSignOut {
+                UserDefaults.standard.set(isOnDeviceModelEnabled, forKey: "laterbox_enable_on_device_model")
+                syncToSharedSettings()
+            }
         }
     }
 
     @Published var bazaarlinkApiKey: String {
         didSet {
-            UserDefaults.standard.set(bazaarlinkApiKey, forKey: "laterbox_bazaarlink_api_key")
-            syncToSharedSettings()
+            if !isResettingForSignOut {
+                UserDefaults.standard.set(bazaarlinkApiKey, forKey: "laterbox_bazaarlink_api_key")
+                syncToSharedSettings()
+            }
         }
     }
     @Published var geminiApiKey: String {
         didSet {
-            UserDefaults.standard.set(geminiApiKey, forKey: "laterbox_gemini_api_key")
-            syncToSharedSettings()
+            if !isResettingForSignOut {
+                UserDefaults.standard.set(geminiApiKey, forKey: "laterbox_gemini_api_key")
+                syncToSharedSettings()
+            }
         }
     }
     @Published var openaiApiKey: String {
         didSet {
-            UserDefaults.standard.set(openaiApiKey, forKey: "laterbox_openai_api_key")
-            syncToSharedSettings()
+            if !isResettingForSignOut {
+                UserDefaults.standard.set(openaiApiKey, forKey: "laterbox_openai_api_key")
+                syncToSharedSettings()
+            }
         }
     }
     @Published var claudeApiKey: String {
         didSet {
-            UserDefaults.standard.set(claudeApiKey, forKey: "laterbox_claude_api_key")
-            syncToSharedSettings()
+            if !isResettingForSignOut {
+                UserDefaults.standard.set(claudeApiKey, forKey: "laterbox_claude_api_key")
+                syncToSharedSettings()
+            }
         }
     }
 
     @Published var bazaarlinkModel: String {
         didSet {
-            UserDefaults.standard.set(bazaarlinkModel, forKey: "laterbox_bazaarlink_model")
-            syncToSharedSettings()
+            if !isResettingForSignOut {
+                UserDefaults.standard.set(bazaarlinkModel, forKey: "laterbox_bazaarlink_model")
+                syncToSharedSettings()
+            }
         }
     }
     @Published var geminiModel: String {
         didSet {
-            UserDefaults.standard.set(geminiModel, forKey: "laterbox_gemini_model")
-            syncToSharedSettings()
+            if !isResettingForSignOut {
+                UserDefaults.standard.set(geminiModel, forKey: "laterbox_gemini_model")
+                syncToSharedSettings()
+            }
         }
     }
     @Published var openaiModel: String {
         didSet {
-            UserDefaults.standard.set(openaiModel, forKey: "laterbox_openai_model")
-            syncToSharedSettings()
+            if !isResettingForSignOut {
+                UserDefaults.standard.set(openaiModel, forKey: "laterbox_openai_model")
+                syncToSharedSettings()
+            }
         }
     }
     @Published var claudeModel: String {
         didSet {
-            UserDefaults.standard.set(claudeModel, forKey: "laterbox_claude_model")
-            syncToSharedSettings()
+            if !isResettingForSignOut {
+                UserDefaults.standard.set(claudeModel, forKey: "laterbox_claude_model")
+                syncToSharedSettings()
+            }
         }
     }
 
     /// Remove credentials and account-related settings held by this live singleton.
     func resetForSignOut() {
-        selectedProvider = .local
-        isOnDeviceModelEnabled = false
-        bazaarlinkApiKey = ""
-        geminiApiKey = ""
-        openaiApiKey = ""
-        claudeApiKey = ""
-        bazaarlinkModel = "qwen/qwen3.7-flash"
-        geminiModel = "gemini-2.5-flash"
-        openaiModel = "gpt-4o-mini"
-        claudeModel = "claude-3-5-haiku-20241022"
-        enableSearchRefine = true
+        isResettingForSignOut = true
+        defer { isResettingForSignOut = false }
+        if selectedProvider != .local { selectedProvider = .local }
+        if isOnDeviceModelEnabled { isOnDeviceModelEnabled = false }
+        if !bazaarlinkApiKey.isEmpty { bazaarlinkApiKey = "" }
+        if !geminiApiKey.isEmpty { geminiApiKey = "" }
+        if !openaiApiKey.isEmpty { openaiApiKey = "" }
+        if !claudeApiKey.isEmpty { claudeApiKey = "" }
+        if bazaarlinkModel != "qwen/qwen3.7-flash" { bazaarlinkModel = "qwen/qwen3.7-flash" }
+        if geminiModel != "gemini-2.5-flash" { geminiModel = "gemini-2.5-flash" }
+        if openaiModel != "gpt-4o-mini" { openaiModel = "gpt-4o-mini" }
+        if claudeModel != "claude-3-5-haiku-20241022" { claudeModel = "claude-3-5-haiku-20241022" }
+        if !enableSearchRefine { enableSearchRefine = true }
     }
 
     func currentSharedSettings() -> SharedAISettings {

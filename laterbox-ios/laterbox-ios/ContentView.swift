@@ -28,7 +28,6 @@ struct ContentView: View {
         ZStack {
             if !coordinator.hasAccess {
                 WelcomeView()
-                    .transition(.opacity)
             } else {
                 MainTabView()
                     .sheet(isPresented: $coordinator.showingAuthSheet) {
@@ -43,7 +42,6 @@ struct ContentView: View {
                         // Trigger automatic sync on app launch
                         await coordinator.syncPendingItems(context: modelContext, announceFailure: false)
                     }
-                    .transition(.opacity)
             }
 
             // In-App Top Slide-Down Notification Banner for Copied Items
@@ -80,7 +78,8 @@ struct ContentView: View {
                 .zIndex(2000)
             }
         }
-        .animation(.spring(response: 0.45, dampingFraction: 0.85), value: coordinator.hasAccess)
+        // A session switch replaces entire navigation stacks. Never animate this
+        // root transition: doing so can cause NavigationRequestObserver loops.
         // All screens, including authentication, follow the device theme.
         // Avoid global UIWindow appearance mutations while navigation is active.
         .task {
@@ -100,10 +99,7 @@ struct ContentView: View {
             if coordinator.sessionExpired {
                 Button("Sign In") { coordinator.showingAuthSheet = true }
                 Button("Use Local (Sign Out)", role: .destructive) {
-                    do {
-                        try coordinator.signOutAndEraseLocalData(context: modelContext)
-                        coordinator.continueAsGuest()
-                    } catch {
+                    coordinator.signOutAfterDialog(context: modelContext, continueAsGuest: true) { error in
                         signOutFailureMessage = error.localizedDescription
                         showingSignOutFailure = true
                     }

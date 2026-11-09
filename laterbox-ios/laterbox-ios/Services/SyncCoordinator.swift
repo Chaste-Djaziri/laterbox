@@ -344,6 +344,25 @@ public final class SyncCoordinator: ObservableObject {
         LBHaptic.light()
     }
 
+    /// Run the destructive local reset after the presenting alert/dialog has
+    /// completed its update transaction. Changing a TabView/NavigationStack and
+    /// its presenting dialog synchronously causes recursive navigation updates.
+    public func signOutAfterDialog(
+        context: ModelContext,
+        continueAsGuest: Bool = false,
+        onError: @escaping @MainActor (Error) -> Void
+    ) {
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            do {
+                try self.signOutAndEraseLocalData(context: context)
+                if continueAsGuest { self.continueAsGuest() }
+            } catch {
+                onError(error)
+            }
+        }
+    }
+
     /// Explicit Sign Out removes *all* LaterBox user content from this device.
     /// This includes unuploaded items; the cloud account and its records remain intact.
     /// The caller keeps the session active and shows an error if local deletion fails.
@@ -384,15 +403,14 @@ public final class SyncCoordinator: ObservableObject {
         // Apple's StoreKit entitlement remains available independently.
         try StoreKitManager.shared.resetAccountConnection()
 
-        // Remove account-specific preferences and the extension's shared
-        // identities, queues, tokens and provider keys, not just auth strings.
-        for key in defaults.dictionaryRepresentation().keys {
-            defaults.removeObject(forKey: key)
+        // Only clear our own persistent preference domains. Enumerating an
+        // App Group's dictionaryRepresentation also reads global/AnyUser
+        // preferences, which produces CFPrefsPlistSource container warnings.
+        if let bundleID = Bundle.main.bundleIdentifier {
+            defaults.removePersistentDomain(forName: bundleID)
         }
         if let groupDefaults = UserDefaults(suiteName: SharedCaptureStore.group) {
-            for key in groupDefaults.dictionaryRepresentation().keys {
-                groupDefaults.removeObject(forKey: key)
-            }
+            groupDefaults.removePersistentDomain(forName: SharedCaptureStore.group)
         }
 
         // Preserve device-owned StoreKit entitlement (it belongs to Apple),

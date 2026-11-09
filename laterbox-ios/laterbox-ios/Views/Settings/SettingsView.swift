@@ -376,9 +376,7 @@ public struct SettingsView: View {
         }
         .alert("Sign Out", isPresented: $showingSignOutAlert) {
             Button("Sign Out & Clear Device", role: .destructive) {
-                do {
-                    try coordinator.signOutAndEraseLocalData(context: modelContext)
-                } catch {
+                coordinator.signOutAfterDialog(context: modelContext) { error in
                     signOutFailureMessage = error.localizedDescription
                     showingSignOutFailure = true
                 }
@@ -389,10 +387,7 @@ public struct SettingsView: View {
         }
         .alert("Exit Guest Mode", isPresented: $showingExitGuestAlert) {
             Button("Exit & Clear Data", role: .destructive) {
-                do {
-                    try coordinator.exitGuest(context: modelContext)
-                    dismiss()
-                } catch {
+                coordinator.signOutAfterDialog(context: modelContext) { error in
                     signOutFailureMessage = error.localizedDescription
                     showingSignOutFailure = true
                 }

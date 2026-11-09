@@ -14,8 +14,7 @@ struct WelcomeView: View {
     @State private var showingRestore = false
 
     var body: some View {
-        NavigationStack {
-            ZStack {
+        ZStack {
                 // Full Page Background Image
                 GeometryReader { proxy in
                     Image("WelcomeBackground")
@@ -139,12 +138,14 @@ struct WelcomeView: View {
             .sheet(isPresented: $showingRestore) {
                 NavigationStack { BackupRestoreView(recoveryOnly: true) }
             }
-            .navigationDestination(isPresented: $showingAuthView) {
-                AuthView()
+            // Present authentication in its own full-screen coordinator instead
+            // of mutating a NavigationStack path while the app changes sessions.
+            .fullScreenCover(isPresented: $showingAuthView) {
+                NavigationStack {
+                    AuthView()
+                }
             }
-        }
         // The root ContentView controls appearance for the welcome screen.
-        // Keeping a forced scheme here would also force the splash into Dark Mode.
     }
 }
 
