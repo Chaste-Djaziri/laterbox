@@ -91,21 +91,6 @@ public struct EmailInboxRowView: View {
         return "LaterBox"
     }
 
-    private var avatarColor: Color {
-        let colors: [Color] = [
-            Color(hex: "A855F7"), // Purple (like screenshot)
-            Color(hex: "3B82F6"), // Blue
-            Color(hex: "10B981"), // Emerald
-            Color(hex: "F59E0B"), // Amber
-            Color(hex: "EC4899"), // Pink
-            Color(hex: "6366F1"), // Indigo
-            Color(hex: "14B8A6"), // Teal
-            Color(hex: "8B5CF6")  // Violet
-        ]
-        let hash = abs(senderText.hashValue)
-        return colors[hash % colors.count]
-    }
-
     private var avatarInitial: String {
         let clean = senderText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard let first = clean.first else { return "L" }
@@ -253,14 +238,18 @@ public struct EmailInboxRowView: View {
                     .padding(.top, 10)
                 }
 
-                // Left: Colored Avatar Circle (Matching Gmail screenshot)
+                // Brand-colored fallback avatar, consistent in light and dark mode.
                 ZStack {
                     Circle()
-                        .fill(avatarColor)
+                        .fill(AppTheme.accent)
                         .frame(width: 40, height: 40)
+                        .overlay {
+                            Circle()
+                                .strokeBorder(Color(hex: "171711").opacity(0.10), lineWidth: 1)
+                        }
                     Text(avatarInitial)
                         .font(.system(size: 17, weight: .semibold))
-                        .foregroundColor(.white)
+                        .foregroundColor(Color(hex: "171711"))
                 }
                 .task(id: item.attachmentsData) {
                     attachmentThumbnail = nil
