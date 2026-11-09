@@ -8,6 +8,7 @@ import {
   Lightbulb,
   Clock,
   Search,
+  Sparkles,
 } from 'lucide-react';
 
 // Stylized LaterBox Inbox/Tray Icon adhering to the Web Theme palette
@@ -48,25 +49,45 @@ function LaterBoxTrayLogo({ className = 'w-16 h-16' }: { className?: string }) {
   );
 }
 
-export function YourLaterBoxYourRulesSection() {
-  const [activeRule, setActiveRule] = useState<string>('Close to System Tray');
+const rulesList = [
+  {
+    name: 'Global Quick Capture',
+    description: 'Save in a split second using keyboard shortcuts or extensions without interrupting what you are doing.',
+  },
+  {
+    name: 'Scheduled Returns',
+    description: 'Choose when items reappear: Tonight, Tomorrow, Next Week, or a custom date.',
+  },
+  {
+    name: 'Light, Dark & System Theme',
+    description: 'Clean white canvas in daylight, graphite texture in dark mode, or follow system theme automatically.',
+  },
+  {
+    name: 'Offline-First Core',
+    description: 'Save, search, and view your personal library anytime, even when you have no connection.',
+  },
+  {
+    name: 'Collections & Smart Tags',
+    description: 'Keep your research, reading lists, and project references structured and easy to retrieve.',
+  },
+  {
+    name: 'Private & Local-First',
+    description: 'Zero behavioral tracking. Your references belong to you and stay on your devices.',
+  },
+];
 
-  const rulesList = [
-    'Launch at Windows Startup',
-    'Close to System Tray',
-    'Light / Dark / System Theme',
-    'Global Quick Capture Shortcut',
-    'Reminders',
-    'Local Data',
-  ];
+export function YourLaterBoxYourRulesSection() {
+  const [activeRule, setActiveRule] = useState<string>(rulesList[0].name);
+
+  const selectedRule = rulesList.find((r) => r.name === activeRule) || rulesList[0];
 
   return (
-    <section className="bg-white text-[#171711] py-24 sm:py-36 px-6 sm:px-10 lg:px-16 border-t border-[#f0ede4] select-none overflow-hidden">
+    <section className="gsap-rules-section bg-white text-[#171711] py-24 sm:py-36 px-6 sm:px-10 lg:px-16 border-t border-[#f0ede4] select-none overflow-hidden">
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
         {/* ============================================================ */}
         {/* Left Column: Headline & Rules List */}
         {/* ============================================================ */}
-        <div className="lg:col-span-5 space-y-8 text-left">
+        <div className="gsap-rules-text lg:col-span-5 space-y-8 text-left">
           <h2 className="leading-none text-left">
             <span className="block text-5xl sm:text-6xl lg:text-7xl font-black text-[#171711] tracking-tight">
               Your LaterBox.
@@ -76,30 +97,48 @@ export function YourLaterBoxYourRulesSection() {
             </span>
           </h2>
 
+          {/* Active Rule Explainer Banner */}
+          <div className="p-4 rounded-2xl bg-[#faf8f5] border border-[#e4e0d5] transition-all">
+            <div className="flex items-center gap-2 mb-1.5 text-xs font-bold text-[#171711]">
+              <Sparkles className="w-3.5 h-3.5 text-[#171711]" />
+              <span>{selectedRule.name}</span>
+            </div>
+            <p className="text-xs sm:text-sm text-[#6c6b63] leading-relaxed">
+              {selectedRule.description}
+            </p>
+          </div>
+
           {/* Rules / Preferences List */}
-          <div className="pt-4 divide-y divide-[#f0ede4] border-t border-b border-[#f0ede4]">
+          <div className="pt-2 divide-y divide-[#f0ede4] border-t border-b border-[#f0ede4]">
             {rulesList.map((rule) => {
-              const isActive = activeRule === rule;
+              const isActive = activeRule === rule.name;
 
               return (
                 <button
-                  key={rule}
+                  key={rule.name}
                   type="button"
-                  onClick={() => setActiveRule(rule)}
-                  className="w-full py-4 flex items-center gap-3 text-left transition-colors group cursor-pointer"
+                  onClick={() => setActiveRule(rule.name)}
+                  className="w-full py-3.5 flex items-center justify-between text-left transition-colors group cursor-pointer"
                 >
-                  <span
-                    className={`w-2 h-2 rounded-full transition-colors ${
-                      isActive ? 'bg-[#171711]' : 'bg-[#c4c0b5] group-hover:bg-[#171711]'
-                    }`}
-                  />
-                  <span
-                    className={`text-sm sm:text-base font-semibold tracking-tight transition-colors ${
-                      isActive ? 'text-[#171711] font-bold' : 'text-[#6c6b63] group-hover:text-[#171711]'
-                    }`}
-                  >
-                    {rule}
-                  </span>
+                  <div className="flex items-center gap-3">
+                    <span
+                      className={`w-2 h-2 rounded-full transition-colors ${
+                        isActive ? 'bg-[#171711]' : 'bg-[#c4c0b5] group-hover:bg-[#171711]'
+                      }`}
+                    />
+                    <span
+                      className={`text-sm sm:text-base tracking-tight transition-colors ${
+                        isActive ? 'text-[#171711] font-bold' : 'text-[#6c6b63] group-hover:text-[#171711]'
+                      }`}
+                    >
+                      {rule.name}
+                    </span>
+                  </div>
+                  {isActive && (
+                    <span className="text-[10px] font-black uppercase tracking-wider text-[#171711] px-2.5 py-0.5 rounded-full bg-[#e6edb0]">
+                      Active
+                    </span>
+                  )}
                 </button>
               );
             })}
@@ -109,11 +148,11 @@ export function YourLaterBoxYourRulesSection() {
         {/* ============================================================ */}
         {/* Right Column: Isometric 3D Perspective Visual */}
         {/* ============================================================ */}
-        <div className="lg:col-span-7 relative flex items-center justify-center min-h-[460px] sm:min-h-[520px]">
+        <div className="gsap-rules-visual lg:col-span-7 relative flex items-center justify-center min-h-[460px] sm:min-h-[520px]">
           {/* Subtle Ambient Radial Canvas */}
           <div className="absolute inset-0 bg-[#faf8f2] rounded-3xl -z-10 border border-[#f0ede4]/80" />
 
-          {/* Tilted Perspective Desktop App Window */}
+          {/* Tilted Perspective App Window */}
           <div
             style={{
               transform: 'perspective(1200px) rotateX(8deg) rotateY(-12deg) rotateZ(-3deg)',
@@ -128,14 +167,14 @@ export function YourLaterBoxYourRulesSection() {
               <div className="px-3 py-1 rounded-full bg-[#faf8f5] border border-[#e4e0d5] flex items-center gap-1">
                 <Search className="w-2.5 h-2.5 text-[#9e9b92]" />
                 <span>Search or type a command...</span>
-                <kbd className="px-1 py-0.2 rounded bg-[#ebe7dc] text-[8px] font-mono text-[#171711]">Ctrl+K</kbd>
+                <kbd className="px-1 py-0.2 rounded bg-[#ebe7dc] text-[8px] font-mono text-[#171711]">Cmd/Ctrl+K</kbd>
               </div>
             </div>
 
             {/* Window Inner Mini Dashboard */}
             <div>
-              <p className="font-black text-xs sm:text-sm text-[#171711]">Good morning, Abhishek.</p>
-              <p className="text-[10px] text-[#9e9b92] mb-3">Here is what needs your attention.</p>
+              <p className="font-black text-xs sm:text-sm text-[#171711]">Good morning.</p>
+              <p className="text-[10px] text-[#9e9b92] mb-3">Here is what returned to your inbox today.</p>
 
               <div className="grid grid-cols-2 gap-2 mb-3">
                 <div className="p-2 rounded-xl bg-[#faf8f5] border border-[#f0ede4]">
