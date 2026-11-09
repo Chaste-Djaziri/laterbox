@@ -39,6 +39,45 @@ struct InboxHeaderView: View {
             }
     }
 
+    @ViewBuilder
+    private var captureButton: some View {
+        if #available(iOS 26.0, *) {
+            // Native Liquid Glass with an interactive response on supported iOS versions.
+            captureButtonContent
+                .glassEffect(
+                    .regular.interactive(),
+                    in: RoundedRectangle(cornerRadius: 15, style: .continuous)
+                )
+        } else {
+            // Match the translucent look on older iOS versions.
+            captureButtonContent
+                .background(
+                    .ultraThinMaterial,
+                    in: RoundedRectangle(cornerRadius: 15, style: .continuous)
+                )
+                .overlay {
+                    RoundedRectangle(cornerRadius: 15, style: .continuous)
+                        .strokeBorder(InboxAppearance.border(for: colorScheme), lineWidth: 1)
+                }
+        }
+    }
+
+    private var captureButtonContent: some View {
+        Button {
+            LBHaptic.medium()
+            showingCapture = true
+        } label: {
+            Image(systemName: "plus")
+                .font(.system(size: 20, weight: .semibold))
+                .foregroundStyle(InboxAppearance.textPrimary(for: colorScheme))
+                .frame(width: 44, height: 44)
+                .contentShape(RoundedRectangle(cornerRadius: 15, style: .continuous))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Capture Item")
+        .accessibilityIdentifier("Capture Item")
+    }
+
     private var appHeader: some View {
         ZStack {
             Button {
@@ -59,20 +98,7 @@ struct InboxHeaderView: View {
             )
 
             HStack {
-                Button {
-                    LBHaptic.medium()
-                    showingCapture = true
-                } label: {
-                    Image(systemName: "plus")
-                        .font(.system(size: 20, weight: .semibold))
-                        .foregroundStyle(AppTheme.accent)
-                        .frame(width: 44, height: 44)
-                        .background(AppTheme.darkSurface, in: RoundedRectangle(cornerRadius: 15, style: .continuous))
-                        .contentShape(RoundedRectangle(cornerRadius: 15, style: .continuous))
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Capture Item")
-                .accessibilityIdentifier("Capture Item")
+                captureButton
 
                 Spacer()
 
