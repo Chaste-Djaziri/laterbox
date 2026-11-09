@@ -432,37 +432,32 @@ export default function LandingPage() {
           </div>
 
           {/* ============================================================ */}
-          {/* Mobile: iOS Native App Preview with Graceful Bottom Fade Out */}
+          {/* Mobile: iOS Native App Preview (Full Height) */}
           {/* ============================================================ */}
           <div className="block md:hidden mt-8 sm:mt-10">
-            <div className="relative mx-auto max-w-[320px] rounded-[42px] border-4 border-[#171711] bg-white p-2 shadow-[0_25px_60px_rgba(24,27,20,0.18)] overflow-hidden">
-              {/* Inner viewport with fade out at bottom */}
-              <div className="relative h-[480px] w-full overflow-hidden rounded-[34px] bg-white">
+            <div className="relative mx-auto max-w-[320px] rounded-[44px] border-4 border-[#171711] bg-white p-2 shadow-[0_25px_60px_rgba(24,27,20,0.18)]">
+              {/* Inner viewport displaying full image height */}
+              <div className="relative w-full overflow-hidden rounded-[36px] bg-white">
                 <Image
                   src="/branding/mobile-inbox-preview.png"
                   alt="LaterBox iOS Mobile App"
                   width={471}
                   height={1024}
                   priority
-                  className="w-full h-auto object-cover object-top"
-                />
-                {/* Bottom graceful fade out gradient */}
-                <div
-                  className="pointer-events-none absolute inset-x-0 bottom-0 h-44 bg-gradient-to-t from-white via-white/85 to-transparent"
-                  aria-hidden="true"
+                  className="w-full h-auto block"
                 />
               </div>
+            </div>
 
-              {/* Floating iOS CTA over the faded bottom */}
-              <div className="absolute inset-x-0 bottom-6 flex flex-col items-center justify-center px-4 z-10">
-                <Link
-                  href="/download"
-                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#171711] hover:bg-[#282723] active:scale-95 text-white font-extrabold text-xs shadow-lg transition-all"
-                >
-                  <Apple className="w-3.5 h-3.5 text-white" />
-                  <span>Get LaterBox for iOS</span>
-                </Link>
-              </div>
+            {/* iOS Download CTA below the phone frame */}
+            <div className="mt-6 flex justify-center">
+              <Link
+                href="/download"
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-[#171711] hover:bg-[#282723] active:scale-95 text-white font-extrabold text-xs shadow-md transition-all"
+              >
+                <Apple className="w-3.5 h-3.5 text-white" />
+                <span>Get LaterBox for iOS</span>
+              </Link>
             </div>
           </div>
         </div>
