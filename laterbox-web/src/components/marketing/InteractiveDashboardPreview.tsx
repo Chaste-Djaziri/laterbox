@@ -1127,7 +1127,7 @@ export function InteractiveDashboardPreview({
           {selectedDetailItem ? (
             <div
               data-lenis-prevent
-              className="flex-1 overflow-y-auto overscroll-contain bg-[#f7f5ee] p-4 sm:p-6 space-y-4 max-h-[500px]"
+              className="flex-1 min-h-0 overflow-y-auto overscroll-contain bg-[#f7f5ee] p-4 sm:p-6 space-y-4"
             >
               {/* In Inbox Status Banner */}
               <div className="flex items-center gap-3 rounded-2xl border border-[#e4e0d5] bg-white px-4 py-3 text-sm text-[#171711] shadow-2xs">
@@ -1283,7 +1283,7 @@ export function InteractiveDashboardPreview({
           ) : (
             <div
               data-lenis-prevent
-              className="flex-1 overflow-y-auto divide-y divide-[#eceae1] bg-white text-xs max-h-[500px]"
+              className="flex-1 min-h-0 overflow-y-auto divide-y divide-[#eceae1] bg-white text-xs"
             >
               {filteredItems.map((item) => {
                 const isSelected = selectedIds.has(item.id);
