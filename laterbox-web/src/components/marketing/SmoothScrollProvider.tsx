@@ -43,3 +43,4 @@ export function SmoothScrollProvider({ children }: { children: ReactNode }) {
 
   return <>{children}</>;
 }
+
