@@ -765,9 +765,11 @@ export function InteractiveDashboardPreview({
         </aside>
 
         {/* =================================================================== */}
-        {/* EMAIL TABLE CARD (Exact replica of Image 2) */}
+        {/* MAIN VIEW AREA: EMAIL TABLE CARD + SEPARATED SYNC FOOTER (Image 1) */}
         {/* =================================================================== */}
-        <div className="flex-1 flex flex-col min-w-0 min-h-0 bg-white border border-[#e4e0d5] rounded-2xl sm:rounded-3xl shadow-xs overflow-hidden">
+        <div className="flex-1 flex flex-col min-w-0 min-h-0 gap-2.5 sm:gap-3">
+          {/* EMAIL TABLE CARD */}
+          <div className="flex-1 flex flex-col min-w-0 min-h-0 bg-white border border-[#e4e0d5] rounded-2xl sm:rounded-3xl shadow-xs overflow-hidden">
           {/* Top Table Action Toolbar */}
           {selectedDetailItem ? (
             <div className="shrink-0 flex items-center justify-between px-3 sm:px-4 py-2 border-b border-[#e5e4dc] bg-[#fafaf6] text-xs min-h-[46px] select-none">
@@ -1435,10 +1437,13 @@ export function InteractiveDashboardPreview({
             </div>
           )}
 
+          {/* Close Email Table Card with its own rounded bottom */}
+          </div>
+
           {/* ================================================================= */}
-          {/* PRO CLOUD SYNC FOOTER (Exact replica from Image 2) */}
+          {/* STANDALONE PRO CLOUD SYNC FOOTER (Separated from table, Image 1) */}
           {/* ================================================================= */}
-          <div className="shrink-0 px-3.5 py-2.5 bg-white border-t border-[#e5e4dc] flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs select-none">
+          <div className="shrink-0 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-2xl bg-white border border-[#e4e0d5] shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs select-none">
             <div className="flex items-center gap-2.5 min-w-0">
               <div className="w-6 h-6 rounded-full bg-[#e6edb0] text-[#171711] flex items-center justify-center shrink-0">
                 <Cloud className="w-3.5 h-3.5" />
@@ -1447,7 +1452,7 @@ export function InteractiveDashboardPreview({
                 <span className="font-bold text-[#171711] truncate">Pro Cloud Sync</span>
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#e6edb0] text-[#171711] text-[10px] font-black tracking-wider uppercase">
                   <CheckCircle2 className="w-3 h-3 text-[#171711]" />
-                  <span>Synced</span>
+                  <span>SYNCED</span>
                 </span>
                 <span className="hidden sm:inline text-[11px] text-[#8e8d87] truncate">
                   • All changes backed up to cloud
@@ -1458,9 +1463,9 @@ export function InteractiveDashboardPreview({
             <button
               type="button"
               onClick={handleRefresh}
-              className="inline-flex items-center justify-center gap-1.5 px-3 py-1 rounded-xl bg-[#ebe7dc] hover:bg-[#e0dbc9] text-[#171711] font-bold text-[11px] transition-colors cursor-pointer shrink-0"
+              className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#ebe7dc] hover:bg-[#e0dbc9] text-[#171711] font-bold text-xs transition-colors cursor-pointer shrink-0"
             >
-              <RefreshCw className={`w-3 h-3 ${isRefreshing ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
               <span>Check Updates</span>
             </button>
           </div>
