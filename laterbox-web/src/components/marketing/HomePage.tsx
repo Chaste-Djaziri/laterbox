@@ -48,39 +48,57 @@ export default function LandingPage() {
         .fromTo('.gsap-hero-preview', { opacity: 0, y: 35, scale: 0.98 }, { opacity: 1, y: 0, scale: 1, duration: 0.8, clearProps: 'all' }, '-=0.3');
 
       // Problem Section ScrollTrigger
-      gsap.from('.gsap-problem-title', {
-        scrollTrigger: {
-          trigger: '.gsap-problem-section',
-          start: 'top 80%',
-        },
-        opacity: 0,
-        y: 30,
-        duration: 0.7,
-        ease: 'power3.out',
-      });
+      gsap.fromTo(
+        '.gsap-problem-title',
+        { opacity: 0, y: 30 },
+        {
+          scrollTrigger: {
+            trigger: '.gsap-problem-section',
+            start: 'top 85%',
+            once: true,
+          },
+          opacity: 1,
+          y: 0,
+          duration: 0.7,
+          ease: 'power3.out',
+          clearProps: 'all',
+        }
+      );
 
-      gsap.from('.gsap-problem-card', {
-        scrollTrigger: {
-          trigger: '.gsap-problem-grid',
-          start: 'top 80%',
-        },
-        opacity: 0,
-        y: 40,
-        stagger: 0.1,
-        duration: 0.65,
-        ease: 'back.out(1.2)',
-      });
+      gsap.fromTo(
+        '.gsap-problem-card',
+        { opacity: 0, y: 35 },
+        {
+          scrollTrigger: {
+            trigger: '.gsap-problem-grid',
+            start: 'top 85%',
+            once: true,
+          },
+          opacity: 1,
+          y: 0,
+          stagger: 0.1,
+          duration: 0.65,
+          ease: 'power3.out',
+          clearProps: 'all',
+        }
+      );
 
-      gsap.from('.gsap-problem-punchline', {
-        scrollTrigger: {
-          trigger: '.gsap-problem-punchline',
-          start: 'top 85%',
-        },
-        opacity: 0,
-        y: 20,
-        duration: 0.6,
-        ease: 'power2.out',
-      });
+      gsap.fromTo(
+        '.gsap-problem-punchline',
+        { opacity: 0, y: 20 },
+        {
+          scrollTrigger: {
+            trigger: '.gsap-problem-punchline',
+            start: 'top 90%',
+            once: true,
+          },
+          opacity: 1,
+          y: 0,
+          duration: 0.6,
+          ease: 'power2.out',
+          clearProps: 'all',
+        }
+      );
 
       // When later becomes now (dark section)
       gsap.from('.gsap-now-heading', {
@@ -331,6 +349,13 @@ export default function LandingPage() {
         duration: 0.65,
         ease: 'power3.out',
       });
+
+      // Recalculate ScrollTrigger start points after layout stabilizes
+      if (typeof window !== 'undefined') {
+        window.requestAnimationFrame(() => {
+          ScrollTrigger.refresh();
+        });
+      }
     },
     { scope: containerRef }
   );
