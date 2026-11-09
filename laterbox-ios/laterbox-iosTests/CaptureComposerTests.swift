@@ -1,5 +1,6 @@
 // laterbox-ios/laterbox-iosTests/CaptureComposerTests.swift
 import Foundation
+import SwiftData
 import Testing
 @testable import laterbox_ios
 
@@ -36,6 +37,40 @@ struct CaptureComposerTests {
         #expect(draft.previewImageUrl == shared.previewImageUrl)
         #expect(draft.metadataDescription == shared.metadataDescription)
         #expect(draft.type == .link)
+    }
+
+    @Test func inboxIsAMailboxNotAnAutoCreatedCollection() {
+        #expect(SharedCaptureCollections.normalizedName("Inbox") == nil)
+        #expect(SharedCaptureCollections.normalizedName(" INBOX ") == nil)
+        #expect(SharedCaptureCollections.normalizedName("No collection") == nil)
+        #expect(SharedCaptureCollections.available(["Inbox", "Reading", "reading", "Trash"]) == ["Reading"])
+        #expect(SharedCaptureCollections.existingName("Reading", in: []) == nil)
+        #expect(SharedCaptureCollections.existingName("reading", in: ["Reading"]) == "Reading")
+        #expect(SharedCaptureCollections.existingName("New AI Collection", in: ["Reading"]) == nil)
+
+        // Both notes and links without a real collection must remain unassigned.
+        #expect(LaterAISharedAnalyzer.quickSuggestions(content: "A quick note", collections: []).category.isEmpty)
+        #expect(LaterAISharedAnalyzer.quickSuggestions(
+            content: "https://youtu.be/example", collections: []
+        ).category.isEmpty)
+    }
+
+    @Test @MainActor func legacyInboxShareImportsWithoutCollection() throws {
+        let schema = Schema([LBItem.self, LBCollection.self])
+        let container = try ModelContainer(
+            for: schema,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+        var capture = SharedCapture()
+        capture.content = "Unassigned share"
+        capture.category = " Inbox "
+        let item = try SyncCoordinator.shared.saveDraft(
+            CaptureDraft.fromShared(capture), context: container.mainContext
+        )
+        #expect(item.category.isEmpty)
+        #expect(item.collectionName == nil)
+        #expect(item.collectionId == nil)
+        #expect(try container.mainContext.fetch(FetchDescriptor<LBCollection>()).isEmpty)
     }
 
     @Test func openGraphRelativeImageAndEntities() {

@@ -225,7 +225,9 @@ struct ShareChatMessage: Identifiable, Equatable {
         let availableCollections = SharedCaptureStore.loadAvailableCollections()
         let suggestion = LaterAISharedAnalyzer.quickSuggestions(
             content: capture.content, collections: availableCollections)
-        if capture.category.isEmpty { capture.category = suggestion.category }
+        if capture.category.isEmpty {
+            capture.category = SharedCaptureCollections.existingName(suggestion.category, in: availableCollections) ?? ""
+        }
         if capture.returnAt == nil { capture.returnAt = suggestion.returnAt }
         let analysis = await LaterAISharedAnalyzer.analyze(
             content: capture.content,
@@ -252,8 +254,8 @@ struct ShareChatMessage: Identifiable, Equatable {
             capture.metadataDescription = summary
         }
 
-        if let collection = analysis.collectionName, !collection.isEmpty {
-            capture.category = collection
+        if capture.category.isEmpty {
+            capture.category = SharedCaptureCollections.existingName(analysis.collectionName, in: availableCollections) ?? ""
         }
 
         if !analysis.tags.isEmpty {
@@ -345,17 +347,16 @@ struct ShareChatMessage: Identifiable, Equatable {
         let hasFiles = !capture.attachments.isEmpty
 
         if capture.category.isEmpty {
-            if isVideo {
-                capture.category = "Watch Later"
-            } else if isAudio {
-                capture.category = "Listen Later"
-            } else if hasFiles {
-                capture.category = "Documents"
-            } else if host.contains("http://") || host.contains("https://") {
-                capture.category = "Reading"
-            } else {
-                capture.category = "Inbox"
-            }
+            // Auto-categorize only into real collections cached by the main app.
+            // Otherwise leave the item unassigned in the Inbox mailbox.
+            let preferred = isVideo ? ["Watch Later", "Videos"]
+                : isAudio ? ["Listen Later", "Music"]
+                : hasFiles ? ["Documents", "Files"]
+                : host.contains("http://") || host.contains("https://") ? ["Reading", "Articles"] : []
+            let available = SharedCaptureStore.loadAvailableCollections()
+            capture.category = preferred.compactMap {
+                SharedCaptureCollections.existingName($0, in: available)
+            }.first ?? ""
         }
 
         var inferredTags = capture.tags
@@ -526,7 +527,9 @@ struct ShareChatMessage: Identifiable, Equatable {
             capture.title = analysis.title ?? capture.attachments.first?.name ?? ""
         }
         if capture.category.isEmpty {
-            capture.category = analysis.collectionName ?? ""
+            capture.category = SharedCaptureCollections.existingName(
+                analysis.collectionName, in: SharedCaptureStore.loadAvailableCollections()
+            ) ?? ""
         }
         if capture.tags.isEmpty {
             capture.tags = analysis.tags
@@ -553,6 +556,8 @@ struct ShareChatMessage: Identifiable, Equatable {
         saving = true
         defer { saving = false }
         do {
+            // A mailbox is not a collection, even for older queued drafts.
+            capture.category = SharedCaptureCollections.normalizedName(capture.category) ?? ""
             try SharedCaptureStore.save(capture)
             saved = true
             _ = try? await ReturnNotification.update(id: capture.id, title: capture.title, description: capture.metadataDescription ?? capture.content, date: capture.returnAt)
@@ -601,8 +606,10 @@ struct ShareChatMessage: Identifiable, Equatable {
             capture.title = analysis.title ?? capture.attachments.first?.name ?? "Saved note"
         }
         if let summary = analysis.summary { capture.metadataDescription = summary }
-        if capture.category.isEmpty, let collection = analysis.collectionName {
-            capture.category = collection
+        if capture.category.isEmpty {
+            capture.category = SharedCaptureCollections.existingName(
+                analysis.collectionName, in: SharedCaptureStore.loadAvailableCollections()
+            ) ?? ""
         }
         if capture.tags.isEmpty { capture.tags = analysis.tags }
         if let site = analysis.siteName { capture.siteName = site }
@@ -639,13 +646,15 @@ struct ShareChatMessage: Identifiable, Equatable {
             capture.content = cleanContent.isEmpty ? cleanTitle : cleanContent
         }
 
-        let chosenCategory: String
-        if category.isEmpty || category == "Inbox" {
-            chosenCategory = analysis.collectionName ?? "Inbox"
+        // Only explicit user-entered collection names may create a new one.
+        // Automatic suggestions must match an existing collection.
+        if let explicit = SharedCaptureCollections.normalizedName(category) {
+            capture.category = explicit
         } else {
-            chosenCategory = category
+            capture.category = SharedCaptureCollections.existingName(
+                analysis.collectionName, in: availableCollections
+            ) ?? ""
         }
-        capture.category = chosenCategory
 
         var allTags = Set(tags)
         for t in analysis.tags { allTags.insert(t) }
@@ -1431,7 +1440,7 @@ struct ShareEditSheet: View {
     private func saveChanges() {
         capture.title = title.trimmingCharacters(in: .whitespacesAndNewlines)
         capture.content = content.trimmingCharacters(in: .whitespacesAndNewlines)
-        capture.category = category.trimmingCharacters(in: .whitespacesAndNewlines)
+        capture.category = SharedCaptureCollections.normalizedName(category) ?? ""
         capture.tags = tagsString.split(separator: ",")
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: "#", with: "") }
             .filter { !$0.isEmpty }

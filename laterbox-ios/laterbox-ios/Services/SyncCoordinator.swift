@@ -438,7 +438,7 @@ public final class SyncCoordinator: ObservableObject {
             extractedDomain = host.replacingOccurrences(of: "www.", with: "")
         }
 
-        var resolvedCollName = collectionName?.trimmingCharacters(in: .whitespacesAndNewlines)
+        var resolvedCollName = SharedCaptureCollections.normalizedName(collectionName)
         var resolvedCollId: String? = nil
         if let name = resolvedCollName, !name.isEmpty {
             if let coll = ensureCollectionExists(named: name, context: context) {
@@ -486,9 +486,8 @@ public final class SyncCoordinator: ObservableObject {
         let id = draft.id
         if let existing = try context.fetch(FetchDescriptor<LBItem>(predicate: #Predicate { $0.id == id })).first { return existing }
 
-        let rawCollName = draft.collectionName?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
-            ? draft.collectionName
-            : (draft.category.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false ? draft.category : nil)
+        let rawCollName = SharedCaptureCollections.normalizedName(draft.collectionName)
+            ?? SharedCaptureCollections.normalizedName(draft.category)
         
         var resolvedCollName: String? = nil
         var resolvedCollId: String? = nil
@@ -512,7 +511,8 @@ public final class SyncCoordinator: ObservableObject {
         }
         item.tags = draft.tags.map { $0.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: "#", with: "") }.filter { !$0.isEmpty }
         item.enrichmentStatus = draft.url == nil ? "enriched" : "pending"
-        item.category = resolvedCollName ?? draft.category
+        // No collection is an empty category, never the Inbox mailbox name.
+        item.category = resolvedCollName ?? ""
         item.collectionName = resolvedCollName
         item.collectionId = resolvedCollId
         item.summary = draft.summary

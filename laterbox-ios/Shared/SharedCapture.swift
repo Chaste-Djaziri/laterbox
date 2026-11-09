@@ -17,6 +17,33 @@ nonisolated struct SharedAttachment: Codable, Identifiable, Equatable, Sendable 
     var sha256: String?
     var mimeType: String?
 }
+// Inbox is a mailbox, not a collection. Only actual collections are suggested.
+nonisolated enum SharedCaptureCollections {
+    private static let mailboxNames: Set<String> = [
+        "inbox", "archive", "archived", "trash", "deleted",
+        "none", "no collection", "uncategorized", "general"
+    ]
+
+    static func normalizedName(_ name: String?) -> String? {
+        guard let name = name?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !name.isEmpty, !mailboxNames.contains(name.lowercased()) else { return nil }
+        return name
+    }
+
+    static func available(_ names: [String]) -> [String] {
+        var seen = Set<String>()
+        return names.compactMap { name in
+            guard let valid = normalizedName(name), seen.insert(valid.lowercased()).inserted else { return nil }
+            return valid
+        }
+    }
+
+    static func existingName(_ suggestion: String?, in availableNames: [String]) -> String? {
+        guard let suggestion = normalizedName(suggestion) else { return nil }
+        return available(availableNames).first { $0.caseInsensitiveCompare(suggestion) == .orderedSame }
+    }
+}
+
 nonisolated struct SharedCapture: Codable, Identifiable, Sendable {
     var id = UUID().uuidString
     var content = ""
@@ -197,7 +224,7 @@ nonisolated enum SharedCaptureStore: Sendable {
     nonisolated static func saveAvailableCollections(_ collections: [String]) {
         if let root = try? root() {
             let file = root.appendingPathComponent("cached_collections.json")
-            if let data = try? JSONEncoder().encode(collections) {
+            if let data = try? JSONEncoder().encode(SharedCaptureCollections.available(collections)) {
                 try? data.write(to: file, options: .atomic)
             }
         }
@@ -207,11 +234,11 @@ nonisolated enum SharedCaptureStore: Sendable {
         if let root = try? root() {
             let file = root.appendingPathComponent("cached_collections.json")
             if let data = try? Data(contentsOf: file),
-               let decoded = try? JSONDecoder().decode([String].self, from: data), !decoded.isEmpty {
-                return decoded
+               let decoded = try? JSONDecoder().decode([String].self, from: data) {
+                return SharedCaptureCollections.available(decoded)
             }
         }
-        return ["Inbox", "Reading", "Watch Later", "Listen Later", "To-Do", "Shopping", "Documents", "Ideas"]
+        return [] // No fabricated collections when the app has not cached its catalog.
     }
 }
 enum ReturnNotification {
@@ -806,7 +833,7 @@ enum LaterAISharedAnalyzer {
             isArticle ? ["Reading", "Articles", "Read Later"] : ["Inbox"]
         let category = names.compactMap { preferred in
             collections.first { $0.caseInsensitiveCompare(preferred) == .orderedSame }
-        }.first ?? names[0]
+        }.first ?? ""
 
         guard isVideo || isTask || isArticle else { return (category, nil) }
         let calendar = Calendar.current
@@ -960,7 +987,7 @@ enum LaterAISharedAnalyzer {
             } else if deduction.dominantType == "music" {
                 suggestedCollection = availableCollections.first { $0.localizedCaseInsensitiveCompare("Listen Later") == .orderedSame } ?? "Listen Later"
             } else {
-                suggestedCollection = "Inbox"
+                suggestedCollection = nil
             }
         }
 
