@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[Web / Whop trial provisioning]** Type the HTTP error response safely so referral-trial catalog provisioning passes production TypeScript checks.
+
 - **[Web / Marketing animation visibility hardening]** Fix hidden/invisible components in "Not another to-do list" and downstream marketing sections by upgrading entrance animations from `gsap.from` to `fromTo` with `clearProps: 'all'` and `once: true`. Eliminates stuck `opacity: 0` states and ensures all demonstration rows and section content remain visible and interactive.
 
 - **[Web / Marketing how it works card stacking]** Convert the 4-step "How It Works" workflow (Drop It, Choose When, Forget About It, It Comes Back) into sticky stacking card deck layout. Each step centers in the viewport, pins in place as the next step stacks on top with layered depth scaling and shadows, and smoothly scrolls together once all 4 steps complete.
