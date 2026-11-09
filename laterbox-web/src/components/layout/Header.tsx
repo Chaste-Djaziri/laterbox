@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { APP_ORIGIN } from '@/lib/auth/config';
 import { useAuth } from '@/lib/store/AuthContext';
+import { AppStoreTopBanner } from '@/components/marketing/AppStoreTopBanner';
 
 interface PrimaryLinkItem {
   href: string;
@@ -59,7 +60,11 @@ export function Header() {
   const [resourcesOpen, setResourcesOpen] = useState(false);
   const [hasScrolled, setHasScrolled] = useState(false);
   const [mounted, setMounted] = useState(false);
+
   const resourcesRef = useRef<HTMLDivElement>(null);
+  const openTimeRef = useRef<number>(0);
+  const touchHandledRef = useRef<number>(0);
+
   const isSignedIn = Boolean(user || isAuthenticated);
   const dashboardHref = `${APP_ORIGIN}/inbox`;
   const primaryActionHref = isSignedIn ? dashboardHref : `${APP_ORIGIN}/signup`;
@@ -112,10 +117,41 @@ export function Header() {
   }, [mobileOpen]);
 
   const activeLink = (href: string) => href !== '/#how-it-works' && pathname === href;
-  const closeMobile = () => setMobileOpen(false);
+
+  const openMobile = (e?: React.MouseEvent | React.TouchEvent) => {
+    if (e) {
+      e.stopPropagation();
+    }
+    openTimeRef.current = Date.now();
+    setMobileOpen(true);
+  };
+
+  const closeMobile = (e?: React.MouseEvent | React.TouchEvent) => {
+    if (e) {
+      e.stopPropagation();
+    }
+    // Block ghost click dismissals on mobile within 450ms of opening
+    if (Date.now() - openTimeRef.current < 450) {
+      return;
+    }
+    setMobileOpen(false);
+  };
+
+  const toggleMobile = (e: React.MouseEvent | React.TouchEvent) => {
+    e.stopPropagation();
+    if (mobileOpen) {
+      closeMobile(e);
+    } else {
+      openMobile(e);
+    }
+  };
 
   return (
     <>
+      {/* Apple App Store Smart Banner Embed at the very top of the web */}
+      <AppStoreTopBanner />
+
+      {/* Secondary Top Promo Bar */}
       <div className="bg-[#181b14] text-white">
         <div className="mx-auto flex min-h-9 max-w-[1240px] items-center justify-center gap-2 px-4 py-2 text-center text-[11px] font-medium tracking-[0.01em] sm:text-xs">
           <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#e6edb0]" aria-hidden="true" />
@@ -126,7 +162,10 @@ export function Header() {
         </div>
       </div>
 
-      <header className={`sticky top-0 z-50 w-full border-b bg-[#f8f8f3]/95 backdrop-blur-xl transition-[border-color,box-shadow] duration-200 ${hasScrolled ? 'border-[#e6e7de] shadow-[0_5px_24px_rgba(24,27,20,0.045)]' : 'border-transparent shadow-none'}`}>
+      <header
+        data-lenis-prevent
+        className={`sticky top-0 z-50 w-full border-b bg-[#f8f8f3]/95 backdrop-blur-xl transition-[border-color,box-shadow] duration-200 ${hasScrolled ? 'border-[#e6e7de] shadow-[0_5px_24px_rgba(24,27,20,0.045)]' : 'border-transparent shadow-none'}`}
+      >
         <div className="mx-auto flex h-[80px] max-w-[1320px] items-center justify-between gap-4 px-4 sm:h-[88px] sm:px-6 lg:gap-8 lg:px-8">
           <Link
             href="/"
@@ -194,8 +233,15 @@ export function Header() {
               aria-label={mobileOpen ? 'Close navigation sidebar' : 'Open navigation sidebar'}
               aria-expanded={mobileOpen}
               aria-controls="laterbox-mobile-sidebar"
-              onClick={() => setMobileOpen(value => !value)}
-              className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-[#e0e4d8] bg-white text-[#181b14] transition-colors hover:bg-[#e6edb0] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#678144] lg:hidden cursor-pointer"
+              onClick={(e) => {
+                if (Date.now() - touchHandledRef.current < 400) return;
+                toggleMobile(e);
+              }}
+              onTouchEnd={(e) => {
+                touchHandledRef.current = Date.now();
+                toggleMobile(e);
+              }}
+              className="relative z-30 inline-flex h-11 w-11 items-center justify-center rounded-xl border border-[#e0e4d8] bg-white text-[#181b14] transition-colors hover:bg-[#e6edb0] active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#678144] lg:hidden cursor-pointer touch-manipulation select-none"
             >
               {mobileOpen ? <X className="h-5 w-5" aria-hidden="true" /> : <Menu className="h-5 w-5" aria-hidden="true" />}
             </button>
@@ -218,11 +264,20 @@ export function Header() {
             }
           `}</style>
 
-          {/* Backdrop Overlay */}
+          {/* Backdrop Overlay with ghost-click protection */}
           <div
             className="fixed inset-0 bg-black/50 backdrop-blur-xs"
             style={{ animation: 'laterboxFadeIn 0.2s ease-out forwards' }}
-            onClick={closeMobile}
+            onClick={(e) => {
+              if (e.target === e.currentTarget) {
+                closeMobile(e);
+              }
+            }}
+            onTouchEnd={(e) => {
+              if (e.target === e.currentTarget) {
+                closeMobile(e);
+              }
+            }}
             aria-hidden="true"
           />
 
@@ -230,6 +285,9 @@ export function Header() {
           <aside
             id="laterbox-mobile-sidebar"
             aria-label="Mobile navigation"
+            data-lenis-prevent
+            onClick={(e) => e.stopPropagation()}
+            onTouchEnd={(e) => e.stopPropagation()}
             style={{ animation: 'laterboxSlideInRight 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards' }}
             className="fixed inset-y-0 right-0 z-10 w-[310px] sm:w-[350px] max-w-[85vw] bg-[#fbfaf6] border-l border-[#e4e0d5] shadow-[-12px_0_36px_rgba(0,0,0,0.18)] flex flex-col justify-between overflow-hidden"
           >
@@ -252,14 +310,14 @@ export function Header() {
                 type="button"
                 onClick={closeMobile}
                 aria-label="Close navigation sidebar"
-                className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-[#e0e4d8] bg-white text-[#181b14] hover:bg-[#e6edb0] active:scale-95 transition-all cursor-pointer"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-[#e0e4d8] bg-white text-[#181b14] hover:bg-[#e6edb0] active:scale-95 transition-all cursor-pointer touch-manipulation"
               >
                 <X className="h-5 w-5" aria-hidden="true" />
               </button>
             </div>
 
             {/* Scrollable Navigation Body */}
-            <div className="flex-1 overflow-y-auto px-4 py-5 space-y-6">
+            <div className="flex-1 overflow-y-auto px-4 py-5 space-y-6" data-lenis-prevent>
               {/* Product Section */}
               <div className="space-y-1.5">
                 <p className="px-3 text-[10px] font-black uppercase tracking-[0.18em] text-[#92998a]">
