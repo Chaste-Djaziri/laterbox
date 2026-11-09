@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[Web / Marketing mobile hero app preview]** On mobile screens, replace the desktop interactive table preview with a native iOS app screenshot framed in a phone container with an elegant bottom fade-out and download link, preserving the full desktop interactive sandbox on desktop (`md:` and up).
+
 - **[Web / Marketing action buttons visibility fix]** Ensure all action buttons remain visible and interactive across the hero section and preview: convert hero entrance GSAP tweens to `fromTo` with `clearProps: 'all'` so CTA buttons never get stuck in an unrendered zero-opacity state, restore bulk action buttons (Archive, Delete, Star, Snooze) in the table toolbar when items are selected, and add CSS `group-hover:flex` fallback to email row hover action shortcuts.
 
 - **[Web / Marketing preview fixed container height]** Set a fixed, bounded height (`h-[660px] sm:h-[720px] lg:h-[750px]`) on the hero interactive preview container with inner flex management, keeping the entire dashboard sandbox framed like a native desktop app window while enabling clean independent scrolling for the sidebar rail, email table rows, and item details.
