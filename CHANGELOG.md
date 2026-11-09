@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[Web / Mobile sidebar drawer reliability]** Fix mobile sidebar opener failing on physical touch devices by transitioning from dynamic portal/style injection to native CSS `translate-x` transitions with pointer-events protection. Disable Lenis touch hijacking on mobile devices to preserve native touch scrolling and eliminate tap delays across both marketing and documentation sidebars.
+
 - **[Web / Marketing App Store top embed]** Embed a dedicated App Store component at the top of the web highlighting LaterBox: Save For Later on iOS (ID 6804139119) with app icon, rating badge, metadata, and direct "GET" / "View on App Store" action, along with Apple iTunes Smart App Banner meta tags in the root document head.
 
 - **[Web / Marketing mobile sidebar opener touch fix]** Resolve mobile touch responsiveness issue where tapping the sidebar hamburger on physical mobile devices failed to open or immediately dismissed. Added fast touch handlers with tap propagation management, ghost-click timestamp protection on the portaled backdrop overlay, and Lenis scroll prevention to ensure reliable tap interactions across all mobile browsers.
