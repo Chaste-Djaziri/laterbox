@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[Web / Marketing how it works card stacking]** Convert the 4-step "How It Works" workflow (Drop It, Choose When, Forget About It, It Comes Back) into sticky stacking card deck layout. Each step centers in the viewport, pins in place as the next step stacks on top with layered depth scaling and shadows, and smoothly scrolls together once all 4 steps complete.
+
 - **[Web / Marketing scroll convergence cards]** Enlarge floating cards in the "Later shouldn't mean lost" convergence section into prominent, tactile visual cards with larger icons, typography, and shadows. Upgrade scroll convergence from state-driven scroll events to a GPU-accelerated GSAP ScrollTrigger timeline with smooth inertia scrubbing (`scrub: 1`) for buttery transitions between Stage 1, item convergence, and Stage 2 ("ONE PLACE FOR EVERYTHING LATER").
 
 - **[Web / Marketing problem section animation fix]** Fix invisible problem cards and headings in the "We all have a place called LATER" section by migrating from `gsap.from` to `fromTo` with `clearProps: 'all'` and `once: true`. Prevents elements from sticking at `opacity: 0` during hydration/scroll, and preserves CSS rotation tilt transforms on the behavioral quote cards.
