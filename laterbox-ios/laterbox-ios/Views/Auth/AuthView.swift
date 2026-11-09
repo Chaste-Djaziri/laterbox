@@ -12,6 +12,7 @@ import AuthenticationServices
 struct AuthView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.colorScheme) private var colorScheme
     @StateObject private var coordinator = SyncCoordinator.shared
 
     enum AuthStep: Equatable {
@@ -30,9 +31,9 @@ struct AuthView: View {
         var url: URL {
             switch self {
             case .terms:
-                return URL(string: "https://laterbox.dev/terms")!
+                return URL(string: "\(LaterBoxAPIService.shared.webUrl)/terms")!
             case .privacy:
-                return URL(string: "https://laterbox.dev/privacy")!
+                return URL(string: "\(LaterBoxAPIService.shared.webUrl)/privacy")!
             }
         }
     }
@@ -124,499 +125,331 @@ struct AuthView: View {
         return false
     }
 
+    // Neutral solid surfaces: keep authentication readable in both themes.
+    private var canvas: Color {
+        colorScheme == .dark ? Color(hex: "1B1D20") : Color(hex: "F8F9F5")
+    }
+    private var fieldSurface: Color {
+        colorScheme == .dark ? Color(hex: "292C2E") : .white
+    }
+    private var primaryText: Color {
+        colorScheme == .dark ? Color(hex: "F5F5F0") : Color(hex: "171711")
+    }
+    private var secondaryText: Color {
+        colorScheme == .dark ? Color(hex: "ABB2AC") : Color(hex: "63685E")
+    }
+    private var subtleBorder: Color {
+        colorScheme == .dark ? Color.white.opacity(0.13) : Color(hex: "DCE0D6")
+    }
+
     var body: some View {
         ZStack {
-            // Same photographic canvas as Welcome: no visual jump after Sign In.
-            GeometryReader { proxy in
-                Image("WelcomeBackground")
-                    .resizable()
-                    .scaledToFill()
-                    .frame(width: proxy.size.width, height: proxy.size.height)
-                    .clipped()
-            }
-            .ignoresSafeArea()
+            canvas.ignoresSafeArea()
 
-            LinearGradient(
-                colors: [
-                    Color.black.opacity(0.35),
-                    Color.black.opacity(0.15),
-                    Color.black.opacity(0.62),
-                    Color.black.opacity(0.94)
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .ignoresSafeArea()
-
-            // All steps remain scrollable when the keyboard or Dynamic Type expands.
             GeometryReader { geometry in
                 ScrollView(showsIndicators: false) {
-                    VStack(spacing: 0) {
-                        // Same white logo and glass control placement as Welcome.
-                        HStack(alignment: .center) {
-                            Image("LaterboxLogoWhite")
-                                .resizable()
-                                .scaledToFit()
-                                .frame(height: 38)
+                    VStack(alignment: .leading, spacing: 0) {
+                        HStack(spacing: 10) {
+                            LaterBoxVectorMark(size: 42, appearance: .automatic, animates: false)
+                                .frame(width: 42, height: 42)
+                                .accessibilityHidden(true)
+                            Text("laterbox")
+                                .font(.system(size: 22, weight: .bold, design: .rounded))
+                                .tracking(-0.8)
+                                .foregroundStyle(primaryText)
                                 .accessibilityLabel("LaterBox")
-
                             Spacer()
-
                             Button(action: handleNavigationBack) {
                                 Image(systemName: step == .enterEmail ? "xmark" : "chevron.left")
                                     .font(.system(size: 16, weight: .semibold))
-                                    .foregroundStyle(.white)
+                                    .foregroundStyle(primaryText)
                                     .frame(width: 44, height: 44)
-                                    .background(Color.white.opacity(0.20), in: Circle())
-                                    .overlay(Circle().strokeBorder(Color.white.opacity(0.40), lineWidth: 1))
+                                    .background(fieldSurface, in: Circle())
+                                    .overlay(Circle().strokeBorder(subtleBorder, lineWidth: 1))
                             }
+                            .buttonStyle(.plain)
                             .accessibilityLabel(step == .enterEmail ? "Close sign in" : "Back")
                         }
-                        .padding(.horizontal, 24)
-                        .padding(.top, 12)
 
-                        Spacer(minLength: 40)
+                        Spacer(minLength: 58)
 
-                        // Photo-backed, integrated bottom form: no detached card.
-                        VStack(alignment: .leading, spacing: 0) {
-                        // Title: Left-aligned
-                        Text(headerTitle)
-                            .font(.system(size: 36, weight: .bold))
-                            .foregroundStyle(.white)
-                            .minimumScaleFactor(0.82)
-                            .shadow(color: .black.opacity(0.20), radius: 6, y: 2)
-                            .multilineTextAlignment(.leading)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.bottom, 6)
-
-                        // Subtitle: Left-aligned
-                        Text(headerSubtitle)
-                            .font(.system(size: 16))
-                            .foregroundStyle(Color.white.opacity(0.87))
-                            .multilineTextAlignment(.leading)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.bottom, 16)
+                        VStack(alignment: .leading, spacing: 7) {
+                            Text(headerTitle)
+                                .font(.system(size: 33, weight: .bold, design: .rounded))
+                                .tracking(-0.9)
+                                .foregroundStyle(primaryText)
+                                .fixedSize(horizontal: false, vertical: true)
+                            Text(headerSubtitle)
+                                .font(.system(size: 15))
+                                .foregroundStyle(secondaryText)
+                                .fixedSize(horizontal: false, vertical: true)
+                                .lineSpacing(3)
+                        }
+                        .padding(.bottom, 28)
 
                         #if DEBUG
                         if isPreviewSimulatorEnabled {
-                            // Dev Mode State Simulator: Quick Switcher for testing all authentication states (Only in Xcode Previews)
-                            VStack(alignment: .leading, spacing: 6) {
-                                HStack(spacing: 6) {
-                                    Circle()
-                                        .fill(Color.green)
-                                        .frame(width: 7, height: 7)
-                                    Text("Dev Simulator")
-                                        .font(.system(size: 11, weight: .bold, design: .monospaced))
-                                        .foregroundColor(Color.white.opacity(0.82))
-                                    Spacer()
-                                    Text(LaterBoxAPIService.shared.supabaseUrl.replacingOccurrences(of: "http://", with: ""))
-                                        .font(.system(size: 10, design: .monospaced))
-                                        .foregroundColor(Color.white.opacity(0.82))
+                            Menu {
+                                Button("Email") { step = .enterEmail }
+                                Button("Create password") {
+                                    if email.isEmpty { email = "alex@example.com" }
+                                    step = .enterPassword(isSignUp: true)
                                 }
-
-                                ScrollView(.horizontal, showsIndicators: false) {
-                                    HStack(spacing: 6) {
-                                        Button("Email") {
-                                            withAnimation(.easeInOut(duration: 0.2)) {
-                                                step = .enterEmail
-                                                errorMessage = nil
-                                                infoMessage = nil
-                                            }
-                                        }
-                                        .buttonStyle(AuthSimulatorPillStyle(isSelected: step == .enterEmail))
-
-                                        Button("Password (Sign Up)") {
-                                            withAnimation(.easeInOut(duration: 0.2)) {
-                                                if email.isEmpty { email = "alex@example.com" }
-                                                step = .enterPassword(isSignUp: true)
-                                                errorMessage = nil
-                                                infoMessage = nil
-                                            }
-                                        }
-                                        .buttonStyle(AuthSimulatorPillStyle(isSelected: {
-                                            if case .enterPassword(let isSignUp) = step { return isSignUp }
-                                            return false
-                                        }()))
-
-                                        Button("Password (Sign In)") {
-                                            withAnimation(.easeInOut(duration: 0.2)) {
-                                                if email.isEmpty { email = "alex@example.com" }
-                                                step = .enterPassword(isSignUp: false)
-                                                errorMessage = nil
-                                                infoMessage = nil
-                                            }
-                                        }
-                                        .buttonStyle(AuthSimulatorPillStyle(isSelected: {
-                                            if case .enterPassword(let isSignUp) = step { return !isSignUp }
-                                            return false
-                                        }()))
-
-                                        Button("Verify Code") {
-                                            withAnimation(.easeInOut(duration: 0.2)) {
-                                                if email.isEmpty { email = "alex@example.com" }
-                                                if otpCode.isEmpty { otpCode = "12345678" }
-                                                step = .verifyOTP(type: "signup")
-                                                errorMessage = nil
-                                                infoMessage = nil
-                                            }
-                                        }
-                                        .buttonStyle(AuthSimulatorPillStyle(isSelected: {
-                                            if case .verifyOTP = step { return true }
-                                            return false
-                                        }()))
-
-                                        Button("Sync Data") {
-                                            withAnimation(.easeInOut(duration: 0.2)) {
-                                                if email.isEmpty { email = "alex@example.com" }
-                                                step = .resolveLocalData(unassignedCount: 4, token: "mock", refreshToken: "mock", userId: "mock")
-                                                errorMessage = nil
-                                                infoMessage = nil
-                                            }
-                                        }
-                                        .buttonStyle(AuthSimulatorPillStyle(isSelected: {
-                                            if case .resolveLocalData = step { return true }
-                                            return false
-                                        }()))
-                                    }
-                                    .padding(.vertical, 2)
+                                Button("Sign in with password") {
+                                    if email.isEmpty { email = "alex@example.com" }
+                                    step = .enterPassword(isSignUp: false)
                                 }
+                                Button("Verify email code") {
+                                    if email.isEmpty { email = "alex@example.com" }
+                                    step = .verifyOTP(type: "signup")
+                                }
+                                Button("Sync local data") {
+                                    step = .resolveLocalData(
+                                        unassignedCount: 4,
+                                        token: "mock", refreshToken: "mock", userId: "mock"
+                                    )
+                                }
+                            } label: {
+                                Label("Preview authentication step", systemImage: "slider.horizontal.3")
+                                    .font(.caption.weight(.medium))
+                                    .foregroundStyle(secondaryText)
                             }
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 8)
-                            .background(Color.black.opacity(0.45), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-                            .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(Color.white.opacity(0.20), lineWidth: 1))
-                            .padding(.bottom, 16)
+                            .padding(.bottom, 18)
                         }
                         #endif
 
-                        // Input or Action Area
                         switch step {
                         case .enterEmail:
-                            HStack {
-                                TextField(
-                                    "",
-                                    text: $email,
-                                    prompt: Text("Email").foregroundColor(Color.black.opacity(0.50))
-                                )
-                                .font(.system(size: 16))
-                                .foregroundColor(.black)
-                                .tint(.black)
-                                .keyboardType(.emailAddress)
-                                .autocapitalization(.none)
-                                .autocorrectionDisabled()
-                                .submitLabel(.continue)
-                                .onSubmit {
-                                    submitEmail()
-                                }
-
+                            fieldLabel("Email address")
+                            inputSurface {
+                                Image(systemName: "envelope")
+                                    .foregroundStyle(secondaryText)
+                                TextField("", text: $email, prompt: Text("you@example.com").foregroundColor(secondaryText))
+                                    .font(.system(size: 16))
+                                    .foregroundStyle(primaryText)
+                                    .tint(primaryText)
+                                    .textContentType(.emailAddress)
+                                    .keyboardType(.emailAddress)
+                                    .textInputAutocapitalization(.never)
+                                    .autocorrectionDisabled()
+                                    .submitLabel(.continue)
+                                    .onSubmit(submitEmail)
                                 if !email.isEmpty {
-                                    Button(action: { email = "" }) {
+                                    Button { email = "" } label: {
                                         Image(systemName: "xmark.circle.fill")
-                                            .foregroundColor(Color.black.opacity(0.35))
+                                            .foregroundStyle(secondaryText)
                                     }
+                                    .accessibilityLabel("Clear email")
                                 }
                             }
-                            .padding(.horizontal, 16)
-                            .frame(height: 54)
-                            .background(Color.white, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-                            .environment(\.colorScheme, .light)
 
                         case .enterPassword(let isSignUp):
-                            HStack {
-                                if showPassword {
-                                    TextField(
-                                        "",
-                                        text: $password,
-                                        prompt: Text("Password (min 6 characters)").foregroundColor(Color.black.opacity(0.50))
-                                    )
-                                    .font(.system(size: 16))
-                                    .foregroundColor(.black)
-                                    .tint(.black)
-                                    .autocapitalization(.none)
-                                    .autocorrectionDisabled()
-                                    .submitLabel(.continue)
-                                    .onSubmit {
-                                        submitPassword(isSignUp: isSignUp)
-                                    }
-                                } else {
-                                    SecureField(
-                                        "",
-                                        text: $password,
-                                        prompt: Text("Password (min 6 characters)").foregroundColor(Color.black.opacity(0.50))
-                                    )
-                                    .font(.system(size: 16))
-                                    .foregroundColor(.black)
-                                    .tint(.black)
-                                    .autocapitalization(.none)
-                                    .autocorrectionDisabled()
-                                    .submitLabel(.continue)
-                                    .onSubmit {
-                                        submitPassword(isSignUp: isSignUp)
+                            fieldLabel("Password")
+                            inputSurface {
+                                Image(systemName: "lock")
+                                    .foregroundStyle(secondaryText)
+                                Group {
+                                    if showPassword {
+                                        TextField("", text: $password, prompt: Text("At least 6 characters").foregroundColor(secondaryText))
+                                    } else {
+                                        SecureField("", text: $password, prompt: Text("At least 6 characters").foregroundColor(secondaryText))
                                     }
                                 }
-
-                                Button(action: { showPassword.toggle() }) {
-                                    Image(systemName: showPassword ? "eye.slash.fill" : "eye.fill")
-                                        .font(.system(size: 15))
-                                        .foregroundColor(Color.black.opacity(0.45))
+                                .font(.system(size: 16))
+                                .foregroundStyle(primaryText)
+                                .tint(primaryText)
+                                .textContentType(isSignUp ? .newPassword : .password)
+                                .textInputAutocapitalization(.never)
+                                .autocorrectionDisabled()
+                                .submitLabel(.go)
+                                .onSubmit { submitPassword(isSignUp: isSignUp) }
+                                Button { showPassword.toggle() } label: {
+                                    Image(systemName: showPassword ? "eye.slash" : "eye")
+                                        .foregroundStyle(secondaryText)
                                 }
+                                .accessibilityLabel(showPassword ? "Hide password" : "Show password")
                             }
-                            .padding(.horizontal, 16)
-                            .frame(height: 54)
-                            .background(Color.white, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-                            .environment(\.colorScheme, .light)
 
                         case .verifyOTP:
-                            HStack {
-                                Spacer(minLength: !otpCode.isEmpty ? 24 : 0)
-                                TextField(
-                                    "",
-                                    text: $otpCode,
-                                    prompt: Text("8-digit code").foregroundColor(Color.black.opacity(0.40))
-                                )
-                                .font(.system(size: 24, weight: .bold, design: .monospaced))
-                                .foregroundColor(.black)
-                                .tint(.black)
-                                .multilineTextAlignment(.center)
-                                .keyboardType(.numberPad)
-                                .autocorrectionDisabled()
-                                .onChange(of: otpCode) { _, newValue in
-                                    let filtered = newValue.filter { $0.isNumber }
-                                    if filtered.count > 8 {
-                                        otpCode = String(filtered.prefix(8))
-                                    } else {
-                                        otpCode = filtered
-                                    }
-                                    if otpCode.count == 8 {
-                                        if case .verifyOTP(let type) = step {
+                            fieldLabel("Verification code")
+                            inputSurface {
+                                Image(systemName: "number")
+                                    .foregroundStyle(secondaryText)
+                                TextField("", text: $otpCode, prompt: Text("8-digit code").foregroundColor(secondaryText))
+                                    .font(.system(size: 21, weight: .semibold, design: .monospaced))
+                                    .foregroundStyle(primaryText)
+                                    .tint(primaryText)
+                                    .keyboardType(.numberPad)
+                                    .textContentType(.oneTimeCode)
+                                    .onChange(of: otpCode) { _, next in
+                                        otpCode = String(next.filter { $0.isNumber }.prefix(8))
+                                        if otpCode.count == 8, case .verifyOTP(let type) = step {
                                             verifyCode(type: type)
                                         }
                                     }
-                                }
-
                                 if !otpCode.isEmpty {
-                                    Button(action: { otpCode = "" }) {
+                                    Button { otpCode = "" } label: {
                                         Image(systemName: "xmark.circle.fill")
-                                            .foregroundColor(Color.black.opacity(0.35))
+                                            .foregroundStyle(secondaryText)
                                     }
+                                    .accessibilityLabel("Clear code")
                                 }
                             }
-                            .padding(.horizontal, 16)
-                            .frame(height: 54)
-                            .background(Color.white, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-                            .environment(\.colorScheme, .light)
 
                             #if DEBUG
-                            VStack(alignment: .leading, spacing: 8) {
-                                HStack(spacing: 6) {
-                                    Image(systemName: "envelope.badge.shield.half.filled")
-                                        .foregroundColor(.white)
-                                    Text("Dev Mode · Local Mailpit")
-                                        .font(.caption.weight(.semibold))
-                                        .foregroundColor(Color.white.opacity(0.82))
-                                }
-                                HStack(spacing: 12) {
-                                    Button(action: { fetchMailpitCode() }) {
-                                        HStack(spacing: 6) {
-                                            if isFetchingMailpit {
-                                                ProgressView().scaleEffect(0.7).tint(.black)
-                                            } else {
-                                                Image(systemName: "arrow.clockwise")
-                                                    .font(.system(size: 11))
-                                            }
-                                            Text("Fetch from Mailpit")
-                                                .font(.system(size: 13, weight: .semibold))
-                                        }
-                                        .foregroundColor(.black)
-                                        .padding(.horizontal, 12)
-                                        .padding(.vertical, 7)
-                                        .background(Color.white)
-                                        .clipShape(Capsule())
-                                    }
+                            if isPreviewSimulatorEnabled && !LaterBoxAPIService.shared.mailpitUrl.isEmpty {
+                                Button("Fetch test code from Mailpit") { fetchMailpitCode() }
+                                    .font(.caption.weight(.medium))
+                                    .foregroundStyle(secondaryText)
                                     .disabled(isFetchingMailpit)
-
-                                    if let mailpitUrl = URL(string: LaterBoxAPIService.shared.mailpitUrl) {
-                                        Link(destination: mailpitUrl) {
-                                            HStack(spacing: 4) {
-                                                Text("Open Mailpit")
-                                                    .font(.system(size: 13, weight: .medium))
-                                                Image(systemName: "arrow.up.right")
-                                                    .font(.system(size: 10))
-                                            }
-                                            .foregroundColor(Color.white.opacity(0.82))
-                                        }
-                                    }
-                                }
+                                    .padding(.top, 10)
                             }
-                            .padding(.top, 10)
                             #endif
 
                         case .resolveLocalData(let count, let token, let refreshToken, let userId):
-                            VStack(spacing: 14) {
-                                HStack(spacing: 14) {
-                                    ZStack {
-                                        Circle()
-                                            .fill(Color.white.opacity(0.20))
-                                            .frame(width: 48, height: 48)
-                                        Image(systemName: "arrow.triangle.2.circlepath")
-                                            .font(.system(size: 20, weight: .semibold))
-                                            .foregroundColor(.white)
-                                    }
-
-                                    VStack(alignment: .leading, spacing: 4) {
-                                        Text("\(count) Local Item\(count == 1 ? "" : "s")")
-                                            .font(.system(size: 17, weight: .semibold))
-                                            .foregroundColor(.white)
-                                        Text("Merge them with your account or discard them to download your cloud catalog.")
-                                            .font(.system(size: 13, weight: .regular))
-                                            .foregroundColor(Color.white.opacity(0.82))
-                                            .fixedSize(horizontal: false, vertical: true)
-                                    }
+                            HStack(spacing: 14) {
+                                Image(systemName: "arrow.triangle.2.circlepath.icloud")
+                                    .font(.system(size: 23))
+                                    .foregroundStyle(Color(hex: "171711"))
+                                    .frame(width: 52, height: 52)
+                                    .background(AppTheme.accent, in: RoundedRectangle(cornerRadius: 15))
+                                VStack(alignment: .leading, spacing: 5) {
+                                    Text("\(count) local item\(count == 1 ? "" : "s")")
+                                        .font(.headline)
+                                        .foregroundStyle(primaryText)
+                                    Text("Merge them with your cloud account, or remove the local copies.")
+                                        .font(.subheadline)
+                                        .foregroundStyle(secondaryText)
+                                        .fixedSize(horizontal: false, vertical: true)
                                 }
-                                .padding(16)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .background(Color.white.opacity(0.14), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-                                .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                    .strokeBorder(Color.white.opacity(0.26), lineWidth: 1))
-
-                                Button(action: {
-                                    resolveData(merge: true, token: token, refreshToken: refreshToken, userId: userId)
-                                }) {
-                                    HStack {
-                                        if isLoading {
-                                            ProgressView().tint(.black)
-                                        } else {
-                                            Image(systemName: "arrow.up.circle.fill")
-                                                .font(.system(size: 16, weight: .semibold))
-                                            Text("Merge with Account")
-                                                .font(.system(size: 16, weight: .semibold))
-                                        }
-                                    }
-                                    .foregroundColor(.black)
-                                    .frame(maxWidth: .infinity)
-                                    .frame(height: 54)
-                                    .background(Color.white)
-                                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                                }
-                                .disabled(isLoading)
-
-                                Button(action: {
-                                    resolveData(merge: false, token: token, refreshToken: refreshToken, userId: userId)
-                                }) {
-                                    HStack {
-                                        Image(systemName: "trash")
-                                            .font(.system(size: 15, weight: .medium))
-                                        Text("Remove Local Data")
-                                            .font(.system(size: 15, weight: .medium))
-                                    }
-                                    .foregroundColor(Color(red: 1, green: 0.68, blue: 0.65))
-                                    .frame(maxWidth: .infinity)
-                                    .frame(height: 48)
-                                    .background(Color.red.opacity(0.18))
-                                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                                }
-                                .disabled(isLoading)
                             }
-                        }
+                            .padding(16)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(fieldSurface, in: RoundedRectangle(cornerRadius: 17))
+                            .overlay(RoundedRectangle(cornerRadius: 17).strokeBorder(subtleBorder, lineWidth: 1))
 
-                        // Feedback Messages: Left-aligned
-                        if let error = errorMessage {
-                            Text(error)
-                                .font(.footnote.weight(.medium))
-                                .foregroundColor(Color(red: 1, green: 0.72, blue: 0.69))
-                                .multilineTextAlignment(.leading)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .padding(.top, 8)
-                        } else if let info = infoMessage {
-                            Text(info)
-                                .font(.footnote)
-                                .foregroundColor(Color.white.opacity(0.82))
-                                .multilineTextAlignment(.leading)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .padding(.top, 8)
-                        }
-
-                        // Primary Action Button
-                        if !isResolveStep {
-                            Button(action: {
-                                switch step {
-                                case .enterEmail:
-                                    submitEmail()
-                                case .enterPassword(let isSignUp):
-                                    submitPassword(isSignUp: isSignUp)
-                                case .verifyOTP(let type):
-                                    verifyCode(type: type)
-                                case .resolveLocalData:
-                                    break
-                                }
-                            }) {
-                                HStack {
+                            Button {
+                                resolveData(merge: true, token: token, refreshToken: refreshToken, userId: userId)
+                            } label: {
+                                HStack(spacing: 9) {
                                     if isLoading {
-                                        ProgressView().tint(.black)
+                                        ProgressView().tint(Color(hex: "171711"))
                                     } else {
-                                        Text(continueButtonTitle)
-                                            .font(.system(size: 16, weight: .bold))
-                                            .foregroundColor(.black)
+                                        Image(systemName: "arrow.triangle.merge")
+                                        Text("Merge with account")
                                     }
                                 }
+                                .font(.system(size: 16, weight: .bold))
+                                .foregroundStyle(Color(hex: "171711"))
                                 .frame(maxWidth: .infinity)
                                 .frame(height: 54)
-                                .background(Color.white)
-                                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                                .background(AppTheme.accent, in: RoundedRectangle(cornerRadius: 15))
                             }
-                            .disabled(isButtonDisabled)
-                            .opacity(isButtonDisabled ? 0.5 : 1.0)
-                            .padding(.top, 16)
+                            .disabled(isLoading)
+                            .padding(.top, 18)
+
+                            Button {
+                                resolveData(merge: false, token: token, refreshToken: refreshToken, userId: userId)
+                            } label: {
+                                Label("Remove local data", systemImage: "trash")
+                                    .font(.system(size: 15, weight: .semibold))
+                                    .foregroundStyle(Color.red)
+                                    .frame(maxWidth: .infinity)
+                                    .frame(height: 50)
+                                    .background(Color.red.opacity(0.09), in: RoundedRectangle(cornerRadius: 15))
+                            }
+                            .disabled(isLoading)
+                            .padding(.top, 10)
                         }
 
-                        // Apple OAuth for Email Step
-                        if step == .enterEmail {
-                            HStack(spacing: 12) {
-                                Rectangle().fill(Color.white.opacity(0.25)).frame(height: 1)
-                                Text("OR").font(.caption.weight(.semibold)).foregroundStyle(Color.white.opacity(0.80))
-                                Rectangle().fill(Color.white.opacity(0.25)).frame(height: 1)
+                        if let errorMessage {
+                            Label(errorMessage, systemImage: "exclamationmark.circle.fill")
+                                .font(.footnote)
+                                .foregroundStyle(Color.red)
+                                .fixedSize(horizontal: false, vertical: true)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(.top, 12)
+                                .accessibilityAddTraits(.updatesFrequently)
+                        } else if let infoMessage {
+                            Text(infoMessage)
+                                .font(.footnote)
+                                .foregroundStyle(secondaryText)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(.top, 12)
+                        }
+
+                        if !isResolveStep {
+                            Button {
+                                switch step {
+                                case .enterEmail: submitEmail()
+                                case .enterPassword(let isSignUp): submitPassword(isSignUp: isSignUp)
+                                case .verifyOTP(let type): verifyCode(type: type)
+                                case .resolveLocalData: break
+                                }
+                            } label: {
+                                HStack(spacing: 10) {
+                                    if isLoading {
+                                        ProgressView().tint(Color(hex: "171711"))
+                                    } else {
+                                        Text(continueButtonTitle)
+                                    }
+                                }
+                                .font(.system(size: 16, weight: .bold))
+                                .foregroundStyle(Color(hex: "171711"))
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 54)
+                                .background(AppTheme.accent, in: RoundedRectangle(cornerRadius: 15))
                             }
-                            .padding(.top, 16)
-                            .padding(.bottom, 14)
+                            .buttonStyle(.plain)
+                            .disabled(isButtonDisabled)
+                            .opacity(isButtonDisabled ? 0.52 : 1)
+                            .padding(.top, 17)
+                        }
+
+                        if step == .enterEmail {
+                            HStack(spacing: 14) {
+                                Rectangle().fill(subtleBorder).frame(height: 1)
+                                Text("or")
+                                    .font(.caption.weight(.medium))
+                                    .foregroundStyle(secondaryText)
+                                Rectangle().fill(subtleBorder).frame(height: 1)
+                            }
+                            .padding(.vertical, 21)
 
                             SignInWithAppleButton(.signIn, onRequest: { request in
                                 request.requestedScopes = [.fullName, .email]
                             }, onCompletion: handleAppleResult)
-                            .signInWithAppleButtonStyle(.black)
+                            .signInWithAppleButtonStyle(colorScheme == .dark ? .white : .black)
                             .frame(maxWidth: .infinity)
                             .frame(height: 54)
-                            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                            .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                .strokeBorder(Color.white.opacity(0.28), lineWidth: 1))
+                            .clipShape(RoundedRectangle(cornerRadius: 15))
                             .disabled(isLoading)
-                        }
 
-                        // Secondary Options
-                        if step == .enterEmail {
-                            Button(action: {
+                            Button {
                                 LBHaptic.light()
                                 coordinator.continueAsGuest()
                                 dismiss()
-                            }) {
+                            } label: {
                                 Text("Continue without account")
-                                    .font(.system(size: 15, weight: .semibold))
-                                    .foregroundStyle(.white)
-                                    .frame(maxWidth: .infinity, alignment: .center)
-                                    .padding(.top, 16)
+                                    .font(.system(size: 14, weight: .semibold))
+                                    .foregroundStyle(secondaryText)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.top, 22)
                             }
+                            .buttonStyle(.plain)
                         } else if case .enterPassword = step {
-                            Button("Use different email") {
-                                withAnimation {
+                            Button("Use a different email") {
+                                withAnimation(.easeInOut(duration: 0.2)) {
                                     step = .enterEmail
                                     password = ""
                                     errorMessage = nil
                                     infoMessage = nil
                                 }
                             }
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(Color.white.opacity(0.82))
-                            .frame(maxWidth: .infinity, alignment: .center)
-                            .padding(.top, 16)
+                            .font(.subheadline.weight(.medium))
+                            .foregroundStyle(secondaryText)
+                            .frame(maxWidth: .infinity)
+                            .padding(.top, 18)
                         } else if case .verifyOTP(let type) = step {
                             HStack(spacing: 16) {
                                 Button("Resend code") {
@@ -626,14 +459,9 @@ struct AuthView: View {
                                         submitEmail()
                                     }
                                 }
-                                .font(.system(size: 14, weight: .medium))
-                                .foregroundColor(Color.white.opacity(0.82))
-
-                                Text("•")
-                                    .foregroundColor(Color.white.opacity(0.48))
-
-                                Button("Use different email") {
-                                    withAnimation {
+                                Text("·").foregroundStyle(secondaryText)
+                                Button("Use a different email") {
+                                    withAnimation(.easeInOut(duration: 0.2)) {
                                         step = .enterEmail
                                         otpCode = ""
                                         password = ""
@@ -641,49 +469,75 @@ struct AuthView: View {
                                         infoMessage = nil
                                     }
                                 }
-                                .font(.system(size: 14, weight: .medium))
-                                .foregroundColor(Color.white.opacity(0.82))
                             }
-                            .frame(maxWidth: .infinity, alignment: .center)
-                            .padding(.top, 16)
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundStyle(secondaryText)
+                            .frame(maxWidth: .infinity)
+                            .padding(.top, 18)
                         }
 
-                        // Legal Disclaimer
-                        VStack(spacing: 4) {
+                        Spacer(minLength: 38)
+
+                        VStack(spacing: 5) {
                             Text("By continuing, you agree to our")
-                                .foregroundStyle(Color.white.opacity(0.73))
-                            HStack(spacing: 5) {
+                                .foregroundStyle(secondaryText)
+                            HStack(spacing: 6) {
                                 Button("Terms") { activeLegalDocument = .terms }
                                     .underline()
-                                Text("and")
-                                    .foregroundStyle(Color.white.opacity(0.73))
+                                Text("and").foregroundStyle(secondaryText)
                                 Button("Privacy Policy") { activeLegalDocument = .privacy }
                                     .underline()
                             }
-                            .foregroundStyle(.white)
+                            .foregroundStyle(primaryText)
                             .buttonStyle(.plain)
                         }
                         .font(.caption2)
                         .frame(maxWidth: .infinity)
-                        .padding(.top, 18)
                     }
+                    .frame(maxWidth: 440)
+                    .frame(minHeight: max(0, geometry.size.height - 32), alignment: .top)
                     .padding(.horizontal, 24)
-                    .padding(.bottom, 28)
+                    .padding(.vertical, 16)
+                    .frame(maxWidth: .infinity)
                 }
-                .frame(minHeight: geometry.size.height)
+                .scrollDismissesKeyboard(.interactively)
             }
-        }
         }
         .navigationBarBackButtonHidden(true)
         .navigationBarTitleDisplayMode(.inline)
-        .preferredColorScheme(.dark)
-        .whiteStatusBar()
-        .sheet(item: $activeLegalDocument) { doc in
-            SFSafariViewWrapper(url: doc.url, entersReaderIfAvailable: false)
+        .sheet(item: $activeLegalDocument) { document in
+            SFSafariViewWrapper(url: document.url, entersReaderIfAvailable: false)
                 .ignoresSafeArea()
+        }
+        .onAppear {
+            StatusBarStyleModifier.apply(colorScheme == .dark ? .light : .dark)
+        }
+        .onChange(of: colorScheme) { _, scheme in
+            StatusBarStyleModifier.apply(scheme == .dark ? .light : .dark)
         }
         .onDisappear {
             StatusBarStyleModifier.apply(coordinator.hasAccess ? .light : .dark)
+        }
+    }
+
+    private func fieldLabel(_ title: String) -> some View {
+        Text(title.uppercased())
+            .font(.system(size: 11, weight: .bold))
+            .tracking(0.9)
+            .foregroundStyle(secondaryText)
+            .padding(.bottom, 9)
+    }
+
+    private func inputSurface<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+        HStack(spacing: 12) {
+            content()
+        }
+        .padding(.horizontal, 15)
+        .frame(height: 56)
+        .background(fieldSurface, in: RoundedRectangle(cornerRadius: 15, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 15, style: .continuous)
+                .strokeBorder(subtleBorder, lineWidth: 1)
         }
     }
 

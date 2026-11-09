@@ -9,6 +9,11 @@ import SwiftUI
 
 public struct AuthSheet: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var colorScheme
+    private var surface: Color { colorScheme == .dark ? Color(hex: "292C2E") : .white }
+    private var borderColor: Color {
+        colorScheme == .dark ? Color.white.opacity(0.13) : Color(hex: "DCE0D6")
+    }
     @ObservedObject var coordinator = SyncCoordinator.shared
 
     @State private var email: String = ""
@@ -27,21 +32,15 @@ public struct AuthSheet: View {
     public var body: some View {
         NavigationStack {
             ZStack {
-                LiquidGlassBackground()
+                (colorScheme == .dark ? Color(hex: "1B1D20") : Color(hex: "F8F9F5"))
+                    .ignoresSafeArea()
 
+                ScrollView(showsIndicators: false) {
                 VStack(spacing: 24) {
-                    // Logo Icon
-                    ZStack {
-                        Circle()
-                            .fill(LinearGradient(colors: [Color.lbAmber, Color.lbAmberDark], startPoint: .topLeading, endPoint: .bottomTrailing))
-                            .frame(width: 64, height: 64)
-                            .shadow(color: Color.lbAmber.opacity(0.4), radius: 12, y: 6)
-
-                        Image(systemName: "tray.fill")
-                            .font(.system(size: 28, weight: .bold))
-                            .foregroundColor(.black)
-                    }
-                    .padding(.top, 20)
+                    LaterBoxVectorMark(size: 62, appearance: .automatic, animates: false)
+                        .frame(width: 76, height: 76)
+                        .padding(.top, 12)
+                        .accessibilityLabel("LaterBox")
 
                     VStack(spacing: 6) {
                         Text(step == .enterEmail ? "Sign In to LaterBox" : "Check Your Email")
@@ -66,7 +65,7 @@ public struct AuthSheet: View {
                                 .foregroundColor(.red)
                         }
                         .padding(10)
-                        .liquidGlassCard(cornerRadius: 12)
+                        .background(Color.red.opacity(0.08), in: RoundedRectangle(cornerRadius: 12))
                     }
 
                     if step == .enterEmail {
@@ -84,7 +83,8 @@ public struct AuthSheet: View {
                                     .autocorrectionDisabled()
                             }
                             .padding(14)
-                            .liquidGlassCard(cornerRadius: 14)
+                            .background(surface, in: RoundedRectangle(cornerRadius: 14))
+                            .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(borderColor, lineWidth: 1))
                         }
 
                         Button(action: sendCode) {
@@ -98,7 +98,7 @@ public struct AuthSheet: View {
                             }
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 16)
-                            .background(Color.lbAmber)
+                            .background(AppTheme.accent)
                             .foregroundColor(.black)
                             .clipShape(RoundedRectangle(cornerRadius: 16))
                         }
@@ -113,7 +113,8 @@ public struct AuthSheet: View {
                                 .keyboardType(.numberPad)
                                 .font(.title3.weight(.bold).monospaced())
                                 .padding(14)
-                                .liquidGlassCard(cornerRadius: 14)
+                                .background(surface, in: RoundedRectangle(cornerRadius: 14))
+                            .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(borderColor, lineWidth: 1))
                         }
 
                         Button(action: verifyCode) {
@@ -127,7 +128,7 @@ public struct AuthSheet: View {
                             }
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 16)
-                            .background(Color.lbAmber)
+                            .background(AppTheme.accent)
                             .foregroundColor(.black)
                             .clipShape(RoundedRectangle(cornerRadius: 16))
                         }
@@ -142,9 +143,12 @@ public struct AuthSheet: View {
                         .foregroundColor(.secondary)
                     }
 
-                    Spacer()
                 }
+                .frame(maxWidth: 460)
+                .frame(maxWidth: .infinity)
                 .padding(24)
+                }
+                .scrollDismissesKeyboard(.interactively)
             }
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

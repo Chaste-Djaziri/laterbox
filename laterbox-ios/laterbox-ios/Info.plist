@@ -1,5 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
-<dict/>
+<dict>
+    <!-- Only public, build-time configuration belongs in the iOS bundle. -->
+    <key>LATERBOX_SUPABASE_URL</key>
+    <string>$(LATERBOX_SUPABASE_URL)</string>
+    <key>LATERBOX_SUPABASE_ANON_KEY</key>
+    <string>$(LATERBOX_SUPABASE_ANON_KEY)</string>
+    <key>LATERBOX_WEB_URL</key>
+    <string>$(LATERBOX_WEB_URL)</string>
+    <key>LATERBOX_BILLING_URL</key>
+    <string>$(LATERBOX_BILLING_URL)</string>
+</dict>
 </plist>

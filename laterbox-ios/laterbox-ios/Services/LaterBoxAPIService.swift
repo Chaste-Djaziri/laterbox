@@ -7,23 +7,44 @@
 
 import Foundation
 
+// Public iOS configuration is compiled into Info.plist by Xcode. Release builds
+// read those production values, not a web .env file or the launch environment.
+// Only the Supabase publishable/anon key belongs on-device; never ship secret
+// service-role, Whop, or server API keys inside an iOS bundle.
 private nonisolated enum LaterBoxRuntimeConfiguration: Sendable {
-    nonisolated static func value(for environmentKey: String, devDefault: String, prodFallback: String) -> String {
+    nonisolated static func configuredValue(for key: String) -> String? {
         #if DEBUG
-        // Debug builds use the same hosted endpoints as releases unless an
-        // explicit HTTPS staging endpoint is supplied by the developer.
-        if let env = ProcessInfo.processInfo.environment[environmentKey]?.trimmingCharacters(in: .whitespacesAndNewlines),
-           let url = URL(string: env),
-           url.scheme == "https",
-           let host = url.host,
-           !host.isEmpty,
-           !["localhost", "127.0.0.1", "::1"].contains(host.lowercased()) {
-            return env
+        if let override = ProcessInfo.processInfo.environment[key]?
+            .trimmingCharacters(in: .whitespacesAndNewlines),
+           !override.isEmpty {
+            return override
         }
-        return devDefault
-        #else
-        return prodFallback
         #endif
+        guard let value = Bundle.main.object(forInfoDictionaryKey: key) as? String else { return nil }
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, !trimmed.contains("$("), !trimmed.contains("${") else { return nil }
+        return trimmed
+    }
+
+    nonisolated static func url(for key: String, fallback: String) -> String {
+        guard let configured = configuredValue(for: key),
+              let components = URLComponents(string: configured),
+              components.scheme?.lowercased() == "https",
+              let host = components.host?.lowercased(), !host.isEmpty,
+              !["localhost", "127.0.0.1", "::1"].contains(host),
+              components.user == nil, components.password == nil,
+              components.query == nil, components.fragment == nil else {
+            return fallback
+        }
+        return configured.hasSuffix("/") ? String(configured.dropLast()) : configured
+    }
+
+    nonisolated static func publicSupabaseKey(for key: String, fallback: String) -> String {
+        guard let configured = configuredValue(for: key),
+              configured.hasPrefix("sb_publishable_") || configured.hasPrefix("eyJ") else {
+            return fallback
+        }
+        return configured
     }
 }
 
@@ -103,49 +124,21 @@ public actor LaterBoxAPIService {
     public nonisolated let mailpitUrl: String = ""
     #endif
 
-    public nonisolated let supabaseUrl = LaterBoxRuntimeConfiguration.value(
+    public nonisolated let supabaseUrl = LaterBoxRuntimeConfiguration.url(
         for: "LATERBOX_SUPABASE_URL",
-        devDefault: {
-            #if DEBUG
-            return defaultSupabaseUrl
-            #else
-            return defaultSupabaseUrl
-            #endif
-        }(),
-        prodFallback: defaultSupabaseUrl
+        fallback: LaterBoxAPIService.defaultSupabaseUrl
     )
-    public nonisolated let anonKey = LaterBoxRuntimeConfiguration.value(
+    public nonisolated let anonKey = LaterBoxRuntimeConfiguration.publicSupabaseKey(
         for: "LATERBOX_SUPABASE_ANON_KEY",
-        devDefault: {
-            #if DEBUG
-            return "sb_publishable_Rc4e_ik2LE4SR0UrfX-OEQ_5Mu_lw9p"
-            #else
-            return "sb_publishable_Rc4e_ik2LE4SR0UrfX-OEQ_5Mu_lw9p"
-            #endif
-        }(),
-        prodFallback: "sb_publishable_Rc4e_ik2LE4SR0UrfX-OEQ_5Mu_lw9p"
+        fallback: "sb_publishable_Rc4e_ik2LE4SR0UrfX-OEQ_5Mu_lw9p"
     )
-    public nonisolated let webUrl = LaterBoxRuntimeConfiguration.value(
+    public nonisolated let webUrl = LaterBoxRuntimeConfiguration.url(
         for: "LATERBOX_WEB_URL",
-        devDefault: {
-            #if DEBUG
-            return "https://laterbox.dev"
-            #else
-            return "https://laterbox.dev"
-            #endif
-        }(),
-        prodFallback: "https://laterbox.dev"
+        fallback: "https://laterbox.dev"
     )
-    public nonisolated let billingUrl = LaterBoxRuntimeConfiguration.value(
+    public nonisolated let billingUrl = LaterBoxRuntimeConfiguration.url(
         for: "LATERBOX_BILLING_URL",
-        devDefault: {
-            #if DEBUG
-            return "https://app.laterbox.dev"
-            #else
-            return "https://app.laterbox.dev"
-            #endif
-        }(),
-        prodFallback: "https://app.laterbox.dev"
+        fallback: "https://app.laterbox.dev"
     )
 
     private let session: URLSession
