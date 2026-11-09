@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[Web / Marketing homepage polish & GSAP motion]** Refine the marketing homepage with performant, subtle GSAP scroll-triggered entrance animations across all sections, smooth hero load reveals, and reduced-motion safety. Streamline section flow by removing redundant duplicate interactive previews, updating legacy single-platform references to modern multi-platform capture, and styling exploratory navigation links.
+
 - **[iOS / Streaming media details]** Add inline AVPlayer video/audio playback for direct remote MP4/HLS/MP3/AAC/M4A/WAV sources and secure cloud attachment URLs, with play/pause, scrubbing, native video controls, dark/light styling, and explicit download plus Save to Files sharing for downloadable files (HLS playlists stream only). Match web's provider embeds (YouTube, Vimeo, Spotify, Apple Music, SoundCloud, Lyrica). Keep synced audio/video attachments remote until manually downloaded rather than eagerly copying large files to device; preserve local offline files and non-media attachment behavior.
 
 - **[iOS / Returns scroll navigation]** Remove redundant Today / Upcoming / Someday section headings and subtitles below the chip switcher. Keep the compact, horizontally scrollable chips visible at the top, automatically hide them on downward list scrolling and reveal them when scrolling upward or reaching the top, without resizing the scroll area or creating blank gaps. Retain expandable search, filtered results, native details navigation and the adaptive graphite appearance.
