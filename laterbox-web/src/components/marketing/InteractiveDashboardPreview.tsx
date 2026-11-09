@@ -5,6 +5,7 @@ import React, { useMemo, useRef, useState, type FormEvent } from 'react';
 import Image from 'next/image';
 import {
   Archive,
+  ArrowLeft,
   ArrowUpDown,
   BookOpen,
   CalendarClock,
@@ -17,13 +18,16 @@ import {
   Clock,
   Cloud,
   Compass,
+  Copy,
   Crown,
   Download,
   ExternalLink,
   FileText,
   FolderOpen,
+  FolderPlus,
   HelpCircle,
   Inbox,
+  MessageSquare,
   MoreVertical,
   Play,
   Plus,
@@ -331,6 +335,9 @@ export function InteractiveDashboardPreview({
     setItems((prev) =>
       prev.map((item) => (item.id === itemId ? { ...item, starred: !item.starred } : item))
     );
+    setSelectedDetailItem((prev) =>
+      prev && prev.id === itemId ? { ...prev, starred: !prev.starred } : prev
+    );
     const item = items.find((i) => i.id === itemId);
     showToast(item?.starred ? 'Removed from starred' : 'Starred item');
   };
@@ -424,6 +431,11 @@ export function InteractiveDashboardPreview({
     }
     return list;
   }, [items, activeView, activeCategoryTab, searchQuery, sortOrder]);
+
+  const selectedDetailIndex = useMemo(() => {
+    if (!selectedDetailItem) return -1;
+    return filteredItems.findIndex((item) => item.id === selectedDetailItem.id);
+  }, [selectedDetailItem, filteredItems]);
 
   const viewTitles: Record<ViewKey, string> = {
     inbox: 'Inbox',
@@ -757,117 +769,256 @@ export function InteractiveDashboardPreview({
         {/* =================================================================== */}
         <div className="flex-1 flex flex-col min-w-0 min-h-0 bg-white border border-[#e4e0d5] rounded-2xl sm:rounded-3xl shadow-xs overflow-hidden">
           {/* Top Table Action Toolbar */}
-          <div className="shrink-0 flex items-center justify-between px-3 sm:px-4 py-2 border-b border-[#e5e4dc] bg-white text-xs text-[#6c6b63] min-h-[46px] select-none">
-            {/* Left Controls: Select All, Refresh, More */}
-            <div className="flex items-center gap-1 sm:gap-2">
-              <div className="relative flex items-center">
-                <input
-                  type="checkbox"
-                  checked={allSelected}
-                  ref={(el) => {
-                    if (el) el.indeterminate = someSelected;
-                  }}
-                  onChange={toggleSelectAll}
-                  className="w-4 h-4 rounded border-[#dedad0] accent-[#171711] cursor-pointer"
-                  title="Select all"
-                />
+          {selectedDetailItem ? (
+            <div className="shrink-0 flex items-center justify-between px-3 sm:px-4 py-2 border-b border-[#e5e4dc] bg-[#fafaf6] text-xs min-h-[46px] select-none">
+              {/* Left Controls: Back button + Divider + Action buttons */}
+              <div className="flex items-center gap-1 sm:gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 <button
                   type="button"
-                  onClick={() => setSelectMenuOpen(!selectMenuOpen)}
-                  className="p-1 text-[#8c8a80] hover:text-[#171711] transition-colors cursor-pointer"
+                  onClick={() => setSelectedDetailItem(null)}
+                  className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-bold transition-colors hover:bg-[#e6edb0] text-[#171711] cursor-pointer shrink-0"
                 >
-                  <ChevronDown className="w-3 h-3" />
+                  <ArrowLeft className="w-4 h-4" />
+                  <span className="hidden sm:inline">Back to {viewTitles[activeView]}</span>
+                  <span className="sm:hidden">Back</span>
                 </button>
 
-                {selectMenuOpen && (
-                  <div className="absolute left-0 top-full mt-1 w-32 bg-white border border-[#dedad0] rounded-xl shadow-lg py-1 z-30 text-xs font-semibold text-[#171711]">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedIds(new Set(filteredItems.map((i) => i.id)));
-                        setSelectMenuOpen(false);
-                      }}
-                      className="w-full text-left px-3 py-1.5 hover:bg-[#faf8f5]"
-                    >
-                      All
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedIds(new Set());
-                        setSelectMenuOpen(false);
-                      }}
-                      className="w-full text-left px-3 py-1.5 hover:bg-[#faf8f5]"
-                    >
-                      None
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedIds(new Set(filteredItems.filter((i) => i.starred).map((i) => i.id)));
-                        setSelectMenuOpen(false);
-                      }}
-                      className="w-full text-left px-3 py-1.5 hover:bg-[#faf8f5]"
-                    >
-                      Starred
-                    </button>
-                  </div>
-                )}
+                <span className="h-5 w-px bg-[#e4e0d5] mx-1 shrink-0" aria-hidden="true" />
+
+                {/* Star Toggle */}
+                <button
+                  type="button"
+                  onClick={(e) => toggleStar(selectedDetailItem.id, e)}
+                  className={`p-1.5 rounded-lg transition-colors cursor-pointer shrink-0 ${
+                    selectedDetailItem.starred
+                      ? 'text-amber-500 bg-amber-50'
+                      : 'text-[#6c6b63] hover:text-[#171711] hover:bg-white'
+                  }`}
+                  title={selectedDetailItem.starred ? 'Starred' : 'Star'}
+                >
+                  <Star className={`w-4 h-4 ${selectedDetailItem.starred ? 'fill-amber-400 text-amber-500' : ''}`} />
+                </button>
+
+                {/* Keep Button */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    showToast('Kept in library');
+                    setSelectedDetailItem(null);
+                  }}
+                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-[#e6edb0] hover:bg-[#d9e6a0] text-[#27321c] text-xs font-bold transition-colors cursor-pointer shrink-0"
+                  title="Keep in Library"
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Keep</span>
+                </button>
+
+                {/* Archive Button */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    showToast('Archived');
+                    setSelectedDetailItem(null);
+                  }}
+                  className="p-1.5 rounded-lg text-[#6c6b63] hover:text-[#171711] hover:bg-white transition-colors cursor-pointer shrink-0"
+                  title="Archive"
+                >
+                  <Archive className="w-4 h-4" />
+                </button>
+
+                {/* Add to Collections */}
+                <button
+                  type="button"
+                  onClick={() => showToast('Saved to Collections')}
+                  className="p-1.5 rounded-lg text-[#6c6b63] hover:text-[#171711] hover:bg-white transition-colors cursor-pointer shrink-0"
+                  title="Add to Collection"
+                >
+                  <FolderPlus className="w-4 h-4" />
+                </button>
+
+                {/* Snooze / Reschedule */}
+                <button
+                  type="button"
+                  onClick={() => showToast('Return time scheduled')}
+                  className="p-1.5 rounded-lg text-[#6c6b63] hover:text-[#171711] hover:bg-white transition-colors cursor-pointer shrink-0"
+                  title="Snooze"
+                >
+                  <CalendarClock className="w-4 h-4" />
+                </button>
+
+                {/* Copy Link */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard?.writeText(selectedDetailItem.url);
+                    showToast('Link copied to clipboard');
+                  }}
+                  className="p-1.5 rounded-lg text-[#6c6b63] hover:text-[#171711] hover:bg-white transition-colors cursor-pointer shrink-0"
+                  title="Copy link"
+                >
+                  <Copy className="w-4 h-4" />
+                </button>
+
+                {/* Delete */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    deleteItem(selectedDetailItem.id);
+                    setSelectedDetailItem(null);
+                  }}
+                  className="p-1.5 rounded-lg text-[#8c8a80] hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer shrink-0"
+                  title="Delete"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
               </div>
 
-              {/* Refresh Button */}
-              <button
-                type="button"
-                onClick={handleRefresh}
-                title="Refresh inbox"
-                className="p-1.5 rounded-lg hover:bg-[#faf8f5] text-[#6c6b63] hover:text-[#171711] transition-colors cursor-pointer"
-              >
-                <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
-              </button>
-
-              {/* More Vertical Options */}
-              <button
-                type="button"
-                onClick={() => showToast('More actions available')}
-                className="p-1.5 rounded-lg hover:bg-[#faf8f5] text-[#6c6b63] hover:text-[#171711] transition-colors cursor-pointer"
-              >
-                <MoreVertical className="w-3.5 h-3.5" />
-              </button>
-            </div>
-
-            {/* Right Controls: 1-18 of 18, Chevrons, Sort Order */}
-            <div className="flex items-center gap-2">
-              <span className="text-[11px] font-bold text-[#8c8a80]">
-                {filteredItems.length > 0 ? `1–${filteredItems.length} of ${filteredItems.length}` : '0 items'}
-              </span>
-
-              <div className="flex items-center gap-0.5">
-                <button type="button" disabled className="p-1 rounded-lg text-[#8c8a80] opacity-35 cursor-not-allowed">
+              {/* Right Controls: Pager */}
+              <div className="flex items-center gap-1 sm:gap-1.5 pl-2 border-l border-[#e4e0d5] shrink-0">
+                <span className="text-[11px] font-bold text-[#8c8a80] hidden sm:inline">
+                  {selectedDetailIndex >= 0 ? `${selectedDetailIndex + 1} of ${filteredItems.length}` : 'Item details'}
+                </span>
+                <button
+                  type="button"
+                  disabled={selectedDetailIndex <= 0}
+                  onClick={() => {
+                    if (selectedDetailIndex > 0) {
+                      setSelectedDetailItem(filteredItems[selectedDetailIndex - 1]);
+                    }
+                  }}
+                  className="p-1.5 rounded-lg hover:bg-white text-[#5f655b] disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                  title="Previous item"
+                >
                   <ChevronLeft className="w-4 h-4" />
                 </button>
-                <button type="button" disabled className="p-1 rounded-lg text-[#8c8a80] opacity-35 cursor-not-allowed">
+                <button
+                  type="button"
+                  disabled={selectedDetailIndex < 0 || selectedDetailIndex >= filteredItems.length - 1}
+                  onClick={() => {
+                    if (selectedDetailIndex >= 0 && selectedDetailIndex < filteredItems.length - 1) {
+                      setSelectedDetailItem(filteredItems[selectedDetailIndex + 1]);
+                    }
+                  }}
+                  className="p-1.5 rounded-lg hover:bg-white text-[#5f655b] disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                  title="Next item"
+                >
                   <ChevronRight className="w-4 h-4" />
                 </button>
               </div>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setSortOrder((prev) => (prev === 'latest' ? 'oldest' : 'latest'));
-                  showToast(sortOrder === 'latest' ? 'Showing oldest first' : 'Showing newest first');
-                }}
-                title={sortOrder === 'latest' ? 'Showing newest first' : 'Showing oldest first'}
-                className="p-1.5 rounded-lg hover:bg-[#faf8f5] text-[#6c6b63] hover:text-[#171711] transition-colors cursor-pointer ml-1"
-              >
-                <ArrowUpDown className="w-3.5 h-3.5" />
-              </button>
             </div>
-          </div>
+          ) : (
+            <div className="shrink-0 flex items-center justify-between px-3 sm:px-4 py-2 border-b border-[#e5e4dc] bg-white text-xs text-[#6c6b63] min-h-[46px] select-none">
+              {/* Left Controls: Select All, Refresh, More */}
+              <div className="flex items-center gap-1 sm:gap-2">
+                <div className="relative flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={allSelected}
+                    ref={(el) => {
+                      if (el) el.indeterminate = someSelected;
+                    }}
+                    onChange={toggleSelectAll}
+                    className="w-4 h-4 rounded border-[#dedad0] accent-[#171711] cursor-pointer"
+                    title="Select all"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setSelectMenuOpen(!selectMenuOpen)}
+                    className="p-1 text-[#8c8a80] hover:text-[#171711] transition-colors cursor-pointer"
+                  >
+                    <ChevronDown className="w-3 h-3" />
+                  </button>
+
+                  {selectMenuOpen && (
+                    <div className="absolute left-0 top-full mt-1 w-32 bg-white border border-[#dedad0] rounded-xl shadow-lg py-1 z-30 text-xs font-semibold text-[#171711]">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedIds(new Set(filteredItems.map((i) => i.id)));
+                          setSelectMenuOpen(false);
+                        }}
+                        className="w-full text-left px-3 py-1.5 hover:bg-[#faf8f5]"
+                      >
+                        All
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedIds(new Set());
+                          setSelectMenuOpen(false);
+                        }}
+                        className="w-full text-left px-3 py-1.5 hover:bg-[#faf8f5]"
+                      >
+                        None
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedIds(new Set(filteredItems.filter((i) => i.starred).map((i) => i.id)));
+                          setSelectMenuOpen(false);
+                        }}
+                        className="w-full text-left px-3 py-1.5 hover:bg-[#faf8f5]"
+                      >
+                        Starred
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Refresh Button */}
+                <button
+                  type="button"
+                  onClick={handleRefresh}
+                  title="Refresh inbox"
+                  className="p-1.5 rounded-lg hover:bg-[#faf8f5] text-[#6c6b63] hover:text-[#171711] transition-colors cursor-pointer"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+                </button>
+
+                {/* More Vertical Options */}
+                <button
+                  type="button"
+                  onClick={() => showToast('More actions available')}
+                  className="p-1.5 rounded-lg hover:bg-[#faf8f5] text-[#6c6b63] hover:text-[#171711] transition-colors cursor-pointer"
+                >
+                  <MoreVertical className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              {/* Right Controls: 1-18 of 18, Chevrons, Sort Order */}
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] font-bold text-[#8c8a80]">
+                  {filteredItems.length > 0 ? `1–${filteredItems.length} of ${filteredItems.length}` : '0 items'}
+                </span>
+
+                <div className="flex items-center gap-0.5">
+                  <button type="button" disabled className="p-1 rounded-lg text-[#8c8a80] opacity-35 cursor-not-allowed">
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+                  <button type="button" disabled className="p-1 rounded-lg text-[#8c8a80] opacity-35 cursor-not-allowed">
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSortOrder((prev) => (prev === 'latest' ? 'oldest' : 'latest'));
+                    showToast(sortOrder === 'latest' ? 'Showing oldest first' : 'Showing newest first');
+                  }}
+                  title={sortOrder === 'latest' ? 'Showing newest first' : 'Showing oldest first'}
+                  className="p-1.5 rounded-lg hover:bg-[#faf8f5] text-[#6c6b63] hover:text-[#171711] transition-colors cursor-pointer ml-1"
+                >
+                  <ArrowUpDown className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* ================================================================= */}
           {/* CATEGORY TABS (Primary 18 new, Articles 11 new, Media 7 new, Updates) */}
           {/* ================================================================= */}
-          {!searchQuery.trim() && activeView === 'inbox' && (
+          {!selectedDetailItem && !searchQuery.trim() && activeView === 'inbox' && (
             <div className="shrink-0 flex items-center border-b border-[#e5e4dc] bg-white overflow-x-auto scrollbar-none select-none">
               {/* Primary Tab */}
               <button
@@ -969,75 +1120,95 @@ export function InteractiveDashboardPreview({
           )}
 
           {/* ================================================================= */}
-          {/* EMAIL LIST ROWS (Exactly matching Image 2) */}
+          {/* EMAIL TABLE CONTENT: ROWS OR EMBEDDED ITEM DETAILS */}
           {/* ================================================================= */}
-          <div
-            data-lenis-prevent
-            className="flex-1 overflow-y-auto divide-y divide-[#eceae1] bg-white text-xs max-h-[500px]"
-          >
-            {filteredItems.map((item) => {
-              const isSelected = selectedIds.has(item.id);
-              const isHovered = hoveredRowId === item.id;
+          {selectedDetailItem ? (
+            <div
+              data-lenis-prevent
+              className="flex-1 overflow-y-auto overscroll-contain bg-[#f7f5ee] p-4 sm:p-6 space-y-4 max-h-[500px]"
+            >
+              {/* In Inbox Status Banner */}
+              <div className="flex items-center gap-3 rounded-2xl border border-[#e4e0d5] bg-white px-4 py-3 text-sm text-[#171711] shadow-2xs">
+                <Clock className="h-4 w-4 shrink-0 text-[#6c6b63]" aria-hidden="true" />
+                <div>
+                  <span className="font-bold text-xs uppercase tracking-wider text-[#171711]">In Inbox</span>
+                  <p className="mt-0.5 text-xs text-[#6c6b63]">{selectedDetailItem.timeLabel}</p>
+                </div>
+              </div>
 
-              return (
-                <div
-                  key={item.id}
-                  onMouseEnter={() => setHoveredRowId(item.id)}
-                  onMouseLeave={() => setHoveredRowId(null)}
-                  onClick={() => setSelectedDetailItem(item)}
-                  className={`group relative flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-3 sm:py-3.5 transition-all duration-150 cursor-pointer ${
-                    isSelected ? 'bg-[#f4f7ea]' : 'hover:bg-[#faf8f5]'
-                  }`}
-                >
-                  {/* Select Checkbox */}
-                  <div className="shrink-0 flex items-center" onClick={(e) => toggleSelectRow(item.id, e)}>
-                    <input
-                      type="checkbox"
-                      checked={isSelected}
-                      onChange={() => {}}
-                      className="w-4 h-4 rounded border-[#dedad0] accent-[#171711] cursor-pointer"
-                    />
+              {/* Real Platform Card Format */}
+              <article className="rounded-[24px] sm:rounded-[32px] bg-white border-2 border-[#171711] shadow-[0_20px_60px_rgba(0,0,0,0.06)] overflow-hidden">
+                {/* Visual Media Header */}
+                {selectedDetailItem.categoryTab === 'media' || selectedDetailItem.source.includes('YouTube') || selectedDetailItem.tags.some((t) => t.icon === 'video') ? (
+                  <div className="relative w-full h-48 sm:h-64 bg-neutral-950 overflow-hidden border-b border-[#e4e0d5] flex items-center justify-center">
+                    <div className="absolute inset-0 bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-950" />
+                    <div className="absolute top-4 left-4 px-3 py-1 rounded-full bg-black/60 backdrop-blur-md text-white text-xs font-semibold flex items-center gap-1.5 shadow-sm">
+                      <span>{selectedDetailItem.source}</span>
+                    </div>
+                    <div className="absolute top-4 right-4 px-3 py-1 rounded-full bg-[#ea4335] text-white text-xs font-bold flex items-center gap-1.5 shadow-sm">
+                      <Play className="w-3 h-3 fill-white" />
+                      <span>Video</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => showToast('Playing media preview')}
+                      className="relative z-10 w-16 h-16 rounded-full bg-white/95 text-[#171711] flex items-center justify-center pl-1 shadow-2xl transition-transform hover:scale-105 cursor-pointer"
+                    >
+                      <Play className="w-7 h-7 fill-[#171711]" />
+                    </button>
                   </div>
-
-                  {/* Star Toggle */}
-                  <button
-                    type="button"
-                    onClick={(e) => toggleStar(item.id, e)}
-                    className="shrink-0 p-0.5 text-[#8c8a80] hover:text-amber-500 transition-colors"
-                  >
-                    <Star
-                      className={`w-4 h-4 ${
-                        item.starred ? 'fill-amber-400 text-amber-500' : 'hover:fill-amber-100'
-                      }`}
-                    />
-                  </button>
-
-                  {/* Sender / Source domain (e.g. disneyplus.com, facebook.com, Instagram) */}
-                  <div className="w-24 sm:w-36 shrink-0 truncate">
-                    <span className="font-bold text-[#171711] truncate block text-[13px]">
-                      {item.source}
-                    </span>
-                  </div>
-
-                  {/* Title & snippet */}
-                  <div className="flex-1 min-w-0 flex items-center gap-2">
-                    <span className="font-bold text-[#171711] truncate text-[13px]">
-                      {item.title}
-                    </span>
-                    {item.snippet && (
-                      <span className="text-[#8c8a80] truncate hidden lg:inline text-xs">
-                        — {item.snippet}
+                ) : selectedDetailItem.categoryTab === 'articles' || selectedDetailItem.source === 'Bill Gates' ? (
+                  <div className="p-6 sm:p-7 border-b border-[#e4e0d5] bg-[#faf8f5]">
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="px-2.5 py-0.5 rounded-full bg-[#e6edb0] text-[#171711] text-[11px] font-black uppercase tracking-wider">
+                        Article
                       </span>
-                    )}
+                      <span className="text-xs text-[#6c6b63] font-semibold">5 min read</span>
+                    </div>
+                    <h2 className="text-lg sm:text-xl font-black text-[#171711] tracking-tight leading-snug">
+                      {selectedDetailItem.title}
+                    </h2>
+                    <p className="mt-2 text-xs font-semibold text-[#8c8a80]">
+                      By {selectedDetailItem.source} • {selectedDetailItem.timeLabel}
+                    </p>
                   </div>
+                ) : (
+                  <div className="p-5 border-b border-[#e4e0d5] bg-gradient-to-r from-[#faf8f5] to-white flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-500 via-rose-500 to-purple-600 p-0.5 shadow-xs">
+                        <div className="w-full h-full rounded-[14px] bg-white flex items-center justify-center font-black text-xs text-[#171711]">
+                          {selectedDetailItem.source.slice(0, 2).toUpperCase()}
+                        </div>
+                      </div>
+                      <div>
+                        <h4 className="text-xs font-bold text-[#171711]">{selectedDetailItem.source}</h4>
+                        <p className="text-[11px] text-[#8c8a80]">{selectedDetailItem.timeLabel}</p>
+                      </div>
+                    </div>
+                    <span className="px-3 py-1 rounded-full bg-[#f4f7ea] text-[#314125] text-xs font-bold">
+                      Social Post
+                    </span>
+                  </div>
+                )}
 
-                  {/* Category Pills (Video, Reading, Entertainment, Watch Later) */}
-                  {item.tags.length > 0 && (
-                    <div className="hidden sm:flex items-center gap-1.5 shrink-0">
-                      {item.tags.map((t, idx) => (
+                {/* Content Body */}
+                <div className="p-6 sm:p-7 space-y-4">
+                  {!(selectedDetailItem.categoryTab === 'articles' || selectedDetailItem.source === 'Bill Gates') && (
+                    <h3 className="text-base sm:text-lg font-black text-[#171711] tracking-tight leading-snug">
+                      {selectedDetailItem.title}
+                    </h3>
+                  )}
+
+                  <p className="text-xs sm:text-sm text-[#3b3a36] leading-relaxed">
+                    {selectedDetailItem.snippet}
+                  </p>
+
+                  {selectedDetailItem.tags.length > 0 && (
+                    <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                      {selectedDetailItem.tags.map((t, idx) => (
                         <span
                           key={idx}
-                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold ${
+                          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-bold ${
                             t.color === 'red'
                               ? 'bg-rose-50 text-rose-700 border border-rose-200'
                               : t.color === 'green'
@@ -1047,138 +1218,220 @@ export function InteractiveDashboardPreview({
                               : 'bg-slate-50 text-slate-700 border border-slate-200'
                           }`}
                         >
-                          {t.icon === 'video' && <Play className="w-2.5 h-2.5 fill-current" />}
-                          {t.icon === 'book' && <BookOpen className="w-2.5 h-2.5" />}
+                          {t.icon === 'video' && <Play className="w-3 h-3 fill-current" />}
+                          {t.icon === 'book' && <BookOpen className="w-3 h-3" />}
                           <span>{t.label}</span>
                         </span>
                       ))}
                     </div>
                   )}
 
-                  {/* Timestamp Pill (e.g. In Inbox for 15 hrs, 29 min, Oct 21) */}
-                  <div className="shrink-0 text-right w-28 sm:w-40">
-                    <span className="text-[11px] font-semibold text-[#8c8a80] px-2 py-0.5 rounded-full bg-[#f5f4ed]">
-                      {item.timeLabel}
-                    </span>
-                  </div>
-
-                  {/* Hover Actions Menu (Matching Image 2 hover row) */}
-                  {isHovered && (
-                    <div
-                      onClick={(e) => e.stopPropagation()}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 bg-white/95 backdrop-blur-xs px-2 py-1 rounded-xl border border-[#dedad0] shadow-sm z-20"
+                  {/* Source Link & Quick Action Buttons */}
+                  <div className="pt-4 border-t border-[#e4e0d5] flex flex-wrap items-center justify-between gap-3 text-xs">
+                    <a
+                      href={selectedDetailItem.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 text-xs font-bold text-[#0369a1] hover:underline truncate max-w-xs sm:max-w-md"
                     >
+                      <span>{selectedDetailItem.url}</span>
+                      <ExternalLink className="w-3.5 h-3.5 shrink-0" />
+                    </a>
+
+                    <div className="flex items-center gap-2">
                       <button
                         type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
+                        onClick={() => {
+                          showToast('Kept in library');
+                          setSelectedDetailItem(null);
+                        }}
+                        className="px-3.5 py-1.5 rounded-xl bg-[#e6edb0] hover:bg-[#d9e6a0] text-[#171711] text-xs font-bold transition-colors cursor-pointer"
+                      >
+                        Keep in Library
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
                           showToast('Archived item');
+                          setSelectedDetailItem(null);
                         }}
-                        title="Archive"
-                        className="p-1.5 rounded-lg hover:bg-[#faf8f5] text-[#6c6b63] hover:text-[#171711]"
+                        className="px-3.5 py-1.5 rounded-xl bg-[#171711] hover:bg-black text-white text-xs font-bold transition-colors cursor-pointer"
                       >
-                        <Check className="w-3.5 h-3.5" />
+                        Archive
                       </button>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          showToast('Added to collection');
-                        }}
-                        title="Collection"
-                        className="p-1.5 rounded-lg hover:bg-[#faf8f5] text-[#6c6b63] hover:text-[#171711]"
-                      >
-                        <FolderOpen className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={(e) => deleteItem(item.id, e)}
-                        title="Delete"
-                        className="p-1.5 rounded-lg hover:bg-red-50 text-[#8c8a80] hover:text-red-600"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSnoozeMenuForId(snoozeMenuForId === item.id ? null : item.id);
-                        }}
-                        title="Snooze"
-                        className="p-1.5 rounded-lg hover:bg-[#faf8f5] text-[#6c6b63] hover:text-[#171711]"
-                      >
-                        <Clock className="w-3.5 h-3.5" />
-                      </button>
-                      <a
-                        href={item.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={(e) => e.stopPropagation()}
-                        title="Open Source Link"
-                        className="p-1.5 rounded-lg hover:bg-[#faf8f5] text-[#6c6b63] hover:text-[#171711]"
-                      >
-                        <ExternalLink className="w-3.5 h-3.5" />
-                      </a>
                     </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-
-          {/* ================================================================= */}
-          {/* SLIDE-UP DETAIL PREVIEW (When an item is clicked) */}
-          {/* ================================================================= */}
-          {selectedDetailItem && (
-            <div className="shrink-0 p-4 border-t border-[#e5e4dc] bg-[#faf8f5] animate-in slide-in-from-bottom-2 duration-150">
-              <div className="flex items-start justify-between gap-4">
-                <div className="space-y-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-black uppercase tracking-wider text-[#6c6b63] px-2 py-0.5 rounded-full bg-white border border-[#dedad0]">
-                      {selectedDetailItem.source}
-                    </span>
-                    <span className="text-xs text-[#8c8a80] font-semibold">
-                      {selectedDetailItem.timeLabel}
-                    </span>
                   </div>
-                  <h4 className="text-sm font-black text-[#171711] tracking-tight">
-                    {selectedDetailItem.title}
-                  </h4>
-                  <p className="text-xs text-[#6c6b63] leading-relaxed max-w-2xl">
-                    {selectedDetailItem.snippet}
-                  </p>
                 </div>
+              </article>
 
-                <div className="flex items-center gap-2 shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      showToast('Item archived');
-                      setSelectedDetailItem(null);
-                    }}
-                    className="px-3 py-1.5 rounded-xl bg-[#171711] text-[#e6edb0] text-xs font-bold hover:bg-[#2e2d26] transition-colors flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <Check className="w-3.5 h-3.5" />
-                    <span>Archive</span>
-                  </button>
-                  <a
-                    href={selectedDetailItem.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="px-3 py-1.5 rounded-xl bg-white border border-[#dedad0] text-[#171711] text-xs font-bold hover:bg-[#faf8f5] transition-colors flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <span>Open</span>
-                    <ExternalLink className="w-3.5 h-3.5" />
-                  </a>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedDetailItem(null)}
-                    className="p-1.5 rounded-lg text-[#8c8a80] hover:text-[#171711] hover:bg-white transition-colors cursor-pointer"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
+              {/* Notes & Follow-ups Card */}
+              <div className="rounded-2xl border border-[#e4e0d5] bg-white p-4 sm:p-5 shadow-2xs space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-[#171711] uppercase tracking-wider flex items-center gap-1.5">
+                    <MessageSquare className="w-3.5 h-3.5 text-[#6c6b63]" />
+                    <span>Notes &amp; Follow-ups</span>
+                  </span>
+                  <span className="text-[11px] text-[#8c8a80]">Synced across devices</span>
+                </div>
+                <div className="p-3 rounded-xl bg-[#faf8f5] border border-[#e5e4dc] text-xs text-[#6c6b63] leading-relaxed">
+                  Quick save from mobile for later review. Synced to your local-first library and searchable with AI.
                 </div>
               </div>
+            </div>
+          ) : (
+            <div
+              data-lenis-prevent
+              className="flex-1 overflow-y-auto divide-y divide-[#eceae1] bg-white text-xs max-h-[500px]"
+            >
+              {filteredItems.map((item) => {
+                const isSelected = selectedIds.has(item.id);
+                const isHovered = hoveredRowId === item.id;
+
+                return (
+                  <div
+                    key={item.id}
+                    onMouseEnter={() => setHoveredRowId(item.id)}
+                    onMouseLeave={() => setHoveredRowId(null)}
+                    onClick={() => setSelectedDetailItem(item)}
+                    className={`group relative flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-3 sm:py-3.5 transition-all duration-150 cursor-pointer ${
+                      isSelected ? 'bg-[#f4f7ea]' : 'hover:bg-[#faf8f5]'
+                    }`}
+                  >
+                    {/* Select Checkbox */}
+                    <div className="shrink-0 flex items-center" onClick={(e) => toggleSelectRow(item.id, e)}>
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => {}}
+                        className="w-4 h-4 rounded border-[#dedad0] accent-[#171711] cursor-pointer"
+                      />
+                    </div>
+
+                    {/* Star Toggle */}
+                    <button
+                      type="button"
+                      onClick={(e) => toggleStar(item.id, e)}
+                      className="shrink-0 p-0.5 text-[#8c8a80] hover:text-amber-500 transition-colors"
+                    >
+                      <Star
+                        className={`w-4 h-4 ${
+                          item.starred ? 'fill-amber-400 text-amber-500' : 'hover:fill-amber-100'
+                        }`}
+                      />
+                    </button>
+
+                    {/* Sender / Source domain (e.g. disneyplus.com, facebook.com, Instagram) */}
+                    <div className="w-24 sm:w-36 shrink-0 truncate">
+                      <span className="font-bold text-[#171711] truncate block text-[13px]">
+                        {item.source}
+                      </span>
+                    </div>
+
+                    {/* Title & snippet */}
+                    <div className="flex-1 min-w-0 flex items-center gap-2">
+                      <span className="font-bold text-[#171711] truncate text-[13px]">
+                        {item.title}
+                      </span>
+                      {item.snippet && (
+                        <span className="text-[#8c8a80] truncate hidden lg:inline text-xs">
+                          — {item.snippet}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Category Pills (Video, Reading, Entertainment, Watch Later) */}
+                    {item.tags.length > 0 && (
+                      <div className="hidden sm:flex items-center gap-1.5 shrink-0">
+                        {item.tags.map((t, idx) => (
+                          <span
+                            key={idx}
+                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold ${
+                              t.color === 'red'
+                                ? 'bg-rose-50 text-rose-700 border border-rose-200'
+                                : t.color === 'green'
+                                ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                                : t.color === 'amber'
+                                ? 'bg-amber-50 text-amber-800 border border-amber-200'
+                                : 'bg-slate-50 text-slate-700 border border-slate-200'
+                            }`}
+                          >
+                            {t.icon === 'video' && <Play className="w-2.5 h-2.5 fill-current" />}
+                            {t.icon === 'book' && <BookOpen className="w-2.5 h-2.5" />}
+                            <span>{t.label}</span>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Timestamp Pill (e.g. In Inbox for 15 hrs, 29 min, Oct 21) */}
+                    <div className="shrink-0 text-right w-28 sm:w-40">
+                      <span className="text-[11px] font-semibold text-[#8c8a80] px-2 py-0.5 rounded-full bg-[#f5f4ed]">
+                        {item.timeLabel}
+                      </span>
+                    </div>
+
+                    {/* Hover Actions Menu (Matching Image 2 hover row) */}
+                    {isHovered && (
+                      <div
+                        onClick={(e) => e.stopPropagation()}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 bg-white/95 backdrop-blur-xs px-2 py-1 rounded-xl border border-[#dedad0] shadow-sm z-20"
+                      >
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            showToast('Archived item');
+                          }}
+                          title="Archive"
+                          className="p-1.5 rounded-lg hover:bg-[#faf8f5] text-[#6c6b63] hover:text-[#171711]"
+                        >
+                          <Check className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            showToast('Added to collection');
+                          }}
+                          title="Collection"
+                          className="p-1.5 rounded-lg hover:bg-[#faf8f5] text-[#6c6b63] hover:text-[#171711]"
+                        >
+                          <FolderOpen className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => deleteItem(item.id, e)}
+                          title="Delete"
+                          className="p-1.5 rounded-lg hover:bg-red-50 text-[#8c8a80] hover:text-red-600"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSnoozeMenuForId(snoozeMenuForId === item.id ? null : item.id);
+                          }}
+                          title="Snooze"
+                          className="p-1.5 rounded-lg hover:bg-[#faf8f5] text-[#6c6b63] hover:text-[#171711]"
+                        >
+                          <Clock className="w-3.5 h-3.5" />
+                        </button>
+                        <a
+                          href={item.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          title="Open Source Link"
+                          className="p-1.5 rounded-lg hover:bg-[#faf8f5] text-[#6c6b63] hover:text-[#171711]"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" />
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
 
