@@ -455,12 +455,12 @@ export function InteractiveDashboardPreview({
     <section
       id={id}
       aria-label="Interactive LaterBox dashboard demo"
-      className={`relative min-w-0 overflow-hidden rounded-[24px] sm:rounded-[32px] border border-[#dedfd4] bg-[#faf8f5] text-left text-[#192018] shadow-[0_25px_80px_rgba(24,27,20,0.14)] ${className}`}
+      className={`relative min-w-0 overflow-hidden rounded-[24px] sm:rounded-[32px] border border-[#dedfd4] bg-[#faf8f5] text-left text-[#192018] shadow-[0_25px_80px_rgba(24,27,20,0.14)] flex flex-col h-[680px] sm:h-[720px] lg:h-[760px] ${className}`}
     >
       {/* ===================================================================== */}
       {/* TOP BAR (LaterBox Monogram Logo + Title, Center Omnibar, Right Controls) */}
       {/* ===================================================================== */}
-      <div className="flex min-h-[64px] sm:min-h-[72px] items-center justify-between gap-3 px-4 sm:px-6 py-3 select-none">
+      <div className="shrink-0 flex min-h-[60px] sm:min-h-[68px] items-center justify-between gap-3 px-4 sm:px-6 py-2.5 select-none">
         {/* Left: Cube Monogram + Active Page Title */}
         <div className="flex items-center gap-3 shrink-0">
           <div className="relative flex h-10 w-10 sm:h-11 sm:w-11 items-center justify-center overflow-hidden rounded-xl sm:rounded-2xl border border-[#cbd79c] bg-[#e6edb0] shadow-2xs">
@@ -534,13 +534,13 @@ export function InteractiveDashboardPreview({
       {/* ===================================================================== */}
       {/* MAIN WORKSPACE: APP SIDEBAR RAIL + INBOX TABLE CARD */}
       {/* ===================================================================== */}
-      <div className="flex flex-col md:flex-row px-3 sm:px-5 pb-3 sm:pb-5 gap-3 sm:gap-4 items-stretch min-h-[580px] sm:min-h-[640px]">
+      <div className="flex-1 min-h-0 flex flex-col md:flex-row px-3 sm:px-5 pb-3 sm:pb-5 gap-3 sm:gap-4 items-stretch overflow-hidden">
         {/* =================================================================== */}
         {/* EXACT REAL DASHBOARD SIDEBAR RAIL (Matching Image 2 & AppSidebar) */}
         {/* =================================================================== */}
         <aside
           aria-label="Dashboard sidebar"
-          className="w-full md:w-[72px] lg:w-[80px] shrink-0 flex md:flex-col items-center justify-between md:justify-start gap-1.5 py-1 md:py-0 select-none"
+          className="w-full md:w-[72px] lg:w-[80px] shrink-0 flex md:flex-col items-center justify-between md:justify-start gap-1.5 py-1 md:py-0 select-none overflow-hidden h-full"
         >
           {/* Black Plus Save Button (matching Image 2) */}
           <button
@@ -555,7 +555,7 @@ export function InteractiveDashboardPreview({
           {/* Navigation Rails Icons */}
           <nav
             aria-label="Navigation rail"
-            className="flex md:flex-col items-center gap-1.5 my-1 md:my-3 overflow-x-auto scrollbar-none w-full"
+            className="flex md:flex-col items-center gap-1.5 my-1 md:my-2 overflow-x-auto md:overflow-x-hidden md:overflow-y-auto scrollbar-none [scrollbar-width:none] [&::-webkit-scrollbar]:hidden w-full flex-1 min-h-0"
           >
             {/* 1. Inbox (Active) */}
             <button
