@@ -10,8 +10,11 @@ export function SmoothScrollProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    // Honor reduced-motion accessibility preference
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    // Honor reduced-motion accessibility preference or touch devices
+    // Touch devices (iOS Safari / Android) rely on native 120Hz momentum scrolling;
+    // running Lenis on touch introduces tap interception, gesture conflicts, and lag.
+    const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    if (isTouch || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
       return;
     }
 
