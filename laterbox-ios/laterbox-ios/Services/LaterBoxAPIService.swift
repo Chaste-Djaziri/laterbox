@@ -77,6 +77,18 @@ public nonisolated struct AccountBillingEntitlement: Decodable, Sendable {
     }
 }
 
+/// Authentication providers reported by the signed-in Supabase account.
+/// This is server state; never infer identity connections from an email domain.
+public nonisolated struct AccountConnectedIdentities: Sendable {
+    public let email: String?
+    public let isEmailVerified: Bool
+    public let providers: Set<String>
+
+    public func isLinked(_ provider: String) -> Bool {
+        providers.contains(provider.lowercased())
+    }
+}
+
 public actor LaterBoxAPIService {
     public static let shared = LaterBoxAPIService()
 
@@ -332,6 +344,49 @@ public actor LaterBoxAPIService {
         }
         let refreshToken = json["refresh_token"] as? String
         return (accessToken, refreshToken, userId)
+    }
+
+    // MARK: - Linked Account Identities
+    public func fetchConnectedIdentities(token: String, expectedUserID: String) async throws -> AccountConnectedIdentities {
+        guard let url = URL(string: "\(supabaseUrl)/auth/v1/user") else {
+            throw URLError(.badURL)
+        }
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        for (key, value) in headers(token: token) {
+            request.setValue(value, forHTTPHeaderField: key)
+        }
+        request.setValue("no-store", forHTTPHeaderField: "Cache-Control")
+        let (data, response) = try await session.data(for: request)
+        guard let http = response as? HTTPURLResponse else { throw URLError(.badServerResponse) }
+        guard http.statusCode == 200 else {
+            if http.statusCode == 401 { throw URLError(.userAuthenticationRequired) }
+            throw URLError(.badServerResponse)
+        }
+        guard let user = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let userID = user["id"] as? String else {
+            throw URLError(.cannotParseResponse)
+        }
+        // Never show another account's linked services with a stale token.
+        guard userID.caseInsensitiveCompare(expectedUserID) == .orderedSame else {
+            throw URLError(.userAuthenticationRequired)
+        }
+        let identityRows = user["identities"] as? [[String: Any]] ?? []
+        let identityProviders = identityRows.compactMap {
+            ($0["provider"] as? String)?.lowercased()
+        }
+        let metadata = user["app_metadata"] as? [String: Any] ?? [:]
+        let metadataProviders = (metadata["providers"] as? [String] ?? []).map { $0.lowercased() }
+        // Supabase users may expose one or both arrays, depending on backend version.
+        let providers = Set(identityProviders + metadataProviders)
+        let email = user["email"] as? String
+        let isEmailVerified = (user["email_confirmed_at"] as? String)?.isEmpty == false
+            || (user["confirmed_at"] as? String)?.isEmpty == false
+        return AccountConnectedIdentities(
+            email: email,
+            isEmailVerified: isEmailVerified,
+            providers: providers
+        )
     }
 
     // MARK: - Auth: Native Sign in with Apple
