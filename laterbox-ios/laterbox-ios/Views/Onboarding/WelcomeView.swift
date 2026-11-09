@@ -67,6 +67,7 @@ struct WelcomeView: View {
                                 )
                                 .shadow(color: Color.black.opacity(0.3), radius: 6, x: 0, y: 2)
                         }
+                        .accessibilityIdentifier("welcome.signIn")
                     }
                     .padding(.horizontal, 24)
                     .padding(.top, 12)

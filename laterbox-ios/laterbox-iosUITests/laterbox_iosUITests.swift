@@ -14,6 +14,36 @@ final class laterbox_iosUITests: XCTestCase {
     }
 
     @MainActor
+    func testWelcomeSignInOpensAndReturnsWithoutFreezing() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["-lb_guest_mode", "NO", "-lb_user_email", ""]
+        app.launch()
+
+        let signIn = app.buttons["welcome.signIn"]
+        XCTAssertTrue(signIn.waitForExistence(timeout: 15), "Welcome sign-in button should appear")
+        signIn.tap()
+
+        let email = app.textFields["auth.emailField"]
+        XCTAssertTrue(email.waitForExistence(timeout: 8),
+                      "Authentication should open without an appearance or navigation loop")
+        XCTAssertTrue(email.isHittable)
+        email.tap()
+        email.typeText("test@example.com")
+        XCTAssertEqual(email.value as? String, "test@example.com",
+                       "Authentication should remain interactive after navigating")
+
+        let close = app.buttons["Close sign in"]
+        XCTAssertTrue(close.waitForExistence(timeout: 5))
+        close.tap()
+        XCTAssertTrue(signIn.waitForExistence(timeout: 8),
+                      "Closing auth should return to the responsive welcome screen")
+
+        // Re-enter to catch an appearance-loop triggered by repeated navigation.
+        signIn.tap()
+        XCTAssertTrue(app.textFields["auth.emailField"].waitForExistence(timeout: 8))
+    }
+
+    @MainActor
     func testWelcomeOffersPurchaseAndRestoreWithoutRegistration() throws {
         let app = XCUIApplication()
         app.launchArguments = ["-lb_guest_mode", "NO", "-lb_user_email", ""]

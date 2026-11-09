@@ -234,6 +234,7 @@ struct AuthView: View {
                                     .autocorrectionDisabled()
                                     .submitLabel(.continue)
                                     .onSubmit(submitEmail)
+                                    .accessibilityIdentifier("auth.emailField")
                                 if !email.isEmpty {
                                     Button { email = "" } label: {
                                         Image(systemName: "xmark.circle.fill")
@@ -509,15 +510,9 @@ struct AuthView: View {
             SFSafariViewWrapper(url: document.url, entersReaderIfAvailable: false)
                 .ignoresSafeArea()
         }
-        .onAppear {
-            StatusBarStyleModifier.apply(colorScheme == .dark ? .light : .dark)
-        }
-        .onChange(of: colorScheme) { _, scheme in
-            StatusBarStyleModifier.apply(scheme == .dark ? .light : .dark)
-        }
-        .onDisappear {
-            StatusBarStyleModifier.apply(coordinator.hasAccess ? .light : .dark)
-        }
+        // Follow the system color scheme. Do not override UIWindow appearance
+        // from colorScheme callbacks: it causes a light/dark feedback loop
+        // during navigation and can freeze the UI.
     }
 
     private func fieldLabel(_ title: String) -> some View {

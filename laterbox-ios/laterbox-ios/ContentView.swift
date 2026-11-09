@@ -22,14 +22,6 @@ struct ContentView: View {
     @State private var syncReportMessage = ""
     @State private var showingLaunchOverlay = true
 
-    private var activeColorScheme: ColorScheme? {
-        if !coordinator.hasAccess || coordinator.showingAuthSheet {
-            return .dark
-        }
-        // Do not force Light Mode for the main app: Inbox follows iOS appearance.
-        return nil
-    }
-
     var body: some View {
         ZStack {
             if !coordinator.hasAccess {
@@ -41,7 +33,6 @@ struct ContentView: View {
                         NavigationStack {
                             AuthView()
                         }
-                        .whiteStatusBar()
                     }
                     .sheet(isPresented: $coordinator.showingPlansSheet) {
                         PlansView()
@@ -88,14 +79,8 @@ struct ContentView: View {
             }
         }
         .animation(.spring(response: 0.45, dampingFraction: 0.85), value: coordinator.hasAccess)
-        // Render immediately; welcome and authentication are the only forced-dark experiences.
-        .preferredColorScheme(activeColorScheme)
-        .onChange(of: activeColorScheme) { _, _ in
-            applyCurrentInterfaceStyle()
-        }
-        .onAppear {
-            applyCurrentInterfaceStyle()
-        }
+        // All screens, including authentication, follow the device theme.
+        // Avoid global UIWindow appearance mutations while navigation is active.
         .task {
             // Startup sync and local imports continue behind the brief logo assembly.
             // The splash does not wait on network or entitlement requests.
@@ -205,11 +190,6 @@ struct ContentView: View {
             }
         }
     }
-    private func applyCurrentInterfaceStyle() {
-        let style: UIUserInterfaceStyle = activeColorScheme == .dark ? .dark : .unspecified
-        StatusBarStyleModifier.apply(style)
-    }
-
     private func openPendingQuickSaveControl() {
         guard coordinator.hasAccess,
               let defaults = UserDefaults(suiteName: "group.pro.micorp.laterbox"),
