@@ -5,22 +5,52 @@ import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { ArrowRight, ChevronDown, Menu, X } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import {
+  ArrowRight,
+  BookOpen,
+  ChevronDown,
+  ChevronRight,
+  Compass,
+  CreditCard,
+  Download,
+  HelpCircle,
+  Info,
+  Menu,
+  Puzzle,
+  Sparkles,
+  X,
+} from 'lucide-react';
 import { APP_ORIGIN } from '@/lib/auth/config';
 import { useAuth } from '@/lib/store/AuthContext';
 
-const primaryLinks = [
-  { href: '/features', label: 'Features' },
-  { href: '/#how-it-works', label: 'How it works' },
-  { href: '/browser-extension', label: 'Browser extension' },
-  { href: '/pricing', label: 'Pricing' },
-] as const;
+interface PrimaryLinkItem {
+  href: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  badge?: string;
+}
 
-const resourceLinks = [
-  { href: '/about', label: 'About LaterBox', detail: 'The thinking behind the product' },
-  { href: '/download', label: 'Apps & downloads', detail: 'Bring LaterBox to your devices' },
-  { href: '/guide', label: 'Getting started', detail: 'Your first save, step by step' },
-] as const;
+interface ResourceLinkItem {
+  href: string;
+  label: string;
+  detail: string;
+  icon: React.ComponentType<{ className?: string }>;
+}
+
+const primaryLinks: readonly PrimaryLinkItem[] = [
+  { href: '/features', label: 'Features', icon: Sparkles },
+  { href: '/#how-it-works', label: 'How it works', icon: Compass },
+  { href: '/browser-extension', label: 'Browser extension', icon: Puzzle, badge: 'Chrome' },
+  { href: '/pricing', label: 'Pricing', icon: CreditCard },
+];
+
+const resourceLinks: readonly ResourceLinkItem[] = [
+  { href: '/download', label: 'Apps & downloads', detail: 'iOS, macOS, Windows & Android', icon: Download },
+  { href: '/docs', label: 'Documentation', detail: 'Guides, API reference, & architecture', icon: BookOpen },
+  { href: '/guide', label: 'Getting started', detail: 'Your first save, step by step', icon: HelpCircle },
+  { href: '/about', label: 'About LaterBox', detail: 'The thinking behind the product', icon: Info },
+];
 
 export function Header() {
   const pathname = usePathname();
@@ -28,11 +58,16 @@ export function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [resourcesOpen, setResourcesOpen] = useState(false);
   const [hasScrolled, setHasScrolled] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const resourcesRef = useRef<HTMLDivElement>(null);
   const isSignedIn = Boolean(user || isAuthenticated);
   const dashboardHref = `${APP_ORIGIN}/inbox`;
   const primaryActionHref = isSignedIn ? dashboardHref : `${APP_ORIGIN}/signup`;
   const primaryActionLabel = isSignedIn ? 'Open app' : 'Get started free';
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     const updateScrollState = () => setHasScrolled(window.scrollY > 8);
@@ -64,6 +99,17 @@ export function Header() {
       document.removeEventListener('pointerdown', closeResourcesOutside);
     };
   }, [mobileOpen, resourcesOpen]);
+
+  // Lock body scroll when mobile sidebar is open
+  useEffect(() => {
+    if (mobileOpen) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [mobileOpen]);
 
   const activeLink = (href: string) => href !== '/#how-it-works' && pathname === href;
   const closeMobile = () => setMobileOpen(false);
@@ -145,41 +191,193 @@ export function Header() {
             </Link>
             <button
               type="button"
-              aria-label={mobileOpen ? 'Close navigation' : 'Open navigation'}
+              aria-label={mobileOpen ? 'Close navigation sidebar' : 'Open navigation sidebar'}
               aria-expanded={mobileOpen}
-              aria-controls="laterbox-mobile-navigation"
+              aria-controls="laterbox-mobile-sidebar"
               onClick={() => setMobileOpen(value => !value)}
-              className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-[#e0e4d8] bg-white text-[#181b14] transition-colors hover:bg-[#e6edb0] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#678144] lg:hidden"
+              className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-[#e0e4d8] bg-white text-[#181b14] transition-colors hover:bg-[#e6edb0] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#678144] lg:hidden cursor-pointer"
             >
               {mobileOpen ? <X className="h-5 w-5" aria-hidden="true" /> : <Menu className="h-5 w-5" aria-hidden="true" />}
             </button>
           </div>
         </div>
-
-        {mobileOpen && (
-          <nav id="laterbox-mobile-navigation" aria-label="Mobile navigation" className="border-t border-[#e6e8df] bg-[#f8f8f3] px-4 pb-5 pt-3 shadow-[0_16px_25px_rgba(24,27,20,0.06)] sm:px-6 lg:hidden">
-            <div className="mx-auto max-w-[1240px]">
-              <p className="px-3 pb-2 pt-2 text-[10px] font-black uppercase tracking-[0.18em] text-[#92998a]">Discover</p>
-              {[...primaryLinks, ...resourceLinks].map(link => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  onClick={closeMobile}
-                  aria-current={activeLink(link.href) ? 'page' : undefined}
-                  className={`flex min-h-12 items-center justify-between rounded-xl px-3.5 text-[15px] font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-[#678144] ${
-                    activeLink(link.href) ? 'bg-[#e6edb0] text-[#1b2018]' : 'text-[#485044] hover:bg-white'
-                  }`}
-                >
-                  {link.label}<ArrowRight className="h-4 w-4 text-[#959d8b]" aria-hidden="true" />
-                </Link>
-              ))}
-              {!isSignedIn && !loading && (
-                <Link href={`${APP_ORIGIN}/login`} onClick={closeMobile} className="mt-3 flex min-h-12 items-center justify-center rounded-xl border border-[#dfe5d5] bg-white px-4 text-sm font-bold text-[#1b2018] sm:hidden">Log in to your account</Link>
-              )}
-            </div>
-          </nav>
-        )}
       </header>
+
+      {/* Proper Mobile Slide-over Sidebar Drawer */}
+      {mounted && mobileOpen && createPortal(
+        <div className="fixed inset-0 z-[100] lg:hidden">
+          {/* Keyframe animation definition for smooth hardware-accelerated drawer slide */}
+          <style>{`
+            @keyframes laterboxSlideInRight {
+              from { transform: translateX(100%); }
+              to { transform: translateX(0); }
+            }
+            @keyframes laterboxFadeIn {
+              from { opacity: 0; }
+              to { opacity: 1; }
+            }
+          `}</style>
+
+          {/* Backdrop Overlay */}
+          <div
+            className="fixed inset-0 bg-black/50 backdrop-blur-xs"
+            style={{ animation: 'laterboxFadeIn 0.2s ease-out forwards' }}
+            onClick={closeMobile}
+            aria-hidden="true"
+          />
+
+          {/* Sidebar Drawer Panel */}
+          <aside
+            id="laterbox-mobile-sidebar"
+            aria-label="Mobile navigation"
+            style={{ animation: 'laterboxSlideInRight 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards' }}
+            className="fixed inset-y-0 right-0 z-10 w-[310px] sm:w-[350px] max-w-[85vw] bg-[#fbfaf6] border-l border-[#e4e0d5] shadow-[-12px_0_36px_rgba(0,0,0,0.18)] flex flex-col justify-between overflow-hidden"
+          >
+            {/* Sidebar Top Header */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-[#e4e0d5] bg-[#f8f8f3] shrink-0">
+              <Link
+                href="/"
+                onClick={closeMobile}
+                className="group inline-flex shrink-0 items-center gap-2.5"
+                aria-label="LaterBox, go to homepage"
+              >
+                <span className="relative flex h-9 w-9 items-center justify-center overflow-hidden rounded-[10px] border border-[#cbd79c] bg-[#e6edb0] shadow-2xs transition-transform duration-200 group-hover:-rotate-3">
+                  <Image src="/branding/laterbox-icon.png" alt="" fill priority sizes="36px" className="object-contain p-1" />
+                </span>
+                <span className="text-xl font-black tracking-[-0.06em] text-[#181b14]">
+                  laterbox<span className="text-[#84934f]">.</span>
+                </span>
+              </Link>
+              <button
+                type="button"
+                onClick={closeMobile}
+                aria-label="Close navigation sidebar"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-[#e0e4d8] bg-white text-[#181b14] hover:bg-[#e6edb0] active:scale-95 transition-all cursor-pointer"
+              >
+                <X className="h-5 w-5" aria-hidden="true" />
+              </button>
+            </div>
+
+            {/* Scrollable Navigation Body */}
+            <div className="flex-1 overflow-y-auto px-4 py-5 space-y-6">
+              {/* Product Section */}
+              <div className="space-y-1.5">
+                <p className="px-3 text-[10px] font-black uppercase tracking-[0.18em] text-[#92998a]">
+                  Product
+                </p>
+                <div className="space-y-0.5">
+                  {primaryLinks.map((link) => {
+                    const Icon = link.icon;
+                    const isActive = activeLink(link.href);
+                    return (
+                      <Link
+                        key={link.href}
+                        href={link.href}
+                        onClick={closeMobile}
+                        aria-current={isActive ? 'page' : undefined}
+                        className={`flex items-center justify-between rounded-xl px-3.5 py-2.5 text-sm font-bold transition-colors ${
+                          isActive
+                            ? 'bg-[#e6edb0] text-[#181b14] shadow-2xs'
+                            : 'text-[#383d34] hover:bg-white hover:text-[#181b14]'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <Icon className={`w-4 h-4 ${isActive ? 'text-[#181b14]' : 'text-[#7d8375]'}`} />
+                          <span>{link.label}</span>
+                        </div>
+                        {link.badge && (
+                          <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-white border border-[#d8dccf] text-[#606458]">
+                            {link.badge}
+                          </span>
+                        )}
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Apps & Resources Section */}
+              <div className="space-y-1.5">
+                <p className="px-3 text-[10px] font-black uppercase tracking-[0.18em] text-[#92998a]">
+                  Apps &amp; Resources
+                </p>
+                <div className="space-y-1">
+                  {resourceLinks.map((link) => {
+                    const Icon = link.icon;
+                    const isActive = activeLink(link.href);
+                    return (
+                      <Link
+                        key={link.href}
+                        href={link.href}
+                        onClick={closeMobile}
+                        aria-current={isActive ? 'page' : undefined}
+                        className={`group flex items-start justify-between rounded-xl px-3.5 py-2.5 transition-colors ${
+                          isActive
+                            ? 'bg-[#e6edb0] text-[#181b14] shadow-2xs'
+                            : 'text-[#383d34] hover:bg-white hover:text-[#181b14]'
+                        }`}
+                      >
+                        <div className="flex items-start gap-3">
+                          <Icon className={`w-4 h-4 mt-0.5 shrink-0 ${isActive ? 'text-[#181b14]' : 'text-[#7d8375]'}`} />
+                          <div>
+                            <span className="block font-bold text-sm leading-tight text-[#1b2018]">{link.label}</span>
+                            <span className="block text-[11px] font-normal text-[#7d8375] mt-0.5 leading-snug">{link.detail}</span>
+                          </div>
+                        </div>
+                        <ChevronRight className="w-4 h-4 text-[#a3aba0] shrink-0 mt-1 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* Bottom Account & CTA Footer */}
+            <div className="p-4 border-t border-[#e4e0d5] bg-[#f8f8f3] shrink-0 space-y-2.5">
+              {isSignedIn ? (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2.5 px-3 py-2 rounded-xl bg-white border border-[#e0e4d8] text-xs">
+                    <div className="w-6 h-6 rounded-full bg-[#e6edb0] flex items-center justify-center font-bold text-[#181b14] text-[11px] shrink-0">
+                      {user?.email?.slice(0, 2).toUpperCase() || 'LB'}
+                    </div>
+                    <span className="truncate text-[#505649] font-medium">{user?.email || 'Logged In'}</span>
+                  </div>
+                  <Link
+                    href={dashboardHref}
+                    onClick={closeMobile}
+                    className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-[#181b14] text-white font-extrabold text-sm shadow-sm hover:bg-[#30392a] active:scale-[0.99] transition-all"
+                  >
+                    <span>Open LaterBox</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </Link>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <Link
+                    href={primaryActionHref}
+                    onClick={closeMobile}
+                    className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-[#181b14] text-white font-extrabold text-sm shadow-sm hover:bg-[#30392a] active:scale-[0.99] transition-all"
+                  >
+                    <span>{loading ? 'Open LaterBox' : 'Get started free'}</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </Link>
+                  <Link
+                    href={`${APP_ORIGIN}/login`}
+                    onClick={closeMobile}
+                    className="w-full flex items-center justify-center py-2.5 rounded-xl border border-[#dfe5d5] bg-white text-xs font-bold text-[#181b14] hover:bg-[#f4f7eb] active:scale-[0.99] transition-all"
+                  >
+                    Log in to your account
+                  </Link>
+                </div>
+              )}
+              <p className="text-center text-[10px] text-[#939a87] font-medium pt-0.5">
+                Offline-first • Encrypted • Multi-platform
+              </p>
+            </div>
+          </aside>
+        </div>,
+        document.body
+      )}
     </>
   );
 }
