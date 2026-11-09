@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[Web / Marketing mobile hero streamlining]** Streamline the mobile hero presentation by hiding redundant CTA buttons (`Launch Web App Free`, `Get for iOS & Downloads`, `Try Guest Sandbox`) on small screens, adapting hero headings and subheadings to punchy, short sentences, and directing immediate focus to the full mobile app preview and download action.
+
 - **[Web / Marketing mobile hero full height preview]** Expand the mobile iOS screenshot container to display the full image height naturally without truncation or gradient overlays, showcasing the complete inbox view and bottom navigation bar within a phone frame.
 
 - **[Web / Marketing mobile hero app preview]** On mobile screens, replace the desktop interactive table preview with a native iOS app screenshot framed in a phone container with an elegant bottom fade-out and download link, preserving the full desktop interactive sandbox on desktop (`md:` and up).
