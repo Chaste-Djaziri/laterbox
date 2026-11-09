@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[Web / Marketing problem section animation fix]** Fix invisible problem cards and headings in the "We all have a place called LATER" section by migrating from `gsap.from` to `fromTo` with `clearProps: 'all'` and `once: true`. Prevents elements from sticking at `opacity: 0` during hydration/scroll, and preserves CSS rotation tilt transforms on the behavioral quote cards.
+
 - **[Web / Mobile sidebar drawer reliability]** Fix mobile sidebar opener failing on physical touch devices by transitioning from dynamic portal/style injection to native CSS `translate-x` transitions with pointer-events protection. Disable Lenis touch hijacking on mobile devices to preserve native touch scrolling and eliminate tap delays across both marketing and documentation sidebars.
 
 - **[Web / Marketing App Store top embed]** Embed a dedicated App Store component at the top of the web highlighting LaterBox: Save For Later on iOS (ID 6804139119) with app icon, rating badge, metadata, and direct "GET" / "View on App Store" action, along with Apple iTunes Smart App Banner meta tags in the root document head.
