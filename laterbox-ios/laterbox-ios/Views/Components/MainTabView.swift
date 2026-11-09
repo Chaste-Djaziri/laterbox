@@ -5,8 +5,8 @@ import SwiftUI
 enum MainTab: String, CaseIterable, Identifiable {
     case inbox = "Inbox"
     case today = "Today"
-    case kept = "Kept"
     case library = "Library"
+    case earn = "Earn"
     case settings = "Settings"
 
     var id: String { rawValue }
@@ -18,8 +18,8 @@ enum MainTab: String, CaseIterable, Identifiable {
         switch self {
         case .inbox: "tray.full"
         case .today: "calendar"
-        case .kept: "checkmark.circle"
         case .library: "square.stack"
+        case .earn: "dollarsign.circle"
         case .settings: "gearshape"
         }
     }
@@ -40,13 +40,13 @@ struct MainTabView: View {
                 .tabItem { Label(MainTab.today.rawValue, systemImage: MainTab.today.symbol) }
                 .tag(MainTab.today)
 
-            InboxView(initialMailbox: .kept, isTabRoot: true)
-                .tabItem { Label(MainTab.kept.rawValue, systemImage: MainTab.kept.symbol) }
-                .tag(MainTab.kept)
-
             LibraryView()
                 .tabItem { Label(MainTab.library.rawValue, systemImage: MainTab.library.symbol) }
                 .tag(MainTab.library)
+
+            EarnView()
+                .tabItem { Label(MainTab.earn.rawValue, systemImage: MainTab.earn.symbol) }
+                .tag(MainTab.earn)
 
             NavigationStack {
                 SettingsView(isTabRoot: true)

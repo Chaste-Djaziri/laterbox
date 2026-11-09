@@ -1,0 +1,21 @@
+# .github/workflows/laterbox-earn-settle.yml
+name: LaterBox Earn settlement
+on:
+  schedule:
+    - cron: '19 6 * * *'
+  workflow_dispatch:
+
+jobs:
+  settle:
+    if: vars.EARN_AUTOMATION_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Reconcile pending commissions and eligible payouts
+        env:
+          EARN_SETTLE_URL: ${{ vars.EARN_SETTLE_URL }}
+          EARN_CRON_SECRET: ${{ secrets.EARN_CRON_SECRET }}
+        run: |
+          test -n "$EARN_SETTLE_URL" && test -n "$EARN_CRON_SECRET"
+          curl --fail --silent --show-error --retry 2 --max-time 60 \
+            -X POST "$EARN_SETTLE_URL" \
+            -H "x-earn-cron-secret: $EARN_CRON_SECRET"

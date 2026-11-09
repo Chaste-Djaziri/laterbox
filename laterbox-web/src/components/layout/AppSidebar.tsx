@@ -9,7 +9,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import {
   Archive, CalendarClock, CalendarDays, Check, CheckCircle2, Clock, Compass,
   Crown, Download, FolderOpen, HelpCircle, Inbox, Minus, Pencil, Plus,
-  Settings, Star, Trash2, X,
+  Settings, Star, Trash2, X, Coins,
 } from 'lucide-react';
 import { useItems } from '@/lib/store/ItemContext';
 import { useBilling } from '@/lib/store/BillingContext';
@@ -140,6 +140,7 @@ export function AppSidebar({ onOpenCapture }: AppSidebarProps) {
   const systemLinks = [
     { href: '/tutorial', label: 'Guide', icon: Compass },
     { href: '/downloads', label: 'Apps', icon: Download },
+    { href: '/earn', label: 'Earn', icon: Coins },
     { href: '/help', label: 'Help & FAQ', icon: HelpCircle },
     { href: '/settings', label: 'Settings', icon: Settings },
   ];

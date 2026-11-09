@@ -1,4 +1,5 @@
 import { getBillingAdminClient } from './server';
+import { recordVerifiedWhopPayment, reverseRefundedCommission } from '@/lib/earn/attribution';
 import { storagePlanForWhopId, WHOP_STORAGE_PLANS, whopServer } from './whop';
 
 export type WhopWebhook = {
@@ -99,16 +100,26 @@ async function paymentSucceeded(paymentId: string): Promise<void> {
     intentId = matched?.id ?? null;
   }
   let owner: string | null = null;
+  let affiliateUserId: string | null = null;
 
   if (intentId) {
     const { data: intent, error } = await admin.from('billing_checkout_intents')
-      .select('user_id,plan_id,status')
+      .select('user_id,plan_id,status,affiliate_user_id')
       .eq('id', intentId).eq('provider', 'whop').maybeSingle();
-    if (error) throw error;
-    if (!intent || intent.plan_id !== membership.plan_id || (payment.plan_id && payment.plan_id !== intent.plan_id)) {
+    // Billing must not be blocked if the opt-in Earn migration is still pending.
+    let resolvedIntent = intent;
+    if (error && (error.code === '42703' || error.code === 'PGRST204' || error.code === 'PGRST205')) {
+      const fallback = await admin.from('billing_checkout_intents')
+        .select('user_id,plan_id,status')
+        .eq('id', intentId).eq('provider', 'whop').maybeSingle();
+      if (fallback.error) throw fallback.error;
+      resolvedIntent = fallback.data ? { ...fallback.data, affiliate_user_id: null } : null;
+    } else if (error) throw error;
+    if (!resolvedIntent || resolvedIntent.plan_id !== membership.plan_id || (payment.plan_id && payment.plan_id !== resolvedIntent.plan_id)) {
       throw new Error('Whop checkout intent or plan mismatch.');
     }
-    owner = intent.user_id;
+    owner = resolvedIntent.user_id;
+    affiliateUserId = resolvedIntent.affiliate_user_id ?? null;
   }
   if (!owner) {
     const { data: linked, error } = await admin.from('billing_subscriptions')
@@ -120,8 +131,22 @@ async function paymentSucceeded(paymentId: string): Promise<void> {
       // Whop can retry; support can resolve truly orphaned purchases.
       throw new Error('Paid Whop membership is missing a trusted LaterBox checkout intent.');
     }
+    owner = linked.user_id;
   }
   await updateMembership(membership, owner);
+  // Store every verified successful receipt for affiliate tenure. Only a
+  // first-time checkout tied to a referral can create one commission.
+  if (owner && process.env.EARN_TRACKING_ENABLED === 'true') {
+    try {
+      await recordVerifiedWhopPayment(payment as unknown as Record<string,unknown>,
+        owner, membership.id, affiliateUserId);
+    } catch (error) {
+      // Missing feature tables must never disrupt a paying subscriber.
+      const code = (error as {code?: string})?.code;
+      if (!['42P01','PGRST204','PGRST205'].includes(code ?? '')) throw error;
+      console.warn('[earn] receipt tracking awaits the Earn migration');
+    }
+  }
   if (intentId && owner) {
     const { error } = await admin.from('billing_checkout_intents').update({ status: 'fulfilled' })
       .eq('id', intentId).eq('user_id', owner);
@@ -157,6 +182,14 @@ export async function processWhopWebhook(event: WhopWebhook, deliveryId: string)
     const id = string(event.data.payment_id);
     if (id?.startsWith('pay_')) {
       const payment = await whopServer().payments.retrieve({ id });
+      if (process.env.EARN_TRACKING_ENABLED === 'true') {
+        try {
+          await reverseRefundedCommission(payment as unknown as Record<string,unknown>);
+        } catch (error) {
+          const code=(error as {code?:string})?.code;
+          if (!['42P01','PGRST204','PGRST205'].includes(code ?? '')) throw error;
+        }
+      }
       if (payment.membership_id) {
         const membership = await whopServer().memberships.retrieve({ id: payment.membership_id });
         await updateMembership(membership, null);

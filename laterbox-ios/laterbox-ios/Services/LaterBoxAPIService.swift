@@ -110,6 +110,51 @@ public nonisolated struct AccountConnectedIdentities: Sendable {
     }
 }
 
+// Server-verified Earn dashboard. No financial fields are submitted by iOS.
+public nonisolated struct EarnBalanceDTO: Decodable, Sendable {
+    public let pendingCents: Int
+    public let availableCents: Int
+    public let processingCents: Int
+    public let paidCents: Int
+    public let reversedCents: Int
+}
+public nonisolated struct EarnCommissionDTO: Decodable, Sendable {
+    public let id: String
+    public let amountCents: Int
+    public let status: String
+    public let createdAt: String
+    public let holdUntil: String
+}
+public nonisolated struct EarnPayoutDTO: Decodable, Sendable {
+    public let id: String
+    public let amountCents: Int
+    public let status: String
+    public let createdAt: String
+    public let paidAt: String?
+}
+public nonisolated struct EarnDashboardDTO: Decodable, Sendable {
+    public let programEnabled: Bool
+    public let payoutsEnabled: Bool
+    public let eligible: Bool
+    public let eligibleAt: String?
+    public let plan: String
+    public let role: String?
+    public let rateBps: Int?
+    public let memberSince: String?
+    public let status: String
+    public let referralCode: String?
+    public let referralUrl: String?
+    public let payoutConnected: Bool
+    public let balances: EarnBalanceDTO
+    public let referrals: Int
+    public let commissions: [EarnCommissionDTO]
+    public let payouts: [EarnPayoutDTO]
+    public let awaitingReceipts: Bool?
+}
+private nonisolated struct EarnJoinEnvelopeDTO: Decodable, Sendable {
+    let state: EarnDashboardDTO
+}
+
 public actor LaterBoxAPIService {
     public static let shared = LaterBoxAPIService()
 
@@ -471,6 +516,45 @@ public actor LaterBoxAPIService {
             throw CloudSyncError.serverError(statusCode: http.statusCode, message: "Subscription service unavailable")
         }
         return try JSONDecoder().decode(AccountBillingEntitlement.self, from: data)
+    }
+
+    // MARK: - LaterBox Earn (public status, server-owned balances)
+    public func fetchEarnDashboard(token: String) async throws -> EarnDashboardDTO {
+        try await earnRequest(token: token, method: "GET", body: nil)
+    }
+
+    public func joinEarn(token: String) async throws -> EarnDashboardDTO {
+        let body = try JSONSerialization.data(withJSONObject: [
+            "adult": true, "acceptedTerms": true
+        ])
+        return try await earnRequest(token: token, method: "POST", body: body)
+    }
+
+    private func earnRequest(token: String, method: String, body: Data?) async throws -> EarnDashboardDTO {
+        guard let url = URL(string: "\(billingUrl)/api/earn") else { throw URLError(.badURL) }
+        var request = URLRequest(url: url)
+        request.httpMethod = method
+        request.cachePolicy = .reloadIgnoringLocalCacheData
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        if let body {
+            request.httpBody = body
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        }
+        let (data, response) = try await session.data(for: request)
+        guard let http = response as? HTTPURLResponse else { throw URLError(.badServerResponse) }
+        if http.statusCode == 401 {
+            throw CloudSyncError.unauthorized(message: "Sign in again to view Earn.")
+        }
+        guard (200...299).contains(http.statusCode) else {
+            let message = (try? JSONSerialization.jsonObject(with: data) as? [String: Any])?["error"] as? String
+                ?? "Earn is temporarily unavailable."
+            throw CloudSyncError.serverError(statusCode: http.statusCode, message: message)
+        }
+        let decoder = JSONDecoder()
+        if method == "POST" {
+            return try decoder.decode(EarnJoinEnvelopeDTO.self, from: data).state
+        }
+        return try decoder.decode(EarnDashboardDTO.self, from: data)
     }
 
     public func paddleManagementURL(token: String) async throws -> URL {

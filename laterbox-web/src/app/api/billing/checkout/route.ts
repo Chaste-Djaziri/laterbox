@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { earnSettings } from '@/lib/earn/affiliate';
 import { subscriptionHasAccess } from '@/lib/billing/eligibility';
 import { getBillingAdminClient, getRequestUser } from '@/lib/billing/server';
 import { parseWhopPlan, whopEnvironment, whopPlanId, whopServer } from '@/lib/billing/whop';
@@ -48,6 +49,24 @@ export async function POST(request: Request) {
       checkoutId: pending.checkout_id, intentId: pending.id, environment: whopEnvironment(),
     }, { headers: { 'Cache-Control': 'private, no-store' } });
 
+
+    // Only pre-enrolled, active members receive an attribution. The browser
+    // cannot supply an affiliate ID or override the server-recorded snapshot.
+    let affiliateUserId: string | null = null;
+    const referralCode = request.headers.get('cookie')?.split(';').map(value=>value.trim()).find(value=>value.startsWith('laterbox_ref='))?.slice('laterbox_ref='.length);
+    // Earn rewards only the FIRST paid subscription by a LaterBox account.
+    // Returning buyers may purchase normally but cannot trigger a new commission.
+    if ((subscriptions ?? []).length === 0 &&
+        referralCode && /^lb_[a-f0-9]{24}$/.test(referralCode)) {
+      try {
+        if ((await earnSettings()).enabled) {
+          const { data: affiliate } = await admin.from('affiliate_profiles')
+            .select('user_id').eq('referral_code',referralCode)
+            .eq('status','active').maybeSingle();
+          if (affiliate?.user_id && affiliate.user_id !== user.id) affiliateUserId = affiliate.user_id;
+        }
+      } catch { /* Earn migration not activated; checkout must continue normally. */ }
+    }
     const intentId = crypto.randomUUID();
     const { error: intentError } = await admin.from('billing_checkout_intents').insert({
       id: intentId,
@@ -55,6 +74,7 @@ export async function POST(request: Request) {
       provider: 'whop',
       plan_key: key,
       plan_id: planId,
+      ...(affiliateUserId ? { affiliate_user_id: affiliateUserId } : {}),
     });
     if (intentError) throw intentError;
 
