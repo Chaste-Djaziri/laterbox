@@ -70,13 +70,13 @@ export function OneShortcutAwaySection() {
   return (
     <section
       ref={containerRef}
-      className="py-24 sm:py-32 lg:py-36 bg-[#f7f5ee] border-b border-[#e4e0d5] relative overflow-hidden"
+      className="gsap-shortcut-section py-24 sm:py-32 lg:py-36 bg-[#f7f5ee] border-b border-[#e4e0d5] relative overflow-hidden"
     >
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 flex flex-col items-center text-center">
+      <div className="gsap-shortcut-content max-w-5xl mx-auto px-4 sm:px-6 flex flex-col items-center text-center">
         {/* Top Floating Keyboard Shortcut Pill */}
         <div className="inline-flex items-center justify-center px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl sm:rounded-2xl bg-white border border-[#e4e0d5] shadow-[0_2px_12px_rgba(0,0,0,0.04)] mb-8 sm:mb-12 transition-transform duration-300 hover:scale-105 select-none">
           <span className="font-mono text-xs sm:text-sm font-semibold tracking-wider text-[#171711]">
-            CTRL + SHIFT + L
+            CMD / CTRL + SHIFT + S
           </span>
         </div>
 

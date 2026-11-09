@@ -97,7 +97,7 @@ export function LandingFaqSection() {
   const renderItem = (item: FaqItem) => {
     const isOpen = openIds.has(item.id);
     return (
-      <div key={item.id} className="border-b border-[#ece8df]">
+      <div key={item.id} className="gsap-faq-item border-b border-[#ece8df]">
         <button
           type="button"
           onClick={() => toggleFaq(item.id)}
@@ -124,10 +124,10 @@ export function LandingFaqSection() {
   };
 
   return (
-    <section className="py-24 sm:py-32 lg:py-36 bg-[#faf8f5] border-b border-[#e4e0d5] relative overflow-hidden">
+    <section className="gsap-faq-section py-24 sm:py-32 lg:py-36 bg-[#faf8f5] border-b border-[#e4e0d5] relative overflow-hidden">
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
         {/* Section Heading */}
-        <h2 className="text-4xl sm:text-6xl font-black tracking-tight text-[#171711] text-center mb-16 sm:mb-20">
+        <h2 className="gsap-faq-header text-4xl sm:text-6xl font-black tracking-tight text-[#171711] text-center mb-16 sm:mb-20">
           FAQ
         </h2>
 

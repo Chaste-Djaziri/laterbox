@@ -20,10 +20,10 @@ export function SomedayVaultSection() {
   const activeCard = somedayCards[currentIndex];
 
   return (
-    <section className="bg-white text-[#171711] py-24 sm:py-36 px-6 sm:px-10 lg:px-16 border-t border-[#f0ede4] select-none overflow-hidden">
+    <section className="gsap-someday-section bg-white text-[#171711] py-24 sm:py-36 px-6 sm:px-10 lg:px-16 border-t border-[#f0ede4] select-none overflow-hidden">
       <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
         {/* Left Column Text */}
-        <div className="lg:col-span-7 space-y-6 sm:space-y-8 text-left">
+        <div className="gsap-someday-text lg:col-span-7 space-y-6 sm:space-y-8 text-left">
           <h2 className="leading-none text-left">
             <span className="block text-5xl sm:text-6xl lg:text-7xl font-black text-[#171711] tracking-tight">
               Some things
@@ -44,7 +44,7 @@ export function SomedayVaultSection() {
         </div>
 
         {/* Right Column Visual: Stacked Someday Deck */}
-        <div className="lg:col-span-5 flex flex-col items-center justify-center">
+        <div className="gsap-someday-deck lg:col-span-5 flex flex-col items-center justify-center">
           <div
             onClick={handleNextCard}
             className="flex flex-col items-center cursor-pointer group select-none transition-transform duration-300 hover:scale-[1.02]"

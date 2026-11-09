@@ -4,8 +4,8 @@ import React from 'react';
 
 export function WontForgetItLaterSection() {
   return (
-    <section className="py-28 sm:py-36 lg:py-44 bg-[#faf8f5] border-b border-[#e4e0d5] relative overflow-hidden">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 flex flex-col items-center justify-center text-center select-none">
+    <section className="gsap-wont-forget-section py-28 sm:py-36 lg:py-44 bg-[#faf8f5] border-b border-[#e4e0d5] relative overflow-hidden">
+      <div className="gsap-wont-forget-text max-w-4xl mx-auto px-4 sm:px-6 flex flex-col items-center justify-center text-center select-none">
         {/* Main 4-line Statement */}
         <div className="space-y-1 sm:space-y-2">
           {/* Black Sans-Serif lines */}
@@ -29,7 +29,7 @@ export function WontForgetItLaterSection() {
         </p>
 
         {/* Signature Green Accent Divider Bar */}
-        <div className="w-16 sm:w-20 h-[3px] bg-[#cfdb84] rounded-full mx-auto mt-6 sm:mt-7" />
+        <div className="gsap-wont-forget-line w-16 sm:w-20 h-[3px] bg-[#cfdb84] rounded-full mx-auto mt-6 sm:mt-7 origin-center" />
       </div>
     </section>
   );

@@ -16,13 +16,13 @@ export function WhenLaterBecomesNowSection() {
   };
 
   return (
-    <section className="bg-[#171715] text-white py-24 sm:py-36 px-4 sm:px-6 relative overflow-hidden select-none border-t border-[#2a2a27]">
+    <section className="gsap-now-section bg-[#171715] text-white py-24 sm:py-36 px-4 sm:px-6 relative overflow-hidden select-none border-t border-[#2a2a27]">
       {/* Subtle Ambient Radial Glow behind the headline (Web Theme Accent #e6edb0) */}
       <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[450px] bg-[#e6edb0]/[0.07] blur-[120px] pointer-events-none rounded-full" />
 
       <div className="max-w-4xl mx-auto text-center relative z-10 space-y-12 sm:space-y-16">
         {/* Headline */}
-        <h2 className="leading-none">
+        <h2 className="gsap-now-heading leading-none">
           <span className="block text-5xl sm:text-7xl lg:text-8xl font-black text-white tracking-tight">
             When later
           </span>
@@ -32,7 +32,7 @@ export function WhenLaterBecomesNowSection() {
         </h2>
 
         {/* Center Mockup Card */}
-        <div className="max-w-md w-full mx-auto rounded-[28px] sm:rounded-3xl bg-[#232321] border border-[#333330] p-7 sm:p-8 shadow-[0_30px_90px_rgba(0,0,0,0.6)] text-left transition-all duration-300 hover:border-[#444440] hover:shadow-[0_35px_100px_rgba(0,0,0,0.7)] group">
+        <div className="gsap-now-card max-w-md w-full mx-auto rounded-[28px] sm:rounded-3xl bg-[#232321] border border-[#333330] p-7 sm:p-8 shadow-[0_30px_90px_rgba(0,0,0,0.6)] text-left transition-all duration-300 hover:border-[#444440] hover:shadow-[0_35px_100px_rgba(0,0,0,0.7)] group">
           {/* Top Tag adhering to Web Theme */}
           <span className="text-[10px] sm:text-[11px] font-black tracking-widest uppercase text-[#e6edb0] mb-3.5 block">
             RETURNED FROM LATERBOX

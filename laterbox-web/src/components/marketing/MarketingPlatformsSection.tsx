@@ -40,9 +40,9 @@ const platforms = [
 
 export function MarketingPlatformsSection() {
   return (
-    <section id="platforms" aria-labelledby="marketing-platforms-heading" className="border-t border-[#e3e9dd] bg-[#f8f9f4] px-5 py-20 sm:px-7 sm:py-28 lg:px-8">
+    <section id="platforms" aria-labelledby="marketing-platforms-heading" className="gsap-platforms-section border-t border-[#e3e9dd] bg-[#f8f9f4] px-5 py-20 sm:px-7 sm:py-28 lg:px-8">
       <div className="mx-auto max-w-[1240px]">
-        <div className="mb-10 flex flex-col justify-between gap-6 lg:mb-12 lg:flex-row lg:items-end">
+        <div className="gsap-platforms-header mb-10 flex flex-col justify-between gap-6 lg:mb-12 lg:flex-row lg:items-end">
           <div className="max-w-[680px]">
             <p className="text-[11px] font-black uppercase tracking-[0.19em] text-[#7f9257]">Right where you need it</p>
             <h2 id="marketing-platforms-heading" className="mt-4 text-[clamp(2.45rem,4.5vw,4.75rem)] font-black leading-[1.07] tracking-[-0.07em] text-[#1b2419]">
@@ -62,7 +62,7 @@ export function MarketingPlatformsSection() {
             return (
               <article
                 key={platform.name}
-                className={`group flex min-h-[345px] flex-col overflow-hidden rounded-[28px] border p-7 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_22px_55px_rgba(31,43,23,0.09)] sm:p-8 ${
+                className={`gsap-platform-card group flex min-h-[345px] flex-col overflow-hidden rounded-[28px] border p-7 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_22px_55px_rgba(31,43,23,0.09)] sm:p-8 ${
                   dark ? 'border-[#1c281a] bg-[#1b261a] text-white' : green ? 'border-[#d5e3a1] bg-[#e6edb0] text-[#1b261a]' : 'border-[#e1e7db] bg-white text-[#1b261a]'
                 }`}
               >

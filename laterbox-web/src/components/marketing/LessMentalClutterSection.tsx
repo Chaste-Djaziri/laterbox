@@ -50,7 +50,7 @@ export function LessMentalClutterSection() {
   ];
 
   return (
-    <section className="py-24 sm:py-32 lg:py-36 bg-[#171711] text-white border-b border-[#2e2d28] relative overflow-hidden">
+    <section className="gsap-clutter-section py-24 sm:py-32 lg:py-36 bg-[#171711] text-white border-b border-[#2e2d28] relative overflow-hidden">
       {/* Subtle ambient background glow */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] bg-gradient-to-b from-[#2a2923]/40 to-transparent rounded-full blur-3xl pointer-events-none" />
 
@@ -62,7 +62,7 @@ export function LessMentalClutterSection() {
             {clutterItems.map((item) => (
               <div
                 key={item}
-                className="w-36 sm:w-44 py-2 sm:py-2.5 px-3 sm:px-4 rounded-xl bg-[#22211b] border border-white/[0.08] text-xs sm:text-[13px] font-medium text-[#8c897f] text-center shadow-xs transition-all duration-300 hover:border-white/20 hover:text-[#d6d3c9] select-none"
+                className="gsap-clutter-pill w-36 sm:w-44 py-2 sm:py-2.5 px-3 sm:px-4 rounded-xl bg-[#22211b] border border-white/[0.08] text-xs sm:text-[13px] font-medium text-[#8c897f] text-center shadow-xs transition-all duration-300 hover:border-white/20 hover:text-[#d6d3c9] select-none"
               >
                 {item}
               </div>
@@ -81,7 +81,7 @@ export function LessMentalClutterSection() {
         </div>
 
         {/* Section Headline */}
-        <div className="text-center max-w-3xl mx-auto space-y-1 sm:space-y-2">
+        <div className="gsap-clutter-heading text-center max-w-3xl mx-auto space-y-1 sm:space-y-2">
           <h2 className="text-4xl sm:text-6xl md:text-7xl lg:text-[76px] font-black tracking-tight leading-none text-white">
             Less mental clutter.
           </h2>
