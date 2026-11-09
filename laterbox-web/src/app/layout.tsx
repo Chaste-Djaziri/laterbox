@@ -14,6 +14,10 @@ export const metadata: Metadata = {
   applicationName: 'LaterBox',
   icons: { icon: '/branding/laterbox-icon.png', apple: '/branding/laterbox-icon.png' },
   manifest: '/manifest.webmanifest',
+  itunes: {
+    appId: '6804139119',
+    appArgument: 'https://laterbox.dev',
+  },
 };
 
 export const viewport: Viewport = {
