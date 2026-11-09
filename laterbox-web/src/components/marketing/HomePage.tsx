@@ -341,24 +341,26 @@ export default function LandingPage() {
       <section className="relative pt-12 sm:pt-20 pb-16 sm:pb-24 overflow-hidden">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 text-center relative z-10">
           {/* Pro Pill Badge */}
-          <div className="gsap-hero-badge inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#e6edb0] border border-[#d0db84] text-[#171711] text-xs font-extrabold mb-8 shadow-xs">
+          <div className="gsap-hero-badge inline-flex items-center gap-2 px-3.5 sm:px-4 py-1.5 rounded-full bg-[#e6edb0] border border-[#d0db84] text-[#171711] text-xs font-extrabold mb-5 sm:mb-8 shadow-xs">
             <Sparkles className="w-3.5 h-3.5 text-[#171711]" />
-            <span>LaterBox Pro • Built for Power Users, Developers &amp; Curators</span>
+            <span className="sm:hidden">LaterBox Pro • Save now, find later</span>
+            <span className="hidden sm:inline">LaterBox Pro • Built for Power Users, Developers &amp; Curators</span>
           </div>
 
           {/* Main Hero Heading */}
-          <h1 className="gsap-hero-title text-4xl sm:text-6xl lg:text-7xl font-black tracking-tight text-[#171711] leading-[1.08] mb-6">
-            LaterBox: save now. <br />
-            Return to it <span className="font-serif italic font-normal">later.</span>
+          <h1 className="gsap-hero-title text-3xl sm:text-6xl lg:text-7xl font-black tracking-tight text-[#171711] leading-[1.1] sm:leading-[1.08] mb-4 sm:mb-6">
+            <span className="sm:hidden">Save now. <br />Find it <span className="font-serif italic font-normal">later.</span></span>
+            <span className="hidden sm:inline">LaterBox: save now. <br />Return to it <span className="font-serif italic font-normal">later.</span></span>
           </h1>
 
           {/* Subheading */}
-          <p className="gsap-hero-sub max-w-2xl mx-auto text-base sm:text-xl text-[#6c6b63] leading-relaxed mb-10">
-            Your save-for-later app and bookmark manager for links, articles, videos, notes, and files. Organize collections and find what you saved when you need it.
+          <p className="gsap-hero-sub max-w-2xl mx-auto text-sm sm:text-xl text-[#6c6b63] leading-relaxed mb-6 sm:mb-10">
+            <span className="sm:hidden">Your bookmark manager for articles, links, and videos. Offline-first and organized.</span>
+            <span className="hidden sm:inline">Your save-for-later app and bookmark manager for links, articles, videos, notes, and files. Organize collections and find what you saved when you need it.</span>
           </p>
 
-          {/* Action CTAs */}
-          <div className="gsap-hero-cta relative z-20 flex flex-wrap items-center justify-center gap-3.5">
+          {/* Action CTAs (Hidden on mobile, desktop only) */}
+          <div className="gsap-hero-cta relative z-20 hidden md:flex flex-wrap items-center justify-center gap-3.5">
             <Link
               href={`${APP_ORIGIN}/inbox?guest=1`}
               className="inline-flex items-center gap-2 px-7 py-3.5 rounded-full bg-[#171711] hover:bg-[#282723] active:bg-[#0f0f0e] text-white font-extrabold text-sm sm:text-base shadow-sm transition-all duration-150 group"
@@ -385,8 +387,8 @@ export default function LandingPage() {
             </Link>
           </div>
 
-          {/* Meta Trust Badges */}
-          <div className="gsap-hero-meta mt-8 text-xs text-[#6c6b63] space-y-1 font-medium">
+          {/* Meta Trust Badges (Hidden on mobile, desktop only) */}
+          <div className="gsap-hero-meta hidden md:block mt-8 text-xs text-[#6c6b63] space-y-1 font-medium">
             <p className="flex items-center justify-center gap-2">
               <span>Free</span>
               <span>•</span>
