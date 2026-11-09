@@ -28,10 +28,11 @@ enum MainTab: String, CaseIterable, Identifiable {
 struct MainTabView: View {
     @Environment(\.colorScheme) private var colorScheme
     @State private var selectedTab: MainTab = .inbox
+    @ObservedObject private var coordinator = SyncCoordinator.shared
 
     var body: some View {
         TabView(selection: $selectedTab) {
-            InboxView(isTabRoot: true)
+            InboxView(isTabRoot: true, quickCaptureRequested: $coordinator.showingQuickCapture)
                 .tabItem { Label(MainTab.inbox.rawValue, systemImage: MainTab.inbox.symbol) }
                 .tag(MainTab.inbox)
 
@@ -58,5 +59,11 @@ struct MainTabView: View {
         .toolbarBackground(.visible, for: .tabBar)
         .accessibilityIdentifier("LaterBox Main Tabs")
         .background(InboxGrainBackground().ignoresSafeArea())
+        .onChange(of: coordinator.showingQuickCapture) { _, requested in
+            if requested { selectedTab = .inbox }
+        }
+        .onAppear {
+            if coordinator.showingQuickCapture { selectedTab = .inbox }
+        }
     }
 }

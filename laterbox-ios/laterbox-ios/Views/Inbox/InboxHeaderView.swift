@@ -11,17 +11,11 @@ struct InboxHeaderView: View {
     @Binding var refreshIsRunning: Bool
 
     @State private var showingCloudUsage = false
-    @State private var showingCapture = false
+    @Binding var showingCapture: Bool
     @State private var logoReplayToken = 0
 
     var body: some View {
         appHeader
-            .fullScreenCover(isPresented: $showingCapture) {
-                NavigationStack {
-                    CaptureView()
-                        .whiteStatusBar()
-                }
-            }
             .sheet(isPresented: $showingCloudUsage) {
                 NavigationStack {
                     CloudStorageUsageDetails()

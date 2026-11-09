@@ -38,7 +38,7 @@ public struct InboxView: View {
     @State private var showingPlans: Bool = false
     @State private var navigateToSettings: Bool = false
     @State private var navigateToCapture: Bool = false
-    @State private var showingQuickCapture: Bool = false
+    @Binding private var quickCaptureRequested: Bool
     @State private var showingEmptyTrashConfirm: Bool = false
     @State private var isRefreshingInbox: Bool = false
     @State private var showingExitGuestConfirm: Bool = false
@@ -56,10 +56,11 @@ public struct InboxView: View {
     @State private var searchStarredOnly: Bool = false
     @State private var searchHasAttachmentOnly: Bool = false
 
-    public init(initialMailbox: MailboxViewType = .inbox, isTabRoot: Bool = false) {
+    public init(initialMailbox: MailboxViewType = .inbox, isTabRoot: Bool = false, quickCaptureRequested: Binding<Bool> = .constant(false)) {
         self.initialMailbox = initialMailbox
         self.isTabRoot = isTabRoot
         self._selectedMailbox = State(initialValue: initialMailbox)
+        self._quickCaptureRequested = quickCaptureRequested
     }
 
     private func profileMenuRow(_ title: String, icon: String, destructive: Bool = false, action: @escaping () -> Void) -> some View {
@@ -263,7 +264,8 @@ public struct InboxView: View {
                     if usesHeaderRefreshLogo {
                         InboxHeaderView(
                             refreshPull: $refreshPull,
-                            refreshIsRunning: $refreshIsRunning
+                            refreshIsRunning: $refreshIsRunning,
+                            showingCapture: $navigateToCapture
                         )
                     }
 
@@ -962,13 +964,8 @@ public struct InboxView: View {
             }
             .navigationDestination(isPresented: $navigateToCapture) {
                 CaptureView()
-                    .whiteStatusBar()
             }
-            .onChange(of: navigateToCapture) { _, isNavigating in
-                coordinator.isShowingCapture = isNavigating
-                StatusBarStyleModifier.apply(isNavigating ? .dark : .light)
-            }
-            .sheet(isPresented: $showingQuickCapture) {
+            .navigationDestination(isPresented: $quickCaptureRequested) {
                 QuickCaptureSheet()
             }
             .sheet(item: $collectionTargetItem) { targetItem in

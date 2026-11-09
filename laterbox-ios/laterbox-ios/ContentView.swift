@@ -25,9 +25,6 @@ struct ContentView: View {
         if !coordinator.hasAccess || coordinator.showingAuthSheet {
             return .dark
         }
-        if coordinator.isShowingCapture || coordinator.showingQuickCapture {
-            return .dark
-        }
         // Do not force Light Mode for the main app: Inbox follows iOS appearance.
         return nil
     }
@@ -39,9 +36,6 @@ struct ContentView: View {
                     .transition(.opacity)
             } else {
                 MainTabView()
-                    .sheet(isPresented: $coordinator.showingQuickCapture) {
-                        QuickCaptureSheet()
-                    }
                     .sheet(isPresented: $coordinator.showingAuthSheet) {
                         NavigationStack {
                             AuthView()
@@ -83,7 +77,7 @@ struct ContentView: View {
             }
         }
         .animation(.spring(response: 0.45, dampingFraction: 0.85), value: coordinator.hasAccess)
-        // Render immediately; only welcome/auth/capture request Dark Mode.
+        // Render immediately; welcome and authentication are the only forced-dark experiences.
         .preferredColorScheme(activeColorScheme)
         .onChange(of: activeColorScheme) { _, _ in
             applyCurrentInterfaceStyle()

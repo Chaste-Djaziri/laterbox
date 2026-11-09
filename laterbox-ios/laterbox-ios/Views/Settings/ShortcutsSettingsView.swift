@@ -154,7 +154,7 @@ public struct ShortcutsSettingsView: View {
         }
         .navigationTitle("Quick Save")
         .navigationBarTitleDisplayMode(.inline)
-        .sheet(isPresented: $showingQuickCaptureTest) {
+        .navigationDestination(isPresented: $showingQuickCaptureTest) {
             QuickCaptureSheet()
         }
     }
