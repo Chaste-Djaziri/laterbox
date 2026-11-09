@@ -451,7 +451,7 @@ public final class SyncCoordinator: ObservableObject {
     }
 
     @discardableResult
-    func saveDraft(_ draft: CaptureDraft, context: ModelContext) throws -> LBItem {
+    func saveDraft(_ draft: CaptureDraft, context: ModelContext, status: ItemStatus? = nil) throws -> LBItem {
         guard !draft.content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || !draft.attachments.isEmpty else { throw AIProviderError.invalidCapture }
         let id = draft.id
         if let existing = try context.fetch(FetchDescriptor<LBItem>(predicate: #Predicate { $0.id == id })).first { return existing }
@@ -475,7 +475,7 @@ public final class SyncCoordinator: ObservableObject {
         let item = LBItem(id: id, userId: currentUserId, url: draft.url,
                           title: draft.title.isEmpty ? fallbackTitle : draft.title,
                           textContent: draft.content.isEmpty ? (draft.attachments.first?.name ?? "") : draft.content,
-                          type: draft.type, status: draft.returnAt == nil ? .inbox : .deferred, returnAt: draft.returnAt,
+                          type: draft.type, status: status ?? (draft.returnAt == nil ? .inbox : .deferred), returnAt: draft.returnAt,
                           domain: draft.url.flatMap { URL(string: $0)?.host })
         if !draft.attachments.isEmpty {
             item.attachmentsData = try? JSONEncoder().encode(draft.attachments)
