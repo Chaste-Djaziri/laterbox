@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[Web / Marketing preview sidebar parity]** Rebuild the hero interactive preview's navigation rail and app layout to match the real production dashboard: LaterBox monogram cube header, 52px rail buttons with authentic counter badges (Inbox, Today, Upcoming, Someday, Starred, Kept, Archived, Trash, Collections, Downloads, Plans, Settings), top omnibar search with AI organize trigger, full-fidelity category tabs with live snippets, colorful category tag pills, and the Pro Cloud Sync status footer.
+
 - **[Web / Marketing smooth scrolling]** Integrate Lenis smooth scrolling across the marketing layout synchronized with GSAP ScrollTrigger ticker, preserving reduced-motion preferences and shielding nested scrollable preview regions with `data-lenis-prevent`.
 
 - **[Web / Marketing hero dashboard preview]** Upgrade the homepage interactive sandbox to faithfully reproduce the real dashboard application UI with the authentic email-style inbox table. Includes the live sidebar rail, omnibar search, category tabs (Primary, Articles, Media, Updates), email-style item rows with sender badges, category pills, star toggles, snooze schedules, hover actions, quick capture modal, and item detail preview using realistic sample data.
