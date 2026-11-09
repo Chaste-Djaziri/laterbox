@@ -14,6 +14,9 @@ struct EarnView: View {
     @State private var confirmsAdult = false
     @State private var acceptsTerms = false
     @State private var didCopy = false
+    @State private var codeToEdit = ""
+    @State private var editingCode = false
+    @State private var updatingCode = false
     @State private var errorMessage: String?
 
     private var primary: Color { InboxAppearance.textPrimary(for: colorScheme) }
@@ -39,7 +42,7 @@ struct EarnView: View {
                     } else if let dashboard {
                         summary(for: dashboard)
                         eligibilityPanel(for: dashboard)
-                        if dashboard.status == "active" { referralPanel(for: dashboard) }
+                        if dashboard.referralCode != nil { referralPanel(for: dashboard) }
                         if dashboard.status == "eligible" { enrollmentPanel(for: dashboard) }
                         earningsPanel(for: dashboard)
                         payoutHistory(for: dashboard)
@@ -64,6 +67,15 @@ struct EarnView: View {
             .toolbar(.hidden, for: .navigationBar)
             .refreshable { await refresh() }
             .task(id: coordinator.currentUserId) { await refresh() }
+            .alert("Customize referral code", isPresented: $editingCode) {
+                TextField("Unique code", text: $codeToEdit)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                Button("Cancel", role: .cancel) { }
+                Button("Save") { Task { await saveCustomCode() } }
+            } message: {
+                Text("4–32 lowercase letters, numbers, hyphens or underscores. Codes must be unique and can change once every 30 days.")
+            }
         }
     }
 
@@ -155,9 +167,9 @@ struct EarnView: View {
         let active = value.status == "active"
         let statusText: String = {
             switch value.status {
-            case "active": return value.role == "vault_ambassador" ? "Vault Ambassador" : "Plus Partner"
-            case "eligible": return "You're eligible to join"
-            case "not_launched": return "Earn is being prepared"
+            case "active": return "Community Referrer"
+            case "eligible": return "Activate your referral earnings"
+            case "not_launched": return "Your referral code is reserved"
             case "suspended": return "Affiliate account on hold"
             default: return "Your path to earning"
             }
@@ -197,7 +209,7 @@ struct EarnView: View {
                 }
                 .padding(.top, 5)
             }
-            if !active && value.plan == "free" {
+            if !active && value.plan != "free" {
                 Button {
                     coordinator.showingPlansSheet = true
                 } label: {
@@ -236,9 +248,9 @@ struct EarnView: View {
         case "not_launched":
             return "We are finalizing commission rates, payout verification, and the program terms. No new commissions can be earned yet."
         case "eligible":
-            return "Your subscription qualifies. Review the terms and activate your affiliate role."
+            return "Free and paid accounts can refer. Confirm you are an adult and accept the affiliate terms to earn."
         case "active":
-            return "Share your link to earn a plan-based commission on eligible first paid subscriptions."
+            return "Share your code. Eligible recurring payments earn commission after the referred user finishes a free trial and two paid months."
         case "suspended":
             return "Your referral program access is temporarily paused."
         default:
@@ -248,7 +260,7 @@ struct EarnView: View {
             if let date = value.eligibleAt {
                 return "Keep your paid subscription active until \(dateLabel(date)) to complete the two-month requirement."
             }
-            return "Subscribe to Plus or Vault and stay on a paid plan for at least two calendar months."
+            return "Everyone can refer, including Free accounts. Your referrals qualify after paid subscription verification."
         }
     }
 
@@ -257,7 +269,7 @@ struct EarnView: View {
             Label("Your referral link", systemImage: "link")
                 .font(.headline)
                 .foregroundStyle(primary)
-            Text("Each valid first paid purchase can earn a commission. Always disclose that you may earn money from the link.")
+            Text("Share your unique code or link. Commissions start only after referred subscribers complete their trial and two paid months. Disclose that you may earn money.")
                 .font(.subheadline)
                 .foregroundStyle(secondary)
             Text(value.referralUrl ?? "Link unavailable")
@@ -280,8 +292,25 @@ struct EarnView: View {
                     .frame(height: 48)
                     .background(AppTheme.accent, in: RoundedRectangle(cornerRadius: 13))
             }
+            HStack(spacing: 12) {
+                Text(value.referralCode ?? "")
+                    .font(.system(size: 12, design: .monospaced))
+                    .foregroundStyle(primary)
+                    .textSelection(.enabled)
+                Button("Copy code") {
+                    UIPasteboard.general.string = value.referralCode
+                    didCopy = true
+                }
+                Button("Customize") {
+                    codeToEdit = value.referralCode ?? ""
+                    editingCode = true
+                }
+                .disabled(updatingCode)
+            }
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(secondary)
             HStack {
-                Text("\(value.referrals) confirmed referrals")
+                Text("\(value.referrals) referred accounts")
                 Spacer()
                 if let bps = value.rateBps {
                     Text("\(bps / 100)% commission")
@@ -318,10 +347,10 @@ struct EarnView: View {
 
     private func enrollmentPanel(for value: EarnDashboardDTO) -> some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("Become a \(value.role == "vault_ambassador" ? "Vault Ambassador" : "Plus Partner")")
+            Text("Activate referral earnings")
                 .font(.headline)
                 .foregroundStyle(primary)
-            Text("Confirm your eligibility and agree to the terms before generating your affiliate link.")
+            Text("All accounts, including Free, can share their referral code. Confirm your age and accept the terms before activating commissions.")
                 .font(.subheadline)
                 .foregroundStyle(secondary)
             Toggle("I confirm that I am 18 or older", isOn: $confirmsAdult)
@@ -447,9 +476,9 @@ struct EarnView: View {
     private var processPanel: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("How Earn works").font(.headline).foregroundStyle(primary)
-            processRow("1", title: "Qualify", detail: "Hold an active paid subscription for two months.")
-            processRow("2", title: "Share", detail: "Invite new customers using your tracked link.")
-            processRow("3", title: "Verify", detail: "A first paid Whop web subscription creates a pending commission.")
+            processRow("1", title: "Share", detail: "Everyone can share a unique referral code, even on Free.")
+            processRow("2", title: "Trial", detail: "New referred subscribers get a free trial when the promotion is active.")
+            processRow("3", title: "Qualify", detail: "Referred customers complete two paid months after the trial.")
             processRow("4", title: "Release", detail: "After the hold and refund checks, funds become available.")
             processRow("5", title: "Withdraw", detail: "Whop manages verified payouts and withdrawals.")
             Divider()
@@ -513,6 +542,18 @@ struct EarnView: View {
         defer { isJoining = false }
         do {
             dashboard = try await LaterBoxAPIService.shared.joinEarn(token: token)
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    private func saveCustomCode() async {
+        guard let token = coordinator.authToken else { return }
+        updatingCode = true
+        defer { updatingCode = false }
+        do {
+            try await LaterBoxAPIService.shared.updateEarnCode(token: token, code: codeToEdit)
+            await refresh()
         } catch {
             errorMessage = error.localizedDescription
         }

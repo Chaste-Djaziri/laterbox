@@ -1,228 +1,224 @@
 // laterbox-web/src/lib/earn/affiliate.ts
-// The authoritative program state lives in Supabase; clients never set rates,
-// earnings, subscriber age or payout status.
-import { randomBytes } from 'node:crypto';
+// All monetary amounts and attribution are calculated server-side from Whop.
+// Every account has a code, even if its subscription is Free.
 import { getBillingAdminClient } from '@/lib/billing/server';
-import { subscriptionHasAccess } from '@/lib/billing/eligibility';
-import { storagePlanForWhopId } from '@/lib/billing/whop';
 
 export type EarnPlan = 'free' | 'plus' | 'vault';
-export type EarnRole = 'plus_partner' | 'vault_ambassador';
+export type EarnRole = 'community_referrer';
 export interface EarnState {
   programEnabled: boolean;
   payoutsEnabled: boolean;
+  trialEnabled: boolean;
+  trialDays: number;
   eligible: boolean;
   eligibleAt: string | null;
   plan: EarnPlan;
   role: EarnRole | null;
   rateBps: number | null;
   memberSince: string | null;
-  status: 'locked' | 'eligible' | 'active' | 'suspended' | 'not_launched';
+  status: 'active' | 'suspended' | 'not_launched' | 'eligible' | 'locked';
   referralCode: string | null;
   referralUrl: string | null;
   payoutConnected: boolean;
   balances: { pendingCents: number; availableCents: number; processingCents: number; paidCents: number; reversedCents: number };
   referrals: number;
+  referredProgress: { id:string; plan: string; status:string; referredAt:string;
+    trialEndsAt:string|null; qualifiedAt:string|null; nextStep:string }[];
   commissions: { id: string; amountCents: number; status: string; createdAt: string; holdUntil: string }[];
   payouts: { id: string; amountCents: number; status: string; createdAt: string; paidAt: string | null }[];
 }
-
 export type EarnSettings = {
   enabled: boolean;
   automatic_payouts: boolean;
+  trial_enabled: boolean;
+  trial_days: number;
+  intro_commission_bps: number;
+  ongoing_commission_bps: number;
+  intro_payment_count: number;
   plus_commission_bps: number;
   vault_commission_bps: number;
   hold_days: number;
   minimum_payout_cents: number;
 };
 
-type Subscription = {
-  provider: string;
-  subscription_id: string;
-  status: string;
-  created_at: string;
-  updated_at: string;
-  current_period_ends_at: string | null;
-  revoked_at: string | null;
-  past_due_at: string | null;
-  storage_plan: string | null;
-  price_id: string | null;
-  trial_ends_at?: string | null;
-};
-
-export async function earnSettings(): Promise<EarnSettings> {
-  const { data, error } = await getBillingAdminClient().from('affiliate_program_settings')
-    .select('enabled,automatic_payouts,plus_commission_bps,vault_commission_bps,hold_days,minimum_payout_cents')
-    .eq('id', true).single();
-  if (error || !data) throw new Error('Earn database migration has not been applied.');
-  return {
-    ...(data as EarnSettings),
-    // Prevent enabling the public program if webhook receipt tracking is off.
-    enabled: Boolean(data.enabled && process.env.EARN_TRACKING_ENABLED === 'true'),
-  };
+export function normalizeReferralCode(value: unknown): string | null {
+  if(typeof value!=='string')return null;
+  const code=value.trim().toLowerCase();
+  return /^[a-z0-9][a-z0-9_-]{3,31}$/.test(code) ? code : null;
 }
-
-function plusTwoMonths(value: string): string {
-  const date = new Date(value);
-  // Anchor to the month and preserve local day capped at the target month end.
-  const day = date.getUTCDate();
+const reserved=new Set([
+  'laterbox','whop','admin','api','app','account','support','help',
+  'login','signup','register','settings','billing','checkout','earn',
+  'trial','free','premium','plus','vault','official','staff','team',
+  'security','privacy','terms','system','payments','refund','root','www',
+]);
+export function referralCodeAllowed(input: unknown): boolean {
+  const code=normalizeReferralCode(input);
+  return Boolean(code && !reserved.has(code) && !code.startsWith('laterbox_'));
+}
+export function addMonthsUTC(iso:string,count:number): string {
+  const date=new Date(iso);
+  if(!Number.isFinite(date.getTime()))throw new Error('Invalid subscription date');
+  const day=date.getUTCDate();
   date.setUTCDate(1);
-  date.setUTCMonth(date.getUTCMonth() + 2);
-  const last = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 0)).getUTCDate();
-  date.setUTCDate(Math.min(day, last));
+  date.setUTCMonth(date.getUTCMonth()+count);
+  const days=new Date(Date.UTC(date.getUTCFullYear(),date.getUTCMonth()+1,0)).getUTCDate();
+  date.setUTCDate(Math.min(day,days));
   return date.toISOString();
 }
-
-export async function earnEligibility(userId: string) {
-  const db = getBillingAdminClient();
-  const { data: subscriptions, error } = await db.from('billing_subscriptions')
-    .select('provider,subscription_id,status,created_at,updated_at,current_period_ends_at,revoked_at,past_due_at,storage_plan,price_id,trial_ends_at')
-    .eq('user_id', userId).order('created_at', { ascending: true });
-  if (error) throw error;
-  const now = Date.now();
-  const active = ((subscriptions ?? []) as Subscription[])
-    .filter(row => row.status === 'active' && subscriptionHasAccess(row, now) && !row.revoked_at);
-  const chosen = [...active].sort((a,b) => (
-    (b.storage_plan === 'vault' ? 2 : 1) - (a.storage_plan === 'vault' ? 2 : 1)
-  ))[0] ?? null;
-  const plan: EarnPlan = chosen?.storage_plan === 'vault' ? 'vault' : chosen ? 'plus' : 'free';
-  const role: EarnRole | null = plan === 'vault' ? 'vault_ambassador' : plan === 'plus' ? 'plus_partner' : null;
-  if (!chosen) return { eligible: false, eligibleAt: null, plan, role, memberSince: null };
-  const dates = active.filter(row => row.storage_plan === chosen.storage_plan).map(row => row.created_at);
-  const oldest = dates.sort()[0] ?? chosen.created_at;
-  const eligibleAt = plusTwoMonths(oldest);
-  const matured = now >= Date.parse(eligibleAt);
-  // Whop monthly plans require at least two distinct, server-confirmed paid
-  // billing periods; an annual plan requires one charge and two elapsed months.
-  let receiptsVerified = true;
-  if (chosen.provider === 'whop') {
-    const { data: receipts, error: paidError } = await db.from('affiliate_paid_receipts')
-      .select('paid_at,membership_id').eq('buyer_user_id', userId).is('refunded_at',null).order('paid_at', { ascending:true });
-    if (paidError && !['42P01','PGRST204','PGRST205'].includes(paidError.code ?? '')) throw paidError;
-    // Before migration or historical receipt backfill, assume unverified.
-    // Never grant affiliate eligibility based on an unverified billing claim.
-    const verifiedReceipts = paidError ? [] : (receipts ?? []);
-    const membershipId = chosen.subscription_id;
-    const matching = verifiedReceipts.filter(r => !membershipId || r.membership_id === membershipId);
-    const isAnnual = Boolean(chosen.price_id && storagePlanForWhopId(chosen.price_id)?.endsWith('_year'));
-    receiptsVerified = isAnnual ? matching.length >= 1 :
-      matching.some((receipt,i) => matching.some((later,j) => j !== i &&
-        Math.abs(Date.parse(later.paid_at) - Date.parse(receipt.paid_at)) >= 25 * 86400000));
-  }
-  return { eligible: matured && receiptsVerified, eligibleAt, plan, role, memberSince: oldest,
-    awaitingReceipts: matured && !receiptsVerified };
+export function earnedAfterQualification(args: {
+  startedAt:string; trialEndsAt:string; payments:string[]; paidAt:string; annual:boolean;
+}): boolean {
+  const started=Date.parse(args.startedAt);
+  const trialEnd=Date.parse(args.trialEndsAt);
+  const paid=Date.parse(args.paidAt);
+  if(!Number.isFinite(started)||!Number.isFinite(trialEnd)||!Number.isFinite(paid))return false;
+  // The trial takes 30 days; eligibility requires another two calendar months
+  // of paid membership AND three calendar months since trial activation.
+  const at=Math.max(Date.parse(addMonthsUTC(args.startedAt,3)),
+    Date.parse(addMonthsUTC(args.trialEndsAt,2)));
+  if(paid<at)return false;
+  const valid=[...new Set(args.payments)]
+    .map(t=>Date.parse(t)).filter(t=>Number.isFinite(t)&&t>=trialEnd&&t<=paid).sort((a,b)=>a-b);
+  if(args.annual)return valid.length>=1 && valid[0]+2*28*86400000<=paid;
+  return valid.some((first,i)=>valid.some((second,j)=>j>i && second-first>=25*86400000));
 }
-
-export async function getEarnState(userId: string): Promise<EarnState & { awaitingReceipts?: boolean; termsUrl: string }> {
-  const db = getBillingAdminClient();
-  const eligibility = await earnEligibility(userId);
-  let settings: EarnSettings;
-  try {
-    settings = await earnSettings();
-  } catch (error) {
-    // A new deployment can serve the Earn tab before the opt-in migration.
-    // Display the correct locked launch state, never hypothetical earnings.
-    if (error instanceof Error && error.message.includes('Earn database migration')) {
-      return {
-        programEnabled:false,payoutsEnabled:false,eligible:eligibility.eligible,
-        eligibleAt:eligibility.eligibleAt,plan:eligibility.plan,role:eligibility.role,
-        rateBps:null,memberSince:eligibility.memberSince,status:'not_launched',
-        referralCode:null,referralUrl:null,payoutConnected:false,
-        balances:{pendingCents:0,availableCents:0,processingCents:0,paidCents:0,reversedCents:0},
-        referrals:0,commissions:[],payouts:[],awaitingReceipts:eligibility.awaitingReceipts,
-        termsUrl:'/earn-terms',
-      };
-    }
-    throw error;
-  }
-  const { data: profile, error: profileError } = await db.from('affiliate_profiles')
-    .select('user_id,referral_code,status,role,commission_bps,verified_whop_user_id')
-    .eq('user_id',userId).maybeSingle();
-  if (profileError) throw profileError;
-  const { data: commissions, error: cError } = await db.from('affiliate_commissions')
-    .select('id,commission_cents,status,created_at,hold_until')
-    .eq('affiliate_user_id',userId).order('created_at',{ ascending:false }).limit(100);
-  if (cError) throw cError;
-  const { data: payouts, error: pError } = await db.from('affiliate_payouts')
-    .select('id,amount_cents,status,created_at,paid_at')
-    .eq('affiliate_user_id',userId).order('created_at',{ ascending:false }).limit(50);
-  if (pError) throw pError;
-  const { count: referrals, error: rError } = await db.from('affiliate_referrals')
-    .select('id',{ count:'exact',head:true }).eq('affiliate_user_id',userId);
-  if (rError) throw rError;
-  const {data:balanceRows,error:totalsError}=await db.rpc('affiliate_balance_totals',{
-    target_user_id:userId,
-  });
-  if(totalsError)throw totalsError;
-  const totals=Array.isArray(balanceRows)?balanceRows[0]:balanceRows;
-  const balances = {
-    pendingCents: Number(totals?.pending_cents ?? 0),
-    availableCents: Number(totals?.available_cents ?? 0),
-    processingCents: Number(totals?.processing_cents ?? 0),
-    paidCents: Number(totals?.paid_cents ?? 0),
-    reversedCents: Number(totals?.reversed_cents ?? 0),
-  };
-  const status = !settings.enabled ? 'not_launched' : profile?.status === 'suspended' ? 'suspended'
-    : profile?.status === 'active' && eligibility.eligible ? 'active'
-    : eligibility.eligible ? 'eligible' : 'locked';
+export async function earnSettings():Promise<EarnSettings> {
+  const {data,error}=await getBillingAdminClient().from('affiliate_program_settings')
+    .select('enabled,automatic_payouts,trial_enabled,trial_days,intro_commission_bps,ongoing_commission_bps,intro_payment_count,plus_commission_bps,vault_commission_bps,hold_days,minimum_payout_cents')
+    .eq('id',true).single();
+  if(error||!data)throw new Error('Earn database migration has not been applied.');
   return {
-    programEnabled: settings.enabled,
-    payoutsEnabled: settings.automatic_payouts,
-    eligible: eligibility.eligible,
-    eligibleAt: eligibility.eligibleAt,
-    plan: eligibility.plan,
-    role: eligibility.role ?? profile?.role ?? null,
-    rateBps: settings.enabled ? (
-      eligibility.plan === 'vault' ? settings.vault_commission_bps :
-      eligibility.plan === 'plus' ? settings.plus_commission_bps : null
-    ) : null,
-    memberSince: eligibility.memberSince,
-    status,
-    referralCode: status === 'active' ? profile?.referral_code ?? null : null,
-    referralUrl: status === 'active'
-      ? `https://laterbox.dev/r/${profile?.referral_code ?? ''}` : null,
-    payoutConnected: Boolean(profile?.verified_whop_user_id),
-    balances,
-    referrals: referrals ?? 0,
-    commissions: (commissions ?? []).map(c => ({
-      id:c.id, amountCents:c.commission_cents, status:c.status,
-      createdAt:c.created_at, holdUntil:c.hold_until,
-    })),
-    payouts: (payouts ?? []).map(p => ({
-      id:p.id, amountCents:p.amount_cents, status:p.status,
-      createdAt:p.created_at,paidAt:p.paid_at,
-    })),
-    awaitingReceipts: eligibility.awaitingReceipts,
-    termsUrl:'/earn-terms',
+    ...(data as EarnSettings),
+    enabled:Boolean(data.enabled&&process.env.EARN_TRACKING_ENABLED==='true'),
+    trial_enabled:Boolean(data.trial_enabled&&data.enabled&&process.env.EARN_TRACKING_ENABLED==='true'),
+    // No recipient transfers until a separate production operations approval.
+    automatic_payouts:Boolean(data.automatic_payouts&&data.enabled&&process.env.EARN_TRACKING_ENABLED==='true'),
   };
 }
-
-export async function enrollAffiliate(userId: string): Promise<'created'|'existing'|'unavailable'> {
-  const [settings, eligibility] = await Promise.all([earnSettings(), earnEligibility(userId)]);
-  if (!settings.enabled) return 'unavailable';
-  if (!eligibility.eligible || !eligibility.role) return 'unavailable';
-  const db = getBillingAdminClient();
-  const { data: existing, error } = await db.from('affiliate_profiles')
-    .select('user_id').eq('user_id',userId).maybeSingle();
+export async function ensureEarnProfile(userId:string) {
+  const db=getBillingAdminClient();
+  const {error}=await db.rpc('ensure_laterbox_referral',{target_user:userId});
   if(error)throw error;
-  if(existing) return 'existing';
-  const commission_bps = eligibility.plan === 'vault' ? settings.vault_commission_bps : settings.plus_commission_bps;
-  const { error: createError } = await db.from('affiliate_profiles').insert({
-    user_id:userId, referral_code: 'lb_' + randomBytes(12).toString('hex'),
-    role:eligibility.role,commission_bps,age_confirmed_at:new Date().toISOString(),
-  });
-  if(createError) {
-    if(createError.code === '23505') return 'existing';
-    throw createError;
-  }
+  const {data,error:readError}=await db.from('affiliate_profiles')
+    .select('user_id,referral_code,status,verified_whop_user_id,age_confirmed_at,code_changed_at')
+    .eq('user_id',userId).single();
+  if(readError||!data)throw readError??new Error('Referral code unavailable');
+  return data;
+}
+export async function lookupReferral(input:unknown, buyerUserId?:string) {
+  const code=normalizeReferralCode(input);
+  if(!code)return null;
+  const {data,error}=await getBillingAdminClient().from('affiliate_profiles')
+    .select('user_id,referral_code,status').eq('referral_code',code).maybeSingle();
+  if(error)throw error;
+  if(!data||data.status!=='active'||data.user_id===buyerUserId)return null;
+  return data;
+}
+export async function customizeReferralCode(userId:string,input:unknown) {
+  const code=normalizeReferralCode(input);
+  if(!code||!referralCodeAllowed(code))
+    return {error:'Use 4–32 lowercase letters, numbers, hyphens or underscores. Reserved names are unavailable.',status:400};
+  const db=getBillingAdminClient();
+  const profile=await ensureEarnProfile(userId);
+  if(profile.referral_code===code)return {code,status:200};
+  if(profile.code_changed_at && Date.now()-Date.parse(profile.code_changed_at)<30*86400000)
+    return {error:'You can change your referral code once every 30 days.',status:429};
+  const {data:duplicate,error:duplicateError}=await db.from('affiliate_profiles')
+    .select('user_id').eq('referral_code',code).maybeSingle();
+  if(duplicateError)throw duplicateError;
+  if(duplicate)return {error:'That referral code is already taken.',status:409};
+  const now=new Date().toISOString();
+  const {data,error}=await db.from('affiliate_profiles')
+    .update({referral_code:code,code_changed_at:now})
+    .eq('user_id',userId).eq('referral_code',profile.referral_code)
+    .select('referral_code').maybeSingle();
+  if(error?.code==='23505')return {error:'That referral code is already taken.',status:409};
+  if(error)throw error;
+  if(!data)return {error:'Referral code changed elsewhere. Refresh and retry.',status:409};
+  return {code:data.referral_code,status:200};
+}
+// Registration is open to every signed-in adult account, including Free.
+export async function enrollAffiliate(userId:string):Promise<'created'|'existing'|'unavailable'> {
+  const settings=await earnSettings();
+  if(!settings.enabled)return 'unavailable';
+  const db=getBillingAdminClient();
+  const profile=await ensureEarnProfile(userId);
+  if(profile.status==='suspended')return 'unavailable';
+  if(profile.age_confirmed_at)return 'existing';
+  const {error}=await db.from('affiliate_profiles').update({
+    age_confirmed_at:new Date().toISOString(),
+  }).eq('user_id',userId).eq('status','active');
+  if(error)throw error;
   return 'created';
 }
 
-export function parseUsdCents(value: unknown): number | null {
-  const info = value && typeof value === 'object' ? value as Record<string,unknown> : {};
-  if(info.currency !== 'usd' || info.decimals !== 2 ||
-    typeof info.amount !== 'string' || !/^[0-9]{1,9}([.][0-9]{1,2})?$/.test(info.amount)) return null;
-  const [whole,fraction=''] = info.amount.split('.');
-  const cents = Number(whole) * 100 + Number(fraction.padEnd(2,'0'));
-  return Number.isSafeInteger(cents) && cents > 0 ? cents : null;
+export async function getEarnState(userId:string):Promise<EarnState> {
+  const db=getBillingAdminClient();
+  // A migration-free release can still render the Coming Soon state safely.
+  const empty={
+    pendingCents:0,availableCents:0,processingCents:0,paidCents:0,reversedCents:0,
+  };
+  let settings:EarnSettings;
+  try{settings=await earnSettings();}
+  catch{
+    return {programEnabled:false,payoutsEnabled:false,trialEnabled:false,trialDays:30,
+      eligible:true,eligibleAt:null,plan:'free',role:'community_referrer',rateBps:null,
+      memberSince:null,status:'not_launched',referralCode:null,referralUrl:null,
+      payoutConnected:false,balances:empty,referrals:0,referredProgress:[],commissions:[],payouts:[]};
+  }
+  const profile=await ensureEarnProfile(userId);
+  const {data:subscriptions,error:subsError}=await db.from('billing_subscriptions')
+    .select('storage_plan,created_at,status').eq('user_id',userId).order('created_at',{ascending:true});
+  if(subsError)throw subsError;
+  const active=(subscriptions??[]).filter(s=>['active','trialing'].includes(s.status));
+  const plan:EarnPlan=active.some(s=>s.storage_plan==='vault')?'vault':active.some(s=>s.storage_plan==='plus')?'plus':'free';
+  const {data:commissions,error:cError}=await db.from('affiliate_commissions')
+    .select('id,commission_cents,status,created_at,hold_until')
+    .eq('affiliate_user_id',userId).order('created_at',{ascending:false}).limit(100);
+  if(cError)throw cError;
+  const {data:payouts,error:pError}=await db.from('affiliate_payouts')
+    .select('id,amount_cents,status,created_at,paid_at')
+    .eq('affiliate_user_id',userId).order('created_at',{ascending:false}).limit(50);
+  if(pError)throw pError;
+  const {data:claims,error:rError}=await db.from('affiliate_trial_claims')
+    .select('buyer_user_id,plan_key,status,created_at,trial_ends_at,qualified_at')
+    .eq('affiliate_user_id',userId).order('created_at',{ascending:false}).limit(100);
+  if(rError)throw rError;
+  const {data:balances,error:totalsError}=await db.rpc('affiliate_balance_totals',{target_user_id:userId});
+  if(totalsError)throw totalsError;
+  const totals=Array.isArray(balances)?balances[0]:balances;
+  const status:EarnState['status']=!settings.enabled?'not_launched':profile.status==='suspended'?'suspended':profile.age_confirmed_at?'active':'eligible';
+  const code=profile.referral_code as string;
+  return {
+    programEnabled:settings.enabled,payoutsEnabled:settings.automatic_payouts,
+    trialEnabled:settings.trial_enabled,trialDays:settings.trial_days,
+    eligible:true,eligibleAt:null,plan,role:'community_referrer',
+    rateBps:settings.intro_commission_bps,memberSince:active[0]?.created_at??null,status,
+    referralCode:code,referralUrl:`https://laterbox.dev/r/${code}`,
+    payoutConnected:Boolean(profile.verified_whop_user_id),
+    balances:{
+      pendingCents:Number(totals?.pending_cents??0),availableCents:Number(totals?.available_cents??0),
+      processingCents:Number(totals?.processing_cents??0),paidCents:Number(totals?.paid_cents??0),
+      reversedCents:Number(totals?.reversed_cents??0),
+    },referrals:claims?.length??0,
+    referredProgress:(claims??[]).map(row=>({
+      id:row.buyer_user_id,plan:row.plan_key,status:row.status,
+      referredAt:row.created_at,trialEndsAt:row.trial_ends_at,
+      qualifiedAt:row.qualified_at,
+      nextStep:row.status==='qualified'?'Commissionable renewals':row.status==='trialing'?'Paid qualification':'Awaiting checkout',
+    })),
+    commissions:(commissions??[]).map(c=>({id:c.id,amountCents:c.commission_cents,status:c.status,
+      createdAt:c.created_at,holdUntil:c.hold_until})),
+    payouts:(payouts??[]).map(p=>({id:p.id,amountCents:p.amount_cents,status:p.status,
+      createdAt:p.created_at,paidAt:p.paid_at})),
+  };
+}
+export function parseUsdCents(value:unknown):number|null {
+  const o=value&&typeof value==='object'?value as Record<string,unknown>:{};
+  if(o.currency!=='usd'||o.decimals!==2||typeof o.amount!=='string'||
+    !/^[0-9]{1,9}([.][0-9]{1,2})?$/.test(o.amount))return null;
+  const [major,minor='']=o.amount.split('.');
+  const cents=Number(major)*100+Number(minor.padEnd(2,'0'));
+  return Number.isSafeInteger(cents)&&cents>0?cents:null;
 }

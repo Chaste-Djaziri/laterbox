@@ -518,6 +518,23 @@ public actor LaterBoxAPIService {
         return try JSONDecoder().decode(AccountBillingEntitlement.self, from: data)
     }
 
+    public func updateEarnCode(token: String, code: String) async throws {
+        guard let url = URL(string: "\(billingUrl)/api/earn/code") else { throw URLError(.badURL) }
+        var request = URLRequest(url: url)
+        request.httpMethod = "PATCH"
+        request.cachePolicy = .reloadIgnoringLocalCacheData
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONSerialization.data(withJSONObject: ["code": code])
+        let (data, response) = try await session.data(for: request)
+        guard let http = response as? HTTPURLResponse else { throw URLError(.badServerResponse) }
+        guard (200...299).contains(http.statusCode) else {
+            let message = (try? JSONSerialization.jsonObject(with: data) as? [String: Any])?["error"] as? String
+                ?? "Could not update the referral code."
+            throw CloudSyncError.serverError(statusCode: http.statusCode, message: message)
+        }
+    }
+
     // MARK: - LaterBox Earn (public status, server-owned balances)
     public func fetchEarnDashboard(token: String) async throws -> EarnDashboardDTO {
         try await earnRequest(token: token, method: "GET", body: nil)
