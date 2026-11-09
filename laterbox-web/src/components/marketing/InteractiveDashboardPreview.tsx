@@ -1,33 +1,35 @@
 // laterbox-web/src/components/marketing/InteractiveDashboardPreview.tsx
 'use client';
 
-import React, { useEffect, useId, useMemo, useRef, useState, type FormEvent } from 'react';
+import React, { useMemo, useRef, useState, type FormEvent } from 'react';
+import Image from 'next/image';
 import {
   Archive,
-  ArrowRight,
   ArrowUpDown,
-  Bookmark,
-  Calendar,
+  BookOpen,
+  CalendarClock,
+  CalendarDays,
   Check,
   CheckCircle2,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
   Clock,
-  Clock3,
+  Cloud,
+  Compass,
+  Crown,
+  Download,
   ExternalLink,
-  Eye,
   FileText,
   FolderOpen,
+  HelpCircle,
   Inbox,
-  Link2,
-  LucideIcon,
   MoreVertical,
-  Paperclip,
+  Play,
   Plus,
   RefreshCw,
-  RotateCcw,
   Search,
+  Settings,
   Sparkles,
   Star,
   Tag,
@@ -35,40 +37,251 @@ import {
   Video,
   X,
 } from 'lucide-react';
-import {
-  changeDemoItem,
-  DEMO_ITEMS,
-  demoCount,
-  demoVisibleItems,
-  makeDemoItem,
-  type DemoBucket,
-  type DemoCollection,
-  type DemoItem,
-  type DemoView,
-} from './dashboard-preview-model';
 
-type PendingBucket = Exclude<DemoBucket, 'done'>;
-type CategoryTab = 'primary' | 'articles' | 'media' | 'updates';
-
-interface SidebarNavItem {
-  view: DemoView;
+interface PreviewTag {
   label: string;
-  icon: LucideIcon;
-  countKey?: DemoView;
+  icon?: 'video' | 'book';
+  color?: 'red' | 'green' | 'amber' | 'slate';
 }
 
-const sidebarNav: SidebarNavItem[] = [
-  { view: 'inbox', label: 'Inbox', icon: Inbox, countKey: 'inbox' },
-  { view: 'today', label: 'Today', icon: Clock3, countKey: 'today' },
-  { view: 'upcoming', label: 'Upcoming', icon: Calendar, countKey: 'upcoming' },
-  { view: 'someday', label: 'Someday', icon: Archive, countKey: 'someday' },
-  { view: 'starred', label: 'Starred', icon: Star, countKey: 'starred' },
-  { view: 'done', label: 'Completed', icon: CheckCircle2, countKey: 'done' },
+interface RealPreviewItem {
+  id: string;
+  source: string;
+  title: string;
+  snippet: string;
+  timeLabel: string;
+  tags: PreviewTag[];
+  starred: boolean;
+  categoryTab: 'primary' | 'articles' | 'media' | 'updates';
+  url: string;
+  hasAttachment?: boolean;
+}
+
+const INITIAL_REAL_ITEMS: RealPreviewItem[] = [
+  {
+    id: 'item-01',
+    source: 'disneyplus.com',
+    title: 'Watch Miraculous: Tales Of Ladybug & Cat Noir | F...',
+    snippet: 'Superheroes Ladybug and Cat Noir protect the city.',
+    timeLabel: 'In Inbox for 15 hrs, 29 min',
+    tags: [],
+    starred: false,
+    categoryTab: 'primary',
+    url: 'https://disneyplus.com',
+  },
+  {
+    id: 'item-02',
+    source: 'facebook.com',
+    title: '2M views • 48K reactions | Part 5 | Retro Film Rollin...',
+    snippet: 'Part 5 | Retro Film Rolling Effect #capcut #capcutpioner...',
+    timeLabel: 'In Inbox for 6 days, 9 hrs',
+    tags: [
+      { label: 'Video', icon: 'video', color: 'red' },
+      { label: 'Reading', icon: 'book', color: 'green' },
+    ],
+    starred: false,
+    categoryTab: 'media',
+    url: 'https://facebook.com',
+  },
+  {
+    id: 'item-03',
+    source: 'facebook.com',
+    title: '1.4M views • 27K reactions | Part 8 | Rolling Intro Ef...',
+    snippet: 'Part 8 | Rolling Intro Effect #capcut #capcutpioner...',
+    timeLabel: 'In Inbox for 19 hrs, 10 min',
+    tags: [
+      { label: 'Video', icon: 'video', color: 'red' },
+      { label: 'Reading', icon: 'book', color: 'green' },
+    ],
+    starred: false,
+    categoryTab: 'media',
+    url: 'https://facebook.com',
+  },
+  {
+    id: 'item-04',
+    source: 'Instagram',
+    title: 'Joshua J. Terrazas on Instagram: "Damn, she got m..."',
+    snippet: '586K likes, 4,496 comments - joshuajterrazas on August 20, 2026...',
+    timeLabel: 'In Inbox for 7 days, 3 hrs',
+    tags: [],
+    starred: false,
+    categoryTab: 'primary',
+    url: 'https://instagram.com',
+  },
+  {
+    id: 'item-05',
+    source: 'Threads',
+    title: 'Jason Chen 陳以 (@jasondchen) on Threads - POV: he has an answer for everything',
+    snippet: 'POV: he has an answer for everything @luseeyalu',
+    timeLabel: 'In Inbox for 7 days, 21 hrs',
+    tags: [{ label: 'Reading', icon: 'book', color: 'green' }],
+    starred: false,
+    categoryTab: 'articles',
+    url: 'https://threads.net',
+  },
+  {
+    id: 'item-06',
+    source: 'Instagram',
+    title: 'Zedois on Instagram: "Always so peak🔥"',
+    snippet: '141K likes, 642 comments - zdoist on October 24, 2026...',
+    timeLabel: 'In Inbox for 4 days, 21 hrs',
+    tags: [],
+    starred: true,
+    categoryTab: 'primary',
+    url: 'https://instagram.com',
+  },
+  {
+    id: 'item-07',
+    source: 'Instagram',
+    title: 'Jaden Fong on Instagram: "!! Egg does NOT releas..."',
+    snippet: 'jadenfong on September 25, 2026: "!! Egg does NOT release on day 1 !!"',
+    timeLabel: 'In Inbox for 7 days, 2 hrs',
+    tags: [],
+    starred: false,
+    categoryTab: 'primary',
+    url: 'https://instagram.com',
+  },
+  {
+    id: 'item-08',
+    source: 'Instagram',
+    title: 'PACIL on Instagram: "YOUTUBE SONGS YOU FORG..."',
+    snippet: '9,797 likes, 205 comments - pacil.g on October 30, 2026...',
+    timeLabel: 'In Inbox for 7 days, 3 hrs',
+    tags: [],
+    starred: false,
+    categoryTab: 'primary',
+    url: 'https://instagram.com',
+  },
+  {
+    id: 'item-09',
+    source: 'Instagram',
+    title: 'KIZxIE on Instagram: "Psalm 104:33 \'I will sing to t...\'"',
+    snippet: '22K likes, 288 comments - kizxiecore on August 9, 2026...',
+    timeLabel: 'In Inbox for 7 days, 21 hrs',
+    tags: [],
+    starred: false,
+    categoryTab: 'primary',
+    url: 'https://instagram.com',
+  },
+  {
+    id: 'item-10',
+    source: 'Instagram',
+    title: 'UXUI_COACH on Instagram: "Your design is good! ..."',
+    snippet: '142K likes, 191 comments - uxui_shrut on October 27, 2026...',
+    timeLabel: 'In Inbox for 7 days, 21 hrs',
+    tags: [],
+    starred: false,
+    categoryTab: 'articles',
+    url: 'https://instagram.com',
+  },
+  {
+    id: 'item-11',
+    source: 'Instagram',
+    title: 'Billy Han on Instagram: "If I pause my anime for yo..."',
+    snippet: '43K likes, 353 comments - billyhan_ on September 22, 2026...',
+    timeLabel: 'In Inbox for 7 days, 21 hrs',
+    tags: [],
+    starred: false,
+    categoryTab: 'primary',
+    url: 'https://instagram.com',
+  },
+  {
+    id: 'item-12',
+    source: 'Instagram',
+    title: 'Instagram - 199 likes, 169 comments - fianeedsajob...',
+    snippet: 'is this the most gatekept side hustle of 2026??',
+    timeLabel: 'Oct 21',
+    tags: [{ label: 'Reading', icon: 'book', color: 'green' }],
+    starred: false,
+    categoryTab: 'articles',
+    url: 'https://instagram.com',
+  },
+  {
+    id: 'item-13',
+    source: 'RADWIMPS • YouTube',
+    title: 'RADWIMPS - すずめ feat.十明 [Official Lyric Video]',
+    snippet: 'Enjoy the videos and music you love, upload original content...',
+    timeLabel: 'Oct 17',
+    tags: [
+      { label: 'Video', icon: 'video', color: 'red' },
+      { label: 'Watch Later', color: 'slate' },
+    ],
+    starred: false,
+    categoryTab: 'media',
+    url: 'https://youtube.com',
+  },
+  {
+    id: 'item-14',
+    source: 'Bill Gates',
+    title: 'The choices we make about AI now are critical | Bill G...',
+    snippet: 'Both of these experiences inform my perspective on artificial intelligence...',
+    timeLabel: 'Oct 17',
+    tags: [],
+    starred: false,
+    categoryTab: 'articles',
+    url: 'https://gatesnotes.com',
+  },
+  {
+    id: 'item-15',
+    source: 'YouTube',
+    title: 'POV: Scammers are TOO advanced #skit #funny #c...',
+    snippet: 'Video by Nathan Doan Comedy on YouTube',
+    timeLabel: 'In Inbox for 17 days, 3 hrs',
+    tags: [
+      { label: 'Video', icon: 'video', color: 'red' },
+      { label: 'Entertainment', color: 'amber' },
+    ],
+    starred: false,
+    categoryTab: 'media',
+    url: 'https://youtube.com',
+  },
+  {
+    id: 'item-16',
+    source: 'YouTube',
+    title: 'First 5 things to do when you get an iPad - Do this first when you get an iPad',
+    snippet: '#ipad #ipadti...',
+    timeLabel: 'Sep 14',
+    tags: [
+      { label: 'Video', icon: 'video', color: 'red' },
+      { label: 'Watch Later', color: 'slate' },
+      { label: 'Tech & Arch...', color: 'slate' },
+    ],
+    starred: false,
+    categoryTab: 'media',
+    url: 'https://youtube.com',
+  },
+  {
+    id: 'item-17',
+    source: 'YouTube',
+    title: '【女性が歌う】小さな恋のうた/MONGOL800(Full Cov...',
+    snippet: 'YouTube by kobasolo',
+    timeLabel: 'In Inbox for 17 days, 3 hrs',
+    tags: [
+      { label: 'Video', icon: 'video', color: 'red' },
+      { label: 'Watch Later', color: 'slate' },
+    ],
+    starred: false,
+    categoryTab: 'media',
+    url: 'https://youtube.com',
+  },
+  {
+    id: 'item-18',
+    source: 'kobasolo • YouTube',
+    title: '【時かけ】変わらないもの/奥華子(Covered by コバソロ &...',
+    snippet: 'https://www.youtube.com/watch?v=CmUfGOtidPw&l...',
+    timeLabel: 'Aug 24',
+    tags: [
+      { label: 'Video', icon: 'video', color: 'red' },
+      { label: 'Watch Later', color: 'slate' },
+    ],
+    starred: false,
+    categoryTab: 'media',
+    url: 'https://youtube.com',
+  },
 ];
 
-function copySeedItems(): DemoItem[] {
-  return DEMO_ITEMS.map((item) => ({ ...item }));
-}
+type ViewKey = 'inbox' | 'today' | 'upcoming' | 'someday' | 'starred' | 'kept' | 'archived' | 'trash';
+type CategoryTab = 'primary' | 'articles' | 'media' | 'updates';
 
 export function InteractiveDashboardPreview({
   id,
@@ -77,340 +290,475 @@ export function InteractiveDashboardPreview({
   id?: string;
   className?: string;
 }) {
-  const [items, setItems] = useState<DemoItem[]>(copySeedItems);
-  const [view, setView] = useState<DemoView>('inbox');
+  const [items, setItems] = useState<RealPreviewItem[]>(INITIAL_REAL_ITEMS);
+  const [activeView, setActiveView] = useState<ViewKey>('inbox');
   const [activeCategoryTab, setActiveCategoryTab] = useState<CategoryTab>('primary');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [selectedDetailItem, setSelectedDetailItem] = useState<DemoItem | null>(null);
+  const [hoveredRowId, setHoveredRowId] = useState<string | null>(null);
+  const [selectedDetailItem, setSelectedDetailItem] = useState<RealPreviewItem | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [sortOrder, setSortOrder] = useState<'latest' | 'oldest'>('latest');
 
-  // Quick save modal state
+  // Quick Save Modal State
   const [captureOpen, setCaptureOpen] = useState(false);
   const [newTitle, setNewTitle] = useState('');
   const [newUrl, setNewUrl] = useState('');
-  const [newBucket, setNewBucket] = useState<PendingBucket>('inbox');
-  const [inputError, setInputError] = useState('');
+  const [newSchedule, setNewSchedule] = useState<'inbox' | 'today' | 'upcoming' | 'someday'>('inbox');
   const [toastMessage, setToastMessage] = useState('');
 
-  // Dropdown states
+  // Dropdown menus
   const [selectMenuOpen, setSelectMenuOpen] = useState(false);
   const [snoozeMenuForId, setSnoozeMenuForId] = useState<string | null>(null);
 
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const nextItemId = useRef(100);
-
-  // Filter items based on view, category tab, and search query
-  const visibleItems = useMemo(() => {
-    let result = demoVisibleItems(items, view, searchQuery);
-
-    // If no search query and in inbox view, apply category tabs
-    if (!searchQuery.trim() && view === 'inbox') {
-      result = result.filter((item) => {
-        if (activeCategoryTab === 'primary') return !item.categoryTab || item.categoryTab === 'primary';
-        return item.categoryTab === activeCategoryTab;
-      });
-    }
-
-    if (sortOrder === 'oldest') {
-      return [...result].reverse();
-    }
-    return result;
-  }, [items, view, activeCategoryTab, searchQuery, sortOrder]);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
-    setTimeout(() => {
-      setToastMessage('');
-    }, 3200);
+    setTimeout(() => setToastMessage(''), 3000);
   };
 
   const handleRefresh = () => {
     setIsRefreshing(true);
     setTimeout(() => {
       setIsRefreshing(false);
-      showToast('Dashboard synced with local library');
+      showToast('Dashboard synced with cloud');
     }, 600);
   };
 
-  const resetDemo = () => {
-    setItems(copySeedItems());
-    setView('inbox');
-    setActiveCategoryTab('primary');
-    setSearchQuery('');
-    setSelectedIds(new Set());
-    setSelectedDetailItem(null);
-    showToast('Reset to sample library');
-  };
-
-  const handleToggleStar = (id: string, e?: React.MouseEvent) => {
+  const toggleStar = (itemId: string, e?: React.MouseEvent) => {
     e?.stopPropagation();
-    setItems((prev) => changeDemoItem(prev, { type: 'star', id }));
-    const target = items.find((i) => i.id === id);
-    showToast(target?.starred ? 'Removed from starred' : 'Starred item');
-  };
-
-  const handleToggleComplete = (id: string, e?: React.MouseEvent) => {
-    e?.stopPropagation();
-    setItems((prev) => changeDemoItem(prev, { type: 'complete', id }));
-    const target = items.find((i) => i.id === id);
-    showToast(target?.bucket === 'done' ? 'Moved back to inbox' : 'Completed and archived');
-  };
-
-  const handleSnooze = (id: string, bucket: PendingBucket, e?: React.MouseEvent) => {
-    e?.stopPropagation();
-    setItems((prev) => changeDemoItem(prev, { type: 'move', id, bucket }));
-    setSnoozeMenuForId(null);
-    showToast(
-      bucket === 'today'
-        ? 'Scheduled for Today'
-        : bucket === 'upcoming'
-        ? 'Scheduled for Tomorrow'
-        : 'Moved to Someday Vault'
+    setItems((prev) =>
+      prev.map((item) => (item.id === itemId ? { ...item, starred: !item.starred } : item))
     );
+    const item = items.find((i) => i.id === itemId);
+    showToast(item?.starred ? 'Removed from starred' : 'Starred item');
   };
 
-  const handleDeleteItem = (id: string, e?: React.MouseEvent) => {
-    e?.stopPropagation();
-    setItems((prev) => changeDemoItem(prev, { type: 'delete', id }));
-    if (selectedDetailItem?.id === id) {
-      setSelectedDetailItem(null);
-    }
-    showToast('Item deleted from demo');
-  };
-
-  const toggleSelectRow = (id: string, e: React.MouseEvent) => {
+  const toggleSelectRow = (itemId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     setSelectedIds((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
+      if (next.has(itemId)) next.delete(itemId);
+      else next.add(itemId);
       return next;
     });
   };
 
   const toggleSelectAll = () => {
-    if (selectedIds.size === visibleItems.length) {
+    if (selectedIds.size === filteredItems.length) {
       setSelectedIds(new Set());
     } else {
-      setSelectedIds(new Set(visibleItems.map((i) => i.id)));
+      setSelectedIds(new Set(filteredItems.map((i) => i.id)));
     }
+  };
+
+  const deleteItem = (itemId: string, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    setItems((prev) => prev.filter((i) => i.id !== itemId));
+    if (selectedDetailItem?.id === itemId) setSelectedDetailItem(null);
+    showToast('Moved to Recently Deleted');
   };
 
   const handleSaveItem = (e: FormEvent) => {
     e.preventDefault();
-    setInputError('');
+    if (!newTitle.trim()) return;
 
-    if (!newTitle.trim()) {
-      setInputError('Please enter a title');
-      return;
-    }
+    const newItem: RealPreviewItem = {
+      id: `item-${Date.now()}`,
+      source: newUrl.trim() ? new URL(newUrl.startsWith('http') ? newUrl : `https://${newUrl}`).hostname : 'Quick Save',
+      title: newTitle.trim(),
+      snippet: 'Saved from interactive marketing preview.',
+      timeLabel: newSchedule === 'today' ? 'Scheduled Today' : newSchedule === 'upcoming' ? 'Tomorrow 9:00 AM' : 'In Inbox for 1 min',
+      tags: [],
+      starred: false,
+      categoryTab: 'primary',
+      url: newUrl.trim() || 'https://laterbox.dev',
+    };
 
-    const urlToUse = newUrl.trim()
-      ? newUrl.trim().startsWith('http')
-        ? newUrl.trim()
-        : `https://${newUrl.trim()}`
-      : 'https://laterbox.dev';
-
-    const created = makeDemoItem(`custom-${nextItemId.current++}`, urlToUse, newTitle.trim(), newBucket);
-    if (!created) {
-      setInputError('Please enter a valid URL');
-      return;
-    }
-
-    setItems((prev) => [created, ...prev]);
+    setItems((prev) => [newItem, ...prev]);
     setCaptureOpen(false);
     setNewTitle('');
     setNewUrl('');
-    setNewBucket('inbox');
     showToast('Saved to Inbox (Interactive demo)');
   };
 
-  // Category Tab Counts
-  const tabCounts = useMemo(() => {
-    const inboxItems = items.filter((i) => i.bucket === 'inbox');
-    return {
-      primary: inboxItems.filter((i) => !i.categoryTab || i.categoryTab === 'primary').length,
-      articles: inboxItems.filter((i) => i.categoryTab === 'articles').length,
-      media: inboxItems.filter((i) => i.categoryTab === 'media').length,
-      updates: inboxItems.filter((i) => i.categoryTab === 'updates').length,
-    };
-  }, [items]);
+  // Filtered Items based on active view, category tab, and search query
+  const filteredItems = useMemo(() => {
+    let list = items;
 
-  const allSelected = visibleItems.length > 0 && selectedIds.size === visibleItems.length;
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      list = list.filter(
+        (i) =>
+          i.title.toLowerCase().includes(q) ||
+          i.source.toLowerCase().includes(q) ||
+          i.snippet.toLowerCase().includes(q)
+      );
+    } else {
+      if (activeView === 'starred') {
+        list = list.filter((i) => i.starred);
+      } else if (activeView === 'today') {
+        list = list.filter((_, idx) => idx % 6 === 0);
+      } else if (activeView === 'upcoming') {
+        list = list.filter((_, idx) => idx % 5 === 0);
+      } else if (activeView === 'someday') {
+        list = list.filter((_, idx) => idx % 4 === 0);
+      } else if (activeView === 'kept') {
+        list = list.filter((_, idx) => idx % 7 === 0);
+      } else if (activeView === 'trash') {
+        list = [];
+      } else if (activeView === 'inbox') {
+        if (activeCategoryTab === 'articles') {
+          list = list.filter((i) => i.categoryTab === 'articles');
+        } else if (activeCategoryTab === 'media') {
+          list = list.filter((i) => i.categoryTab === 'media');
+        } else if (activeCategoryTab === 'updates') {
+          list = list.filter((i) => i.categoryTab === 'updates');
+        }
+      }
+    }
+
+    if (sortOrder === 'oldest') {
+      return [...list].reverse();
+    }
+    return list;
+  }, [items, activeView, activeCategoryTab, searchQuery, sortOrder]);
+
+  const viewTitles: Record<ViewKey, string> = {
+    inbox: 'Inbox',
+    today: 'Today',
+    upcoming: 'Upcoming',
+    someday: 'Someday',
+    starred: 'Starred',
+    kept: 'Kept',
+    archived: 'Archived',
+    trash: 'Recently Deleted',
+  };
+
+  const allSelected = filteredItems.length > 0 && selectedIds.size === filteredItems.length;
   const someSelected = selectedIds.size > 0 && !allSelected;
 
   return (
     <section
       id={id}
       aria-label="Interactive LaterBox dashboard demo"
-      className={`relative min-w-0 overflow-hidden rounded-[26px] sm:rounded-[30px] border border-[#dedfd4] bg-white text-left text-[#192018] shadow-[0_25px_80px_rgba(24,27,20,0.14)] ${className}`}
+      className={`relative min-w-0 overflow-hidden rounded-[24px] sm:rounded-[32px] border border-[#dedfd4] bg-[#faf8f5] text-left text-[#192018] shadow-[0_25px_80px_rgba(24,27,20,0.14)] ${className}`}
     >
       {/* ===================================================================== */}
-      {/* MAC-STYLE APP WINDOW HEADER & OMNIBAR SEARCH */}
+      {/* TOP BAR (LaterBox Monogram Logo + Title, Center Omnibar, Right Controls) */}
       {/* ===================================================================== */}
-      <div className="flex min-h-[50px] items-center justify-between gap-3 border-b border-[#e5e4dc] bg-[#f7f6f0] px-4 py-2 sm:px-5 select-none">
-        {/* Left macOS Window Controls */}
-        <div className="flex shrink-0 items-center gap-2" aria-hidden="true">
-          <span className="h-3 w-3 rounded-full bg-[#ff5f56] border border-[#e0443e]/40 shadow-2xs" />
-          <span className="h-3 w-3 rounded-full bg-[#ffbd2e] border border-[#dea123]/40 shadow-2xs" />
-          <span className="h-3 w-3 rounded-full bg-[#27c93f] border border-[#1aab29]/40 shadow-2xs" />
+      <div className="flex min-h-[64px] sm:min-h-[72px] items-center justify-between gap-3 px-4 sm:px-6 py-3 select-none">
+        {/* Left: Cube Monogram + Active Page Title */}
+        <div className="flex items-center gap-3 shrink-0">
+          <div className="relative flex h-10 w-10 sm:h-11 sm:w-11 items-center justify-center overflow-hidden rounded-xl sm:rounded-2xl border border-[#cbd79c] bg-[#e6edb0] shadow-2xs">
+            <Image
+              src="/branding/laterbox-icon.png"
+              alt="LaterBox"
+              fill
+              sizes="44px"
+              className="object-contain p-1"
+            />
+          </div>
+          <h2 className="text-xl sm:text-2xl lg:text-[26px] font-black tracking-tight text-[#171711]">
+            {viewTitles[activeView]}
+          </h2>
         </div>
 
-        {/* Center Omnibar Search Bar */}
+        {/* Center: Real Omnibar Search Input */}
         <div className="flex-1 max-w-lg mx-2 sm:mx-6">
           <div className="relative flex items-center w-full">
-            <Search className="absolute left-3 w-3.5 h-3.5 text-[#8c8a80] pointer-events-none" />
+            <Search className="absolute left-3.5 w-3.5 h-3.5 text-[#8c8a80] pointer-events-none" />
             <input
               ref={searchInputRef}
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search in LaterBox or type command..."
-              className="w-full h-8 pl-8 pr-16 rounded-full bg-white border border-[#dedad0] text-xs text-[#171711] placeholder-[#8c8a80] focus:outline-none focus:border-[#171711] focus:ring-1 focus:ring-[#171711] shadow-2xs transition-all"
+              placeholder="Search in inbox or web library... (⌘K)"
+              className="w-full h-9 sm:h-10 pl-9 pr-10 rounded-full bg-white border border-[#dedad0] text-xs text-[#171711] placeholder-[#8c8a80] focus:outline-none focus:border-[#171711] focus:ring-1 focus:ring-[#171711] shadow-2xs transition-all"
             />
-            {searchQuery ? (
+            {searchQuery && (
               <button
                 type="button"
                 onClick={() => setSearchQuery('')}
-                className="absolute right-2.5 p-0.5 rounded-full hover:bg-[#ece8df] text-[#8c8a80] hover:text-[#171711]"
+                className="absolute right-3 p-0.5 rounded-full hover:bg-[#ece8df] text-[#8c8a80] hover:text-[#171711]"
               >
-                <X className="w-3 h-3" />
+                <X className="w-3.5 h-3.5" />
               </button>
-            ) : (
-              <span className="absolute right-2.5 px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold bg-[#f0ede4] text-[#8c8a80] border border-[#e2ded4] pointer-events-none">
-                ⌘K
-              </span>
             )}
           </div>
         </div>
 
-        {/* Right Action Icons & Status Pill */}
-        <div className="flex items-center gap-2 shrink-0">
+        {/* Right: AI Organize Pill, Settings Cog, User Profile */}
+        <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
           <button
             type="button"
-            onClick={() => showToast('AI Organize analyzed and grouped your inbox items')}
-            className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#e6edb0] border border-[#d2df88] text-[#171711] text-[11px] font-extrabold hover:bg-[#dbe69b] shadow-2xs transition-all cursor-pointer"
+            onClick={() => showToast('AI organize analyzed and grouped your inbox items')}
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 sm:py-2 rounded-full bg-[#e6edb0] border border-[#d2df88] text-[#171711] text-xs font-black hover:bg-[#dbe69b] shadow-2xs transition-all cursor-pointer"
           >
-            <Sparkles className="w-3 h-3 text-[#171711]" />
-            <span>AI Organize</span>
+            <Sparkles className="w-3.5 h-3.5 text-[#171711]" />
+            <span className="hidden sm:inline">AI organize</span>
           </button>
 
           <button
             type="button"
-            onClick={resetDemo}
-            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold text-[#606c54] hover:bg-[#ece8df] hover:text-[#171711] transition-colors cursor-pointer"
-            title="Reset sample demo"
+            onClick={() => showToast('Settings: All preferences preserved in sandbox')}
+            title="Settings"
+            className="p-2 sm:p-2.5 rounded-xl bg-white border border-[#dedad0] text-[#6c6b63] hover:text-[#171711] shadow-2xs transition-colors cursor-pointer"
           >
-            <RotateCcw className="w-3.5 h-3.5" />
-            <span className="hidden md:inline">Reset</span>
+            <Settings className="w-4 h-4" />
           </button>
 
-          {/* User profile avatar badge */}
-          <div className="flex items-center gap-1.5 pl-1.5 border-l border-[#dedad0]">
-            <div className="w-6 h-6 rounded-full bg-[#171711] text-[#e6edb0] text-[10px] font-black flex items-center justify-center select-none shadow-2xs">
-              LB
-            </div>
-            <span className="text-[11px] font-bold text-[#6c6b63] hidden lg:inline">
-              Guest Sandbox
-            </span>
+          {/* User initials circle */}
+          <div
+            title="Signed in as demo curator"
+            className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-[#171711] text-white text-xs font-black flex items-center justify-center select-none shadow-2xs"
+          >
+            CD
           </div>
         </div>
       </div>
 
       {/* ===================================================================== */}
-      {/* MAIN LAYOUT: SIDEBAR RAIL + EMAIL INBOX TABLE */}
+      {/* MAIN WORKSPACE: APP SIDEBAR RAIL + INBOX TABLE CARD */}
       {/* ===================================================================== */}
-      <div className="flex min-h-[580px] sm:min-h-[640px] flex-col md:flex-row bg-[#faf8f5]">
-        {/* Left App Sidebar Rail */}
+      <div className="flex flex-col md:flex-row px-3 sm:px-5 pb-3 sm:pb-5 gap-3 sm:gap-4 items-stretch min-h-[580px] sm:min-h-[640px]">
+        {/* =================================================================== */}
+        {/* EXACT REAL DASHBOARD SIDEBAR RAIL (Matching Image 2 & AppSidebar) */}
+        {/* =================================================================== */}
         <aside
           aria-label="Dashboard sidebar"
-          className="w-full md:w-[76px] lg:w-[84px] shrink-0 border-b md:border-b-0 md:border-r border-[#e5e4dc] bg-[#f7f6f0] flex md:flex-col items-center justify-between p-2 md:py-4 select-none z-20"
+          className="w-full md:w-[72px] lg:w-[80px] shrink-0 flex md:flex-col items-center justify-between md:justify-start gap-1.5 py-1 md:py-0 select-none"
         >
-          {/* Top Brand Cube + Quick Save button */}
-          <div className="flex md:flex-col items-center gap-3 w-full">
-            <span
-              role="img"
-              aria-label="LaterBox"
-              className="flex h-10 w-10 md:h-12 md:w-12 items-center justify-center rounded-2xl bg-[#e6edb0] border border-[#d2df88] text-[#171711] shadow-2xs"
-            >
-              <Bookmark className="h-5 w-5 md:h-6 md:w-6" strokeWidth={2.4} />
-            </span>
+          {/* Black Plus Save Button (matching Image 2) */}
+          <button
+            type="button"
+            onClick={() => setCaptureOpen(true)}
+            title="Save Item (Ctrl + Alt + L)"
+            className="group flex h-[48px] w-[48px] sm:h-[52px] sm:w-[52px] shrink-0 items-center justify-center rounded-2xl bg-[#171711] text-[#e6edb0] shadow-[0_6px_14px_rgba(23,23,17,0.12)] transition-all hover:-translate-y-0.5 hover:bg-[#30372a] focus-visible:outline-2 focus-visible:outline-[#758a50] cursor-pointer"
+          >
+            <Plus className="h-6 w-6 sm:h-7 sm:w-7 transition-transform group-hover:rotate-90" strokeWidth={2.6} />
+          </button>
 
-            {/* + Save Item Button */}
+          {/* Navigation Rails Icons */}
+          <nav
+            aria-label="Navigation rail"
+            className="flex md:flex-col items-center gap-1.5 my-1 md:my-3 overflow-x-auto scrollbar-none w-full"
+          >
+            {/* 1. Inbox (Active) */}
             <button
               type="button"
-              onClick={() => setCaptureOpen(true)}
-              title="Quick save new link or idea"
-              className="group flex h-10 w-10 md:h-12 md:w-12 items-center justify-center rounded-2xl bg-[#171711] hover:bg-[#2c2b26] text-[#e6edb0] shadow-sm transition-all duration-150 cursor-pointer"
+              onClick={() => {
+                setActiveView('inbox');
+                setSelectedDetailItem(null);
+              }}
+              title="Inbox (18)"
+              className={`relative group flex h-[48px] w-[48px] sm:h-[52px] sm:w-[52px] shrink-0 items-center justify-center rounded-2xl border transition-all duration-150 cursor-pointer ${
+                activeView === 'inbox'
+                  ? 'border-[#d3df9e] bg-[#e6edb0] text-[#21291c] shadow-[0_2px_8px_rgba(30,42,20,0.06)]'
+                  : 'border-transparent text-[#85877c] hover:bg-white hover:text-[#171711]'
+              }`}
             >
-              <Plus className="h-5 w-5 md:h-6 md:w-6 group-hover:scale-110 transition-transform" strokeWidth={2.5} />
+              <Inbox className="h-6 w-6" strokeWidth={activeView === 'inbox' ? 2.3 : 1.9} />
+              <span className="absolute -right-0.5 -top-0.5 flex h-[17px] min-w-[17px] items-center justify-center rounded-full border-2 border-[#f7f5ee] bg-[#20271c] px-1 text-[9px] font-black leading-none text-white">
+                18
+              </span>
             </button>
-          </div>
 
-          {/* Navigation Rails */}
-          <nav
-            aria-label="Main sections"
-            className="flex md:flex-col items-center justify-center gap-1 md:gap-1.5 my-1 md:my-6 overflow-x-auto scrollbar-none w-full"
-          >
-            {sidebarNav.map((item) => {
-              const Icon = item.icon;
-              const isActive = view === item.view;
-              const count = item.countKey ? demoCount(items, item.countKey) : 0;
+            {/* 2. Today */}
+            <button
+              type="button"
+              onClick={() => {
+                setActiveView('today');
+                setSelectedDetailItem(null);
+              }}
+              title="Today (2)"
+              className={`relative group flex h-[48px] w-[48px] sm:h-[52px] sm:w-[52px] shrink-0 items-center justify-center rounded-2xl border transition-all duration-150 cursor-pointer ${
+                activeView === 'today'
+                  ? 'border-[#d3df9e] bg-[#e6edb0] text-[#21291c] shadow-[0_2px_8px_rgba(30,42,20,0.06)]'
+                  : 'border-transparent text-[#85877c] hover:bg-white hover:text-[#171711]'
+              }`}
+            >
+              <Clock className="h-6 w-6" strokeWidth={activeView === 'today' ? 2.3 : 1.9} />
+              <span className="absolute -right-0.5 -top-0.5 flex h-[17px] min-w-[17px] items-center justify-center rounded-full border-2 border-[#f7f5ee] bg-[#20271c] px-1 text-[9px] font-black leading-none text-white">
+                2
+              </span>
+            </button>
 
-              return (
-                <button
-                  key={item.view}
-                  type="button"
-                  onClick={() => {
-                    setView(item.view);
-                    setSelectedDetailItem(null);
-                  }}
-                  className={`relative flex items-center justify-center h-10 w-10 md:h-12 md:w-12 rounded-2xl transition-all cursor-pointer group ${
-                    isActive
-                      ? 'bg-[#e6edb0] text-[#171711] shadow-2xs border border-[#d2df88]'
-                      : 'text-[#6c6b63] hover:bg-white hover:text-[#171711]'
-                  }`}
-                  title={`${item.label} (${count})`}
-                >
-                  <Icon className="w-5 h-5" strokeWidth={isActive ? 2.5 : 2} />
+            {/* 3. Upcoming */}
+            <button
+              type="button"
+              onClick={() => {
+                setActiveView('upcoming');
+                setSelectedDetailItem(null);
+              }}
+              title="Upcoming (3)"
+              className={`relative group flex h-[48px] w-[48px] sm:h-[52px] sm:w-[52px] shrink-0 items-center justify-center rounded-2xl border transition-all duration-150 cursor-pointer ${
+                activeView === 'upcoming'
+                  ? 'border-[#d3df9e] bg-[#e6edb0] text-[#21291c] shadow-[0_2px_8px_rgba(30,42,20,0.06)]'
+                  : 'border-transparent text-[#85877c] hover:bg-white hover:text-[#171711]'
+              }`}
+            >
+              <CalendarDays className="h-6 w-6" strokeWidth={activeView === 'upcoming' ? 2.3 : 1.9} />
+              <span className="absolute -right-0.5 -top-0.5 flex h-[17px] min-w-[17px] items-center justify-center rounded-full border-2 border-[#f7f5ee] bg-[#20271c] px-1 text-[9px] font-black leading-none text-white">
+                3
+              </span>
+            </button>
 
-                  {/* Badge count */}
-                  {count > 0 && (
-                    <span
-                      className={`absolute -top-1 -right-1 px-1.5 min-w-4 h-4 rounded-full text-[9px] font-black flex items-center justify-center ${
-                        isActive
-                          ? 'bg-[#171711] text-[#e6edb0]'
-                          : 'bg-[#dedad0] text-[#171711] group-hover:bg-[#171711] group-hover:text-white'
-                      }`}
-                    >
-                      {count}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </nav>
+            {/* 4. Someday */}
+            <button
+              type="button"
+              onClick={() => {
+                setActiveView('someday');
+                setSelectedDetailItem(null);
+              }}
+              title="Someday (6)"
+              className={`relative group flex h-[48px] w-[48px] sm:h-[52px] sm:w-[52px] shrink-0 items-center justify-center rounded-2xl border transition-all duration-150 cursor-pointer ${
+                activeView === 'someday'
+                  ? 'border-[#d3df9e] bg-[#e6edb0] text-[#21291c] shadow-[0_2px_8px_rgba(30,42,20,0.06)]'
+                  : 'border-transparent text-[#85877c] hover:bg-white hover:text-[#171711]'
+              }`}
+            >
+              <CalendarClock className="h-6 w-6" strokeWidth={activeView === 'someday' ? 2.3 : 1.9} />
+              <span className="absolute -right-0.5 -top-0.5 flex h-[17px] min-w-[17px] items-center justify-center rounded-full border-2 border-[#f7f5ee] bg-[#20271c] px-1 text-[9px] font-black leading-none text-white">
+                6
+              </span>
+            </button>
 
-          {/* Bottom Sidebar Status Indicator */}
-          <div className="hidden md:flex flex-col items-center gap-2 pt-2 border-t border-[#dedad0] w-full">
-            <div className="flex items-center gap-1" title="Offline core ready · Cloud sync active">
-              <span className="w-2 h-2 rounded-full bg-[#678144] animate-pulse" />
+            {/* 5. Starred */}
+            <button
+              type="button"
+              onClick={() => {
+                setActiveView('starred');
+                setSelectedDetailItem(null);
+              }}
+              title="Starred (2)"
+              className={`relative group flex h-[48px] w-[48px] sm:h-[52px] sm:w-[52px] shrink-0 items-center justify-center rounded-2xl border transition-all duration-150 cursor-pointer ${
+                activeView === 'starred'
+                  ? 'border-[#d3df9e] bg-[#e6edb0] text-[#21291c] shadow-[0_2px_8px_rgba(30,42,20,0.06)]'
+                  : 'border-transparent text-[#85877c] hover:bg-white hover:text-[#171711]'
+              }`}
+            >
+              <Star className="h-6 w-6" strokeWidth={activeView === 'starred' ? 2.3 : 1.9} />
+              <span className="absolute -right-0.5 -top-0.5 flex h-[17px] min-w-[17px] items-center justify-center rounded-full border-2 border-[#f7f5ee] bg-[#20271c] px-1 text-[9px] font-black leading-none text-white">
+                2
+              </span>
+            </button>
+
+            {/* 6. Kept */}
+            <button
+              type="button"
+              onClick={() => {
+                setActiveView('kept');
+                setSelectedDetailItem(null);
+              }}
+              title="Kept (4)"
+              className={`relative group flex h-[48px] w-[48px] sm:h-[52px] sm:w-[52px] shrink-0 items-center justify-center rounded-2xl border transition-all duration-150 cursor-pointer ${
+                activeView === 'kept'
+                  ? 'border-[#d3df9e] bg-[#e6edb0] text-[#21291c] shadow-[0_2px_8px_rgba(30,42,20,0.06)]'
+                  : 'border-transparent text-[#85877c] hover:bg-white hover:text-[#171711]'
+              }`}
+            >
+              <CheckCircle2 className="h-6 w-6" strokeWidth={activeView === 'kept' ? 2.3 : 1.9} />
+              <span className="absolute -right-0.5 -top-0.5 flex h-[17px] min-w-[17px] items-center justify-center rounded-full border-2 border-[#f7f5ee] bg-[#20271c] px-1 text-[9px] font-black leading-none text-white">
+                4
+              </span>
+            </button>
+
+            {/* 7. Archived */}
+            <button
+              type="button"
+              onClick={() => {
+                setActiveView('archived');
+                setSelectedDetailItem(null);
+              }}
+              title="Archived"
+              className={`relative group flex h-[48px] w-[48px] sm:h-[52px] sm:w-[52px] shrink-0 items-center justify-center rounded-2xl border transition-all duration-150 cursor-pointer ${
+                activeView === 'archived'
+                  ? 'border-[#d3df9e] bg-[#e6edb0] text-[#21291c] shadow-[0_2px_8px_rgba(30,42,20,0.06)]'
+                  : 'border-transparent text-[#85877c] hover:bg-white hover:text-[#171711]'
+              }`}
+            >
+              <Archive className="h-6 w-6" strokeWidth={1.9} />
+            </button>
+
+            {/* 8. Trash */}
+            <button
+              type="button"
+              onClick={() => {
+                setActiveView('trash');
+                setSelectedDetailItem(null);
+              }}
+              title="Recently Deleted"
+              className={`relative group flex h-[48px] w-[48px] sm:h-[52px] sm:w-[52px] shrink-0 items-center justify-center rounded-2xl border transition-all duration-150 cursor-pointer ${
+                activeView === 'trash'
+                  ? 'border-[#d3df9e] bg-[#e6edb0] text-[#21291c] shadow-[0_2px_8px_rgba(30,42,20,0.06)]'
+                  : 'border-transparent text-[#85877c] hover:bg-white hover:text-[#171711]'
+              }`}
+            >
+              <Trash2 className="h-6 w-6" strokeWidth={1.9} />
+            </button>
+
+            {/* Divider line matching Image 2 */}
+            <div className="my-2 hidden md:flex justify-center" aria-hidden="true">
+              <span className="h-px w-9 bg-[#e5e2d6]" />
             </div>
-            <span className="text-[9px] font-extrabold uppercase tracking-wider text-[#8c8a80]">
-              Ready
-            </span>
-          </div>
+
+            {/* Collections button */}
+            <button
+              type="button"
+              onClick={() => showToast('Collections: Design, Reading, Tech')}
+              title="Collections"
+              className="relative group hidden md:flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-2xl border border-transparent text-[#85877c] hover:bg-white hover:text-[#171711] transition-all cursor-pointer"
+            >
+              <FolderOpen className="h-6 w-6" strokeWidth={1.9} />
+              <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-[#7b9652]" />
+            </button>
+
+            {/* Divider line */}
+            <div className="my-2 hidden md:flex justify-center" aria-hidden="true">
+              <span className="h-px w-9 bg-[#e5e2d6]" />
+            </div>
+
+            {/* Guide */}
+            <button
+              type="button"
+              onClick={() => showToast('Onboarding guide available in app')}
+              title="Guide"
+              className="group hidden md:flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-2xl border border-transparent text-[#85877c] hover:bg-white hover:text-[#171711] transition-all cursor-pointer"
+            >
+              <Compass className="h-6 w-6" strokeWidth={1.9} />
+            </button>
+
+            {/* Downloads */}
+            <button
+              type="button"
+              onClick={() => showToast('Apps for iOS, Android & Chrome Extension')}
+              title="Downloads"
+              className="group hidden md:flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-2xl border border-transparent text-[#85877c] hover:bg-white hover:text-[#171711] transition-all cursor-pointer"
+            >
+              <Download className="h-6 w-6" strokeWidth={1.9} />
+            </button>
+
+            {/* Plans / Crown */}
+            <button
+              type="button"
+              onClick={() => showToast('Pro Cloud Vault Plan: Unlimited sync & AI')}
+              title="Plans"
+              className="group hidden md:flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-2xl border border-transparent text-[#85877c] hover:bg-white hover:text-[#171711] transition-all cursor-pointer"
+            >
+              <Crown className="h-6 w-6" strokeWidth={1.9} />
+            </button>
+          </nav>
         </aside>
 
-        {/* ===================================================================== */}
-        {/* EMAIL INBOX TABLE CONTAINER */}
-        {/* ===================================================================== */}
-        <div className="flex-1 flex flex-col min-w-0 min-h-0 bg-white overflow-hidden">
-          {/* Table Action Toolbar */}
+        {/* =================================================================== */}
+        {/* EMAIL TABLE CARD (Exact replica of Image 2) */}
+        {/* =================================================================== */}
+        <div className="flex-1 flex flex-col min-w-0 min-h-0 bg-white border border-[#e4e0d5] rounded-2xl sm:rounded-3xl shadow-xs overflow-hidden">
+          {/* Top Table Action Toolbar */}
           <div className="shrink-0 flex items-center justify-between px-3 sm:px-4 py-2 border-b border-[#e5e4dc] bg-white text-xs text-[#6c6b63] min-h-[46px] select-none">
-            {/* Left Controls: Select All, Refresh, Filter */}
+            {/* Left Controls: Select All, Refresh, More */}
             <div className="flex items-center gap-1 sm:gap-2">
               <div className="relative flex items-center">
                 <input
@@ -427,20 +775,19 @@ export function InteractiveDashboardPreview({
                   type="button"
                   onClick={() => setSelectMenuOpen(!selectMenuOpen)}
                   className="p-1 text-[#8c8a80] hover:text-[#171711] transition-colors cursor-pointer"
-                  title="Selection options"
                 >
                   <ChevronDown className="w-3 h-3" />
                 </button>
 
                 {selectMenuOpen && (
-                  <div className="absolute left-0 top-full mt-1 w-32 bg-white border border-[#dedad0] rounded-xl shadow-lg py-1 z-30 text-xs font-semibold text-[#171711] animate-in fade-in duration-100">
+                  <div className="absolute left-0 top-full mt-1 w-32 bg-white border border-[#dedad0] rounded-xl shadow-lg py-1 z-30 text-xs font-semibold text-[#171711]">
                     <button
                       type="button"
                       onClick={() => {
-                        setSelectedIds(new Set(visibleItems.map((i) => i.id)));
+                        setSelectedIds(new Set(filteredItems.map((i) => i.id)));
                         setSelectMenuOpen(false);
                       }}
-                      className="w-full text-left px-3 py-1.5 hover:bg-[#faf8f5] cursor-pointer"
+                      className="w-full text-left px-3 py-1.5 hover:bg-[#faf8f5]"
                     >
                       All
                     </button>
@@ -450,17 +797,17 @@ export function InteractiveDashboardPreview({
                         setSelectedIds(new Set());
                         setSelectMenuOpen(false);
                       }}
-                      className="w-full text-left px-3 py-1.5 hover:bg-[#faf8f5] cursor-pointer"
+                      className="w-full text-left px-3 py-1.5 hover:bg-[#faf8f5]"
                     >
                       None
                     </button>
                     <button
                       type="button"
                       onClick={() => {
-                        setSelectedIds(new Set(visibleItems.filter((i) => i.starred).map((i) => i.id)));
+                        setSelectedIds(new Set(filteredItems.filter((i) => i.starred).map((i) => i.id)));
                         setSelectMenuOpen(false);
                       }}
-                      className="w-full text-left px-3 py-1.5 hover:bg-[#faf8f5] cursor-pointer"
+                      className="w-full text-left px-3 py-1.5 hover:bg-[#faf8f5]"
                     >
                       Starred
                     </button>
@@ -478,45 +825,27 @@ export function InteractiveDashboardPreview({
                 <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
               </button>
 
-              {/* Bulk Actions if items selected */}
-              {selectedIds.size > 0 && (
-                <div className="flex items-center gap-1.5 pl-2 border-l border-[#dedad0] animate-in fade-in duration-150">
-                  <span className="text-[11px] font-bold text-[#171711]">
-                    {selectedIds.size} selected
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      selectedIds.forEach((id) => handleToggleComplete(id));
-                      setSelectedIds(new Set());
-                    }}
-                    className="px-2 py-0.5 rounded-md bg-[#faf8f5] hover:bg-[#171711] hover:text-white border border-[#dedad0] text-[10px] font-bold uppercase transition-colors"
-                  >
-                    Archive
-                  </button>
-                </div>
-              )}
+              {/* More Vertical Options */}
+              <button
+                type="button"
+                onClick={() => showToast('More actions available')}
+                className="p-1.5 rounded-lg hover:bg-[#faf8f5] text-[#6c6b63] hover:text-[#171711] transition-colors cursor-pointer"
+              >
+                <MoreVertical className="w-3.5 h-3.5" />
+              </button>
             </div>
 
-            {/* Right Controls: Item Count & Sort Toggle */}
+            {/* Right Controls: 1-18 of 18, Chevrons, Sort Order */}
             <div className="flex items-center gap-2">
               <span className="text-[11px] font-bold text-[#8c8a80]">
-                {visibleItems.length > 0 ? `1–${visibleItems.length} of ${visibleItems.length}` : '0 items'}
+                {filteredItems.length > 0 ? `1–${filteredItems.length} of ${filteredItems.length}` : '0 items'}
               </span>
 
               <div className="flex items-center gap-0.5">
-                <button
-                  type="button"
-                  disabled
-                  className="p-1 rounded-lg text-[#8c8a80] opacity-40 cursor-not-allowed"
-                >
+                <button type="button" disabled className="p-1 rounded-lg text-[#8c8a80] opacity-35 cursor-not-allowed">
                   <ChevronLeft className="w-4 h-4" />
                 </button>
-                <button
-                  type="button"
-                  disabled
-                  className="p-1 rounded-lg text-[#8c8a80] opacity-40 cursor-not-allowed"
-                >
+                <button type="button" disabled className="p-1 rounded-lg text-[#8c8a80] opacity-35 cursor-not-allowed">
                   <ChevronRight className="w-4 h-4" />
                 </button>
               </div>
@@ -528,7 +857,7 @@ export function InteractiveDashboardPreview({
                   showToast(sortOrder === 'latest' ? 'Showing oldest first' : 'Showing newest first');
                 }}
                 title={sortOrder === 'latest' ? 'Showing newest first' : 'Showing oldest first'}
-                className="p-1.5 rounded-lg hover:bg-[#faf8f5] text-[#6c6b63] hover:text-[#171711] transition-colors cursor-pointer"
+                className="p-1.5 rounded-lg hover:bg-[#faf8f5] text-[#6c6b63] hover:text-[#171711] transition-colors cursor-pointer ml-1"
               >
                 <ArrowUpDown className="w-3.5 h-3.5" />
               </button>
@@ -536,15 +865,15 @@ export function InteractiveDashboardPreview({
           </div>
 
           {/* ================================================================= */}
-          {/* CATEGORY TABS (Primary / Articles / Media / Updates) */}
+          {/* CATEGORY TABS (Primary 18 new, Articles 11 new, Media 7 new, Updates) */}
           {/* ================================================================= */}
-          {!searchQuery.trim() && view === 'inbox' && (
+          {!searchQuery.trim() && activeView === 'inbox' && (
             <div className="shrink-0 flex items-center border-b border-[#e5e4dc] bg-white overflow-x-auto scrollbar-none select-none">
               {/* Primary Tab */}
               <button
                 type="button"
                 onClick={() => setActiveCategoryTab('primary')}
-                className={`relative flex-1 min-w-[140px] sm:min-w-[180px] py-3 px-4 flex items-center gap-3 transition-colors cursor-pointer text-left ${
+                className={`relative flex-1 min-w-[150px] sm:min-w-[200px] py-3 px-4 flex items-center gap-3 transition-colors cursor-pointer text-left ${
                   activeCategoryTab === 'primary' ? 'bg-[#faf8f5]/80' : 'hover:bg-[#faf8f5]'
                 }`}
               >
@@ -554,17 +883,13 @@ export function InteractiveDashboardPreview({
                 <Inbox className="w-4 h-4 text-[#171711] shrink-0" />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
-                    <span className={`text-xs tracking-tight truncate ${activeCategoryTab === 'primary' ? 'font-black text-[#171711]' : 'font-bold text-[#6c6b63]'}`}>
-                      Primary
+                    <span className="text-xs font-black text-[#171711] tracking-tight">Primary</span>
+                    <span className="px-1.5 py-0.2 rounded-full text-[9px] font-extrabold bg-[#e6edb0] text-[#171711]">
+                      18 new
                     </span>
-                    {tabCounts.primary > 0 && (
-                      <span className="px-1.5 py-0.2 rounded-full text-[9px] font-extrabold bg-[#e6edb0] text-[#171711]">
-                        {tabCounts.primary} new
-                      </span>
-                    )}
                   </div>
                   <p className="text-[10px] text-[#8c8a80] truncate mt-0.5 hidden sm:block">
-                    Core saves &amp; urgent links
+                    kobasolo - YouTube - 【時かけ】変わらな...
                   </p>
                 </div>
               </button>
@@ -573,7 +898,7 @@ export function InteractiveDashboardPreview({
               <button
                 type="button"
                 onClick={() => setActiveCategoryTab('articles')}
-                className={`relative flex-1 min-w-[140px] sm:min-w-[180px] py-3 px-4 flex items-center gap-3 transition-colors cursor-pointer text-left ${
+                className={`relative flex-1 min-w-[150px] sm:min-w-[200px] py-3 px-4 flex items-center gap-3 transition-colors cursor-pointer text-left ${
                   activeCategoryTab === 'articles' ? 'bg-[#faf8f5]/80' : 'hover:bg-[#faf8f5]'
                 }`}
               >
@@ -583,17 +908,13 @@ export function InteractiveDashboardPreview({
                 <FileText className="w-4 h-4 text-[#171711] shrink-0" />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
-                    <span className={`text-xs tracking-tight truncate ${activeCategoryTab === 'articles' ? 'font-black text-[#171711]' : 'font-bold text-[#6c6b63]'}`}>
-                      Articles
+                    <span className="text-xs font-bold text-[#6c6b63] tracking-tight">Articles</span>
+                    <span className="px-1.5 py-0.2 rounded-full text-[9px] font-extrabold bg-[#d5f0d6] text-[#2b6830]">
+                      11 new
                     </span>
-                    {tabCounts.articles > 0 && (
-                      <span className="px-1.5 py-0.2 rounded-full text-[9px] font-extrabold bg-[#efe8f7] text-[#6b4785]">
-                        {tabCounts.articles} new
-                      </span>
-                    )}
                   </div>
                   <p className="text-[10px] text-[#8c8a80] truncate mt-0.5 hidden sm:block">
-                    Long reads &amp; newsletters
+                    Bill Gates - The choices we make about AI now ar...
                   </p>
                 </div>
               </button>
@@ -602,7 +923,7 @@ export function InteractiveDashboardPreview({
               <button
                 type="button"
                 onClick={() => setActiveCategoryTab('media')}
-                className={`relative flex-1 min-w-[140px] sm:min-w-[180px] py-3 px-4 flex items-center gap-3 transition-colors cursor-pointer text-left ${
+                className={`relative flex-1 min-w-[150px] sm:min-w-[200px] py-3 px-4 flex items-center gap-3 transition-colors cursor-pointer text-left ${
                   activeCategoryTab === 'media' ? 'bg-[#faf8f5]/80' : 'hover:bg-[#faf8f5]'
                 }`}
               >
@@ -612,17 +933,13 @@ export function InteractiveDashboardPreview({
                 <Video className="w-4 h-4 text-[#171711] shrink-0" />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
-                    <span className={`text-xs tracking-tight truncate ${activeCategoryTab === 'media' ? 'font-black text-[#171711]' : 'font-bold text-[#6c6b63]'}`}>
-                      Media
+                    <span className="text-xs font-bold text-[#6c6b63] tracking-tight">Media</span>
+                    <span className="px-1.5 py-0.2 rounded-full text-[9px] font-extrabold bg-[#e5eef4] text-[#345b78]">
+                      7 new
                     </span>
-                    {tabCounts.media > 0 && (
-                      <span className="px-1.5 py-0.2 rounded-full text-[9px] font-extrabold bg-[#e5eef4] text-[#345b78]">
-                        {tabCounts.media} new
-                      </span>
-                    )}
                   </div>
                   <p className="text-[10px] text-[#8c8a80] truncate mt-0.5 hidden sm:block">
-                    Videos &amp; audio streams
+                    kobasolo - YouTube - 【時かけ】変わらな...
                   </p>
                 </div>
               </button>
@@ -631,7 +948,7 @@ export function InteractiveDashboardPreview({
               <button
                 type="button"
                 onClick={() => setActiveCategoryTab('updates')}
-                className={`relative flex-1 min-w-[140px] sm:min-w-[180px] py-3 px-4 flex items-center gap-3 transition-colors cursor-pointer text-left ${
+                className={`relative flex-1 min-w-[150px] sm:min-w-[200px] py-3 px-4 flex items-center gap-3 transition-colors cursor-pointer text-left ${
                   activeCategoryTab === 'updates' ? 'bg-[#faf8f5]/80' : 'hover:bg-[#faf8f5]'
                 }`}
               >
@@ -641,241 +958,176 @@ export function InteractiveDashboardPreview({
                 <Tag className="w-4 h-4 text-[#171711] shrink-0" />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
-                    <span className={`text-xs tracking-tight truncate ${activeCategoryTab === 'updates' ? 'font-black text-[#171711]' : 'font-bold text-[#6c6b63]'}`}>
-                      Updates
+                    <span className="text-xs font-bold text-[#6c6b63] tracking-tight">Updates</span>
+                  </div>
+                  <p className="text-[10px] text-[#8c8a80] truncate mt-0.5 hidden sm:block">
+                    Notes &amp; tasks
+                  </p>
+                </div>
+              </button>
+            </div>
+          )}
+
+          {/* ================================================================= */}
+          {/* EMAIL LIST ROWS (Exactly matching Image 2) */}
+          {/* ================================================================= */}
+          <div
+            data-lenis-prevent
+            className="flex-1 overflow-y-auto divide-y divide-[#eceae1] bg-white text-xs max-h-[500px]"
+          >
+            {filteredItems.map((item) => {
+              const isSelected = selectedIds.has(item.id);
+              const isHovered = hoveredRowId === item.id;
+
+              return (
+                <div
+                  key={item.id}
+                  onMouseEnter={() => setHoveredRowId(item.id)}
+                  onMouseLeave={() => setHoveredRowId(null)}
+                  onClick={() => setSelectedDetailItem(item)}
+                  className={`group relative flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-3 sm:py-3.5 transition-all duration-150 cursor-pointer ${
+                    isSelected ? 'bg-[#f4f7ea]' : 'hover:bg-[#faf8f5]'
+                  }`}
+                >
+                  {/* Select Checkbox */}
+                  <div className="shrink-0 flex items-center" onClick={(e) => toggleSelectRow(item.id, e)}>
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={() => {}}
+                      className="w-4 h-4 rounded border-[#dedad0] accent-[#171711] cursor-pointer"
+                    />
+                  </div>
+
+                  {/* Star Toggle */}
+                  <button
+                    type="button"
+                    onClick={(e) => toggleStar(item.id, e)}
+                    className="shrink-0 p-0.5 text-[#8c8a80] hover:text-amber-500 transition-colors"
+                  >
+                    <Star
+                      className={`w-4 h-4 ${
+                        item.starred ? 'fill-amber-400 text-amber-500' : 'hover:fill-amber-100'
+                      }`}
+                    />
+                  </button>
+
+                  {/* Sender / Source domain (e.g. disneyplus.com, facebook.com, Instagram) */}
+                  <div className="w-24 sm:w-36 shrink-0 truncate">
+                    <span className="font-bold text-[#171711] truncate block text-[13px]">
+                      {item.source}
                     </span>
-                    {tabCounts.updates > 0 && (
-                      <span className="px-1.5 py-0.2 rounded-full text-[9px] font-extrabold bg-[#f6e7e0] text-[#935235]">
-                        {tabCounts.updates}
+                  </div>
+
+                  {/* Title & snippet */}
+                  <div className="flex-1 min-w-0 flex items-center gap-2">
+                    <span className="font-bold text-[#171711] truncate text-[13px]">
+                      {item.title}
+                    </span>
+                    {item.snippet && (
+                      <span className="text-[#8c8a80] truncate hidden lg:inline text-xs">
+                        — {item.snippet}
                       </span>
                     )}
                   </div>
-                  <p className="text-[10px] text-[#8c8a80] truncate mt-0.5 hidden sm:block">
-                    Notes, tasks &amp; receipts
-                  </p>
-                </div>
-              </button>
-            </div>
-          )}
 
-          {/* Search Active Filter Pills */}
-          {searchQuery.trim() && (
-            <div className="shrink-0 flex items-center justify-between px-4 py-2 border-b border-[#e5e4dc] bg-[#faf8f5] text-xs">
-              <div className="flex items-center gap-2">
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-[#171711] text-[#e6edb0]">
-                  <Search className="w-3 h-3" />
-                  <span>Results for &ldquo;{searchQuery}&rdquo;</span>
-                </span>
-                <span className="text-xs text-[#8c8a80]">
-                  {visibleItems.length} {visibleItems.length === 1 ? 'match' : 'matches'} found
-                </span>
-              </div>
-              <button
-                type="button"
-                onClick={() => setSearchQuery('')}
-                className="text-xs font-bold text-[#6c6b63] hover:text-[#171711] underline cursor-pointer"
-              >
-                Clear search
-              </button>
-            </div>
-          )}
-
-          {/* ================================================================= */}
-          {/* EMAIL TABLE ROWS */}
-          {/* ================================================================= */}
-          <div data-lenis-prevent className="flex-1 overflow-y-auto divide-y divide-[#e5e4dc] bg-white">
-            {visibleItems.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-20 px-4 text-center space-y-3">
-                <div className="w-12 h-12 rounded-2xl bg-[#faf8f5] border border-[#dedad0] flex items-center justify-center text-[#8c8a80]">
-                  <Inbox className="w-6 h-6" />
-                </div>
-                <div>
-                  <h4 className="text-sm font-bold text-[#171711]">No items here</h4>
-                  <p className="text-xs text-[#8c8a80] mt-1 max-w-xs">
-                    Try switching tabs, clearing search, or clicking &ldquo;+ Save&rdquo; to add something new.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={resetDemo}
-                  className="px-3.5 py-1.5 rounded-full bg-[#171711] text-white text-xs font-bold hover:bg-[#2e2d26] transition-colors"
-                >
-                  Reset Sample Library
-                </button>
-              </div>
-            ) : (
-              visibleItems.map((item) => {
-                const isSelected = selectedIds.has(item.id);
-                const isExpanded = selectedDetailItem?.id === item.id;
-
-                return (
-                  <div
-                    key={item.id}
-                    onClick={() => setSelectedDetailItem(isExpanded ? null : item)}
-                    className={`group relative flex items-center gap-2 sm:gap-3.5 px-3 sm:px-4 py-3 sm:py-3.5 transition-all duration-150 cursor-pointer ${
-                      isSelected
-                        ? 'bg-[#f4f7ea]'
-                        : isExpanded
-                        ? 'bg-[#faf8f5] shadow-xs'
-                        : 'hover:bg-[#faf8f5]'
-                    }`}
-                  >
-                    {/* Select Checkbox */}
-                    <div className="shrink-0 flex items-center" onClick={(e) => toggleSelectRow(item.id, e)}>
-                      <input
-                        type="checkbox"
-                        checked={isSelected}
-                        onChange={() => {}}
-                        className="w-4 h-4 rounded border-[#dedad0] accent-[#171711] cursor-pointer"
-                      />
-                    </div>
-
-                    {/* Star Toggle Button */}
-                    <button
-                      type="button"
-                      onClick={(e) => handleToggleStar(item.id, e)}
-                      title={item.starred ? 'Unstar item' : 'Star item'}
-                      className="shrink-0 p-1 rounded-md text-[#8c8a80] hover:text-amber-500 transition-colors"
-                    >
-                      <Star
-                        className={`w-4 h-4 ${
-                          item.starred ? 'fill-amber-400 text-amber-500' : 'hover:fill-amber-200'
-                        }`}
-                      />
-                    </button>
-
-                    {/* Sender / Source domain pill */}
-                    <div className="w-24 sm:w-32 shrink-0 truncate">
-                      <span className="text-xs font-bold text-[#171711] truncate block">
-                        {item.senderName || item.source}
-                      </span>
-                    </div>
-
-                    {/* Title & Preview Snippet */}
-                    <div className="flex-1 min-w-0 flex items-center gap-2">
-                      <span className="text-xs sm:text-[13px] font-bold text-[#171711] truncate">
-                        {item.title}
-                      </span>
-                      {item.snippet && (
-                        <span className="text-xs text-[#8c8a80] truncate hidden md:inline">
-                          — {item.snippet}
+                  {/* Category Pills (Video, Reading, Entertainment, Watch Later) */}
+                  {item.tags.length > 0 && (
+                    <div className="hidden sm:flex items-center gap-1.5 shrink-0">
+                      {item.tags.map((t, idx) => (
+                        <span
+                          key={idx}
+                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold ${
+                            t.color === 'red'
+                              ? 'bg-rose-50 text-rose-700 border border-rose-200'
+                              : t.color === 'green'
+                              ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                              : t.color === 'amber'
+                              ? 'bg-amber-50 text-amber-800 border border-amber-200'
+                              : 'bg-slate-50 text-slate-700 border border-slate-200'
+                          }`}
+                        >
+                          {t.icon === 'video' && <Play className="w-2.5 h-2.5 fill-current" />}
+                          {t.icon === 'book' && <BookOpen className="w-2.5 h-2.5" />}
+                          <span>{t.label}</span>
                         </span>
-                      )}
+                      ))}
                     </div>
+                  )}
 
-                    {/* Collection / Category Badge */}
-                    {item.collection && (
-                      <span className="shrink-0 hidden lg:inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#faf8f5] border border-[#dedad0] text-[#6c6b63]">
-                        {item.collection}
-                      </span>
-                    )}
+                  {/* Timestamp Pill (e.g. In Inbox for 15 hrs, 29 min, Oct 21) */}
+                  <div className="shrink-0 text-right w-28 sm:w-40">
+                    <span className="text-[11px] font-semibold text-[#8c8a80] px-2 py-0.5 rounded-full bg-[#f5f4ed]">
+                      {item.timeLabel}
+                    </span>
+                  </div>
 
-                    {/* Attachment Icon */}
-                    {item.hasAttachment && (
-                      <span className="shrink-0 text-[#8c8a80]" title="Has attachment">
-                        <Paperclip className="w-3.5 h-3.5" />
-                      </span>
-                    )}
-
-                    {/* Scheduled / Return Time Badge */}
-                    <div className="shrink-0 text-right w-20 sm:w-28">
-                      <span className="text-[11px] font-bold text-[#6c6b63] whitespace-nowrap">
-                        {item.scheduledLabel || item.timeLabel || 'Inbox'}
-                      </span>
-                    </div>
-
-                    {/* Hover Quick Action Buttons */}
-                    <div className="absolute right-3 top-1/2 -translate-y-1/2 hidden group-hover:flex items-center gap-1 bg-white/95 backdrop-blur-xs px-1.5 py-1 rounded-xl border border-[#dedad0] shadow-sm z-10">
-                      {/* Complete / Keep */}
+                  {/* Hover Actions Menu (Matching Image 2 hover row) */}
+                  {isHovered && (
+                    <div
+                      onClick={(e) => e.stopPropagation()}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 bg-white/95 backdrop-blur-xs px-2 py-1 rounded-xl border border-[#dedad0] shadow-sm z-20"
+                    >
                       <button
                         type="button"
-                        onClick={(e) => handleToggleComplete(item.id, e)}
-                        title={item.bucket === 'done' ? 'Move back to inbox' : 'Mark completed & archive'}
-                        className="p-1.5 rounded-lg hover:bg-[#e6edb0] text-[#171711] transition-colors"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          showToast('Archived item');
+                        }}
+                        title="Archive"
+                        className="p-1.5 rounded-lg hover:bg-[#faf8f5] text-[#6c6b63] hover:text-[#171711]"
                       >
                         <Check className="w-3.5 h-3.5" />
                       </button>
-
-                      {/* Snooze Dropdown */}
-                      <div className="relative">
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSnoozeMenuForId(snoozeMenuForId === item.id ? null : item.id);
-                          }}
-                          title="Snooze / Reschedule"
-                          className="p-1.5 rounded-lg hover:bg-[#e6edb0] text-[#171711] transition-colors"
-                        >
-                          <Clock className="w-3.5 h-3.5" />
-                        </button>
-
-                        {snoozeMenuForId === item.id && (
-                          <div
-                            onClick={(e) => e.stopPropagation()}
-                            className="absolute right-0 top-full mt-1 w-36 bg-white border border-[#dedad0] rounded-xl shadow-xl py-1 z-50 text-xs font-semibold text-[#171711] animate-in fade-in duration-100"
-                          >
-                            <div className="px-3 py-1 text-[10px] font-bold text-[#8c8a80] uppercase tracking-wider">
-                              Return when
-                            </div>
-                            <button
-                              type="button"
-                              onClick={(e) => handleSnooze(item.id, 'today', e)}
-                              className="w-full text-left px-3 py-1.5 hover:bg-[#faf8f5] flex justify-between"
-                            >
-                              <span>Today</span>
-                              <span className="text-[#8c8a80]">Evening</span>
-                            </button>
-                            <button
-                              type="button"
-                              onClick={(e) => handleSnooze(item.id, 'upcoming', e)}
-                              className="w-full text-left px-3 py-1.5 hover:bg-[#faf8f5] flex justify-between"
-                            >
-                              <span>Tomorrow</span>
-                              <span className="text-[#8c8a80]">9:00 AM</span>
-                            </button>
-                            <button
-                              type="button"
-                              onClick={(e) => handleSnooze(item.id, 'someday', e)}
-                              className="w-full text-left px-3 py-1.5 hover:bg-[#faf8f5] flex justify-between"
-                            >
-                              <span>Someday</span>
-                              <span className="text-[#8c8a80]">Vault</span>
-                            </button>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Open Link */}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          showToast('Added to collection');
+                        }}
+                        title="Collection"
+                        className="p-1.5 rounded-lg hover:bg-[#faf8f5] text-[#6c6b63] hover:text-[#171711]"
+                      >
+                        <FolderOpen className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => deleteItem(item.id, e)}
+                        title="Delete"
+                        className="p-1.5 rounded-lg hover:bg-red-50 text-[#8c8a80] hover:text-red-600"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSnoozeMenuForId(snoozeMenuForId === item.id ? null : item.id);
+                        }}
+                        title="Snooze"
+                        className="p-1.5 rounded-lg hover:bg-[#faf8f5] text-[#6c6b63] hover:text-[#171711]"
+                      >
+                        <Clock className="w-3.5 h-3.5" />
+                      </button>
                       <a
                         href={item.url}
                         target="_blank"
                         rel="noopener noreferrer"
                         onClick={(e) => e.stopPropagation()}
-                        title="Open external source"
-                        className="p-1.5 rounded-lg hover:bg-[#faf8f5] text-[#6c6b63] hover:text-[#171711] transition-colors"
+                        title="Open Source Link"
+                        className="p-1.5 rounded-lg hover:bg-[#faf8f5] text-[#6c6b63] hover:text-[#171711]"
                       >
                         <ExternalLink className="w-3.5 h-3.5" />
                       </a>
-
-                      {/* Delete */}
-                      <button
-                        type="button"
-                        onClick={(e) => handleDeleteItem(item.id, e)}
-                        title="Delete item"
-                        className="p-1.5 rounded-lg hover:bg-red-50 text-[#8c8a80] hover:text-red-600 transition-colors"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
                     </div>
-                  </div>
-                );
-              })
-            )}
+                  )}
+                </div>
+              );
+            })}
           </div>
 
           {/* ================================================================= */}
-          {/* SLIDE-UP ITEM DETAIL PREVIEW (When an item is clicked) */}
+          {/* SLIDE-UP DETAIL PREVIEW (When an item is clicked) */}
           {/* ================================================================= */}
           {selectedDetailItem && (
             <div className="shrink-0 p-4 border-t border-[#e5e4dc] bg-[#faf8f5] animate-in slide-in-from-bottom-2 duration-150">
@@ -886,39 +1138,42 @@ export function InteractiveDashboardPreview({
                       {selectedDetailItem.source}
                     </span>
                     <span className="text-xs text-[#8c8a80] font-semibold">
-                      Scheduled: {selectedDetailItem.scheduledLabel || 'Inbox'}
+                      {selectedDetailItem.timeLabel}
                     </span>
                   </div>
                   <h4 className="text-sm font-black text-[#171711] tracking-tight">
                     {selectedDetailItem.title}
                   </h4>
                   <p className="text-xs text-[#6c6b63] leading-relaxed max-w-2xl">
-                    {selectedDetailItem.snippet || 'No extra notes attached to this item.'}
+                    {selectedDetailItem.snippet}
                   </p>
                 </div>
 
                 <div className="flex items-center gap-2 shrink-0">
                   <button
                     type="button"
-                    onClick={(e) => handleToggleComplete(selectedDetailItem.id, e)}
-                    className="px-3 py-1.5 rounded-xl bg-[#171711] text-[#e6edb0] text-xs font-bold hover:bg-[#2e2d26] transition-colors flex items-center gap-1.5"
+                    onClick={() => {
+                      showToast('Item archived');
+                      setSelectedDetailItem(null);
+                    }}
+                    className="px-3 py-1.5 rounded-xl bg-[#171711] text-[#e6edb0] text-xs font-bold hover:bg-[#2e2d26] transition-colors flex items-center gap-1.5 cursor-pointer"
                   >
                     <Check className="w-3.5 h-3.5" />
-                    <span>{selectedDetailItem.bucket === 'done' ? 'Reopen' : 'Archive'}</span>
+                    <span>Archive</span>
                   </button>
                   <a
                     href={selectedDetailItem.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="px-3 py-1.5 rounded-xl bg-white border border-[#dedad0] text-[#171711] text-xs font-bold hover:bg-[#faf8f5] transition-colors flex items-center gap-1.5"
+                    className="px-3 py-1.5 rounded-xl bg-white border border-[#dedad0] text-[#171711] text-xs font-bold hover:bg-[#faf8f5] transition-colors flex items-center gap-1.5 cursor-pointer"
                   >
-                    <span>Open link</span>
+                    <span>Open</span>
                     <ExternalLink className="w-3.5 h-3.5" />
                   </a>
                   <button
                     type="button"
                     onClick={() => setSelectedDetailItem(null)}
-                    className="p-1.5 rounded-lg text-[#8c8a80] hover:text-[#171711] hover:bg-white transition-colors"
+                    className="p-1.5 rounded-lg text-[#8c8a80] hover:text-[#171711] hover:bg-white transition-colors cursor-pointer"
                   >
                     <X className="w-4 h-4" />
                   </button>
@@ -926,6 +1181,36 @@ export function InteractiveDashboardPreview({
               </div>
             </div>
           )}
+
+          {/* ================================================================= */}
+          {/* PRO CLOUD SYNC FOOTER (Exact replica from Image 2) */}
+          {/* ================================================================= */}
+          <div className="shrink-0 px-3.5 py-2.5 bg-white border-t border-[#e5e4dc] flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs select-none">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-6 h-6 rounded-full bg-[#e6edb0] text-[#171711] flex items-center justify-center shrink-0">
+                <Cloud className="w-3.5 h-3.5" />
+              </div>
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="font-bold text-[#171711] truncate">Pro Cloud Sync</span>
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#e6edb0] text-[#171711] text-[10px] font-black tracking-wider uppercase">
+                  <CheckCircle2 className="w-3 h-3 text-[#171711]" />
+                  <span>Synced</span>
+                </span>
+                <span className="hidden sm:inline text-[11px] text-[#8e8d87] truncate">
+                  • All changes backed up to cloud
+                </span>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleRefresh}
+              className="inline-flex items-center justify-center gap-1.5 px-3 py-1 rounded-xl bg-[#ebe7dc] hover:bg-[#e0dbc9] text-[#171711] font-bold text-[11px] transition-colors cursor-pointer shrink-0"
+            >
+              <RefreshCw className={`w-3 h-3 ${isRefreshing ? 'animate-spin' : ''}`} />
+              <span>Check Updates</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -964,7 +1249,7 @@ export function InteractiveDashboardPreview({
                   type="text"
                   value={newTitle}
                   onChange={(e) => setNewTitle(e.target.value)}
-                  placeholder="e.g. Read about React 19 Compiler"
+                  placeholder="e.g. Watch Miraculous Ladybug on Disney+"
                   autoFocus
                   className="w-full px-3.5 py-2.5 rounded-xl border border-[#dedad0] text-xs text-[#171711] focus:outline-none focus:border-[#171711]"
                 />
@@ -978,7 +1263,7 @@ export function InteractiveDashboardPreview({
                   type="text"
                   value={newUrl}
                   onChange={(e) => setNewUrl(e.target.value)}
-                  placeholder="e.g. https://react.dev/blog"
+                  placeholder="e.g. https://disneyplus.com"
                   className="w-full px-3.5 py-2.5 rounded-xl border border-[#dedad0] text-xs text-[#171711] focus:outline-none focus:border-[#171711]"
                 />
               </div>
@@ -999,9 +1284,9 @@ export function InteractiveDashboardPreview({
                     <button
                       key={b.key}
                       type="button"
-                      onClick={() => setNewBucket(b.key)}
+                      onClick={() => setNewSchedule(b.key)}
                       className={`py-2 px-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                        newBucket === b.key
+                        newSchedule === b.key
                           ? 'bg-[#171711] text-[#e6edb0] shadow-2xs'
                           : 'bg-[#faf8f5] border border-[#dedad0] text-[#6c6b63] hover:border-[#171711]'
                       }`}
@@ -1012,21 +1297,17 @@ export function InteractiveDashboardPreview({
                 </div>
               </div>
 
-              {inputError && (
-                <p className="text-xs text-red-600 font-semibold">{inputError}</p>
-              )}
-
               <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#e5e4dc]">
                 <button
                   type="button"
                   onClick={() => setCaptureOpen(false)}
-                  className="px-4 py-2 rounded-full text-xs font-bold text-[#6c6b63] hover:text-[#171711]"
+                  className="px-4 py-2 rounded-full text-xs font-bold text-[#6c6b63] hover:text-[#171711] cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-full bg-[#171711] hover:bg-[#2c2b26] text-white text-xs font-extrabold shadow-sm transition-all"
+                  className="px-5 py-2 rounded-full bg-[#171711] hover:bg-[#2c2b26] text-white text-xs font-extrabold shadow-sm transition-all cursor-pointer"
                 >
                   Save to Demo
                 </button>
