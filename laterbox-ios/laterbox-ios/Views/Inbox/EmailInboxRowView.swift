@@ -308,20 +308,9 @@ public struct EmailInboxRowView: View {
                         .buttonStyle(.plain)
                     }
 
-                    // Optional Action Chip / Pill (e.g. Collection tag or attachment badge)
-                    if let collection = item.collectionName, !collection.isEmpty {
-                        HStack(spacing: 4) {
-                            Image(systemName: "folder.fill")
-                                .font(.system(size: 9))
-                            Text(collection)
-                                .font(.system(size: 11, weight: .semibold))
-                        }
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 4)
-                        .background(Color(hex: "E8F0FE"), in: Capsule())
-                        .foregroundColor(Color(hex: "1967D2"))
-                        .padding(.top, 2)
-                    } else if hasAttachments {
+                    // Only display attachment status; collections remain accessible
+                    // from item details and the row's context menu.
+                    if hasAttachments {
                         HStack(spacing: 4) {
                             Image(systemName: "paperclip")
                                 .font(.system(size: 9))
