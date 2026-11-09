@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[Web / Marketing mobile sidebar drawer]** Replace the basic header dropdown on mobile with a full-height, slide-over navigation sidebar drawer. Features a backdrop overlay with body-scroll locking, branded header with close control, categorized navigation links (Product, Apps & Resources) with live active states and badges, and dedicated bottom account/auth actions.
+
 - **[Web / Marketing mobile hero streamlining]** Streamline the mobile hero presentation by hiding redundant CTA buttons (`Launch Web App Free`, `Get for iOS & Downloads`, `Try Guest Sandbox`) on small screens, adapting hero headings and subheadings to punchy, short sentences, and directing immediate focus to the full mobile app preview and download action.
 
 - **[Web / Marketing mobile hero full height preview]** Expand the mobile iOS screenshot container to display the full image height naturally without truncation or gradient overlays, showcasing the complete inbox view and bottom navigation bar within a phone frame.
