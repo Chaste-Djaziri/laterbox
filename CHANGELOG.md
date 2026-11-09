@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[Web / Marketing preview sync footer separation]** Separate the Pro Cloud Sync status bar from the email table view container in the hero preview, matching the production `DashboardView` layout: the email table card retains its rounded bottom corners, and the standalone Pro Cloud Sync pill badge sits below with its own card surface and Check Updates action.
+
 - **[Web / Marketing preview item details parity]** Enable full in-situ item details navigation within the hero interactive preview, mirroring the real dashboard's embedded `ItemDetailView`: clicking any email item replaces the table and tabs with the authentic embedded details view, complete with the top item actions toolbar (Back to Inbox, star toggle, Keep in library, Archive, Collections, Snooze, Copy link, and Delete), previous/next item pager, In Inbox status pill, multi-platform media cards (video player hero, article reading view, social card preview, and tasks), and source link with action buttons.
 
 - **[Web / Marketing preview sidebar parity]** Rebuild the hero interactive preview's navigation rail and app layout to match the real production dashboard: LaterBox monogram cube header, 52px rail buttons with authentic counter badges (Inbox, Today, Upcoming, Someday, Starred, Kept, Archived, Trash, Collections, Downloads, Plans, Settings), top omnibar search with AI organize trigger, full-fidelity category tabs with live snippets, colorful category tag pills, and the Pro Cloud Sync status footer.
