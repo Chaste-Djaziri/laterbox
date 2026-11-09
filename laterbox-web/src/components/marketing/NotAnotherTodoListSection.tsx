@@ -45,34 +45,34 @@ export function NotAnotherTodoListSection() {
 
   const capabilityRows = [
     {
-      category: 'FILES',
-      item: 'ClientPoster.psd',
-      action: 'OPEN IN PHOTOSHOP',
-      feedback: 'Opening Photoshop...',
-    },
-    {
       category: 'LINKS',
-      item: 'YouTube Video',
-      action: 'OPEN IN BROWSER',
-      feedback: 'Opening browser...',
+      item: 'Figma Design System Article',
+      action: 'READ IN FOCUS MODE',
+      feedback: 'Opening Reader...',
     },
     {
-      category: 'FOLDERS',
-      item: 'Client Project',
-      action: 'OPEN IN EXPLORER',
-      feedback: 'Opening explorer...',
+      category: 'VIDEOS',
+      item: 'Next.js Turbopack Deep Dive',
+      action: 'WATCH IN BROWSER',
+      feedback: 'Streaming Video...',
+    },
+    {
+      category: 'DOCS',
+      item: 'Q4 Financial Proposal.pdf',
+      action: 'VIEW DOCUMENT',
+      feedback: 'Previewing Document...',
     },
     {
       category: 'TASKS',
-      item: 'Send Invoice',
-      action: 'DO IT',
-      feedback: 'Ready to complete!',
+      item: 'Send Quarterly Invoice',
+      action: 'CHECK OFF',
+      feedback: 'Marked Complete!',
     },
     {
       category: 'IDEAS',
-      item: 'Short Film Concept',
+      item: 'Local-First Sync Protocol',
       action: 'REMEMBER IT',
-      feedback: 'Recalled from vault!',
+      feedback: 'Recalled from Vault!',
     },
   ];
 
@@ -84,10 +84,10 @@ export function NotAnotherTodoListSection() {
   };
 
   return (
-    <section className="bg-white text-[#171711] py-24 sm:py-32 px-4 sm:px-6 relative overflow-hidden select-none border-t border-[#f0ede4]">
+    <section className="gsap-not-todo-section bg-white text-[#171711] py-24 sm:py-32 px-4 sm:px-6 relative overflow-hidden select-none border-t border-[#f0ede4]">
       <div className="max-w-4xl mx-auto text-center">
         {/* Headline */}
-        <h2 className="leading-none text-center">
+        <h2 className="gsap-not-todo-heading leading-none text-center">
           <span className="block text-5xl sm:text-7xl lg:text-8xl font-black text-[#171711] tracking-tight">
             Not another
           </span>
@@ -103,14 +103,14 @@ export function NotAnotherTodoListSection() {
         </div>
 
         {/* 5 Demonstration Rows */}
-        <div className="space-y-3.5 sm:space-y-4 max-w-3xl mx-auto">
+        <div className="gsap-not-todo-table space-y-3.5 sm:space-y-4 max-w-3xl mx-auto">
           {capabilityRows.map((row, idx) => {
             const isTriggered = activeRow === idx;
 
             return (
               <div
                 key={row.category}
-                className="w-full rounded-2xl sm:rounded-3xl bg-white border border-[#e4e0d5] shadow-[0_2px_15px_rgba(0,0,0,0.02)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:border-[#171711] transition-all px-5 sm:px-8 py-4 sm:py-5 flex items-center justify-between gap-3 sm:gap-6 group"
+                className="gsap-not-todo-row w-full rounded-2xl sm:rounded-3xl bg-white border border-[#e4e0d5] shadow-[0_2px_15px_rgba(0,0,0,0.02)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:border-[#171711] transition-all px-5 sm:px-8 py-4 sm:py-5 flex items-center justify-between gap-3 sm:gap-6 group"
               >
                 {/* Category Label */}
                 <div className="w-16 sm:w-24 shrink-0 text-left">
