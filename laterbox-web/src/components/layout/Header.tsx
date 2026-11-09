@@ -5,7 +5,6 @@ import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { createPortal } from 'react-dom';
 import {
   ArrowRight,
   BookOpen,
@@ -59,20 +58,13 @@ export function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [resourcesOpen, setResourcesOpen] = useState(false);
   const [hasScrolled, setHasScrolled] = useState(false);
-  const [mounted, setMounted] = useState(false);
 
   const resourcesRef = useRef<HTMLDivElement>(null);
-  const openTimeRef = useRef<number>(0);
-  const touchHandledRef = useRef<number>(0);
 
   const isSignedIn = Boolean(user || isAuthenticated);
   const dashboardHref = `${APP_ORIGIN}/inbox`;
   const primaryActionHref = isSignedIn ? dashboardHref : `${APP_ORIGIN}/signup`;
   const primaryActionLabel = isSignedIn ? 'Open app' : 'Get started free';
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   useEffect(() => {
     const updateScrollState = () => setHasScrolled(window.scrollY > 8);
@@ -117,34 +109,7 @@ export function Header() {
   }, [mobileOpen]);
 
   const activeLink = (href: string) => href !== '/#how-it-works' && pathname === href;
-
-  const openMobile = (e?: React.MouseEvent | React.TouchEvent) => {
-    if (e) {
-      e.stopPropagation();
-    }
-    openTimeRef.current = Date.now();
-    setMobileOpen(true);
-  };
-
-  const closeMobile = (e?: React.MouseEvent | React.TouchEvent) => {
-    if (e) {
-      e.stopPropagation();
-    }
-    // Block ghost click dismissals on mobile within 450ms of opening
-    if (Date.now() - openTimeRef.current < 450) {
-      return;
-    }
-    setMobileOpen(false);
-  };
-
-  const toggleMobile = (e: React.MouseEvent | React.TouchEvent) => {
-    e.stopPropagation();
-    if (mobileOpen) {
-      closeMobile(e);
-    } else {
-      openMobile(e);
-    }
-  };
+  const closeMobile = () => setMobileOpen(false);
 
   return (
     <>
@@ -228,19 +193,14 @@ export function Header() {
               <span>{loading ? 'Open LaterBox' : primaryActionLabel}</span>
               <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
             </Link>
+
+            {/* Mobile Sidebar Hamburger Toggle Button */}
             <button
               type="button"
               aria-label={mobileOpen ? 'Close navigation sidebar' : 'Open navigation sidebar'}
               aria-expanded={mobileOpen}
               aria-controls="laterbox-mobile-sidebar"
-              onClick={(e) => {
-                if (Date.now() - touchHandledRef.current < 400) return;
-                toggleMobile(e);
-              }}
-              onTouchEnd={(e) => {
-                touchHandledRef.current = Date.now();
-                toggleMobile(e);
-              }}
+              onClick={() => setMobileOpen(prev => !prev)}
               className="relative z-30 inline-flex h-11 w-11 items-center justify-center rounded-xl border border-[#e0e4d8] bg-white text-[#181b14] transition-colors hover:bg-[#e6edb0] active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#678144] lg:hidden cursor-pointer touch-manipulation select-none"
             >
               {mobileOpen ? <X className="h-5 w-5" aria-hidden="true" /> : <Menu className="h-5 w-5" aria-hidden="true" />}
@@ -249,193 +209,166 @@ export function Header() {
         </div>
       </header>
 
-      {/* Proper Mobile Slide-over Sidebar Drawer */}
-      {mounted && mobileOpen && createPortal(
-        <div className="fixed inset-0 z-[100] lg:hidden">
-          {/* Keyframe animation definition for smooth hardware-accelerated drawer slide */}
-          <style>{`
-            @keyframes laterboxSlideInRight {
-              from { transform: translateX(100%); }
-              to { transform: translateX(0); }
-            }
-            @keyframes laterboxFadeIn {
-              from { opacity: 0; }
-              to { opacity: 1; }
-            }
-          `}</style>
+      {/* Backdrop Overlay - Always in DOM with pointer-events protection */}
+      <div
+        className={`fixed inset-0 z-[999] bg-black/60 backdrop-blur-xs transition-opacity duration-300 lg:hidden ${
+          mobileOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+        }`}
+        onClick={closeMobile}
+        aria-hidden="true"
+      />
 
-          {/* Backdrop Overlay with ghost-click protection */}
-          <div
-            className="fixed inset-0 bg-black/50 backdrop-blur-xs"
-            style={{ animation: 'laterboxFadeIn 0.2s ease-out forwards' }}
-            onClick={(e) => {
-              if (e.target === e.currentTarget) {
-                closeMobile(e);
-              }
-            }}
-            onTouchEnd={(e) => {
-              if (e.target === e.currentTarget) {
-                closeMobile(e);
-              }
-            }}
-            aria-hidden="true"
-          />
-
-          {/* Sidebar Drawer Panel */}
-          <aside
-            id="laterbox-mobile-sidebar"
-            aria-label="Mobile navigation"
-            data-lenis-prevent
-            onClick={(e) => e.stopPropagation()}
-            onTouchEnd={(e) => e.stopPropagation()}
-            style={{ animation: 'laterboxSlideInRight 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards' }}
-            className="fixed inset-y-0 right-0 z-10 w-[310px] sm:w-[350px] max-w-[85vw] bg-[#fbfaf6] border-l border-[#e4e0d5] shadow-[-12px_0_36px_rgba(0,0,0,0.18)] flex flex-col justify-between overflow-hidden"
+      {/* Proper Mobile Slide-over Sidebar Drawer - Always in DOM, zero-delay CSS slide */}
+      <aside
+        id="laterbox-mobile-sidebar"
+        aria-label="Mobile navigation"
+        data-lenis-prevent
+        className={`fixed inset-y-0 right-0 z-[1000] w-[310px] sm:w-[350px] max-w-[85vw] bg-[#fbfaf6] border-l border-[#e4e0d5] shadow-[-12px_0_36px_rgba(0,0,0,0.25)] flex flex-col justify-between overflow-hidden transition-transform duration-300 ease-out lg:hidden ${
+          mobileOpen ? 'translate-x-0 pointer-events-auto' : 'translate-x-full pointer-events-none'
+        }`}
+      >
+        {/* Sidebar Top Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[#e4e0d5] bg-[#f8f8f3] shrink-0">
+          <Link
+            href="/"
+            onClick={closeMobile}
+            className="group inline-flex shrink-0 items-center gap-2.5"
+            aria-label="LaterBox, go to homepage"
           >
-            {/* Sidebar Top Header */}
-            <div className="flex items-center justify-between px-5 py-4 border-b border-[#e4e0d5] bg-[#f8f8f3] shrink-0">
-              <Link
-                href="/"
-                onClick={closeMobile}
-                className="group inline-flex shrink-0 items-center gap-2.5"
-                aria-label="LaterBox, go to homepage"
-              >
-                <span className="relative flex h-9 w-9 items-center justify-center overflow-hidden rounded-[10px] border border-[#cbd79c] bg-[#e6edb0] shadow-2xs transition-transform duration-200 group-hover:-rotate-3">
-                  <Image src="/branding/laterbox-icon.png" alt="" fill priority sizes="36px" className="object-contain p-1" />
-                </span>
-                <span className="text-xl font-black tracking-[-0.06em] text-[#181b14]">
-                  laterbox<span className="text-[#84934f]">.</span>
-                </span>
-              </Link>
-              <button
-                type="button"
-                onClick={closeMobile}
-                aria-label="Close navigation sidebar"
-                className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-[#e0e4d8] bg-white text-[#181b14] hover:bg-[#e6edb0] active:scale-95 transition-all cursor-pointer touch-manipulation"
-              >
-                <X className="h-5 w-5" aria-hidden="true" />
-              </button>
-            </div>
+            <span className="relative flex h-9 w-9 items-center justify-center overflow-hidden rounded-[10px] border border-[#cbd79c] bg-[#e6edb0] shadow-2xs transition-transform duration-200 group-hover:-rotate-3">
+              <Image src="/branding/laterbox-icon.png" alt="" fill priority sizes="36px" className="object-contain p-1" />
+            </span>
+            <span className="text-xl font-black tracking-[-0.06em] text-[#181b14]">
+              laterbox<span className="text-[#84934f]">.</span>
+            </span>
+          </Link>
+          <button
+            type="button"
+            onClick={closeMobile}
+            aria-label="Close navigation sidebar"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-[#e0e4d8] bg-white text-[#181b14] hover:bg-[#e6edb0] active:scale-95 transition-all cursor-pointer touch-manipulation"
+          >
+            <X className="h-5 w-5" aria-hidden="true" />
+          </button>
+        </div>
 
-            {/* Scrollable Navigation Body */}
-            <div className="flex-1 overflow-y-auto px-4 py-5 space-y-6" data-lenis-prevent>
-              {/* Product Section */}
-              <div className="space-y-1.5">
-                <p className="px-3 text-[10px] font-black uppercase tracking-[0.18em] text-[#92998a]">
-                  Product
-                </p>
-                <div className="space-y-0.5">
-                  {primaryLinks.map((link) => {
-                    const Icon = link.icon;
-                    const isActive = activeLink(link.href);
-                    return (
-                      <Link
-                        key={link.href}
-                        href={link.href}
-                        onClick={closeMobile}
-                        aria-current={isActive ? 'page' : undefined}
-                        className={`flex items-center justify-between rounded-xl px-3.5 py-2.5 text-sm font-bold transition-colors ${
-                          isActive
-                            ? 'bg-[#e6edb0] text-[#181b14] shadow-2xs'
-                            : 'text-[#383d34] hover:bg-white hover:text-[#181b14]'
-                        }`}
-                      >
-                        <div className="flex items-center gap-3">
-                          <Icon className={`w-4 h-4 ${isActive ? 'text-[#181b14]' : 'text-[#7d8375]'}`} />
-                          <span>{link.label}</span>
-                        </div>
-                        {link.badge && (
-                          <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-white border border-[#d8dccf] text-[#606458]">
-                            {link.badge}
-                          </span>
-                        )}
-                      </Link>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Apps & Resources Section */}
-              <div className="space-y-1.5">
-                <p className="px-3 text-[10px] font-black uppercase tracking-[0.18em] text-[#92998a]">
-                  Apps &amp; Resources
-                </p>
-                <div className="space-y-1">
-                  {resourceLinks.map((link) => {
-                    const Icon = link.icon;
-                    const isActive = activeLink(link.href);
-                    return (
-                      <Link
-                        key={link.href}
-                        href={link.href}
-                        onClick={closeMobile}
-                        aria-current={isActive ? 'page' : undefined}
-                        className={`group flex items-start justify-between rounded-xl px-3.5 py-2.5 transition-colors ${
-                          isActive
-                            ? 'bg-[#e6edb0] text-[#181b14] shadow-2xs'
-                            : 'text-[#383d34] hover:bg-white hover:text-[#181b14]'
-                        }`}
-                      >
-                        <div className="flex items-start gap-3">
-                          <Icon className={`w-4 h-4 mt-0.5 shrink-0 ${isActive ? 'text-[#181b14]' : 'text-[#7d8375]'}`} />
-                          <div>
-                            <span className="block font-bold text-sm leading-tight text-[#1b2018]">{link.label}</span>
-                            <span className="block text-[11px] font-normal text-[#7d8375] mt-0.5 leading-snug">{link.detail}</span>
-                          </div>
-                        </div>
-                        <ChevronRight className="w-4 h-4 text-[#a3aba0] shrink-0 mt-1 opacity-0 group-hover:opacity-100 transition-opacity" />
-                      </Link>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-
-            {/* Bottom Account & CTA Footer */}
-            <div className="p-4 border-t border-[#e4e0d5] bg-[#f8f8f3] shrink-0 space-y-2.5">
-              {isSignedIn ? (
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2.5 px-3 py-2 rounded-xl bg-white border border-[#e0e4d8] text-xs">
-                    <div className="w-6 h-6 rounded-full bg-[#e6edb0] flex items-center justify-center font-bold text-[#181b14] text-[11px] shrink-0">
-                      {user?.email?.slice(0, 2).toUpperCase() || 'LB'}
+        {/* Scrollable Navigation Body */}
+        <div className="flex-1 overflow-y-auto px-4 py-5 space-y-6" data-lenis-prevent>
+          {/* Product Section */}
+          <div className="space-y-1.5">
+            <p className="px-3 text-[10px] font-black uppercase tracking-[0.18em] text-[#92998a]">
+              Product
+            </p>
+            <div className="space-y-0.5">
+              {primaryLinks.map((link) => {
+                const Icon = link.icon;
+                const isActive = activeLink(link.href);
+                return (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    onClick={closeMobile}
+                    aria-current={isActive ? 'page' : undefined}
+                    className={`flex items-center justify-between rounded-xl px-3.5 py-2.5 text-sm font-bold transition-colors ${
+                      isActive
+                        ? 'bg-[#e6edb0] text-[#181b14] shadow-2xs'
+                        : 'text-[#383d34] hover:bg-white hover:text-[#181b14]'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <Icon className={`w-4 h-4 ${isActive ? 'text-[#181b14]' : 'text-[#7d8375]'}`} />
+                      <span>{link.label}</span>
                     </div>
-                    <span className="truncate text-[#505649] font-medium">{user?.email || 'Logged In'}</span>
-                  </div>
-                  <Link
-                    href={dashboardHref}
-                    onClick={closeMobile}
-                    className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-[#181b14] text-white font-extrabold text-sm shadow-sm hover:bg-[#30392a] active:scale-[0.99] transition-all"
-                  >
-                    <span>Open LaterBox</span>
-                    <ArrowRight className="w-4 h-4" />
+                    {link.badge && (
+                      <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-white border border-[#d8dccf] text-[#606458]">
+                        {link.badge}
+                      </span>
+                    )}
                   </Link>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  <Link
-                    href={primaryActionHref}
-                    onClick={closeMobile}
-                    className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-[#181b14] text-white font-extrabold text-sm shadow-sm hover:bg-[#30392a] active:scale-[0.99] transition-all"
-                  >
-                    <span>{loading ? 'Open LaterBox' : 'Get started free'}</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </Link>
-                  <Link
-                    href={`${APP_ORIGIN}/login`}
-                    onClick={closeMobile}
-                    className="w-full flex items-center justify-center py-2.5 rounded-xl border border-[#dfe5d5] bg-white text-xs font-bold text-[#181b14] hover:bg-[#f4f7eb] active:scale-[0.99] transition-all"
-                  >
-                    Log in to your account
-                  </Link>
-                </div>
-              )}
-              <p className="text-center text-[10px] text-[#939a87] font-medium pt-0.5">
-                Offline-first • Encrypted • Multi-platform
-              </p>
+                );
+              })}
             </div>
-          </aside>
-        </div>,
-        document.body
-      )}
+          </div>
+
+          {/* Apps & Resources Section */}
+          <div className="space-y-1.5">
+            <p className="px-3 text-[10px] font-black uppercase tracking-[0.18em] text-[#92998a]">
+              Apps &amp; Resources
+            </p>
+            <div className="space-y-1">
+              {resourceLinks.map((link) => {
+                const Icon = link.icon;
+                const isActive = activeLink(link.href);
+                return (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    onClick={closeMobile}
+                    aria-current={isActive ? 'page' : undefined}
+                    className={`group flex items-start justify-between rounded-xl px-3.5 py-2.5 transition-colors ${
+                      isActive
+                        ? 'bg-[#e6edb0] text-[#181b14] shadow-2xs'
+                        : 'text-[#383d34] hover:bg-white hover:text-[#181b14]'
+                    }`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <Icon className={`w-4 h-4 mt-0.5 shrink-0 ${isActive ? 'text-[#181b14]' : 'text-[#7d8375]'}`} />
+                      <div>
+                        <span className="block font-bold text-sm leading-tight text-[#1b2018]">{link.label}</span>
+                        <span className="block text-[11px] font-normal text-[#7d8375] mt-0.5 leading-snug">{link.detail}</span>
+                      </div>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-[#a3aba0] shrink-0 mt-1 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        {/* Bottom Account & CTA Footer */}
+        <div className="p-4 border-t border-[#e4e0d5] bg-[#f8f8f3] shrink-0 space-y-2.5">
+          {isSignedIn ? (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2.5 px-3 py-2 rounded-xl bg-white border border-[#e0e4d8] text-xs">
+                <div className="w-6 h-6 rounded-full bg-[#e6edb0] flex items-center justify-center font-bold text-[#181b14] text-[11px] shrink-0">
+                  {user?.email?.slice(0, 2).toUpperCase() || 'LB'}
+                </div>
+                <span className="truncate text-[#505649] font-medium">{user?.email || 'Logged In'}</span>
+              </div>
+              <Link
+                href={dashboardHref}
+                onClick={closeMobile}
+                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-[#181b14] text-white font-extrabold text-sm shadow-sm hover:bg-[#30392a] active:scale-[0.99] transition-all"
+              >
+                <span>Open LaterBox</span>
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <Link
+                href={primaryActionHref}
+                onClick={closeMobile}
+                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-[#181b14] text-white font-extrabold text-sm shadow-sm hover:bg-[#30392a] active:scale-[0.99] transition-all"
+              >
+                <span>{loading ? 'Open LaterBox' : 'Get started free'}</span>
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+              <Link
+                href={`${APP_ORIGIN}/login`}
+                onClick={closeMobile}
+                className="w-full flex items-center justify-center py-2.5 rounded-xl border border-[#dfe5d5] bg-white text-xs font-bold text-[#181b14] hover:bg-[#f4f7eb] active:scale-[0.99] transition-all"
+              >
+                Log in to your account
+              </Link>
+            </div>
+          )}
+          <p className="text-center text-[10px] text-[#939a87] font-medium pt-0.5">
+            Offline-first • Encrypted • Multi-platform
+          </p>
+        </div>
+      </aside>
     </>
   );
 }

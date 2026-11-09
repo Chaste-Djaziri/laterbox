@@ -786,27 +786,34 @@ export function DocsReader({ currentSlug = 'introduction' }: DocsReaderProps) {
         </aside>
       </div>
 
+      {/* Mobile Drawer Backdrop */}
+      <div
+        className={`fixed inset-0 z-50 bg-black/40 backdrop-blur-xs transition-opacity duration-300 lg:hidden ${
+          isMobileSidebarOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+        }`}
+        onClick={() => setIsMobileSidebarOpen(false)}
+        aria-hidden="true"
+      />
+
       {/* Mobile Drawer Sidebar */}
-      {isMobileSidebarOpen && (
-        <div className="fixed inset-0 z-50 lg:hidden flex">
-          <div
-            className="fixed inset-0 bg-black/40 backdrop-blur-xs"
+      <div
+        className={`fixed inset-y-0 left-0 z-50 w-72 max-w-full bg-[#faf8f2] border-r border-[#e4e0d5] p-5 space-y-6 overflow-y-auto transition-transform duration-300 ease-out lg:hidden ${
+          isMobileSidebarOpen ? 'translate-x-0 pointer-events-auto' : '-translate-x-full pointer-events-none'
+        }`}
+      >
+        <div className="flex items-center justify-between pb-3 border-b border-[#e4e0d5]">
+          <div className="flex items-center gap-2 font-black text-sm text-[#171711]">
+            <BookOpen className="w-4 h-4" />
+            <span>Documentation</span>
+          </div>
+          <button
+            type="button"
             onClick={() => setIsMobileSidebarOpen(false)}
-          />
-          <div className="relative w-72 max-w-full bg-[#faf8f2] border-r border-[#e4e0d5] p-5 space-y-6 overflow-y-auto z-10 animate-in slide-in-from-left duration-200">
-            <div className="flex items-center justify-between pb-3 border-b border-[#e4e0d5]">
-              <div className="flex items-center gap-2 font-black text-sm text-[#171711]">
-                <BookOpen className="w-4 h-4" />
-                <span>Documentation</span>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsMobileSidebarOpen(false)}
-                className="p-1 rounded-lg hover:bg-[#ebe7dc] text-[#6c6b63] hover:text-[#171711]"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
+            className="p-1 rounded-lg hover:bg-[#ebe7dc] text-[#6c6b63] hover:text-[#171711] cursor-pointer"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
 
             {DOCS_SECTIONS.map((section) => (
               <div key={section.id} className="space-y-1">
@@ -840,9 +847,7 @@ export function DocsReader({ currentSlug = 'introduction' }: DocsReaderProps) {
                 </ul>
               </div>
             ))}
-          </div>
-        </div>
-      )}
+      </div>
 
       {/* Global Search Dialog Modal */}
       {isSearchOpen && (
