@@ -426,8 +426,15 @@ struct AuthView: View {
                             // Expand the container, not the UIKit button, on wide phones/iPads.
                             .frame(maxWidth: 375)
                             .frame(height: 54)
+                            // The native Apple control has its own smaller corner radius.
+                            // Fill behind it with the same approved button color, then
+                            // clip the complete shape to match Continue (15 pt).
+                            .background(
+                                colorScheme == .dark ? Color.white : Color.black,
+                                in: RoundedRectangle(cornerRadius: 15, style: .continuous)
+                            )
+                            .clipShape(RoundedRectangle(cornerRadius: 15, style: .continuous))
                             .frame(maxWidth: .infinity)
-                            .clipShape(RoundedRectangle(cornerRadius: 15))
                             .disabled(isLoading)
 
                             Button {
