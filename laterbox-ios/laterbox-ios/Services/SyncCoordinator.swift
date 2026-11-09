@@ -43,6 +43,31 @@ enum StorageFullError: LocalizedError {
     }
 }
 
+/// Deletes only the local library and app-group artifacts. Never schedules
+/// a Supabase deletion or calls the cloud API during sign-out.
+@MainActor
+enum LocalAccountDataEraser {
+    static func erase(context: ModelContext, sharedRoot: URL) throws {
+        // Batch-delete every account's local rows without holding model
+        // instances as SwiftData invalidates them. This also scales better
+        // for large offline libraries and avoids use-after-reset crashes.
+        // These are purely local operations, not cloud deletion requests.
+        try context.delete(model: LBItem.self)
+        try context.delete(model: LBCollection.self)
+        try context.save()
+
+        // The share extension, widgets and the app share this storage.
+        // Delete only LaterBox-owned paths, never the app-group container itself.
+        let ownedPaths = ["Captures", "Attachments", "ai_settings.json", "cached_collections.json"]
+        for name in ownedPaths {
+            let path = sharedRoot.appendingPathComponent(name)
+            if FileManager.default.fileExists(atPath: path.path) {
+                try FileManager.default.removeItem(at: path)
+            }
+        }
+    }
+}
+
 @MainActor
 public final class SyncCoordinator: ObservableObject {
     public static let shared = SyncCoordinator()
@@ -319,6 +344,77 @@ public final class SyncCoordinator: ObservableObject {
         LBHaptic.light()
     }
 
+    /// Explicit Sign Out removes *all* LaterBox user content from this device.
+    /// This includes unuploaded items; the cloud account and its records remain intact.
+    /// The caller keeps the session active and shows an error if local deletion fails.
+    public func signOutAndEraseLocalData(context: ModelContext) throws {
+        let root = try SharedCaptureStore.root()
+        try LocalAccountDataEraser.erase(context: context, sharedRoot: root)
+
+        // Clear any user-provided AI credentials retained in a live manager.
+        // The manager writes shared settings when properties change; erase the
+        // generated file and defaults immediately afterward.
+        LaterAIModelManager.shared.resetForSignOut()
+        ClipboardDetectionManager.shared.resetSessionData()
+        let aiSettings = root.appendingPathComponent("ai_settings.json")
+        if FileManager.default.fileExists(atPath: aiSettings.path) {
+            try FileManager.default.removeItem(at: aiSettings)
+        }
+
+        // Exported backups in the app's temporary directory are private data.
+        let temporary = FileManager.default.temporaryDirectory
+        let exports = try FileManager.default.contentsOfDirectory(at: temporary, includingPropertiesForKeys: nil)
+        for file in exports where file.lastPathComponent.hasPrefix("LaterBox-Backup-")
+            && file.pathExtension == "laterbox" {
+            try FileManager.default.removeItem(at: file)
+        }
+
+        URLCache.shared.removeAllCachedResponses()
+        UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
+        UNUserNotificationCenter.current().removeAllDeliveredNotifications()
+        ReturnNotificationRouter.shared.itemID = nil
+        LaterAIManager.shared.isShowingLaterAI = false
+        LaterAIManager.shared.flowProgress = 0
+        LaterAIManager.shared.attachedSubject = nil
+        LaterAIManager.shared.initialPrompt = nil
+        AppLockManager.shared.isAppLockEnabled = false
+        AppLockManager.shared.isLocked = false
+
+        // Purge app-owned purchase-linkage Keychain data before credentials.
+        // Apple's StoreKit entitlement remains available independently.
+        try StoreKitManager.shared.resetAccountConnection()
+
+        // Remove account-specific preferences and the extension's shared
+        // identities, queues, tokens and provider keys, not just auth strings.
+        for key in defaults.dictionaryRepresentation().keys {
+            defaults.removeObject(forKey: key)
+        }
+        if let groupDefaults = UserDefaults(suiteName: SharedCaptureStore.group) {
+            for key in groupDefaults.dictionaryRepresentation().keys {
+                groupDefaults.removeObject(forKey: key)
+            }
+        }
+
+        // Preserve device-owned StoreKit entitlement (it belongs to Apple),
+        // while discarding the previous LaterBox account's connection state.
+        signOut()
+        pendingPullCount = 0
+        pendingPushCount = 0
+        isPulling = false
+        isPushing = false
+        isCheckingRemoteChanges = false
+        lastSyncedAt = nil
+        lastSyncErrorMessage = nil
+        showingSyncFailureAlert = false
+        showingStorageFullAlert = false
+        showingQuickCapture = false
+        isShowingCapture = false
+        showingAuthSheet = false
+        activeFilter = nil
+        searchQuery = ""
+        catalogUpdateTrigger = UUID()
+    }
+
     public func signOut() {
         billingEntitlement = nil
         billingError = nil
@@ -346,31 +442,9 @@ public final class SyncCoordinator: ObservableObject {
         }
 
         try await api.deleteAccount(token: token)
-
-        let items = (try? context.fetch(FetchDescriptor<LBItem>())) ?? []
-        for item in items where item.userId == currentUserId {
-            UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [item.id])
-            if let data = item.attachmentsData,
-               let attachments = try? JSONDecoder().decode([SharedAttachment].self, from: data) {
-                for attachment in attachments {
-                    if let file = try? SharedCaptureStore.fileURL(attachment) {
-                        try? FileManager.default.removeItem(at: file.deletingLastPathComponent())
-                    }
-                }
-            }
-            context.delete(item)
-        }
-
-        let collections = (try? context.fetch(FetchDescriptor<LBCollection>())) ?? []
-        for collection in collections where collection.userId == currentUserId {
-            context.delete(collection)
-        }
-        try context.save()
-
-        if let root = try? SharedCaptureStore.root() {
-            try? FileManager.default.removeItem(at: root.appendingPathComponent("Captures", isDirectory: true))
-        }
-        signOut()
+        // After the server confirms deletion, wipe the same local data and
+        // app-group artifacts as ordinary sign out.
+        try signOutAndEraseLocalData(context: context)
     }
 
     @discardableResult
@@ -394,23 +468,9 @@ public final class SyncCoordinator: ObservableObject {
         }
     }
 
-    /// Exits guest mode and permanently clears all local guest/unassigned items and collections.
-    public func exitGuest(context: ModelContext) {
-        let localItems = (try? context.fetch(FetchDescriptor<LBItem>())) ?? []
-        let guestItems = localItems.filter { $0.userId == nil }
-        for item in guestItems {
-            UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [item.id])
-            context.delete(item)
-        }
-
-        let localCollections = (try? context.fetch(FetchDescriptor<LBCollection>())) ?? []
-        for coll in localCollections where coll.userId == nil {
-            context.delete(coll)
-        }
-        try? context.save()
-        defaults.removeObject(forKey: "lb_cloud_deletions_guest")
-
-        signOut()
+    /// Exit guest mode removes all private local data and extension captures.
+    public func exitGuest(context: ModelContext) throws {
+        try signOutAndEraseLocalData(context: context)
     }
 
     // MARK: - Save Local Item
@@ -467,14 +527,26 @@ public final class SyncCoordinator: ObservableObject {
         try? context.save()
         LBHaptic.success()
 
-        // Kick off cloud sync, notifications, and enrichment if online
+        // Capture values before scheduling work; SwiftData model instances may
+        // be invalidated by sign-out or by the end of an in-memory test.
+        let savedID = newItem.id
+        let savedTitle = newItem.title
+        let savedDescription = newItem.notificationDescription
+        let savedReturnAt = newItem.returnAt
+        let savedURL = newItem.url
+        let savedUserID = currentUserId
+        let savedAuthToken = authToken
         Task {
-            if newItem.returnAt != nil {
-                _ = try? await ReturnNotification.update(id: newItem.id, title: newItem.title, description: newItem.notificationDescription, date: newItem.returnAt)
+            if savedReturnAt != nil {
+                _ = try? await ReturnNotification.update(
+                    id: savedID, title: savedTitle,
+                    description: savedDescription, date: savedReturnAt
+                )
             }
-            if newItem.url != nil {
-                await enrich(item: newItem, context: context)
+            if savedURL != nil {
+                await enrichItem(id: savedID, originalURL: savedURL, context: context)
             }
+            guard savedUserID == currentUserId, savedAuthToken == authToken, hasCloudPro else { return }
             await syncPendingItems(context: context)
         }
     }
@@ -523,9 +595,25 @@ public final class SyncCoordinator: ObservableObject {
         item.faviconUrl = draft.faviconUrl
         context.insert(item)
         do { try context.save() } catch { context.delete(item); throw error }
+        let savedID = item.id
+        let savedTitle = item.title
+        let savedDescription = item.notificationDescription
+        let savedReturnAt = item.returnAt
+        let savedURL = item.url
+        let savedUserID = currentUserId
+        let savedAuthToken = authToken
         Task {
-            _ = try? await ReturnNotification.update(id: item.id, title: item.title, description: item.notificationDescription, date: item.returnAt)
-            await enrich(item: item, context: context); await syncPendingItems(context: context)
+            if savedReturnAt != nil {
+                _ = try? await ReturnNotification.update(
+                    id: savedID, title: savedTitle,
+                    description: savedDescription, date: savedReturnAt
+                )
+            }
+            if savedURL != nil {
+                await enrichItem(id: savedID, originalURL: savedURL, context: context)
+            }
+            guard savedUserID == currentUserId, savedAuthToken == authToken, hasCloudPro else { return }
+            await syncPendingItems(context: context)
         }
         return item
     }
@@ -584,12 +672,21 @@ public final class SyncCoordinator: ObservableObject {
     }
 
     public func enrich(item: LBItem, context: ModelContext) async {
-        guard let text = item.url, let url = URL(string: text) else { return }
+        await enrichItem(id: item.id, originalURL: item.url, context: context)
+    }
+
+    private func enrichItem(id: String, originalURL: String?, context: ModelContext) async {
+        guard let originalURL, let url = URL(string: originalURL) else { return }
+        let expectedUserID = currentUserId
+        let expectedAuthToken = authToken
         do {
             let metadata = try await LinkMetadataLoader.load(url)
-            guard item.modelContext != nil, item.status != "deleted" else { return }
+            guard currentUserId == expectedUserID, authToken == expectedAuthToken else { return }
+            let descriptor = FetchDescriptor<LBItem>(predicate: #Predicate { $0.id == id })
+            guard let item = try context.fetch(descriptor).first,
+                  item.status != ItemStatus.deleted.rawValue else { return }
             let candidateTitle = LinkMetadataLoader.cleanTitle(metadata.title)
-            let currentIsGeneric = item.title.isEmpty || item.title == url.host || item.title == text || item.title.hasPrefix("http") || LinkMetadataLoader.isGenericTitle(item.title)
+            let currentIsGeneric = item.title.isEmpty || item.title == url.host || item.title == originalURL || item.title.hasPrefix("http") || LinkMetadataLoader.isGenericTitle(item.title)
             if let candidateTitle, !LinkMetadataLoader.isGenericTitle(candidateTitle) {
                 if currentIsGeneric || LinkMetadataLoader.isGenericTitle(item.title) {
                     item.title = candidateTitle
@@ -621,8 +718,13 @@ public final class SyncCoordinator: ObservableObject {
             item.isSyncPending = true
             try context.save()
         } catch {
-            item.enrichmentStatus = "failed"
-            try? context.save()
+            guard currentUserId == expectedUserID, authToken == expectedAuthToken else { return }
+            let descriptor = FetchDescriptor<LBItem>(predicate: #Predicate { $0.id == id })
+            if let item = try? context.fetch(descriptor).first,
+               item.status != ItemStatus.deleted.rawValue {
+                item.enrichmentStatus = "failed"
+                try? context.save()
+            }
         }
     }
 

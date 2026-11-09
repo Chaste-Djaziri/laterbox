@@ -50,6 +50,20 @@ public final class StoreKitManager: ObservableObject {
     @Published public private(set) var isConnectingAccount = false
     @Published public private(set) var needsAccountConnection = false
 
+    /// Clear previous LaterBox account linkage without revoking Apple-managed
+    /// device purchases or affecting the customer's App Store subscription.
+    public func resetAccountConnection() throws {
+        // StoreKit entitlement survives; this keychain record can retain the
+        // previous account's purchase transaction and linkage metadata.
+        try vault.clearOnSignOut()
+        activePurchase = nil
+        registrationAccountId = nil
+        cloudRegistrationMessage = nil
+        cloudPurchaseConfirmed = false
+        needsAccountConnection = isProSubscriptionActive
+        isConnectingAccount = false
+    }
+
     public static func registrationFailureMessage(status: Int, code: String?) -> String {
         switch code {
         case "link_required": return "Pro is active on this device. Connect Pro to your account if you want cloud and web access."

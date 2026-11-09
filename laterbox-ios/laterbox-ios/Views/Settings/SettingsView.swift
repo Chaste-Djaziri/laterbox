@@ -20,6 +20,8 @@ public struct SettingsView: View {
     @StateObject private var storageManager = LocalStorageManager.shared
     @State private var notificationStatus: UNAuthorizationStatus = .notDetermined
     @State private var showingSignOutAlert = false
+    @State private var showingSignOutFailure = false
+    @State private var signOutFailureMessage = ""
     @State private var showingExitGuestAlert = false
     @State private var showingAuthSheet = false
     private let isTabRoot: Bool
@@ -373,19 +375,36 @@ public struct SettingsView: View {
             }
         }
         .alert("Sign Out", isPresented: $showingSignOutAlert) {
-            Button("Sign Out", role: .destructive) { coordinator.signOut() }
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text("Your local items will be safely kept on this device.")
-        }
-        .alert("Exit Guest Mode", isPresented: $showingExitGuestAlert) {
-            Button("Exit & Clear Data", role: .destructive) {
-                coordinator.exitGuest(context: modelContext)
-                dismiss()
+            Button("Sign Out & Clear Device", role: .destructive) {
+                do {
+                    try coordinator.signOutAndEraseLocalData(context: modelContext)
+                } catch {
+                    signOutFailureMessage = error.localizedDescription
+                    showingSignOutFailure = true
+                }
             }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("Exiting guest mode will clear all items saved on this device during this guest session.")
+            Text("This permanently removes all locally stored LaterBox items, collections, files and unsynced changes from the device. Your cloud account and its data remain unchanged.")
+        }
+        .alert("Exit Guest Mode", isPresented: $showingExitGuestAlert) {
+            Button("Exit & Clear Data", role: .destructive) {
+                do {
+                    try coordinator.exitGuest(context: modelContext)
+                    dismiss()
+                } catch {
+                    signOutFailureMessage = error.localizedDescription
+                    showingSignOutFailure = true
+                }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Permanently erase guest items, local files, and unsynced changes from this device.")
+        }
+        .alert("Could Not Clear Device", isPresented: $showingSignOutFailure) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("Sign out was not completed. Try again. \(signOutFailureMessage)")
         }
         .task {
             await refreshNotificationStatus()

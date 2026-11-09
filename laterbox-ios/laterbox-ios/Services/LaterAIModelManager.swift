@@ -235,6 +235,21 @@ final class LaterAIModelManager: ObservableObject {
         }
     }
 
+    /// Remove credentials and account-related settings held by this live singleton.
+    func resetForSignOut() {
+        selectedProvider = .local
+        isOnDeviceModelEnabled = false
+        bazaarlinkApiKey = ""
+        geminiApiKey = ""
+        openaiApiKey = ""
+        claudeApiKey = ""
+        bazaarlinkModel = "qwen/qwen3.7-flash"
+        geminiModel = "gemini-2.5-flash"
+        openaiModel = "gpt-4o-mini"
+        claudeModel = "claude-3-5-haiku-20241022"
+        enableSearchRefine = true
+    }
+
     func currentSharedSettings() -> SharedAISettings {
         SharedAISettings(
             selectedProvider: selectedProvider.rawValue,

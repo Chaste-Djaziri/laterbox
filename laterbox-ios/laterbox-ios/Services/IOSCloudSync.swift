@@ -415,6 +415,9 @@ extension SyncCoordinator {
         var appliedCount = 0
 
         for snapshot in remote {
+            // A download may resume after Sign Out has erased its SwiftData
+            // objects. Never touch those invalidated instances on a stale session.
+            guard currentUserId == uid, authToken == token else { return appliedCount }
             if snapshot.permanently_deleted == true {
                 for item in local where item.id.caseInsensitiveCompare(snapshot.id) == .orderedSame {
                     context.delete(item)
@@ -449,6 +452,7 @@ extension SyncCoordinator {
                             if let index { assets[index] = metadata } else { assets.append(metadata) }
                         } else {
                             let restored = try await attachmentAPI.downloadAttachment(remote, token: token)
+                            guard currentUserId == uid, authToken == token else { return appliedCount }
                             if let index { assets[index] = restored } else { assets.append(restored) }
                         }
                     }
@@ -562,7 +566,9 @@ extension SyncCoordinator {
                               RemoteMediaKind.detect(name: attachment.original_file_name, mimeType: attachment.mime_type) != nil {
                         localAttachments.append(LaterBoxAPIService.remoteMediaPlaceholder(attachment))
                     } else {
-                        localAttachments.append(try await attachmentAPI.downloadAttachment(attachment, token: token))
+                        let restored = try await attachmentAPI.downloadAttachment(attachment, token: token)
+                        guard currentUserId == uid, authToken == token else { return appliedCount }
+                        localAttachments.append(restored)
                     }
                 }
                 if !localAttachments.isEmpty { item.attachmentsData = try? JSONEncoder().encode(localAttachments) }
@@ -573,6 +579,7 @@ extension SyncCoordinator {
             item.isSyncPending = false
             appliedCount += 1
         }
+        guard currentUserId == uid, authToken == token else { return appliedCount }
         LBItem.cleanupDuplicatesInStore(context: context)
         try context.save()
         return appliedCount

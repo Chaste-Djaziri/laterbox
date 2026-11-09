@@ -73,6 +73,48 @@ struct CaptureComposerTests {
         #expect(try container.mainContext.fetch(FetchDescriptor<LBCollection>()).isEmpty)
     }
 
+    @Test @MainActor func signOutErasesEveryLocalUserRecordAndSharedCapture() throws {
+        let container = try ModelContainer(
+            for: Schema([LBItem.self, LBCollection.self]),
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+        let context = container.mainContext
+        context.insert(LBItem(userId: "account-A", title: "Synced item", isSyncPending: false))
+        context.insert(LBItem(userId: "account-A", title: "Offline unsynced item", isSyncPending: true))
+        context.insert(LBItem(title: "Guest draft"))
+        context.insert(LBItem(userId: "account-A", title: "Recently Deleted", status: .deleted))
+        context.insert(LBCollection(userId: "account-A", name: "Research"))
+        context.insert(LBCollection(name: "Guest collection"))
+        try context.save()
+
+        // Use a sandboxed test directory. Never erase the actual app group from tests.
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("LaterBoxSignOutTests-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+
+        for folder in ["Captures", "Attachments"] {
+            let path = root.appendingPathComponent(folder, isDirectory: true)
+            try FileManager.default.createDirectory(at: path, withIntermediateDirectories: true)
+            try Data("private content".utf8).write(to: path.appendingPathComponent("private.txt"))
+        }
+        for name in ["cached_collections.json", "ai_settings.json"] {
+            try Data("private settings".utf8).write(to: root.appendingPathComponent(name))
+        }
+        let unrelated = root.appendingPathComponent("unrelated-file.txt")
+        try Data("keep".utf8).write(to: unrelated)
+
+        try LocalAccountDataEraser.erase(context: context, sharedRoot: root)
+
+        #expect(try context.fetch(FetchDescriptor<LBItem>()).isEmpty)
+        #expect(try context.fetch(FetchDescriptor<LBCollection>()).isEmpty)
+        for name in ["Captures", "Attachments", "cached_collections.json", "ai_settings.json"] {
+            #expect(!FileManager.default.fileExists(atPath: root.appendingPathComponent(name).path))
+        }
+        #expect(FileManager.default.fileExists(atPath: unrelated.path),
+                "Sign out must not erase unrelated content in the shared container")
+    }
+
     @Test func openGraphRelativeImageAndEntities() {
         let html = #"""
         <html><head>

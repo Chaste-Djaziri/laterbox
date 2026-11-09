@@ -73,6 +73,21 @@ public final class ClipboardDetectionManager: ObservableObject {
         set { userDefaults.set(newValue, forKey: contentHashKey) }
     }
 
+    /// Drop user-specific clipboard previews and cancel queued UI work at sign-out.
+    public func resetSessionData() {
+        dismissTask?.cancel()
+        lastSaveTask?.cancel()
+        dismissTask = nil
+        lastSaveTask = nil
+        internalCopyHashes.removeAll()
+        detectedItem = nil
+        isShowingBanner = false
+        lastHandledHash = 0
+        #if canImport(UIKit)
+        lastHandledChangeCount = UIPasteboard.general.changeCount
+        #endif
+    }
+
     /// Records an item copied internally within LaterBox so it is never re-prompted.
     public func recordInternalCopy(_ text: String) {
         let clean = text.trimmingCharacters(in: .whitespacesAndNewlines)

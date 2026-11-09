@@ -928,7 +928,7 @@ extension LaterAITests {
 
         #expect(coordinator.countUnassignedLocalItems(context: context) == 1)
 
-        coordinator.exitGuest(context: context)
+        try coordinator.exitGuest(context: context)
 
         #expect(coordinator.isGuestMode == false)
         #expect(coordinator.hasAccess == false)

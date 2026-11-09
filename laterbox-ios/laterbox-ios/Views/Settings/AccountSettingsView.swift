@@ -16,6 +16,8 @@ public struct AccountSettingsView: View {
     @ObservedObject private var coordinator = SyncCoordinator.shared
     @State private var showingAuthSheet = false
     @State private var showingSignOutAlert = false
+    @State private var showingSignOutFailure = false
+    @State private var signOutFailureMessage = ""
     @State private var showingExitGuestAlert = false
     @State private var appleLinkMessage: String?
     @State private var identities: AccountConnectedIdentities?
@@ -84,19 +86,36 @@ public struct AccountSettingsView: View {
             NavigationStack { AuthView() }
         }
         .alert("Sign Out", isPresented: $showingSignOutAlert) {
-            Button("Sign Out", role: .destructive) { coordinator.signOut() }
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text("Your local items will be safely kept on this device.")
-        }
-        .alert("Exit Guest Mode", isPresented: $showingExitGuestAlert) {
-            Button("Exit & Clear Data", role: .destructive) {
-                coordinator.exitGuest(context: modelContext)
-                dismiss()
+            Button("Sign Out & Clear Device", role: .destructive) {
+                do {
+                    try coordinator.signOutAndEraseLocalData(context: modelContext)
+                } catch {
+                    signOutFailureMessage = error.localizedDescription
+                    showingSignOutFailure = true
+                }
             }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("Exiting guest mode will clear all items saved on this device during this guest session.")
+            Text("This permanently removes all LaterBox items, collections, attachments, pending shares, and account settings stored on this device, including unsynced changes. Your cloud data and account are not deleted.")
+        }
+        .alert("Exit Guest Mode", isPresented: $showingExitGuestAlert) {
+            Button("Exit & Clear Data", role: .destructive) {
+                do {
+                    try coordinator.exitGuest(context: modelContext)
+                    dismiss()
+                } catch {
+                    signOutFailureMessage = error.localizedDescription
+                    showingSignOutFailure = true
+                }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Permanently remove your local guest items, collections, attachments, and unsynced changes from this device.")
+        }
+        .alert("Could Not Clear Device", isPresented: $showingSignOutFailure) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("Sign out was not completed because some local data could not be removed. Try again. \(signOutFailureMessage)")
         }
     }
 

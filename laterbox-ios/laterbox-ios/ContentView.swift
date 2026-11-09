@@ -19,6 +19,8 @@ struct ContentView: View {
     @ObservedObject private var clipboardManager = ClipboardDetectionManager.shared
     @State private var itemToPresent: LBItem? = nil
     @State private var showingSyncReport = false
+    @State private var showingSignOutFailure = false
+    @State private var signOutFailureMessage = ""
     @State private var syncReportMessage = ""
     @State private var showingLaunchOverlay = true
 
@@ -98,8 +100,13 @@ struct ContentView: View {
             if coordinator.sessionExpired {
                 Button("Sign In") { coordinator.showingAuthSheet = true }
                 Button("Use Local (Sign Out)", role: .destructive) {
-                    coordinator.signOut()
-                    coordinator.continueAsGuest()
+                    do {
+                        try coordinator.signOutAndEraseLocalData(context: modelContext)
+                        coordinator.continueAsGuest()
+                    } catch {
+                        signOutFailureMessage = error.localizedDescription
+                        showingSignOutFailure = true
+                    }
                 }
             }
             Button("Report issue") {
@@ -109,6 +116,11 @@ struct ContentView: View {
             Button("OK", role: .cancel) {}
         } message: {
             Text(coordinator.friendlySyncFailureReason)
+        }
+        .alert("Could Not Clear Device", isPresented: $showingSignOutFailure) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("Sign out was not completed. Try again. \(signOutFailureMessage)")
         }
         .sheet(isPresented: $showingSyncReport) {
             NavigationStack {
@@ -169,7 +181,15 @@ struct ContentView: View {
             coordinator.showingQuickCapture = true
         }
         .onChange(of: coordinator.hasAccess) { _, hasAccess in
-            if hasAccess { openPendingQuickSaveControl() }
+            if hasAccess {
+                openPendingQuickSaveControl()
+            } else {
+                // Dismiss any still-present item, report, or account-specific
+                // UI state once sign-out has erased its backing records.
+                itemToPresent = nil
+                showingSyncReport = false
+                syncReportMessage = ""
+            }
         }
         .onChange(of: coordinator.isProUser) { _, active in
             if active { Task { await coordinator.syncPendingItems(context: modelContext, announceFailure: false) } }

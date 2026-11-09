@@ -50,6 +50,15 @@ public final class AppleBillingVault {
             guard added == errSecSuccess else { throw VaultError.unavailable(added) }
         } else if status != errSecSuccess { throw VaultError.unavailable(status) }
     }
+    /// Remove app-managed billing identity, purchase receipts and retry outbox.
+    /// This does not revoke transactions or entitlements managed by StoreKit.
+    public func clearOnSignOut() throws {
+        let status = SecItemDelete(query as CFDictionary)
+        guard status == errSecSuccess || status == errSecItemNotFound else {
+            throw VaultError.unavailable(status)
+        }
+    }
+
     public func anonymousToken() throws -> UUID {
         var state = try read()
         if let token = state.anonymousToken { return token }

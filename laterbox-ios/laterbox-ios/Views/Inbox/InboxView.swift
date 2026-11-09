@@ -43,6 +43,8 @@ public struct InboxView: View {
     @State private var isRefreshingInbox: Bool = false
     @State private var showingExitGuestConfirm: Bool = false
     @State private var showingSignOutConfirm: Bool = false
+    @State private var showingSignOutFailure = false
+    @State private var signOutFailureMessage = ""
     @State private var showingProfileMenu: Bool = false
     @State private var collectionTargetItem: LBItem? = nil
     @State private var snoozeTargetItem: LBItem? = nil
@@ -937,7 +939,12 @@ public struct InboxView: View {
                 titleVisibility: .visible
             ) {
                 Button("Exit & Clear Data", role: .destructive) {
-                    coordinator.exitGuest(context: modelContext)
+                    do {
+                        try coordinator.exitGuest(context: modelContext)
+                    } catch {
+                        signOutFailureMessage = error.localizedDescription
+                        showingSignOutFailure = true
+                    }
                 }
                 Button("Cancel", role: .cancel) {}
             } message: {
@@ -948,12 +955,22 @@ public struct InboxView: View {
                 isPresented: $showingSignOutConfirm,
                 titleVisibility: .visible
             ) {
-                Button("Sign Out", role: .destructive) {
-                    coordinator.signOut()
+                Button("Sign Out & Clear Device", role: .destructive) {
+                    do {
+                        try coordinator.signOutAndEraseLocalData(context: modelContext)
+                    } catch {
+                        signOutFailureMessage = error.localizedDescription
+                        showingSignOutFailure = true
+                    }
                 }
                 Button("Cancel", role: .cancel) {}
             } message: {
-                Text("Your local items will be safely kept on this device.")
+                Text("Removes all LaterBox items, collections, files and unsynced changes stored on this device. Cloud data stays in your account.")
+            }
+            .alert("Could Not Clear Device", isPresented: $showingSignOutFailure) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text("Sign out was not completed. Try again. \(signOutFailureMessage)")
             }
             .sheet(isPresented: $showingOrganizer) {
                 AIOrganizerSheet()
