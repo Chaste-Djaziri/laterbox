@@ -2,6 +2,7 @@
 
 import { useRef } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useGSAP } from '@gsap/react';
@@ -410,24 +411,60 @@ export default function LandingPage() {
 
         {/* Hero Dashboard Preview Container */}
         <div className="gsap-hero-preview max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          {/* Floating Try It Badge Indicator */}
-          <div className="mt-12 sm:mt-16 flex justify-start pl-6 sm:pl-10 mb-[-12px] relative z-20">
-            <a
-              href="#live-guest-sandbox"
-              className="inline-flex flex-col items-center group cursor-pointer"
-            >
-              <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#171711] group-hover:bg-[#282723] text-[#e6edb0] font-black text-xs tracking-wider uppercase shadow-md transition-all group-hover:scale-105">
-                <span>TRY IT</span>
-                <span className="text-xs leading-none font-black">↓</span>
-              </div>
-              <div className="w-0 h-0 border-x-4 border-x-transparent border-t-[5px] border-t-[#171711] group-hover:border-t-[#282723] transition-colors" />
-            </a>
+          {/* ============================================================ */}
+          {/* Desktop: Floating Try It Badge Indicator + Interactive Dashboard Preview */}
+          {/* ============================================================ */}
+          <div className="hidden md:block">
+            <div className="mt-12 sm:mt-16 flex justify-start pl-6 sm:pl-10 mb-[-12px] relative z-20">
+              <a
+                href="#live-guest-sandbox"
+                className="inline-flex flex-col items-center group cursor-pointer"
+              >
+                <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#171711] group-hover:bg-[#282723] text-[#e6edb0] font-black text-xs tracking-wider uppercase shadow-md transition-all group-hover:scale-105">
+                  <span>TRY IT</span>
+                  <span className="text-xs leading-none font-black">↓</span>
+                </div>
+                <div className="w-0 h-0 border-x-4 border-x-transparent border-t-[5px] border-t-[#171711] group-hover:border-t-[#282723] transition-colors" />
+              </a>
+            </div>
+
+            <InteractiveDashboardPreview id="live-guest-sandbox" className="scroll-mt-24" />
           </div>
 
           {/* ============================================================ */}
-          {/* Interactive Native Dashboard Preview */}
+          {/* Mobile: iOS Native App Preview with Graceful Bottom Fade Out */}
           {/* ============================================================ */}
-          <InteractiveDashboardPreview id="live-guest-sandbox" className="scroll-mt-24" />
+          <div className="block md:hidden mt-8 sm:mt-10">
+            <div className="relative mx-auto max-w-[320px] rounded-[42px] border-4 border-[#171711] bg-white p-2 shadow-[0_25px_60px_rgba(24,27,20,0.18)] overflow-hidden">
+              {/* Inner viewport with fade out at bottom */}
+              <div className="relative h-[480px] w-full overflow-hidden rounded-[34px] bg-white">
+                <Image
+                  src="/branding/mobile-inbox-preview.png"
+                  alt="LaterBox iOS Mobile App"
+                  width={471}
+                  height={1024}
+                  priority
+                  className="w-full h-auto object-cover object-top"
+                />
+                {/* Bottom graceful fade out gradient */}
+                <div
+                  className="pointer-events-none absolute inset-x-0 bottom-0 h-44 bg-gradient-to-t from-white via-white/85 to-transparent"
+                  aria-hidden="true"
+                />
+              </div>
+
+              {/* Floating iOS CTA over the faded bottom */}
+              <div className="absolute inset-x-0 bottom-6 flex flex-col items-center justify-center px-4 z-10">
+                <Link
+                  href="/download"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#171711] hover:bg-[#282723] active:scale-95 text-white font-extrabold text-xs shadow-lg transition-all"
+                >
+                  <Apple className="w-3.5 h-3.5 text-white" />
+                  <span>Get LaterBox for iOS</span>
+                </Link>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
