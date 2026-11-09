@@ -851,6 +851,7 @@ public struct InboxView: View {
                             withAnimation(.spring(response: 0.32, dampingFraction: 0.85)) {
                                 showingSidebar = false
                             }
+                            LBHaptic.light()
                         }
                         .zIndex(90)
                 }
@@ -902,6 +903,7 @@ public struct InboxView: View {
                                 withAnimation(.spring(response: 0.32, dampingFraction: 0.85)) {
                                     showingSidebar = false
                                 }
+                                LBHaptic.light()
                             }
                         }
                 )

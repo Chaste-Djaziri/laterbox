@@ -59,6 +59,12 @@ struct MainTabView: View {
         .toolbarBackground(.visible, for: .tabBar)
         .accessibilityIdentifier("LaterBox Main Tabs")
         .background(InboxGrainBackground().ignoresSafeArea())
+        .onChange(of: selectedTab) { previous, current in
+            // Feedback for user-driven tab navigation, not automatic Quick Save routing.
+            if previous != current && !coordinator.showingQuickCapture {
+                LBHaptic.light()
+            }
+        }
         .onChange(of: coordinator.showingQuickCapture) { _, requested in
             if requested { selectedTab = .inbox }
         }
