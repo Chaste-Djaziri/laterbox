@@ -101,254 +101,380 @@ export default function LandingPage() {
       );
 
       // When later becomes now (dark section)
-      gsap.from('.gsap-now-heading', {
-        scrollTrigger: {
-          trigger: '.gsap-now-section',
-          start: 'top 80%',
-        },
-        opacity: 0,
-        y: 30,
-        duration: 0.7,
-        ease: 'power3.out',
-      });
+      gsap.fromTo(
+        '.gsap-now-heading',
+        { opacity: 0, y: 30 },
+        {
+          scrollTrigger: {
+            trigger: '.gsap-now-section',
+            start: 'top 85%',
+            once: true,
+          },
+          opacity: 1,
+          y: 0,
+          duration: 0.7,
+          ease: 'power3.out',
+          clearProps: 'all',
+        }
+      );
 
-      gsap.from('.gsap-now-card', {
-        scrollTrigger: {
-          trigger: '.gsap-now-section',
-          start: 'top 75%',
-        },
-        opacity: 0,
-        y: 35,
-        scale: 0.96,
-        duration: 0.75,
-        ease: 'power3.out',
-      });
+      gsap.fromTo(
+        '.gsap-now-card',
+        { opacity: 0, y: 35, scale: 0.96 },
+        {
+          scrollTrigger: {
+            trigger: '.gsap-now-section',
+            start: 'top 80%',
+            once: true,
+          },
+          opacity: 1,
+          y: 0,
+          scale: 1,
+          duration: 0.75,
+          ease: 'power3.out',
+          clearProps: 'all',
+        }
+      );
 
       // Not another todo list
-      gsap.from('.gsap-not-todo-heading', {
-        scrollTrigger: {
-          trigger: '.gsap-not-todo-section',
-          start: 'top 80%',
-        },
-        opacity: 0,
-        y: 25,
-        duration: 0.6,
-        ease: 'power3.out',
-      });
+      gsap.fromTo(
+        '.gsap-not-todo-heading',
+        { opacity: 0, y: 25 },
+        {
+          scrollTrigger: {
+            trigger: '.gsap-not-todo-section',
+            start: 'top 85%',
+            once: true,
+          },
+          opacity: 1,
+          y: 0,
+          duration: 0.6,
+          ease: 'power3.out',
+          clearProps: 'all',
+        }
+      );
 
-      gsap.from('.gsap-not-todo-row', {
-        scrollTrigger: {
-          trigger: '.gsap-not-todo-table',
-          start: 'top 80%',
-        },
-        opacity: 0,
-        x: -20,
-        stagger: 0.08,
-        duration: 0.5,
-        ease: 'power2.out',
-      });
+      gsap.fromTo(
+        '.gsap-not-todo-row',
+        { opacity: 0, x: -20 },
+        {
+          scrollTrigger: {
+            trigger: '.gsap-not-todo-table',
+            start: 'top 85%',
+            once: true,
+          },
+          opacity: 1,
+          x: 0,
+          stagger: 0.08,
+          duration: 0.5,
+          ease: 'power2.out',
+          clearProps: 'all',
+        }
+      );
 
       // Someday vault
-      gsap.from('.gsap-someday-text', {
-        scrollTrigger: {
-          trigger: '.gsap-someday-section',
-          start: 'top 80%',
-        },
-        opacity: 0,
-        y: 30,
-        duration: 0.7,
-        ease: 'power3.out',
-      });
+      gsap.fromTo(
+        '.gsap-someday-text',
+        { opacity: 0, y: 30 },
+        {
+          scrollTrigger: {
+            trigger: '.gsap-someday-section',
+            start: 'top 85%',
+            once: true,
+          },
+          opacity: 1,
+          y: 0,
+          duration: 0.7,
+          ease: 'power3.out',
+          clearProps: 'all',
+        }
+      );
 
-      gsap.from('.gsap-someday-deck', {
-        scrollTrigger: {
-          trigger: '.gsap-someday-section',
-          start: 'top 75%',
-        },
-        opacity: 0,
-        scale: 0.94,
-        y: 25,
-        duration: 0.75,
-        ease: 'power3.out',
-      });
+      gsap.fromTo(
+        '.gsap-someday-deck',
+        { opacity: 0, scale: 0.94, y: 25 },
+        {
+          scrollTrigger: {
+            trigger: '.gsap-someday-section',
+            start: 'top 80%',
+            once: true,
+          },
+          opacity: 1,
+          scale: 1,
+          y: 0,
+          duration: 0.75,
+          ease: 'power3.out',
+          clearProps: 'all',
+        }
+      );
 
       // Designed to stay out of your way
-      gsap.from('.gsap-stay-heading, .gsap-stay-subheading', {
-        scrollTrigger: {
-          trigger: '.gsap-stay-section',
-          start: 'top 80%',
-        },
-        opacity: 0,
-        y: 25,
-        stagger: 0.1,
-        duration: 0.65,
-        ease: 'power3.out',
-      });
+      gsap.fromTo(
+        '.gsap-stay-heading, .gsap-stay-subheading',
+        { opacity: 0, y: 25 },
+        {
+          scrollTrigger: {
+            trigger: '.gsap-stay-section',
+            start: 'top 85%',
+            once: true,
+          },
+          opacity: 1,
+          y: 0,
+          stagger: 0.1,
+          duration: 0.65,
+          ease: 'power3.out',
+          clearProps: 'all',
+        }
+      );
 
-      gsap.from('.gsap-stay-card', {
-        scrollTrigger: {
-          trigger: '.gsap-stay-section',
-          start: 'top 75%',
-        },
-        opacity: 0,
-        y: 30,
-        stagger: 0.12,
-        duration: 0.65,
-        ease: 'power3.out',
-      });
+      gsap.fromTo(
+        '.gsap-stay-card',
+        { opacity: 0, y: 30 },
+        {
+          scrollTrigger: {
+            trigger: '.gsap-stay-section',
+            start: 'top 80%',
+            once: true,
+          },
+          opacity: 1,
+          y: 0,
+          stagger: 0.12,
+          duration: 0.65,
+          ease: 'power3.out',
+          clearProps: 'all',
+        }
+      );
 
       // Your LaterBox Your Rules
-      gsap.from('.gsap-rules-text', {
-        scrollTrigger: {
-          trigger: '.gsap-rules-section',
-          start: 'top 80%',
-        },
-        opacity: 0,
-        y: 30,
-        duration: 0.7,
-        ease: 'power3.out',
-      });
+      gsap.fromTo(
+        '.gsap-rules-text',
+        { opacity: 0, y: 30 },
+        {
+          scrollTrigger: {
+            trigger: '.gsap-rules-section',
+            start: 'top 85%',
+            once: true,
+          },
+          opacity: 1,
+          y: 0,
+          duration: 0.7,
+          ease: 'power3.out',
+          clearProps: 'all',
+        }
+      );
 
-      gsap.from('.gsap-rules-visual', {
-        scrollTrigger: {
-          trigger: '.gsap-rules-section',
-          start: 'top 75%',
-        },
-        opacity: 0,
-        y: 35,
-        duration: 0.8,
-        ease: 'power3.out',
-      });
+      gsap.fromTo(
+        '.gsap-rules-visual',
+        { opacity: 0, y: 35 },
+        {
+          scrollTrigger: {
+            trigger: '.gsap-rules-section',
+            start: 'top 80%',
+            once: true,
+          },
+          opacity: 1,
+          y: 0,
+          duration: 0.8,
+          ease: 'power3.out',
+          clearProps: 'all',
+        }
+      );
 
       // One shortcut away
-      gsap.from('.gsap-shortcut-content', {
-        scrollTrigger: {
-          trigger: '.gsap-shortcut-section',
-          start: 'top 80%',
-        },
-        opacity: 0,
-        y: 30,
-        duration: 0.7,
-        ease: 'power3.out',
-      });
+      gsap.fromTo(
+        '.gsap-shortcut-content',
+        { opacity: 0, y: 30 },
+        {
+          scrollTrigger: {
+            trigger: '.gsap-shortcut-section',
+            start: 'top 85%',
+            once: true,
+          },
+          opacity: 1,
+          y: 0,
+          duration: 0.7,
+          ease: 'power3.out',
+          clearProps: 'all',
+        }
+      );
 
       // Your things stay
-      gsap.from('.gsap-things-heading', {
-        scrollTrigger: {
-          trigger: '.gsap-things-section',
-          start: 'top 80%',
-        },
-        opacity: 0,
-        y: 30,
-        duration: 0.7,
-        ease: 'power3.out',
-      });
+      gsap.fromTo(
+        '.gsap-things-heading',
+        { opacity: 0, y: 30 },
+        {
+          scrollTrigger: {
+            trigger: '.gsap-things-section',
+            start: 'top 85%',
+            once: true,
+          },
+          opacity: 1,
+          y: 0,
+          duration: 0.7,
+          ease: 'power3.out',
+          clearProps: 'all',
+        }
+      );
 
-      gsap.from('.gsap-things-card', {
-        scrollTrigger: {
-          trigger: '.gsap-things-grid',
-          start: 'top 80%',
-        },
-        opacity: 0,
-        y: 35,
-        stagger: 0.12,
-        duration: 0.6,
-        ease: 'power3.out',
-      });
+      gsap.fromTo(
+        '.gsap-things-card',
+        { opacity: 0, y: 35 },
+        {
+          scrollTrigger: {
+            trigger: '.gsap-things-grid',
+            start: 'top 85%',
+            once: true,
+          },
+          opacity: 1,
+          y: 0,
+          stagger: 0.12,
+          duration: 0.6,
+          ease: 'power3.out',
+          clearProps: 'all',
+        }
+      );
 
       // Less mental clutter
-      gsap.from('.gsap-clutter-heading', {
-        scrollTrigger: {
-          trigger: '.gsap-clutter-section',
-          start: 'top 80%',
-        },
-        opacity: 0,
-        y: 25,
-        duration: 0.7,
-        ease: 'power3.out',
-      });
+      gsap.fromTo(
+        '.gsap-clutter-heading',
+        { opacity: 0, y: 25 },
+        {
+          scrollTrigger: {
+            trigger: '.gsap-clutter-section',
+            start: 'top 85%',
+            once: true,
+          },
+          opacity: 1,
+          y: 0,
+          duration: 0.7,
+          ease: 'power3.out',
+          clearProps: 'all',
+        }
+      );
 
-      gsap.from('.gsap-clutter-pill', {
-        scrollTrigger: {
-          trigger: '.gsap-clutter-section',
-          start: 'top 75%',
-        },
-        opacity: 0,
-        scale: 0.9,
-        stagger: 0.08,
-        duration: 0.5,
-        ease: 'back.out(1.4)',
-      });
+      gsap.fromTo(
+        '.gsap-clutter-pill',
+        { opacity: 0, scale: 0.9 },
+        {
+          scrollTrigger: {
+            trigger: '.gsap-clutter-section',
+            start: 'top 80%',
+            once: true,
+          },
+          opacity: 1,
+          scale: 1,
+          stagger: 0.08,
+          duration: 0.5,
+          ease: 'back.out(1.4)',
+          clearProps: 'all',
+        }
+      );
 
       // Wont forget it later
-      gsap.from('.gsap-wont-forget-text', {
-        scrollTrigger: {
-          trigger: '.gsap-wont-forget-section',
-          start: 'top 80%',
-        },
-        opacity: 0,
-        y: 30,
-        duration: 0.75,
-        ease: 'power3.out',
-      });
+      gsap.fromTo(
+        '.gsap-wont-forget-text',
+        { opacity: 0, y: 30 },
+        {
+          scrollTrigger: {
+            trigger: '.gsap-wont-forget-section',
+            start: 'top 85%',
+            once: true,
+          },
+          opacity: 1,
+          y: 0,
+          duration: 0.75,
+          ease: 'power3.out',
+          clearProps: 'all',
+        }
+      );
 
-      gsap.from('.gsap-wont-forget-line', {
-        scrollTrigger: {
-          trigger: '.gsap-wont-forget-section',
-          start: 'top 75%',
-        },
-        scaleX: 0,
-        duration: 0.8,
-        ease: 'power3.out',
-      });
+      gsap.fromTo(
+        '.gsap-wont-forget-line',
+        { scaleX: 0 },
+        {
+          scrollTrigger: {
+            trigger: '.gsap-wont-forget-section',
+            start: 'top 80%',
+            once: true,
+          },
+          scaleX: 1,
+          duration: 0.8,
+          ease: 'power3.out',
+          clearProps: 'all',
+        }
+      );
 
       // FAQ
-      gsap.from('.gsap-faq-header', {
-        scrollTrigger: {
-          trigger: '.gsap-faq-section',
-          start: 'top 80%',
-        },
-        opacity: 0,
-        y: 25,
-        duration: 0.65,
-        ease: 'power3.out',
-      });
+      gsap.fromTo(
+        '.gsap-faq-header',
+        { opacity: 0, y: 25 },
+        {
+          scrollTrigger: {
+            trigger: '.gsap-faq-section',
+            start: 'top 85%',
+            once: true,
+          },
+          opacity: 1,
+          y: 0,
+          duration: 0.65,
+          ease: 'power3.out',
+          clearProps: 'all',
+        }
+      );
 
-      gsap.from('.gsap-faq-item', {
-        scrollTrigger: {
-          trigger: '.gsap-faq-section',
-          start: 'top 75%',
-        },
-        opacity: 0,
-        y: 20,
-        stagger: 0.05,
-        duration: 0.5,
-        ease: 'power2.out',
-      });
+      gsap.fromTo(
+        '.gsap-faq-item',
+        { opacity: 0, y: 20 },
+        {
+          scrollTrigger: {
+            trigger: '.gsap-faq-section',
+            start: 'top 80%',
+            once: true,
+          },
+          opacity: 1,
+          y: 0,
+          stagger: 0.05,
+          duration: 0.5,
+          ease: 'power2.out',
+          clearProps: 'all',
+        }
+      );
 
       // Marketing platforms
-      gsap.from('.gsap-platforms-header', {
-        scrollTrigger: {
-          trigger: '.gsap-platforms-section',
-          start: 'top 80%',
-        },
-        opacity: 0,
-        y: 25,
-        duration: 0.65,
-        ease: 'power3.out',
-      });
+      gsap.fromTo(
+        '.gsap-platforms-header',
+        { opacity: 0, y: 25 },
+        {
+          scrollTrigger: {
+            trigger: '.gsap-platforms-section',
+            start: 'top 85%',
+            once: true,
+          },
+          opacity: 1,
+          y: 0,
+          duration: 0.65,
+          ease: 'power3.out',
+          clearProps: 'all',
+        }
+      );
 
-      gsap.from('.gsap-platform-card', {
-        scrollTrigger: {
-          trigger: '.gsap-platforms-section',
-          start: 'top 75%',
-        },
-        opacity: 0,
-        y: 35,
-        stagger: 0.12,
-        duration: 0.65,
-        ease: 'power3.out',
-      });
+      gsap.fromTo(
+        '.gsap-platform-card',
+        { opacity: 0, y: 35 },
+        {
+          scrollTrigger: {
+            trigger: '.gsap-platforms-section',
+            start: 'top 80%',
+            once: true,
+          },
+          opacity: 1,
+          y: 0,
+          stagger: 0.12,
+          duration: 0.65,
+          ease: 'power3.out',
+          clearProps: 'all',
+        }
+      );
 
       // Recalculate ScrollTrigger start points after layout stabilizes
       if (typeof window !== 'undefined') {
