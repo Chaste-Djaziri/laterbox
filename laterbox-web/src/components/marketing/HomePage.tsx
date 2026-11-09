@@ -39,12 +39,12 @@ export default function LandingPage() {
       // Hero Timeline on mount
       const heroTl = gsap.timeline({ defaults: { ease: 'power3.out' } });
       heroTl
-        .from('.gsap-hero-badge', { opacity: 0, y: -16, duration: 0.6 })
-        .from('.gsap-hero-title', { opacity: 0, y: 28, duration: 0.75 }, '-=0.35')
-        .from('.gsap-hero-sub', { opacity: 0, y: 18, duration: 0.6 }, '-=0.4')
-        .from('.gsap-hero-cta > *', { opacity: 0, y: 16, stagger: 0.08, duration: 0.5 }, '-=0.3')
-        .from('.gsap-hero-meta', { opacity: 0, y: 10, duration: 0.5 }, '-=0.25')
-        .from('.gsap-hero-preview', { opacity: 0, y: 35, scale: 0.98, duration: 0.8 }, '-=0.3');
+        .fromTo('.gsap-hero-badge', { opacity: 0, y: -16 }, { opacity: 1, y: 0, duration: 0.6, clearProps: 'all' })
+        .fromTo('.gsap-hero-title', { opacity: 0, y: 28 }, { opacity: 1, y: 0, duration: 0.75, clearProps: 'all' }, '-=0.35')
+        .fromTo('.gsap-hero-sub', { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 0.6, clearProps: 'all' }, '-=0.4')
+        .fromTo('.gsap-hero-cta > *', { opacity: 0, y: 16 }, { opacity: 1, y: 0, stagger: 0.08, duration: 0.5, clearProps: 'all' }, '-=0.3')
+        .fromTo('.gsap-hero-meta', { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.5, clearProps: 'all' }, '-=0.25')
+        .fromTo('.gsap-hero-preview', { opacity: 0, y: 35, scale: 0.98 }, { opacity: 1, y: 0, scale: 1, duration: 0.8, clearProps: 'all' }, '-=0.3');
 
       // Problem Section ScrollTrigger
       gsap.from('.gsap-problem-title', {
@@ -357,7 +357,7 @@ export default function LandingPage() {
           </p>
 
           {/* Action CTAs */}
-          <div className="gsap-hero-cta flex flex-wrap items-center justify-center gap-3.5">
+          <div className="gsap-hero-cta relative z-20 flex flex-wrap items-center justify-center gap-3.5">
             <Link
               href={`${APP_ORIGIN}/inbox?guest=1`}
               className="inline-flex items-center gap-2 px-7 py-3.5 rounded-full bg-[#171711] hover:bg-[#282723] active:bg-[#0f0f0e] text-white font-extrabold text-sm sm:text-base shadow-sm transition-all duration-150 group"
