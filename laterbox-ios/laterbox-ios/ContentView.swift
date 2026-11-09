@@ -20,6 +20,7 @@ struct ContentView: View {
     @State private var itemToPresent: LBItem? = nil
     @State private var showingSyncReport = false
     @State private var syncReportMessage = ""
+    @State private var showingLaunchOverlay = true
 
     private var activeColorScheme: ColorScheme? {
         if !coordinator.hasAccess || coordinator.showingAuthSheet {
@@ -75,6 +76,16 @@ struct ContentView: View {
                     .transition(.opacity.combined(with: .scale(scale: 0.98)))
                     .zIndex(999)
             }
+
+            if showingLaunchOverlay {
+                LaterBoxLaunchOverlay {
+                    withAnimation(.easeOut(duration: 0.18)) {
+                        showingLaunchOverlay = false
+                    }
+                }
+                .transition(.opacity)
+                .zIndex(2000)
+            }
         }
         .animation(.spring(response: 0.45, dampingFraction: 0.85), value: coordinator.hasAccess)
         // Render immediately; welcome and authentication are the only forced-dark experiences.
@@ -86,8 +97,8 @@ struct ContentView: View {
             applyCurrentInterfaceStyle()
         }
         .task {
-            // Keep local imports and entitlement state fresh without a blocking
-            // launch animation or delay. MainTabView handles cloud sync.
+            // Startup sync and local imports continue behind the brief logo assembly.
+            // The splash does not wait on network or entitlement requests.
             try? SharedCaptureImporter.refresh(context: modelContext)
             await StoreKitManager.shared.updatePurchasedProducts()
             await coordinator.refreshEntitlement()

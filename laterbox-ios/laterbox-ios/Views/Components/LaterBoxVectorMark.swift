@@ -24,6 +24,10 @@ struct LaterBoxVectorMark: View {
     var appearance: LaterBoxMarkAppearance = .automatic
     var ink: Color? = nil
     var animates: Bool = true
+    /// Show the separated pieces immediately so launch matches the static screen.
+    var showsPiecesBeforeAssembly: Bool = false
+    /// Disable the repeating lid float for the one-time launch animation.
+    var floatsLid: Bool = true
     /// Increment to replay the gentle assembly animation (e.g. when tapping the logo).
     var replayToken: Int = 0
 
@@ -45,17 +49,17 @@ struct LaterBoxVectorMark: View {
             LaterBoxMarkShape(part: .left)
                 .fill(resolvedInk, style: FillStyle(eoFill: true))
                 .offset(x: showAssembled ? 0 : -size * 0.075)
-                .opacity(showAssembled ? 1 : 0)
+                .opacity(showAssembled || showsPiecesBeforeAssembly ? 1 : 0)
 
             LaterBoxMarkShape(part: .right)
                 .fill(resolvedInk, style: FillStyle(eoFill: true))
                 .offset(x: showAssembled ? 0 : size * 0.075)
-                .opacity(showAssembled ? 1 : 0)
+                .opacity(showAssembled || showsPiecesBeforeAssembly ? 1 : 0)
 
             LaterBoxMarkShape(part: .lid)
                 .fill(resolvedInk, style: FillStyle(eoFill: true))
                 .offset(y: showAssembled ? (lidFloating ? -size * 0.018 : 0) : -size * 0.12)
-                .opacity(showAssembled ? 1 : 0)
+                .opacity(showAssembled || showsPiecesBeforeAssembly ? 1 : 0)
         }
         .frame(width: size, height: size)
         .accessibilityHidden(true)
@@ -80,6 +84,7 @@ struct LaterBoxVectorMark: View {
             assembled = true
         }
 
+        guard floatsLid else { return }
         try? await Task.sleep(for: .milliseconds(800))
         guard !Task.isCancelled else { return }
         withAnimation(.easeInOut(duration: 2.6).repeatForever(autoreverses: true)) {
