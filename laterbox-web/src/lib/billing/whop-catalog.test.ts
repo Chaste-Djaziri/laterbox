@@ -6,13 +6,23 @@ import {
   existingWhopProduct, existingWhopPlan, whopCatalogQuery, whopProductCreateBody, whopPlanCreateBody, type WhopPlanRecord,
 } from './whop-catalog';
 
-test('Whop provisioning covers the four existing LaterBox plans at their published USD prices', () => {
+test('Whop provisioning retains original prices and includes fourteen plan options', () => {
   assert.deepEqual(WHOP_CATALOG_PRODUCTS.map(p => p.title), ['LaterBox Plus', 'LaterBox Vault']);
   assert.deepEqual(WHOP_CATALOG_PLANS.map(plan => [plan.key, plan.renewalPrice, plan.billingPeriod]), [
     ['plus_month', 2.99, 30],
     ['plus_year', 29.99, 365],
+    ['plus50_month', 4.99, 30],
+    ['plus50_year', 49.99, 365],
     ['vault_month', 6.99, 30],
     ['vault_year', 69.99, 365],
+    ['vault250_month', 11.99, 30],
+    ['vault250_year', 119.99, 365],
+    ['vault500_month', 19.99, 30],
+    ['vault500_year', 209.99, 365],
+    ['vault1tb_month', 39.99, 30],
+    ['vault1tb_year', 419.99, 365],
+    ['vault2tb_month', 69.99, 30],
+    ['vault2tb_year', 739.99, 365],
   ]);
 });
 

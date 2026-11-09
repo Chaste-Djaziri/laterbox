@@ -1,99 +1,114 @@
-import { NextResponse } from 'next/server';
-import { earnSettings } from '@/lib/earn/affiliate';
-import { subscriptionHasAccess } from '@/lib/billing/eligibility';
-import { getBillingAdminClient, getRequestUser } from '@/lib/billing/server';
-import { parseWhopPlan, whopEnvironment, whopPlanId, whopServer } from '@/lib/billing/whop';
+// laterbox-web/src/app/api/billing/checkout/route.ts
+import {NextResponse} from 'next/server';
+import {subscriptionHasAccess} from '@/lib/billing/eligibility';
+import {getBillingAdminClient,getRequestUser} from '@/lib/billing/server';
+import {earnSettings,lookupReferral} from '@/lib/earn/affiliate';
+import {parseWhopPlan,whopEnvironment,whopPlanId,whopReferralTrialPlanId,whopServer} from '@/lib/billing/whop';
+export const dynamic='force-dynamic';
 
-export const dynamic = 'force-dynamic';
-
-/** Create an account-bound checkout; never accept Whop plan IDs from the browser. */
-export async function POST(request: Request) {
-  const user = await getRequestUser(request);
-  if (!user?.id || !user.email) {
-    return NextResponse.json({ error: 'Sign in to purchase a storage plan.' }, { status: 401 });
+/** All prices and referral decisions are server-owned. Browser provides only SKU and code. */
+export async function POST(request:Request) {
+  const user=await getRequestUser(request);
+  if(!user?.id||!user.email) {
+    return NextResponse.json({error:'Sign in to purchase a storage plan.'},{status:401});
   }
   let key;
+  let requestedReferral:unknown;
   try {
-    const body = await request.json() as { plan?: unknown };
-    key = parseWhopPlan(body.plan);
+    const input=await request.json() as {plan?:unknown;referralCode?:unknown};
+    key=parseWhopPlan(input.plan);
+    requestedReferral=input.referralCode;
   } catch {
-    return NextResponse.json({ error: 'Invalid checkout request.' }, { status: 400 });
+    return NextResponse.json({error:'Invalid checkout request.'},{status:400});
   }
-  if (!key) return NextResponse.json({ error: 'Choose a valid storage plan.' }, { status: 400 });
-
+  if(!key)return NextResponse.json({error:'Choose a valid storage plan.'},{status:400});
   try {
-    const planId = whopPlanId(key);
-    const admin = getBillingAdminClient();
-    const { data: subscriptions, error } = await admin.from('billing_subscriptions')
+    const admin=getBillingAdminClient();
+    const {data:subscriptions,error}=await admin.from('billing_subscriptions')
       .select('provider,status,current_period_ends_at,past_due_at,updated_at,revoked_at')
-      .eq('user_id', user.id);
-    if (error) throw error;
-    const active = (subscriptions ?? []).find(row => subscriptionHasAccess(row));
-    if (active) {
-      return NextResponse.json({
-        error: 'You already have an active subscription. Manage it before buying a second plan.',
-        code: 'subscription_already_active',
-      }, { status: 409 });
-    }
+      .eq('user_id',user.id);
+    if(error)throw error;
+    const active=(subscriptions??[]).find(row=>subscriptionHasAccess(row));
+    if(active)return NextResponse.json({
+      error:'You already have an active subscription. Manage it before buying a second plan.',
+      code:'subscription_already_active',
+    },{status:409});
 
-    // A client retry should reuse a still-valid account-owned checkout, not
-    // create an unnecessary second opportunity to charge the same subscriber.
-    const { data: pending, error: pendingError } = await admin.from('billing_checkout_intents')
-      .select('id,checkout_id').eq('user_id', user.id).eq('provider','whop')
-      .eq('plan_key', key).eq('plan_id',planId).eq('status','pending')
-      .gt('expires_at', new Date().toISOString())
-      .not('checkout_id','is',null)
-      .order('created_at', { ascending:false }).limit(1).maybeSingle();
-    if (pendingError) throw pendingError;
-    if (pending?.checkout_id) return NextResponse.json({
-      checkoutId: pending.checkout_id, intentId: pending.id, environment: whopEnvironment(),
-    }, { headers: { 'Cache-Control': 'private, no-store' } });
-
-
-    // Only pre-enrolled, active members receive an attribution. The browser
-    // cannot supply an affiliate ID or override the server-recorded snapshot.
-    let affiliateUserId: string | null = null;
-    const referralCode = request.headers.get('cookie')?.split(';').map(value=>value.trim()).find(value=>value.startsWith('laterbox_ref='))?.slice('laterbox_ref='.length);
-    // Earn rewards only the FIRST paid subscription by a LaterBox account.
-    // Returning buyers may purchase normally but cannot trigger a new commission.
-    if ((subscriptions ?? []).length === 0 &&
-        referralCode && /^lb_[a-f0-9]{24}$/.test(referralCode)) {
+    let planId=whopPlanId(key);
+    let affiliateUserId:string|null=null;
+    let trialApplied=false;
+    const cookieCode=request.headers.get('cookie')?.split(';').map(x=>x.trim())
+      .find(x=>x.startsWith('laterbox_ref='))?.slice('laterbox_ref='.length);
+    const code=typeof requestedReferral==='string'&&requestedReferral.trim()
+      ? requestedReferral.trim():cookieCode;
+    if((subscriptions??[]).length===0&&code) {
       try {
-        if ((await earnSettings()).enabled) {
-          const { data: affiliate } = await admin.from('affiliate_profiles')
-            .select('user_id').eq('referral_code',referralCode)
-            .eq('status','active').maybeSingle();
-          if (affiliate?.user_id && affiliate.user_id !== user.id) affiliateUserId = affiliate.user_id;
+        const settings=await earnSettings();
+        if(settings.enabled&&settings.trial_enabled) {
+          const affiliate=await lookupReferral(code,user.id);
+          if(affiliate) {
+            const {count,error:claimError}=await admin.from('affiliate_trial_claims')
+              .select('buyer_user_id',{head:true,count:'exact'}).eq('buyer_user_id',user.id);
+            if(claimError)throw claimError;
+            if((count??0)===0) {
+              planId=whopReferralTrialPlanId(key);
+              affiliateUserId=affiliate.user_id;
+              trialApplied=true;
+            }
+          }
         }
-      } catch { /* Earn migration not activated; checkout must continue normally. */ }
+      }catch(error) {
+        // A misconfigured promotion must never break ordinary subscriptions.
+        console.warn('[earn] trial offer unavailable',error instanceof Error?error.message:'unknown');
+      }
     }
-    const intentId = crypto.randomUUID();
-    const { error: intentError } = await admin.from('billing_checkout_intents').insert({
-      id: intentId,
-      user_id: user.id,
-      provider: 'whop',
-      plan_key: key,
-      plan_id: planId,
-      ...(affiliateUserId ? { affiliate_user_id: affiliateUserId } : {}),
-    });
-    if (intentError) throw intentError;
 
-    // Metadata is the authoritative link back to this account. Do not depend on email matching.
-    const checkout = await whopServer().checkoutConfigurations.create({
-      plan_id: planId,
-      mode: 'payment',
-      metadata: { laterbox_intent_id: intentId },
-    }, { idempotencyKey: `laterbox-${intentId}` });
-
-    const { error: updateError } = await admin.from('billing_checkout_intents')
-      .update({ checkout_id: checkout.id })
-      .eq('id', intentId).eq('user_id', user.id);
-    if (updateError) throw updateError;
-    return NextResponse.json({ checkoutId: checkout.id, intentId, environment: whopEnvironment() }, {
-      headers: { 'Cache-Control': 'private, no-store' },
+    const {data:pending,error:pendingError}=await admin.from('billing_checkout_intents')
+      .select('id,checkout_id').eq('user_id',user.id).eq('provider','whop')
+      .eq('plan_key',key).eq('plan_id',planId).eq('status','pending')
+      .gt('expires_at',new Date().toISOString()).not('checkout_id','is',null)
+      .order('created_at',{ascending:false}).limit(1).maybeSingle();
+    if(pendingError)throw pendingError;
+    if(pending?.checkout_id) {
+      return NextResponse.json({
+        checkoutId:pending.checkout_id,intentId:pending.id,
+        environment:whopEnvironment(),trialApplied,
+      },{headers:{'Cache-Control':'private, no-store'}});
+    }
+    const intentId=crypto.randomUUID();
+    const {error:intentError}=await admin.from('billing_checkout_intents').insert({
+      id:intentId,user_id:user.id,provider:'whop',
+      plan_key:key,plan_id:planId,
+      ...(affiliateUserId?{affiliate_user_id:affiliateUserId}:{}),
     });
-  } catch (error) {
-    console.error('[whop] checkout creation failed', error);
-    return NextResponse.json({ error: 'Checkout is unavailable. Check Whop configuration and database migrations.' }, { status: 503 });
+    if(intentError)throw intentError;
+    if(trialApplied&&affiliateUserId) {
+      const {data:reserved,error:reserveError}=await admin.rpc('affiliate_reserve_trial',{
+        buyer:user.id,affiliate:affiliateUserId,
+        checkout:intentId,selected_plan:key,
+      });
+      if(reserveError||reserved!==true) {
+        await admin.from('billing_checkout_intents')
+          .delete().eq('id',intentId).eq('user_id',user.id);
+        return NextResponse.json({
+          error:'The referral free trial has already been used or reserved by this account.',
+        },{status:409});
+      }
+    }
+    const checkout=await whopServer().checkoutConfigurations.create({
+      plan_id:planId,mode:'payment',
+      metadata:{laterbox_intent_id:intentId},
+    },{idempotencyKey:`laterbox-${intentId}`});
+    const {error:updateError}=await admin.from('billing_checkout_intents')
+      .update({checkout_id:checkout.id}).eq('id',intentId).eq('user_id',user.id);
+    if(updateError)throw updateError;
+    return NextResponse.json({
+      checkoutId:checkout.id,intentId,environment:whopEnvironment(),trialApplied,
+    },{headers:{'Cache-Control':'private, no-store'}});
+  }catch(error) {
+    console.error('[whop] checkout creation failed',error);
+    return NextResponse.json({
+      error:'Checkout is unavailable. Check Whop configuration and database migrations.',
+    },{status:503});
   }
 }

@@ -25,7 +25,7 @@ type SourcePlan = {
   initial_price: number;
   billing_period: number | null;
   trial_period_days?: number | null;
-  plan_type: string;
+  plan_type?: string | null;
   tax_type?: string | null;
   collect_tax?: boolean | null;
 };
@@ -33,7 +33,7 @@ type SourcePlan = {
 export function normalizeWhopPlan(key: WhopPlanKey, plan: SourcePlan): WhopPlanQuote {
   const interval = WHOP_STORAGE_PLANS[key].interval;
   const expectedDays = interval === 'month' ? 30 : 365;
-  if (!/^plan_[\w-]+$/.test(plan.id) || plan.plan_type !== 'renewal' ||
+  if (!/^plan_[\w-]+$/.test(plan.id) || (plan.plan_type != null && plan.plan_type !== 'renewal') ||
       plan.billing_period !== expectedDays || !/^[a-z]{3}$/i.test(plan.currency) ||
       !Number.isFinite(plan.renewal_price) || plan.renewal_price <= 0 ||
       !Number.isFinite(plan.initial_price) || plan.initial_price < 0) {

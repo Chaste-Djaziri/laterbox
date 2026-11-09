@@ -1,6 +1,6 @@
 import { getBillingAdminClient } from './server';
-import { recordVerifiedWhopPayment, reverseRefundedCommission } from '@/lib/earn/attribution';
-import { storagePlanForWhopId, WHOP_STORAGE_PLANS, whopServer } from './whop';
+import { recordVerifiedWhopPayment, reverseRefundedCommission, reversePaymentId } from '@/lib/earn/attribution';
+import { storagePlanForWhopId, isWhopReferralTrialPlan, WHOP_STORAGE_PLANS, whopServer } from './whop';
 
 export type WhopWebhook = {
   id: string;
@@ -35,8 +35,23 @@ async function updateMembership(membership: WhopMembership, owner: string | null
   if (existing && owner && owner !== existing.user_id) {
     throw new Error('Whop purchase intent conflicts with the previously linked LaterBox account.');
   }
-  const userId = existing?.user_id ?? owner;
-  if (!userId) return; // Out-of-order lifecycle event; initial paid event will bind it.
+  let userId = existing?.user_id ?? owner;
+  let verifiedCheckoutIntentId: string | null = null;
+  // A zero-dollar trial has no payment.succeeded event at activation. Whop's
+  // verified membership checkout ID securely identifies the LaterBox buyer.
+  const checkoutId=(membership as WhopMembership & {checkout_configuration_id?:string|null})
+    .checkout_configuration_id;
+  if(!userId && checkoutId) {
+    const {data:intent,error:intentError}=await admin.from('billing_checkout_intents')
+      .select('id,user_id,plan_id').eq('checkout_id',checkoutId)
+      .eq('provider','whop').maybeSingle();
+    if(intentError)throw intentError;
+    if(intent && intent.plan_id===membership.plan_id) {
+      userId=intent.user_id;
+      verifiedCheckoutIntentId=intent.id;
+    }
+  }
+  if (!userId) return;
   if (existing && existing.customer_id !== membership.user_id) throw new Error('Whop buyer changed unexpectedly.');
   const changed = validTimestamp(membership.updated_at);
   if (!changed) throw new Error('Whop did not provide a membership timestamp.');
@@ -68,6 +83,7 @@ async function updateMembership(membership: WhopMembership, owner: string | null
     product_id: membership.product_id,
     price_id: membership.plan_id,
     storage_plan: WHOP_STORAGE_PLANS[key].storage,
+    trial_ends_at:status==='trialing'?end:null,
     current_period_starts_at: validTimestamp(membership.current_period_start),
     current_period_ends_at: end,
     scheduled_change_action: membership.cancel_at_period_end ? 'cancel' : null,
@@ -78,6 +94,29 @@ async function updateMembership(membership: WhopMembership, owner: string | null
     updated_at: new Date().toISOString(),
   }, { onConflict: 'provider,subscription_id' });
   if (error) throw error;
+  if(process.env.EARN_TRACKING_ENABLED==='true' && isWhopReferralTrialPlan(membership.plan_id)) {
+    let intentId=verifiedCheckoutIntentId;
+    if(!intentId && checkoutId) {
+      const {data:intent,error:checkoutError}=await admin.from('billing_checkout_intents')
+        .select('id,user_id,plan_id').eq('checkout_id',checkoutId)
+        .eq('provider','whop').maybeSingle();
+      if(checkoutError)throw checkoutError;
+      if(intent && intent.user_id===userId && intent.plan_id===membership.plan_id) intentId=intent.id;
+    }
+    if(intentId) {
+      const start=validTimestamp(membership.created_at);
+      const trialEnd=status==='trialing' ? end :
+        validTimestamp(membership.current_period_start);
+      if(start && trialEnd && Date.parse(trialEnd)>Date.parse(start)) {
+        const {error:claimError}=await admin.from('affiliate_trial_claims').update({
+          membership_id:membership.id,started_at:start,trial_ends_at:trialEnd,
+          status:'trialing', // Qualification requires verified paid billing cycles.
+        }).eq('checkout_intent_id',intentId).eq('buyer_user_id',userId)
+          .eq('status','reserved');
+        if(claimError)throw claimError;
+      }
+    }
+  }
 }
 
 async function paymentSucceeded(paymentId: string): Promise<void> {
@@ -179,7 +218,7 @@ export async function processWhopWebhook(event: WhopWebhook, deliveryId: string)
   } else if (event.type === 'refund.updated' || event.type === 'refund.created') {
     // A successful refund can revoke membership access. Reconcile the membership
     // from Whop rather than trusting an unverified refund payload.
-    const id = string(event.data.payment_id);
+    const id = string(event.data.payment_id) || string(record(event.data.payment).id);
     if (id?.startsWith('pay_')) {
       const payment = await whopServer().payments.retrieve({ id });
       if (process.env.EARN_TRACKING_ENABLED === 'true') {
@@ -194,6 +233,11 @@ export async function processWhopWebhook(event: WhopWebhook, deliveryId: string)
         const membership = await whopServer().memberships.retrieve({ id: payment.membership_id });
         await updateMembership(membership, null);
       }
+    }
+  } else if (event.type === 'dispute.created' || event.type === 'dispute.updated') {
+    const id=string(record(event.data.payment).id)||string(event.data.payment_id);
+    if (id?.startsWith('pay_') && process.env.EARN_TRACKING_ENABLED==='true') {
+      await reversePaymentId(id);
     }
   }
   const { error } = await admin.from('billing_webhook_events').insert({

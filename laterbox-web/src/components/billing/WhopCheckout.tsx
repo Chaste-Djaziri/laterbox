@@ -7,16 +7,19 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { AlertCircle, CheckCircle2, Loader2, LockKeyhole, RefreshCcw, ShieldCheck } from 'lucide-react';
 import { getAccessToken } from '@/lib/auth/tokens';
-import { type WhopPlanKey, WHOP_STORAGE_PLANS } from '@/lib/billing/storage-plans';
+import { type WhopPlanKey, WHOP_STORAGE_PLANS, planFamilySlug } from '@/lib/billing/storage-plans';
 
 type Stage = {
   kind: 'loading' | 'ready' | 'pending' | 'active' | 'error';
   checkoutId?: string;
   message?: string;
   environment?: 'sandbox' | 'production';
+  trialApplied?: boolean;
 };
 
-export function WhopCheckout({ planKey, buyerEmail }: { planKey: WhopPlanKey; buyerEmail: string }) {
+export function WhopCheckout({ planKey, buyerEmail, referralCode }: {
+  planKey: WhopPlanKey; buyerEmail: string; referralCode?: string;
+}) {
   const [stage, setStage] = useState<Stage>({ kind: 'loading' });
   const elements = useMemo(() => loadWhop(), []);
   const paid = WHOP_STORAGE_PLANS[planKey];
@@ -48,19 +51,19 @@ export function WhopCheckout({ planKey, buyerEmail }: { planKey: WhopPlanKey; bu
         const response = await fetch('/api/billing/checkout', {
           method: 'POST',
           headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
-          body: JSON.stringify({ plan: planKey }),
+          body: JSON.stringify({ plan: planKey, ...(referralCode ? {referralCode} : {}) }),
           cache: 'no-store',
         });
-        const body = await response.json() as { checkoutId?: string; error?: string; environment?: 'sandbox' | 'production' };
+        const body = await response.json() as { checkoutId?: string; error?: string; environment?: 'sandbox' | 'production'; trialApplied?: boolean };
         if (!response.ok || !body.checkoutId) throw new Error(body.error || 'Could not create checkout.');
-        if (!cancelled) setStage({ kind: 'ready', checkoutId: body.checkoutId, environment: body.environment ?? 'sandbox' });
+        if (!cancelled) setStage({ kind: 'ready', checkoutId: body.checkoutId, environment: body.environment ?? 'sandbox', trialApplied: Boolean(body.trialApplied) });
       } catch (error) {
         if (!cancelled) setStage({ kind: 'error', message: error instanceof Error ? error.message : 'Checkout could not start.' });
       }
     };
     void create();
     return () => { cancelled = true; };
-  }, [planKey, attempt]);
+  }, [planKey, attempt, referralCode]);
 
   useEffect(() => {
     if (stage.kind !== 'pending') return;
@@ -76,8 +79,8 @@ export function WhopCheckout({ planKey, buyerEmail }: { planKey: WhopPlanKey; bu
           headers: { authorization: `Bearer ${token}` }, cache: 'no-store',
         });
         if (res.ok) {
-          const entitlement = await res.json() as { provider?: string; storagePlan?: string };
-          if (entitlement.provider === 'whop' && entitlement.storagePlan === paid.storage && !cancelled) {
+          const entitlement = await res.json() as { provider?: string; storagePlanKey?: string | null };
+          if (entitlement.provider === 'whop' && entitlement.storagePlanKey === planKey && !cancelled) {
             setStage({ kind: 'active' });
             return;
           }
@@ -87,7 +90,7 @@ export function WhopCheckout({ planKey, buyerEmail }: { planKey: WhopPlanKey; bu
     };
     void poll();
     return () => { cancelled = true; };
-  }, [stage.kind, paid.storage]);
+  }, [stage.kind, planKey]);
 
   const retry = () => {
     setStage({ kind: 'loading' });
@@ -134,9 +137,13 @@ export function WhopCheckout({ planKey, buyerEmail }: { planKey: WhopPlanKey; bu
   // The full CheckoutElement already includes Whop's native Apple Pay and Google Pay
   // express row whenever the buyer's browser, payment configuration and VERIFIED
   // payment domain support it. Do not mount ExpressCheckoutElement alongside it.
-  const returnUrl = `${window.location.origin}/checkout?plan=${paid.storage}&interval=${paid.interval}`;
+  const returnUrl = `${window.location.origin}/checkout?plan=${planFamilySlug(planKey)}&interval=${paid.interval}`;
   return (
     <div>
+      {stage.trialApplied && <div className="mb-5 rounded-xl border border-[#c8dbaa] bg-[#eff6df] px-4 py-3">
+        <p className="text-sm font-black">Your referral trial is applied · 30 days free</p>
+        <p className="mt-1 text-xs leading-5 text-[#657856]">Whop will display the first charge date and renewal price before you confirm. Upload capacity during the trial is limited to 10 GB; your full selected storage unlocks when paid billing starts. Cancel before the trial ends to avoid renewal charges.</p>
+      </div>}
       <div className="mb-5 flex flex-wrap items-center justify-between gap-2">
         <span className="inline-flex items-center gap-2 text-xs font-black text-[#485d3d]">
           <ShieldCheck size={17} className="text-[#86a15f]"/> Pay securely with Whop

@@ -1,7 +1,8 @@
 // laterbox-web/src/app/checkout/page.tsx
 'use client';
 
-import { Suspense } from 'react';
+import { Suspense, useState } from 'react';
+import {getAccessToken} from '@/lib/auth/tokens';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import {
@@ -11,7 +12,7 @@ import {
 import { WhopCheckout } from '@/components/billing/WhopCheckout';
 import { useWhopPrices } from '@/lib/billing/use-whop-prices';
 import { formatWhopPrice, yearlySavings } from '@/lib/billing/whop-prices';
-import { WHOP_STORAGE_PLANS, parseWhopPlan } from '@/lib/billing/storage-plans';
+import { WHOP_STORAGE_PLANS, parseWhopPlan, planFamilySlug, type WhopPlanKey } from '@/lib/billing/storage-plans';
 import { useAuth } from '@/lib/store/AuthContext';
 import { useBilling } from '@/lib/store/BillingContext';
 
@@ -21,15 +22,40 @@ function Content() {
   const { entitlement } = useBilling();
   const { prices, loading, error: priceError, retry } = useWhopPrices();
   const interval = params.get('interval') === 'year' ? 'year' : 'month';
-  const storage = params.get('plan') === 'vault' ? 'vault' : 'plus';
-  const planKey = parseWhopPlan(`${storage}_${interval}`);
-  const quote = planKey && prices ? prices[planKey] : null;
-  const capacity = WHOP_STORAGE_PLANS[planKey ?? 'plus_month'].bytes / (1024 ** 3);
+  const selectedSlug = params.get('plan') || 'plus';
+  const planKey = parseWhopPlan(`${selectedSlug}_${interval}`) ?? `plus_${interval}` as WhopPlanKey;
+  const plan = WHOP_STORAGE_PLANS[planKey];
+  const storage = planFamilySlug(planKey);
+  const quote = prices?.[planKey];
+  const capacity = plan.bytes / (1024 ** 3);
   const active = Boolean(entitlement.provider && entitlement.status !== 'free');
-  const savings = storage === 'plus'
-    ? yearlySavings(prices?.plus_month, prices?.plus_year)
-    : yearlySavings(prices?.vault_month, prices?.vault_year);
+  const [referralInput,setReferralInput]=useState('');
+  const [appliedReferral,setAppliedReferral]=useState<{code:string;plan:WhopPlanKey}|null>(null);
+  const [referralMessage,setReferralMessage]=useState('');
+  const [checkingReferral,setCheckingReferral]=useState(false);
+  const validateReferral=async()=>{
+    setCheckingReferral(true);setReferralMessage('');
+    setAppliedReferral(null);
+    try {
+      const token=await getAccessToken();
+      if(!token)throw new Error('Sign in to apply a referral code.');
+      const response=await fetch('/api/earn/validate',{
+        method:'POST',headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json'},
+        body:JSON.stringify({code:referralInput,plan:planKey}),
+      });
+      const body=await response.json() as {valid?:boolean;code?:string;error?:string;trialDays?:number};
+      if(!response.ok||!body.valid||!body.code)throw new Error(body.error||'This code is not available.');
+      setAppliedReferral({code:body.code,plan:planKey});
+      setReferralMessage('Referral code verified. The 30-day free trial will appear in the secure Whop checkout.');
+    }catch(error){
+      setReferralMessage(error instanceof Error?error.message:'Referral verification failed.');
+    }finally{setCheckingReferral(false);}
+  };
+  const savings = yearlySavings(prices?.[`${storage}_month` as WhopPlanKey], prices?.[`${storage}_year` as WhopPlanKey]);
   const nextUrl = `/checkout?plan=${storage}&interval=${interval}`;
+  const variantOptions = (Object.keys(WHOP_STORAGE_PLANS) as WhopPlanKey[])
+    .filter(key => key.endsWith('_month'))
+    .map(key => ({slug:planFamilySlug(key),label:WHOP_STORAGE_PLANS[key].label,quota:WHOP_STORAGE_PLANS[key].quotaLabel}));
 
   return (
     <main className="min-h-screen bg-[#f7f8f2] px-4 pb-16 pt-7 text-[#1c2219] sm:px-8 sm:pt-10">
@@ -65,21 +91,21 @@ function Content() {
                 </div>
                 <div className="mt-7 flex items-start gap-4">
                   <div className="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-[#e6edb0] text-[#26341c]">
-                    {storage === 'vault' ? <HardDrive size={27} /> : <Cloud size={27} />}
+                    {plan.storage === 'vault' ? <HardDrive size={27} /> : <Cloud size={27} />}
                   </div>
                   <div>
-                    <h2 className="text-2xl font-black tracking-tight">LaterBox {storage === 'vault' ? 'Vault' : 'Plus'}</h2>
-                    <p className="mt-1 text-sm text-[#bdcbb7]">{capacity} GB of secure cloud space</p>
+                    <h2 className="text-2xl font-black tracking-tight">LaterBox {plan.label}</h2>
+                    <p className="mt-1 text-sm text-[#bdcbb7]">{plan.quotaLabel} of secure cloud space</p>
                   </div>
                 </div>
 
                 <p className="mt-8 text-[11px] font-black uppercase tracking-[0.14em] text-[#aebda6]">Storage plan</p>
                 <div className="mt-3 grid grid-cols-2 gap-2">
-                  {(['plus','vault'] as const).map(tier => (
-                    <Link key={tier} href={`/checkout?plan=${tier}&interval=${interval}`} aria-current={storage === tier ? 'page' : undefined}
-                      className={`flex items-center justify-center gap-2 rounded-xl border px-4 py-3 text-xs font-bold transition ${storage === tier ? 'border-[#e6edb0] bg-[#e6edb0] text-[#1b2916]' : 'border-white/20 bg-white/5 text-[#d7e0d0] hover:bg-white/10'}`}>
-                      {tier === 'plus' ? <Zap size={14}/> : <HardDrive size={14}/>}
-                      {tier === 'plus' ? 'Plus · 10 GB' : 'Vault · 100 GB'}
+                  {variantOptions.map(tier => (
+                    <Link key={tier.slug} href={`/checkout?plan=${tier.slug}&interval=${interval}`} aria-current={storage === tier.slug ? 'page' : undefined}
+                      className={`flex items-center justify-center gap-2 rounded-xl border px-2 py-3 text-xs font-bold transition ${storage === tier.slug ? 'border-[#e6edb0] bg-[#e6edb0] text-[#1b2916]' : 'border-white/20 bg-white/5 text-[#d7e0d0] hover:bg-white/10'}`}>
+                      {tier.slug.startsWith('plus') ? <Zap size={14}/> : <HardDrive size={14}/>}
+                      {tier.label} · {tier.quota}
                     </Link>
                   ))}
                 </div>
@@ -178,7 +204,25 @@ function Content() {
                   <Link href="/plans" className="mt-6 inline-flex items-center gap-2 rounded-xl bg-[#e6edb0] px-5 py-3 text-sm font-black text-[#22301d]">View your subscription <ArrowRight size={16}/></Link>
                 </div>
               ) : planKey ? (
-                <WhopCheckout key={planKey} planKey={planKey} buyerEmail={user.email ?? ''}/>
+                <div>
+                  <div className="mb-6 rounded-2xl border border-[#dfe8d2] bg-[#f7faf1] p-5">
+                    <h3 className="text-sm font-black">Have a referral code?</h3>
+                    <p className="mt-1 text-xs leading-5 text-[#68785f]">New customers may receive a free 30-day plan trial when a valid referral offer is active. During trial, uploads are limited to 10 GB. Your chosen plan renews automatically at the displayed Whop rate unless canceled.</p>
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      <input aria-label="Referral code" value={referralInput} onChange={e=>{
+                        setReferralInput(e.target.value.toLowerCase());setAppliedReferral(null);setReferralMessage('');
+                      }} maxLength={32} placeholder="Enter referral code"
+                        className="min-w-0 flex-1 rounded-xl border border-[#ced9c1] bg-white px-4 py-3 font-mono text-sm"/>
+                      <button onClick={()=>void validateReferral()} disabled={checkingReferral||!referralInput.trim()}
+                        className="rounded-xl bg-[#1c2519] px-5 py-3 text-sm font-black text-white disabled:opacity-40">{checkingReferral?'Checking…':'Apply code'}</button>
+                    </div>
+                    {referralMessage&&<p role="status" className="mt-3 text-xs font-semibold text-[#5f754f]">{referralMessage}</p>}
+                    {appliedReferral?.plan===planKey&&<p className="mt-2 text-xs font-bold text-[#42642e]">Code applied: {appliedReferral.code}</p>}
+                    <p className="mt-2 text-[11px] text-[#869480]">If you followed a referral link, its code may already be securely attached to your checkout.</p>
+                  </div>
+                  <WhopCheckout key={planKey+':'+(appliedReferral?.plan===planKey?appliedReferral.code:'')} planKey={planKey}
+                    buyerEmail={user.email ?? ''} referralCode={appliedReferral?.plan===planKey?appliedReferral.code:undefined}/>
+                </div>
               ) : <p className="text-sm text-red-700">Choose a valid storage plan.</p>}
             </div>
             <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#edf0e8] bg-[#fafbf7] px-6 py-5 text-xs text-[#7a8674] sm:px-8">

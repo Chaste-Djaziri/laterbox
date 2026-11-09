@@ -15,18 +15,14 @@ import { type WhopPlanKey } from '@/lib/billing/storage-plans';
 import { hasProAccess } from '@/lib/billing/types';
 
 const tiers = [
-  {
-    name: 'Free', key: 'free', size: '500 MB', description: 'A home for every link, without a subscription.',
-    features: ['Sync across all your devices', 'Unlimited links and collections', 'Smart reminders and search', 'Export your library anytime'],
-  },
-  {
-    name: 'Plus', key: 'plus', size: '10 GB', description: 'A little more room for everything worth keeping.',
-    features: ['Everything in Free', 'Save files, images and PDFs', 'Keep full-page copies', 'Manage cloud storage easily'],
-  },
-  {
-    name: 'Vault', key: 'vault', size: '100 GB', description: 'Your growing digital library, with room to spare.',
-    features: ['Everything in Plus', '100 GB cloud storage', 'Room for bigger documents', 'Space for a growing archive'],
-  },
+  { name:'Free',key:'free',size:'500 MB',description:'Keep every link together, at no cost.',features:['Cross-device sync','Unlimited links and collections','Reminders and search','Export anytime'] },
+  { name:'Plus',key:'plus',size:'10 GB',description:'Extra room for your essentials.',features:['Everything in Free','Upload files and PDFs','Full-page saves','Media previews'] },
+  { name:'Plus 50',key:'plus50',size:'50 GB',description:'A larger pocket for everything useful.',features:['Everything in Plus','50 GB of cloud storage','Saved files and media','Easy exports'] },
+  { name:'Vault',key:'vault',size:'100 GB',description:'Build a bigger personal library.',features:['Everything in Plus','100 GB of cloud storage','Room for bigger archives','Save on all your devices'] },
+  { name:'Vault 250',key:'vault250',size:'250 GB',description:'More space for work and study.',features:['Everything in Vault','250 GB capacity','Large notes and assets','Cross-device access'] },
+  { name:'Vault 500',key:'vault500',size:'500 GB',description:'For serious collectors and creators.',features:['Everything in Vault','500 GB capacity','Big documents and media','Cross-device access'] },
+  { name:'Vault 1 TB',key:'vault1tb',size:'1 TB',description:'Bring your entire digital archive.',features:['Everything in Vault','1 TB cloud storage','Bigger media libraries','Cross-device access'] },
+  { name:'Vault 2 TB',key:'vault2tb',size:'2 TB',description:'Maximum room for what matters.',features:['Everything in Vault','2 TB cloud storage','Large personal archives','Cross-device access'] },
 ] as const;
 
 export function StoragePricingPage({ inApp = false }: { inApp?: boolean }) {
@@ -67,7 +63,7 @@ export function StoragePricingPage({ inApp = false }: { inApp?: boolean }) {
               Keep what matters.<br /><span className="text-[#84975a]">Leave the clutter.</span>
             </h1>
             <p className="mx-auto mt-6 max-w-xl text-base leading-7 text-[#697364] sm:text-lg">
-              Saving links is always free. Get more secure cloud space only when your library needs it.
+              Saving links is always free. Choose the cloud space you need, from 10 GB to 2 TB.
               No complicated bundles, just space to grow.
             </p>
           </div>
@@ -92,12 +88,12 @@ export function StoragePricingPage({ inApp = false }: { inApp?: boolean }) {
               </button>
             ))}
           </div>
-          {plusSavings != null && <p className="text-xs text-[#727f64]">Save up to {plusSavings}% on Plus with yearly billing, compared with 12 monthly payments.</p>}
+          {plusSavings != null && <p className="text-xs text-[#727f64]">Save {plusSavings}% on Plus with yearly billing, compared with 12 monthly payments.</p>}
         </div>
 
-        <div className="mt-9 grid gap-5 lg:grid-cols-3 lg:items-stretch">
+        <div className="mt-9 grid gap-5 md:grid-cols-2 xl:grid-cols-4 lg:items-stretch">
           {tiers.map(tier => {
-            const featured = tier.key === 'plus';
+            const featured = tier.key === 'vault500';
             const isFree = tier.key === 'free';
             const key = isFree ? null : `${tier.key}_${interval}` as WhopPlanKey;
             const quote = key ? prices?.[key] : null;
@@ -109,7 +105,7 @@ export function StoragePricingPage({ inApp = false }: { inApp?: boolean }) {
                 {featured && !inApp && <div className="pointer-events-none absolute -right-16 -top-24 h-56 w-56 rounded-full bg-[#c7df86]/10 blur-2xl" />}
                 <div className="relative flex items-center justify-between">
                   <span className={`inline-flex size-11 items-center justify-center rounded-2xl ${inApp ? featured ? 'bg-white/15 text-white' : 'bg-[#f2f0eb] text-[#56554f]' : featured ? 'bg-[#e6edb0] text-[#20291b]' : 'bg-[#f0f4e5] text-[#748851]'}`}>
-                    {tier.key === 'vault' ? <HardDrive size={21} /> : tier.key === 'plus' ? <Zap size={21} /> : <Cloud size={21} />}
+                    {tier.key.startsWith('vault') ? <HardDrive size={21} /> : tier.key.startsWith('plus') ? <Zap size={21} /> : <Cloud size={21} />}
                   </span>
                   {featured && <span className={`rounded-full border px-3 py-1.5 text-[10px] font-black uppercase tracking-widest ${inApp ? 'border-white/20 bg-white/10 text-white' : 'border-[#a8b989]/30 bg-[#e6edb0]/10 text-[#e6edb0]'}`}>Most popular</span>}
                   {saving != null && saving > 0 && !featured && <span className={`rounded-full px-3 py-1.5 text-[11px] font-black ${inApp ? 'bg-[#f2f0eb] text-[#504f47]' : 'bg-[#edf5d8] text-[#526f2b]'}`}>Save {saving}%</span>}

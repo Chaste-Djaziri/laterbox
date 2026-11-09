@@ -1,24 +1,39 @@
 import { WhopClient, WhopEnvironment } from '@whop/sdk';
-import { type WhopPlanKey } from './storage-plans';
+import { WHOP_STORAGE_PLANS, type WhopPlanKey } from './storage-plans';
 export { WHOP_STORAGE_PLANS, FREE_STORAGE_BYTES, LEGACY_PRO_STORAGE_BYTES, parseWhopPlan } from './storage-plans';
 
-const PLAN_ENV: Record<WhopPlanKey, string> = {
-  plus_month: 'WHOP_PLUS_MONTHLY_PLAN_ID',
-  plus_year: 'WHOP_PLUS_YEARLY_PLAN_ID',
-  vault_month: 'WHOP_VAULT_MONTHLY_PLAN_ID',
-  vault_year: 'WHOP_VAULT_YEARLY_PLAN_ID',
-};
+export function planEnvName(key: WhopPlanKey): string {
+  return 'WHOP_' + key.toUpperCase()
+    .replace('_MONTH', '_MONTHLY').replace('_YEAR', '_YEARLY') + '_PLAN_ID';
+}
+export function referralTrialPlanEnvName(key: WhopPlanKey): string {
+  return planEnvName(key).replace('_PLAN_ID', '_REFERRAL_TRIAL_PLAN_ID');
+}
+export const REFERRAL_TRIAL_PLAN_ENV = Object.fromEntries(
+  (Object.keys(WHOP_STORAGE_PLANS) as WhopPlanKey[])
+    .map(key => [key, referralTrialPlanEnvName(key)])
+) as Record<WhopPlanKey, string>;
+export function whopReferralTrialPlanId(key: WhopPlanKey): string {
+  const id = process.env[REFERRAL_TRIAL_PLAN_ENV[key]]?.trim();
+  if (!id || !/^plan_[a-zA-Z0-9_-]+$/.test(id)) {
+    throw new Error('Referral free-trial checkout has not been configured.');
+  }
+  return id;
+}
+export function isWhopReferralTrialPlan(planId: string): boolean {
+  return Object.values(REFERRAL_TRIAL_PLAN_ENV).some(name=>process.env[name]===planId);
+}
 
 export function whopPlanId(key: WhopPlanKey): string {
-  const id = process.env[PLAN_ENV[key]]?.trim();
+  const id = process.env[planEnvName(key)]?.trim();
   if (!id || !/^plan_[a-zA-Z0-9_-]+$/.test(id)) {
     throw new Error(`Whop price ${key} is not configured.`);
   }
   return id;
 }
 export function storagePlanForWhopId(planId: string): WhopPlanKey | null {
-  for (const key of Object.keys(PLAN_ENV) as WhopPlanKey[]) {
-    if (process.env[PLAN_ENV[key]] === planId) return key;
+  for (const key of Object.keys(WHOP_STORAGE_PLANS) as WhopPlanKey[]) {
+    if (process.env[planEnvName(key)] === planId || process.env[REFERRAL_TRIAL_PLAN_ENV[key]] === planId) return key;
   }
   return null;
 }

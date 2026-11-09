@@ -22,6 +22,7 @@ export interface Entitlement {
   billingInterval?: 'month' | 'year' | null;
   appleEnvironment?: 'Sandbox' | 'Production' | null;
   storagePlan?: 'free' | 'plus' | 'vault';
+  storagePlanKey?: string | null;
   storageLimitBytes?: number;
   storageUsedBytes?: number | null;
 }

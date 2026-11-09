@@ -107,7 +107,13 @@ async function inspectPagination(
     const result = await request<Page<{id?: string}>>(`/${resource}?${query}`);
     if (!Array.isArray(result.data)) throw new Error(`Whop returned an invalid ${resource} response.`);
     const before = seenIds.size;
-    for (const item of result.data) if (item && typeof item.id === 'string') seenIds.add(item.id);
+    for (const item of result.data) {
+      if (item && typeof item.id === 'string') seenIds.add(item.id);
+      if (resource === 'plans' && item && typeof item.id === 'string') {
+        const row=item as {id:string;title?:string;plan_type?:string;billing_period?:number;initial_price?:number;renewal_price?:number;currency?:string};
+        console.log(`    Plan: ${row.title??'unnamed'} / ${row.billing_period??'none'}d / ${row.currency??'?'} ${row.renewal_price??'?'} / initial ${row.initial_price??'?'} / type ${row.plan_type??'?'}`);
+      }
+    }
     const newIds = seenIds.size - before;
     const hasNext = result.page_info?.has_next_page;
     const nextCursor = result.page_info?.end_cursor;
@@ -202,7 +208,20 @@ async function main() {
   for (const desired of WHOP_CATALOG_PLANS) {
     const productId = productIds.get(desired.product);
     if (!productId) throw new Error(`Product not found for ${desired.key}.`);
-    const found = existingWhopPlan(plans, productId, desired);
+    // Whop's list endpoint can omit plan_type, which the safety validator
+    // requires. Retrieve the matching full plan before checking its terms.
+    const named = plans.filter(plan => plan.product?.id === productId && plan.title === desired.title);
+    if (named.length > 1) throw new Error(`Duplicate plan title: ${desired.title}`);
+    const complete = named[0]
+      ? await request<WhopPlanRecord>(`/plans/${named[0].id}`) : null;
+    if (complete) {
+      console.log('Existing plan terms (no secrets):', JSON.stringify({
+        title:complete.title, planType:complete.plan_type,billingPeriod:complete.billing_period,
+        renewal:complete.renewal_price,initial:complete.initial_price,
+        currency:complete.currency,product:complete.product?.id,
+      }));
+    }
+    const found = complete ? existingWhopPlan([complete], productId, desired) : null;
     const record = found ?? await request<WhopPlanRecord>('/plans', {
       method: 'POST',
       body: JSON.stringify(whopPlanCreateBody(companyId, productId, desired)),

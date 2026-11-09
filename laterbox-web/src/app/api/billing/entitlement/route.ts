@@ -87,8 +87,14 @@ export async function GET(request: Request) {
 
     const storagePlan = eligible?.storage_plan === 'vault'
       ? 'vault' : eligible || grants?.[0] ? 'plus' : 'free';
-    const defaultLimit = storagePlan === 'vault'
-      ? WHOP_STORAGE_PLANS.vault_month.bytes
+    const whopKey = eligible?.provider === 'whop' && eligible?.price_id
+      ? storagePlanForWhopId(eligible.price_id) : null;
+    const whopLimit = whopKey ? WHOP_STORAGE_PLANS[whopKey].bytes : null;
+    const defaultLimit = whopLimit != null
+      ? eligible?.status === 'trialing'
+        ? Math.min(whopLimit, 10 * 1024 ** 3)
+        : whopLimit
+      : storagePlan === 'vault' ? WHOP_STORAGE_PLANS.vault_month.bytes
       : storagePlan === 'plus' ? LEGACY_PRO_STORAGE_BYTES : FREE_STORAGE_BYTES;
     // RPC may not exist until the staged storage migration is deployed.
     const [{ data: limit }, { data: used }] = await Promise.all([
@@ -100,7 +106,7 @@ export async function GET(request: Request) {
       return value !== null && value !== undefined && Number.isSafeInteger(count) && count >= 0 ? count : null;
     };
     entitlement = {
-      ...entitlement, storagePlan,
+      ...entitlement, storagePlan, storagePlanKey: whopKey,
       storageLimitBytes: toCount(limit) ?? defaultLimit,
       storageUsedBytes: toCount(used),
     };

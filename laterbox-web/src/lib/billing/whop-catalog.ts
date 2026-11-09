@@ -35,7 +35,7 @@ export const WHOP_CATALOG_PLANS: readonly DesiredWhopPlan[] = (
 ).map(([key, plan]) => ({
   key,
   product: plan.storage,
-  title: `${plan.storage === 'plus' ? 'Plus' : 'Vault'} ${plan.interval === 'month' ? 'Monthly' : 'Yearly'}`,
+  title: `${plan.label} ${plan.interval === 'month' ? 'Monthly' : 'Yearly'}`,
   billingPeriod: plan.interval === 'month' ? 30 : 365,
   renewalPrice: plan.usd,
 }));
@@ -77,7 +77,9 @@ export function existingWhopPlan(
   const match = matches[0];
   if (!match) return null;
   const correctPrice = Math.abs(match.renewal_price - desired.renewalPrice) < 0.0001;
-  if (match.plan_type !== 'renewal' || match.currency.toLowerCase() !== 'usd' ||
+  // Whop's v1 read response may omit plan_type even on an established 30d
+  // renewable plan. Billing period + positive renewal price remain mandatory.
+  if ((match.plan_type && match.plan_type !== 'renewal') || match.currency.toLowerCase() !== 'usd' ||
       match.billing_period !== desired.billingPeriod || !correctPrice || match.initial_price !== 0) {
     throw new Error(`"${desired.title}" already exists with different billing terms. Review it manually instead of creating a duplicate.`);
   }
@@ -110,6 +112,7 @@ export function whopPlanCreateBody(accountId: string, productId: string, desired
     title: desired.title,
     description: `LaterBox ${desired.title} subscription`,
     plan_type: 'renewal' as const,
+    trial_period_days: desired.title.includes('Referral Trial') ? 30 : 0,
     release_method: 'buy_now' as const,
     visibility: 'visible' as const,
     currency: 'usd' as const,
