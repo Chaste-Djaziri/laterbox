@@ -360,6 +360,26 @@ export function InteractiveDashboardPreview({
     }
   };
 
+  const handleBulkArchive = () => {
+    setItems((prev) => prev.filter((i) => !selectedIds.has(i.id)));
+    showToast(`Archived ${selectedIds.size} item${selectedIds.size === 1 ? '' : 's'}`);
+    setSelectedIds(new Set());
+  };
+
+  const handleBulkDelete = () => {
+    setItems((prev) => prev.filter((i) => !selectedIds.has(i.id)));
+    showToast(`Moved ${selectedIds.size} item${selectedIds.size === 1 ? '' : 's'} to trash`);
+    setSelectedIds(new Set());
+  };
+
+  const handleBulkStar = () => {
+    setItems((prev) =>
+      prev.map((i) => (selectedIds.has(i.id) ? { ...i, starred: true } : i))
+    );
+    showToast(`Starred ${selectedIds.size} item${selectedIds.size === 1 ? '' : 's'}`);
+    setSelectedIds(new Set());
+  };
+
   const deleteItem = (itemId: string, e?: React.MouseEvent) => {
     e?.stopPropagation();
     setItems((prev) => prev.filter((i) => i.id !== itemId));
@@ -985,6 +1005,42 @@ export function InteractiveDashboardPreview({
                 >
                   <MoreVertical className="w-3.5 h-3.5" />
                 </button>
+
+                {/* Bulk Actions when items are selected */}
+                {selectedIds.size > 0 && (
+                  <div className="flex items-center gap-1 pl-2 ml-1 border-l border-[#dedad0] animate-in fade-in duration-150">
+                    <span className="text-[11px] font-bold text-[#171711] mr-1">
+                      {selectedIds.size} selected
+                    </span>
+
+                    <button
+                      type="button"
+                      onClick={handleBulkArchive}
+                      title="Archive selected"
+                      className="p-1.5 rounded-lg hover:bg-[#faf8f5] text-[#6c6b63] hover:text-[#171711] transition-colors cursor-pointer"
+                    >
+                      <Archive className="w-3.5 h-3.5" />
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleBulkDelete}
+                      title="Delete selected"
+                      className="p-1.5 rounded-lg hover:bg-red-50 text-[#8c8a80] hover:text-red-600 transition-colors cursor-pointer"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleBulkStar}
+                      title="Star selected"
+                      className="p-1.5 rounded-lg hover:bg-[#faf8f5] text-[#6c6b63] hover:text-amber-500 transition-colors cursor-pointer"
+                    >
+                      <Star className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                )}
               </div>
 
               {/* Right Controls: 1-18 of 18, Chevrons, Sort Order */}
@@ -1373,11 +1429,12 @@ export function InteractiveDashboardPreview({
                     </div>
 
                     {/* Hover Actions Menu (Matching Image 2 hover row) */}
-                    {isHovered && (
-                      <div
-                        onClick={(e) => e.stopPropagation()}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 bg-white/95 backdrop-blur-xs px-2 py-1 rounded-xl border border-[#dedad0] shadow-sm z-20"
-                      >
+                    <div
+                      onClick={(e) => e.stopPropagation()}
+                      className={`absolute right-3 top-1/2 -translate-y-1/2 items-center gap-1 bg-white/95 backdrop-blur-xs px-2 py-1 rounded-xl border border-[#dedad0] shadow-sm z-20 transition-all ${
+                        isHovered ? 'flex' : 'hidden group-hover:flex'
+                      }`}
+                    >
                         <button
                           type="button"
                           onClick={(e) => {
@@ -1430,8 +1487,7 @@ export function InteractiveDashboardPreview({
                           <ExternalLink className="w-3.5 h-3.5" />
                         </a>
                       </div>
-                    )}
-                  </div>
+                    </div>
                 );
               })}
             </div>
