@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[Web / Marketing action buttons visibility fix]** Ensure all action buttons remain visible and interactive across the hero section and preview: convert hero entrance GSAP tweens to `fromTo` with `clearProps: 'all'` so CTA buttons never get stuck in an unrendered zero-opacity state, restore bulk action buttons (Archive, Delete, Star, Snooze) in the table toolbar when items are selected, and add CSS `group-hover:flex` fallback to email row hover action shortcuts.
+
 - **[Web / Marketing preview fixed container height]** Set a fixed, bounded height (`h-[660px] sm:h-[720px] lg:h-[750px]`) on the hero interactive preview container with inner flex management, keeping the entire dashboard sandbox framed like a native desktop app window while enabling clean independent scrolling for the sidebar rail, email table rows, and item details.
 
 - **[Web / Marketing preview table height fix]** Remove artificial `max-h-[500px]` constraints on the interactive preview's email rows and embedded item detail containers, allowing them to fill the full container height (`flex-1 min-h-0`) without an empty white void at the bottom.
