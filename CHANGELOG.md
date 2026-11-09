@@ -1,5 +1,9 @@
 # Free extension and local library
 
+- **[Web / Marketing App Store top embed]** Embed a dedicated App Store component at the top of the web highlighting LaterBox: Save For Later on iOS (ID 6804139119) with app icon, rating badge, metadata, and direct "GET" / "View on App Store" action, along with Apple iTunes Smart App Banner meta tags in the root document head.
+
+- **[Web / Marketing mobile sidebar opener touch fix]** Resolve mobile touch responsiveness issue where tapping the sidebar hamburger on physical mobile devices failed to open or immediately dismissed. Added fast touch handlers with tap propagation management, ghost-click timestamp protection on the portaled backdrop overlay, and Lenis scroll prevention to ensure reliable tap interactions across all mobile browsers.
+
 - **[Web / Marketing mobile sidebar drawer]** Replace the basic header dropdown on mobile with a full-height, slide-over navigation sidebar drawer. Features a backdrop overlay with body-scroll locking, branded header with close control, categorized navigation links (Product, Apps & Resources) with live active states and badges, and dedicated bottom account/auth actions.
 
 - **[Web / Marketing mobile hero streamlining]** Streamline the mobile hero presentation by hiding redundant CTA buttons (`Launch Web App Free`, `Get for iOS & Downloads`, `Try Guest Sandbox`) on small screens, adapting hero headings and subheadings to punchy, short sentences, and directing immediate focus to the full mobile app preview and download action.
