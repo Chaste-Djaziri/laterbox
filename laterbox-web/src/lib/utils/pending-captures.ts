@@ -30,6 +30,22 @@ export function itemRow(item: LaterBoxItem) {
 
 export const queueKey = (userId: string) => `laterbox_pending_captures_${userId}`;
 
+function isCachedStorageFull(userId: string): boolean {
+  if (typeof localStorage === 'undefined') return false;
+  try {
+    const cached = localStorage.getItem(`laterbox_entitlement_${userId}`);
+    if (!cached) return false;
+    const { storageUsedBytes: used, storageLimitBytes: limit } = JSON.parse(cached) as {
+      storageUsedBytes?: number | null;
+      storageLimitBytes?: number | null;
+    };
+    return typeof used === 'number' && Number.isFinite(used) &&
+      typeof limit === 'number' && Number.isFinite(limit) && limit > 0 && used >= limit;
+  } catch {
+    return false;
+  }
+}
+
 export function getPendingQueue(userId: string): Record<string, LaterBoxItem> {
   if (typeof localStorage === 'undefined' || !userId) return {};
   try {
@@ -690,6 +706,9 @@ export async function pushCloudChanges(userId: string, deletionsOnly = false): P
 
     let pushedCount = 0;
     let deletionFailed = false;
+    // Hold non-deletion writes locally while the last verified quota is full.
+    // The DB provides final enforcement when the cached value is stale.
+    const storagePaused = isCachedStorageFull(userId);
     const removedIDs = new Set(deletionsOnly ? [] : (await readPermanentDeletionReceipts(userId)).map(receipt => receipt.item_id.toLowerCase()));
 
     for (const id of itemIds) {
@@ -700,6 +719,7 @@ export async function pushCloudChanges(userId: string, deletionsOnly = false): P
         continue;
       }
       if (deletionsOnly && (item as any)._action !== 'hard_delete') continue;
+      if (storagePaused && !item.deleted_at) continue;
 
       try {
         if ((item as any)._action === 'hard_delete') {

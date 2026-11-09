@@ -103,6 +103,12 @@ struct ContentView: View {
             await StoreKitManager.shared.updatePurchasedProducts()
             await coordinator.refreshEntitlement()
         }
+        .alert("Storage Full", isPresented: $coordinator.showingStorageFullAlert) {
+            Button("Review Plans") { coordinator.showingPlansSheet = true }
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("New saves and uploads are paused. Delete stored files to free space, or manage your plan on the LaterBox website.")
+        }
         .alert("Sync failed", isPresented: $coordinator.showingSyncFailureAlert) {
             if coordinator.sessionExpired {
                 Button("Sign In") { coordinator.showingAuthSheet = true }

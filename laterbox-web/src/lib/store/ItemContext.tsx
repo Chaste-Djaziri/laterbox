@@ -6,6 +6,8 @@ import React, { createContext, useContext, useEffect, useState, useMemo, useCall
 import { getSupabaseClient } from '../supabase/client';
 import { LaterBoxItem, ItemStatus, InboxFilterType, Collection, Attachment, ItemMetadata, ItemContent } from '../supabase/types';
 import { useAuth } from './AuthContext';
+import { useBilling } from './BillingContext';
+import { requireStorageCapacity } from '@/lib/billing/storage-write-guard';
 import { normalizeUrl, isUrl, extractDomain } from '../utils/url';
 import { storeLocalAttachment, deleteLocalAttachment } from '../utils/local-attachments';
 import { restoredAttachmentFile, isWebBackup, type WebBackup } from '../utils/web-backup';
@@ -91,6 +93,10 @@ const DEFAULT_GUEST_ITEMS: LaterBoxItem[] = [];
 
 export function ItemProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
+  const { entitlement, refresh: refreshBilling } = useBilling();
+  const ensureWritable = async (bytes = 0) => {
+    if (user) await requireStorageCapacity(entitlement, bytes);
+  };
   // Account sync is free; paid plans control cloud bytes, not metadata synchronization.
   const canCloudSync = Boolean(user?.id);
   const [items, setItems] = useState<LaterBoxItem[]>([]);
@@ -410,6 +416,7 @@ export function ItemProvider({ children }: { children: ReactNode }) {
 
   /** Apply only new IDs, after a verified archive preview. Existing records are never overwritten. */
   const restoreWebBackup = async (backup: WebBackup) => {
+    await ensureWritable();
     if (!isWebBackup(backup)) throw new Error('The selected backup is invalid.');
     const owner = user?.id || null;
     const ids = new Set([...items, ...deletedItems].map(item => item.id));
@@ -514,6 +521,7 @@ export function ItemProvider({ children }: { children: ReactNode }) {
     if (!trimmed && files.length === 0) {
       throw new Error('Enter a URL, some text, or upload an attachment.');
     }
+    await ensureWritable(files.reduce((total, file) => total + file.size, 0));
 
     let normalizedUrl: string | null = null;
     let textContent: string | null = files.length ? trimmed || null : null;
@@ -793,6 +801,7 @@ export function ItemProvider({ children }: { children: ReactNode }) {
   };
 
   const setFavorite = async (id: string, favorite: boolean) => {
+    await ensureWritable();
     const updated = items.map((i) => (i.id === id ? { ...i, favorite, updated_at: new Date().toISOString() } : i));
     setItems(updated);
     saveLocalData(updated);
@@ -805,6 +814,7 @@ export function ItemProvider({ children }: { children: ReactNode }) {
   };
 
   const setStatus = async (id: string, status: ItemStatus) => {
+    await ensureWritable();
     const timestamp = new Date().toISOString();
     const updated = items.map((i) => {
       if (i.id !== id) return i;
@@ -827,6 +837,7 @@ export function ItemProvider({ children }: { children: ReactNode }) {
   };
 
   const updateTaskChecklist = async (id: string, entries: TaskChecklistEntry[]) => {
+    await ensureWritable();
     const current = items.find(item => item.id === id);
     if (!current || current.deleted_at) throw new Error('Task group was not found.');
     const timestamp = new Date().toISOString();
@@ -839,6 +850,7 @@ export function ItemProvider({ children }: { children: ReactNode }) {
   };
 
   const reschedule = async (id: string, returnAt: string | null) => {
+    await ensureWritable();
     const timestamp = new Date().toISOString();
     const updated = items.map(item => item.id === id
       ? scheduleItemReturn(item, returnAt, timestamp) : item);
@@ -934,6 +946,7 @@ export function ItemProvider({ children }: { children: ReactNode }) {
   };
 
   const restoreItem = async (id: string) => {
+    await ensureWritable();
     const itemToRestore = deletedItems.find(i => i.id === id);
     if (!itemToRestore) return;
     const now = new Date().toISOString();
@@ -965,6 +978,7 @@ export function ItemProvider({ children }: { children: ReactNode }) {
     if (user) {
       queueHardDelete(user.id, id);
       await safeSyncPending(user.id);
+      await refreshBilling();
     }
   };
 
@@ -978,11 +992,13 @@ export function ItemProvider({ children }: { children: ReactNode }) {
         queueHardDelete(user.id, id);
       }
       await safeSyncPending(user.id);
+      await refreshBilling();
     }
   };
 
   const saveNote = async (itemId: string, content: string) => {
     const trimmed = content.trim();
+    if (trimmed) await ensureWritable();
     const now = new Date().toISOString();
 
     const updated = items.map((item) => {
@@ -1022,6 +1038,7 @@ export function ItemProvider({ children }: { children: ReactNode }) {
 
   const attachFilesToItem = async (itemId: string, files: File[]): Promise<Attachment[]> => {
     if (!files || files.length === 0) return [];
+    await ensureWritable(files.reduce((total, file) => total + file.size, 0));
     const newAttachments = await Promise.all(
       files.map((file) => storeLocalAttachment(file, itemId, user?.id || null))
     );
@@ -1084,6 +1101,7 @@ export function ItemProvider({ children }: { children: ReactNode }) {
         }
       }
 
+      await ensureWritable();
       const now = new Date().toISOString();
       const newCol: Collection = {
         id: crypto.randomUUID(),
@@ -1142,6 +1160,7 @@ export function ItemProvider({ children }: { children: ReactNode }) {
   };
 
   const renameCollection = async (id: string, name: string) => {
+    await ensureWritable();
     const trimmed = name.trim();
     if (!trimmed || trimmed.length > 80) throw new Error('Use a collection name between 1 and 80 characters.');
     if (collections.some(c => c.id !== id && c.name.toLowerCase() === trimmed.toLowerCase())) {
@@ -1164,6 +1183,7 @@ export function ItemProvider({ children }: { children: ReactNode }) {
   };
 
   const addItemToCollection = async (collectionId: string, itemId: string, colOverride?: Collection) => {
+    await ensureWritable();
     const col = colOverride || collections.find((c) => c.id === collectionId);
     setItems((prev) => {
       const updated = prev.map((i) => {

@@ -1,13 +1,8 @@
-//
-//  PlansView.swift
-//  laterbox-ios
-//
-//  Created by Chaste Djaziri on 05.10.26.
-//
-
+// laterbox-ios/laterbox-ios/Views/Settings/PlansView.swift
 import SwiftUI
-import StoreKit
 
+/// Plans are purchased on the web. iOS reads the same account entitlement,
+/// while preserving management and restoration of legacy App Store purchases.
 public enum PlanIntervalSelection {
     case annual
     case monthly
@@ -16,557 +11,172 @@ public enum PlanIntervalSelection {
 public struct PlansView: View {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.openURL) private var openURL
-    @ObservedObject private var storeKit = StoreKitManager.shared
     @ObservedObject private var coordinator = SyncCoordinator.shared
+    @ObservedObject private var storeKit = StoreKitManager.shared
 
-    @State private var selectedInterval: PlanIntervalSelection = .annual
     public let isLiquidGlass: Bool
 
     public init(isLiquidGlass: Bool = false) {
         self.isLiquidGlass = isLiquidGlass
     }
 
-    private var liquidGlassModalBackground: some View {
-        ZStack {
-            if DeviceGlassSupport.isNativeLiquidGlassSupported {
-                Rectangle()
-                    .fill(.ultraThinMaterial)
-                    .ignoresSafeArea()
-
-                Color.black.opacity(0.38)
-                    .ignoresSafeArea()
-
-                Circle()
-                    .fill(Color(hex: "E6EDB0").opacity(0.18))
-                    .frame(width: 320, height: 320)
-                    .blur(radius: 80)
-                    .offset(x: -120, y: -200)
-
-                Circle()
-                    .fill(Color.white.opacity(0.12))
-                    .frame(width: 260, height: 260)
-                    .blur(radius: 70)
-                    .offset(x: 140, y: 160)
-            } else {
-                Color(hex: "1B1D20").opacity(0.96)
-                    .ignoresSafeArea()
-            }
+    private var currentPlan: String {
+        if let plan = coordinator.billingEntitlement?.storagePlan {
+            return plan.capitalized
         }
-        .allowsHitTesting(false)
+        return storeKit.isProSubscriptionActive ? "Plus" : "Free"
+    }
+
+    private var quota: CloudStorageQuota {
+        .from(coordinator.billingEntitlement)
     }
 
     public var body: some View {
         NavigationStack {
             ZStack {
-                if isLiquidGlass {
-                    liquidGlassModalBackground
-                } else {
-                    InboxGrainBackground().ignoresSafeArea()
-                }
-
-                ScrollView {
-                    VStack(spacing: 24) {
-                        // Header Branding
-                        VStack(spacing: 12) {
-                            ZStack {
-                                Circle()
-                                    .fill(isLiquidGlass ? Color.white.opacity(0.18) : AppTheme.accent)
-                                    .frame(width: 68, height: 68)
-                                    .overlay(
-                                        Circle()
-                                            .stroke(isLiquidGlass ? Color.white.opacity(0.35) : Color.clear, lineWidth: 1)
-                                    )
-                                Image(systemName: "crown.fill")
-                                    .font(.system(size: 32, weight: .bold))
-                                    .foregroundColor(isLiquidGlass ? .white : SettingsAppearance.onAccent)
-                            }
-                            .padding(.top, 8)
-
-                            VStack(spacing: 6) {
-                                Text("LaterBox Pro")
-                                    .font(.system(size: 28, weight: .bold))
-                                    .foregroundColor(isLiquidGlass ? .white : SettingsAppearance.textPrimary(for: colorScheme))
-
-                                Text("Pro app icons and your choice of AI providers on this device. Connect an optional account for cloud sync, backup, and web access.")
-                                    .font(.subheadline)
-                                    .foregroundColor(isLiquidGlass ? Color.white.opacity(0.85) : SettingsAppearance.textSecondary(for: colorScheme))
-                                    .multilineTextAlignment(.center)
-                                    .padding(.horizontal, 16)
-                            }
-                        }
-
-                        // If user is already Pro, show active badge
-                        if storeKit.isProSubscriptionActive || coordinator.isProUser {
-                            activeSubscriptionCard
-                        }
-                        Group {
-                            // Plan Options: 1 Plan with Monthly or Annual Interval
-                            VStack(spacing: 12) {
-                                // Annual Option Card
-                                planOptionCard(
-                                    interval: .annual,
-                                    title: "Annual",
-                                    badge: nil,
-                                    price: storeKit.annualDisplayPrice,
-                                    period: "/ year",
-                                    detail: storeKit.annualPlanDetail,
-                                    isSelected: selectedInterval == .annual
-                                )
-
-                                // Monthly Option Card
-                                planOptionCard(
-                                    interval: .monthly,
-                                    title: "Monthly",
-                                    badge: nil,
-                                    price: storeKit.monthlyDisplayPrice,
-                                    period: "/ month",
-                                    detail: storeKit.monthlyPlanDetail,
-                                    isSelected: selectedInterval == .monthly
-                                )
-                            }
-
-                            // Primary CTA Button
-                            if !storeKit.isProSubscriptionActive && !(coordinator.billingEntitlement?.hasAccess == true && coordinator.billingEntitlement?.provider != nil) {
-                            Button(action: {
-                                handlePurchase()
-                            }) {
-                                HStack(spacing: 8) {
-                                    if storeKit.isPurchasing {
-                                        ProgressView()
-                                            .tint(isLiquidGlass ? .black : .white)
-                                    } else {
-                                        Image(systemName: "sparkles")
-                                            .font(.subheadline.weight(.semibold))
-                                        Text(primaryButtonTitle)
-                                            .font(.headline.weight(.bold))
-                                    }
-                                }
-                                .foregroundColor(isLiquidGlass ? .black : .white)
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 16)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                        .fill(isLiquidGlass ? Color.white : AppTheme.darkSurface)
-                                )
-                                .shadow(color: Color.black.opacity(isLiquidGlass ? 0.3 : 0.0), radius: 8, x: 0, y: 3)
-                            }
-                            .buttonStyle(.plain)
-                            .disabled(storeKit.isPurchasing || (selectedInterval == .annual ? storeKit.annualProduct : storeKit.monthlyProduct) == nil)
-                            .accessibilityIdentifier("billing.purchase")
-                            }
-                        }
-
-                        ConnectProView(isLiquidGlass: isLiquidGlass)
-                        if storeKit.monthlyProduct == nil || storeKit.annualProduct == nil {
-                            Button("Retry App Store prices") { Task { await storeKit.loadProducts() } }
-                                .foregroundColor(isLiquidGlass ? Color.white.opacity(0.85) : SettingsAppearance.textPrimary(for: colorScheme))
-                        }
-                        // Feature Breakdown
-                        VStack(alignment: .leading, spacing: 14) {
-                            Text("What's Included with Pro")
-                                .font(.caption.weight(.bold))
-                                .foregroundColor(isLiquidGlass ? Color.white.opacity(0.65) : SettingsAppearance.textSecondary(for: colorScheme))
-                                .textCase(.uppercase)
-
-                            VStack(alignment: .leading, spacing: 12) {
-                                featureRow(
-                                    icon: "icloud.fill",
-                                    title: "Multi-Device Cloud Sync",
-                                    subtitle: "Optional account connection enables sync across your devices."
-                                )
-                                featureRow(
-                                    icon: "wand.and.stars",
-                                    title: "AI Inbox Organizer",
-                                    subtitle: "Use compatible on-device AI or your own AI provider keys."
-                                )
-                                featureRow(
-                                    icon: "safari.fill",
-                                    title: "Browser & Desktop Extensions",
-                                    subtitle: "Browser extensions and local capture remain free."
-                                )
-                                featureRow(
-                                    icon: "lock.icloud.fill",
-                                    title: "Encrypted Cloud Backup",
-                                    subtitle: "Optional account connection enables cloud backup and restore."
-                                )
-                            }
-                            .padding(18)
-                            .background(
-                                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                    .fill(isLiquidGlass ? Color.white.opacity(0.08) : SettingsAppearance.surface(for: colorScheme))
+                InboxGrainBackground().ignoresSafeArea()
+                ScrollView(showsIndicators: false) {
+                    VStack(spacing: 20) {
+                        VStack(spacing: 10) {
+                            LaterBoxVectorMark(
+                                size: 66, appearance: .automatic,
+                                animates: false
                             )
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                    .strokeBorder(isLiquidGlass ? Color.white.opacity(0.18) : SettingsAppearance.border(for: colorScheme), lineWidth: 1)
-                            )
-                        }
-
-                        if storeKit.registrationAccountId == coordinator.currentUserId,
-                           let message = storeKit.cloudRegistrationMessage {
-                            Text(message)
-                                .font(.caption)
-                                .foregroundColor(isLiquidGlass ? Color.white.opacity(0.8) : SettingsAppearance.textSecondary(for: colorScheme))
-                        }
-                        // Error Banner if any
-                        if let error = storeKit.errorMessage ?? coordinator.billingError {
-                            VStack(spacing: 8) {
-                                Text(error)
-                                    .font(.caption)
-                                    .foregroundColor(isLiquidGlass ? Color(red: 255/255, green: 130/255, blue: 130/255) : .red)
-                                    .multilineTextAlignment(.center)
-                                    .padding(.horizontal)
-
-                                Button(action: {
-                                    LBHaptic.medium()
-                                    Task {
-                                        await coordinator.refreshEntitlement()
-                                    }
-                                }) {
-                                    HStack(spacing: 6) {
-                                        if coordinator.isCheckingEntitlement {
-                                            ProgressView()
-                                                .tint(.red)
-                                                .scaleEffect(0.8)
-                                        } else {
-                                            Image(systemName: "arrow.clockwise")
-                                                .font(.caption.weight(.bold))
-                                        }
-                                        Text(coordinator.isCheckingEntitlement ? "Checking…" : "Retry")
-                                            .font(.caption.weight(.bold))
-                                    }
-                                    .padding(.horizontal, 14)
-                                    .padding(.vertical, 6)
-                                    .background(Color.red.opacity(0.12))
-                                    .foregroundColor(.red)
-                                    .clipShape(Capsule())
-                                }
-                                .buttonStyle(.plain)
-                                .disabled(coordinator.isCheckingEntitlement)
-                            }
-                        }
-
-                        // Compliance & Legal Footer (Apple App Store Guideline 3.1.2)
-                        VStack(spacing: 12) {
-                            // Restore Purchases Button
-                            Button(action: {
-                                Task {
-                                    await storeKit.restorePurchases()
-                                }
-                            }) {
-                                HStack(spacing: 6) {
-                                    if storeKit.isRestoring {
-                                        ProgressView()
-                                            .tint(isLiquidGlass ? .white : .black)
-                                            .scaleEffect(0.8)
-                                    } else {
-                                        Image(systemName: "arrow.clockwise")
-                                            .font(.caption.weight(.semibold))
-                                    }
-                                    Text("Restore Purchases")
-                                        .font(.caption.weight(.semibold))
-                                }
-                                .foregroundColor(isLiquidGlass ? .white : SettingsAppearance.textPrimary(for: colorScheme))
-                                .padding(.vertical, 8)
-                                .padding(.horizontal, 16)
-                                .background(
-                                    Capsule()
-                                        .fill(isLiquidGlass ? Color.white.opacity(0.15) : Color.black.opacity(0.06))
-                                )
-                                .overlay(
-                                    Capsule()
-                                        .stroke(isLiquidGlass ? Color.white.opacity(0.25) : Color.clear, lineWidth: 1)
-                                )
-                            }
-                            .buttonStyle(.plain)
-                            .disabled(storeKit.isRestoring)
-
-                            // Legal Disclosure
-                            Text("Payment will be charged to your Apple ID account at confirmation of purchase. Subscription automatically renews unless canceled at least 24 hours before the end of the current period. You can manage or cancel your subscription anytime in your Apple ID Account Settings.")
-                                .font(.system(size: 11))
-                                .foregroundColor(isLiquidGlass ? Color.white.opacity(0.65) : SettingsAppearance.textSecondary(for: colorScheme).opacity(0.8))
+                            .frame(width: 72, height: 72)
+                            Text("LaterBox Plans")
+                                .font(.system(size: 28, weight: .bold, design: .rounded))
+                            Text("One account, the same cloud storage across web and iOS.")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
                                 .multilineTextAlignment(.center)
-                                .lineSpacing(2)
-
-                            Button("LaterBox Service Terms") { if let url = URL(string: StoreKitManager.termsOfServiceUrl) { openURL(url) } }
-                                .font(.caption)
-                                .foregroundColor(isLiquidGlass ? Color.white.opacity(0.85) : SettingsAppearance.textPrimary(for: colorScheme))
-                            // EULA & Privacy Policy Links
-                            HStack(spacing: 16) {
-                                Button("Terms of Use (EULA)") {
-                                    if let url = URL(string: StoreKitManager.eulaUrl) {
-                                        openURL(url)
-                                    }
-                                }
-                                .font(.caption.weight(.medium))
-                                .foregroundColor(isLiquidGlass ? Color.white.opacity(0.85) : SettingsAppearance.textPrimary(for: colorScheme))
-
-                                Text("•")
-                                    .foregroundColor(isLiquidGlass ? Color.white.opacity(0.4) : SettingsAppearance.textSecondary(for: colorScheme))
-
-                                Button("Privacy Policy") {
-                                    if let url = URL(string: StoreKitManager.privacyPolicyUrl) {
-                                        openURL(url)
-                                    }
-                                }
-                                .font(.caption.weight(.medium))
-                                .foregroundColor(isLiquidGlass ? Color.white.opacity(0.85) : SettingsAppearance.textPrimary(for: colorScheme))
-                            }
                         }
-                        .padding(.top, 4)
-                        .padding(.bottom, 24)
+                        .frame(maxWidth: .infinity)
+                        .padding(.top, 18)
+
+                        HStack {
+                            VStack(alignment: .leading, spacing: 5) {
+                                Text("YOUR CURRENT PLAN")
+                                    .font(.caption2.weight(.bold))
+                                    .foregroundStyle(.secondary)
+                                Text(currentPlan)
+                                    .font(.title2.weight(.bold))
+                                Text(quota.percent.map { _ in
+                                    "\(quota.usedLabel) of \(quota.limitLabel) used"
+                                } ?? "Cloud usage unavailable")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            }
+                            Spacer(minLength: 10)
+                            Image(systemName: "checkmark.seal.fill")
+                                .foregroundStyle(AppTheme.accent)
+                                .font(.title)
+                        }
+                        .padding(18)
+                        .settingsCard(for: colorScheme, cornerRadius: 20)
+
+                        VStack(spacing: 12) {
+                            tierCard(title: "Free", storage: "500 MB",
+                                     details: "Cloud sync, reminders, and saved links.",
+                                     icon: "cloud", selected: currentPlan == "Free")
+                            tierCard(title: "Plus", storage: "10 GB",
+                                     details: "More space for files, photos, PDFs, and saved content.",
+                                     icon: "sparkles", selected: currentPlan == "Plus")
+                            tierCard(title: "Vault", storage: "100 GB",
+                                     details: "Extra space for larger libraries and attachments.",
+                                     icon: "externaldrive", selected: currentPlan == "Vault")
+                        }
+
+                        VStack(alignment: .leading, spacing: 9) {
+                            Label("Billing on the web", systemImage: "globe")
+                                .font(.headline)
+                            Text("New subscriptions and plan changes are handled through your LaterBox web account. Existing Whop plans appear here automatically when you sign in with the same account.")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                            Text("This iOS app does not start a separate purchase.")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(18)
+                        .settingsCard(for: colorScheme, cornerRadius: 20)
+
+                        if quota.level == .full {
+                            Label("Storage full. New saves and uploads are paused until space is freed or your account limit increases.", systemImage: "exclamationmark.triangle.fill")
+                                .font(.subheadline)
+                                .foregroundStyle(.red)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(15)
+                                .settingsCard(for: colorScheme, cornerRadius: 16)
+                        }
+
+                        if coordinator.billingEntitlement?.provider != nil || storeKit.isProSubscriptionActive {
+                            Button {
+                                LBHaptic.light()
+                                Task { await storeKit.manageSubscription() }
+                            } label: {
+                                Label("Manage existing subscription", systemImage: "creditcard")
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 14)
+                            }
+                            .foregroundStyle(SettingsAppearance.textPrimary(for: colorScheme))
+                            .settingsCard(for: colorScheme, cornerRadius: 16)
+                        }
+
+                        if storeKit.isProSubscriptionActive {
+                            Button("Restore existing App Store purchases") {
+                                Task { await storeKit.restorePurchases() }
+                            }
+                            .font(.caption.weight(.semibold))
+                        }
                     }
-                    .padding(.horizontal, 20)
-                    .padding(.top, 8)
+                    .padding(.horizontal, 18)
+                    .padding(.bottom, 32)
                 }
             }
+            .navigationTitle("Plans")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button(action: {
-                        dismiss()
-                    }) {
-                        Image(systemName: "xmark.circle.fill")
-                            .font(.system(size: 22))
-                            .foregroundColor(isLiquidGlass ? Color.white.opacity(0.65) : Color.black.opacity(0.3))
-                    }
-                    .buttonStyle(.plain)
+                    Button("Done") { dismiss() }
                 }
             }
             .task {
-                await storeKit.updatePurchasedProducts()
                 await coordinator.refreshEntitlement()
             }
-            .alert("Welcome to Pro!", isPresented: $storeKit.purchaseSuccessAlert) {
-                Button("Continue", role: .cancel) {}
-            } message: {
-                Text(storeKit.cloudPurchaseConfirmed
-                    ? "Your purchase is synced with your LaterBox account. Pro is available on the web and your connected devices."
-                    : "Pro is active on this device. No registration is required. You can optionally connect Pro to your account for cloud and web access.")
-            }
         }
     }
 
-    // MARK: - Plan Option Card View
-    private func planOptionCard(
-        interval: PlanIntervalSelection,
-        title: String,
-        badge: String?,
-        price: String,
-        period: String,
-        detail: String,
-        isSelected: Bool
-    ) -> some View {
-        Button(action: {
-            LBHaptic.light()
-            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                selectedInterval = interval
-            }
-        }) {
-            HStack(alignment: .center) {
-                // Radio Indicator
-                ZStack {
-                    Circle()
-                        .strokeBorder(
-                            isSelected
-                                ? (isLiquidGlass ? Color.white : SettingsAppearance.textPrimary(for: colorScheme))
-                                : (isLiquidGlass ? Color.white.opacity(0.35) : Color.black.opacity(0.2)),
-                            lineWidth: 2
-                        )
-                        .frame(width: 22, height: 22)
-                    if isSelected {
-                        Circle()
-                            .fill(isLiquidGlass ? Color.white : SettingsAppearance.textPrimary(for: colorScheme))
-                            .frame(width: 12, height: 12)
-                    }
-                }
-
-                VStack(alignment: .leading, spacing: 3) {
-                    HStack(spacing: 8) {
-                        Text(title)
-                            .font(.headline.weight(.bold))
-                            .foregroundColor(isLiquidGlass ? .white : SettingsAppearance.textPrimary(for: colorScheme))
-
-                        if let badgeText = badge {
-                            Text(badgeText)
-                                .font(.system(size: 10, weight: .bold))
-                                .foregroundColor(isLiquidGlass ? .white : SettingsAppearance.textPrimary(for: colorScheme))
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 3)
-                                .background(
-                                    Capsule()
-                                        .fill(isLiquidGlass ? Color.white.opacity(0.2) : AppTheme.accent)
-                                )
-                                .overlay(
-                                    Capsule()
-                                        .stroke(isLiquidGlass ? Color.white.opacity(0.35) : Color.clear, lineWidth: 1)
-                                )
-                        }
-                    }
-
-                    Text(detail)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .font(.caption)
-                        .foregroundColor(isLiquidGlass ? Color.white.opacity(0.75) : SettingsAppearance.textSecondary(for: colorScheme))
-                }
-
-                Spacer()
-
-                VStack(alignment: .trailing, spacing: 1) {
-                    HStack(alignment: .firstTextBaseline, spacing: 2) {
-                        Text(price)
-                            .font(.system(size: 18, weight: .bold))
-                            .foregroundColor(isLiquidGlass ? .white : SettingsAppearance.textPrimary(for: colorScheme))
-                        Text(period)
-                            .font(.caption)
-                            .foregroundColor(isLiquidGlass ? Color.white.opacity(0.7) : SettingsAppearance.textSecondary(for: colorScheme))
-                    }
-                }
-            }
-            .padding(16)
-            .background(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .fill(isLiquidGlass
-                        ? (isSelected ? Color.white.opacity(0.18) : Color.white.opacity(0.08))
-                        : SettingsAppearance.surface(for: colorScheme))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .strokeBorder(
-                        isSelected
-                            ? (isLiquidGlass ? Color.white.opacity(0.85) : SettingsAppearance.textPrimary(for: colorScheme))
-                            : (isLiquidGlass ? Color.white.opacity(0.20) : SettingsAppearance.border(for: colorScheme)),
-                        lineWidth: isSelected ? 1.5 : 1
-                    )
-            )
-            .shadow(color: Color.black.opacity(isLiquidGlass ? 0.25 : (isSelected ? 0.06 : 0.02)), radius: 6, x: 0, y: 2)
-        }
-        .buttonStyle(.plain)
-    }
-
-    // MARK: - Active Subscription Card
-    private var activeSubscriptionCard: some View {
-        VStack(spacing: 12) {
-            HStack {
-                HStack(spacing: 8) {
-                    Image(systemName: "checkmark.seal.fill")
-                        .font(.title3)
-                        .foregroundColor(Color.green)
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("LaterBox Pro Active")
-                            .font(.headline.weight(.bold))
-                            .foregroundColor(isLiquidGlass ? .white : SettingsAppearance.textPrimary(for: colorScheme))
-                        if let date = coordinator.billingEntitlement?.accessEndDate ?? storeKit.expirationDate {
-                            Text("\(coordinator.billingEntitlement?.willCancel == true ? "Access ends" : coordinator.billingEntitlement?.status == "trialing" ? "Trial ends" : coordinator.billingEntitlement?.status == "past_due" ? "Grace period ends" : "Current period ends") \(date.formatted(date: .long, time: .omitted))")
-                                .font(.caption)
-                                .foregroundColor(isLiquidGlass ? Color.white.opacity(0.75) : SettingsAppearance.textSecondary(for: colorScheme))
-                        } else {
-                            Text(coordinator.hasCloudPro ? "Device and account Pro active" : "Device Pro active · Account connection optional")
-                                .font(.caption)
-                                .foregroundColor(isLiquidGlass ? Color.white.opacity(0.75) : SettingsAppearance.textSecondary(for: colorScheme))
-                        }
-                    }
-                }
-
-                Spacer()
-
-                Text("Active")
-                    .font(.caption2.weight(.bold))
-                    .foregroundColor(isLiquidGlass ? .white : SettingsAppearance.textPrimary(for: colorScheme))
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 4)
-                    .background(
-                        Capsule()
-                            .fill(isLiquidGlass ? Color.white.opacity(0.2) : AppTheme.accent)
-                    )
-                    .overlay(
-                        Capsule()
-                            .stroke(isLiquidGlass ? Color.white.opacity(0.35) : Color.clear, lineWidth: 1)
-                    )
-            }
-
-            Divider().background(isLiquidGlass ? Color.white.opacity(0.2) : SettingsAppearance.border(for: colorScheme))
-
-            if coordinator.billingEntitlement?.provider != nil || storeKit.isProSubscriptionActive {
-            Button(action: {
-                Task { await storeKit.manageSubscription() }
-            }) {
-                HStack(spacing: 6) {
-                    Text(storeKit.managementProvider == "paddle" ? "Manage Subscription with Paddle" : storeKit.managementProvider == "whop" ? "Manage Subscription with Whop" : "Manage Subscription in App Store")
+    private func tierCard(title: String, storage: String, details: String, icon: String, selected: Bool) -> some View {
+        HStack(spacing: 13) {
+            Image(systemName: icon)
+                .font(.system(size: 21, weight: .semibold))
+                .foregroundStyle(Color(hex: "171711"))
+                .frame(width: 46, height: 46)
+                .background(AppTheme.accent, in: RoundedRectangle(cornerRadius: 13))
+            VStack(alignment: .leading, spacing: 5) {
+                HStack {
+                    Text("LaterBox \(title)")
+                        .font(.headline)
+                    Spacer()
+                    Text(storage)
                         .font(.subheadline.weight(.semibold))
-                    Image(systemName: "arrow.up.right")
-                        .font(.caption.weight(.bold))
                 }
-                .foregroundColor(isLiquidGlass ? .white : SettingsAppearance.textPrimary(for: colorScheme))
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 10)
-                .background(
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .fill(isLiquidGlass ? Color.white.opacity(0.18) : Color.black.opacity(0.05))
-                )
-            }
-            .buttonStyle(.plain)
-            Text("To switch payment providers, cancel renewal with your current provider and subscribe again after access ends.")
-                .font(.caption).foregroundColor(isLiquidGlass ? Color.white.opacity(0.7) : SettingsAppearance.textSecondary(for: colorScheme))
-            }
-        }
-        .padding(18)
-        .background(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(isLiquidGlass ? Color.white.opacity(0.08) : SettingsAppearance.surface(for: colorScheme))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .strokeBorder(isLiquidGlass ? Color.white.opacity(0.18) : SettingsAppearance.border(for: colorScheme), lineWidth: 1)
-        )
-    }
-
-    // MARK: - Feature Row Helper
-    private func featureRow(icon: String, title: String, subtitle: String) -> some View {
-        HStack(alignment: .top, spacing: 12) {
-            ZStack {
-                Circle()
-                    .fill(isLiquidGlass ? Color.white.opacity(0.18) : AppTheme.accent.opacity(0.6))
-                    .frame(width: 32, height: 32)
-                Image(systemName: icon)
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundColor(isLiquidGlass ? .white : SettingsAppearance.textPrimary(for: colorScheme))
-            }
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundColor(isLiquidGlass ? .white : SettingsAppearance.textPrimary(for: colorScheme))
-                Text(subtitle)
+                Text(details)
                     .font(.caption)
-                    .foregroundColor(isLiquidGlass ? Color.white.opacity(0.75) : SettingsAppearance.textSecondary(for: colorScheme))
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            if selected {
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundStyle(AppTheme.accent)
+                    .font(.title3)
             }
         }
-    }
-
-    // MARK: - Purchase Action
-    private var primaryButtonTitle: String {
-        storeKit.purchaseButtonTitle(annual: selectedInterval == .annual)
-    }
-
-    private func handlePurchase() {
-        LBHaptic.medium()
-        Task {
-            let targetProduct = (selectedInterval == .annual)
-                ? storeKit.annualProduct
-                : storeKit.monthlyProduct
-
-            if let product = targetProduct {
-                let uuid = coordinator.currentUserId.flatMap { UUID(uuidString: $0) }
-                await storeKit.purchase(product, appAccountToken: uuid)
-            } else {
-                // If product is not loaded from App Store yet, trigger a reload
-                await storeKit.loadProducts()
-                if let product = (selectedInterval == .annual) ? storeKit.annualProduct : storeKit.monthlyProduct {
-                    let uuid = coordinator.currentUserId.flatMap { UUID(uuidString: $0) }
-                    await storeKit.purchase(product, appAccountToken: uuid)
-                }
-            }
+        .padding(15)
+        .settingsCard(for: colorScheme, cornerRadius: 18)
+        .overlay {
+            RoundedRectangle(cornerRadius: 18)
+                .strokeBorder(selected ? AppTheme.accent : .clear, lineWidth: 2)
         }
     }
 }

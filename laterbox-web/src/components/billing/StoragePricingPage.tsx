@@ -12,6 +12,7 @@ import { useBilling } from '@/lib/store/BillingContext';
 import { useWhopPrices } from '@/lib/billing/use-whop-prices';
 import { formatWhopPrice, yearlySavings } from '@/lib/billing/whop-prices';
 import { type WhopPlanKey } from '@/lib/billing/storage-plans';
+import { hasProAccess } from '@/lib/billing/types';
 
 const tiers = [
   {
@@ -32,8 +33,23 @@ export function StoragePricingPage({ inApp = false }: { inApp?: boolean }) {
   const [interval, setInterval] = useState<'month' | 'year'>('year');
   const { prices, loading, error: priceError, retry } = useWhopPrices();
   const { user } = useAuth();
-  const { entitlement } = useBilling();
-  const active = Boolean(entitlement.provider && entitlement.status !== 'free');
+  const { entitlement, manage } = useBilling();
+  const [manageError, setManageError] = useState<string | null>(null);
+  const [openingPortal, setOpeningPortal] = useState(false);
+  const active = Boolean(entitlement.provider && hasProAccess(entitlement));
+
+  const openExistingPlan = async () => {
+    if (openingPortal) return;
+    setManageError(null);
+    setOpeningPortal(true);
+    try {
+      await manage();
+    } catch (err) {
+      setManageError(err instanceof Error ? err.message : 'Unable to open subscription management.');
+    } finally {
+      setOpeningPortal(false);
+    }
+  };
   const plusSavings = yearlySavings(prices?.plus_month, prices?.plus_year);
 
   return (
@@ -124,14 +140,34 @@ export function StoragePricingPage({ inApp = false }: { inApp?: boolean }) {
                     <Check size={17} className={`mt-0.5 shrink-0 ${featured ? inApp ? 'text-[#deded7]' : 'text-[#d2e5a2]' : inApp ? 'text-[#74736a]' : 'text-[#8ca66c]'}`}/><span className={featured ? 'text-[#e4eadf]' : 'text-[#4d5b46]'}>{feature}</span>
                   </li>)}
                 </ul>
-                <Link href={destination} className={`mt-9 flex items-center justify-center gap-2 rounded-2xl px-5 py-3.5 text-sm font-black transition-colors ${featured ? inApp ? 'bg-white text-[#171711] hover:bg-[#eeeae1]' : 'bg-[#e6edb0] text-[#1c2516] hover:bg-[#d7e29f]' : inApp ? 'bg-[#171711] text-white hover:bg-[#34342d]' : 'bg-[#1b2218] text-white hover:bg-[#34402d]'}`}>
-                  {isFree ? 'Continue with Free' : active ? 'View ' + tier.name : 'Get ' + tier.name}
-                  <ArrowRight size={16} />
-                </Link>
+                {active && !isFree ? (
+                  entitlement.provider === 'apple' ? (
+                    <a href="https://apps.apple.com/account/subscriptions" target="_blank" rel="noopener noreferrer"
+                      className={`mt-9 flex items-center justify-center gap-2 rounded-2xl px-5 py-3.5 text-sm font-black transition-colors ${featured ? 'bg-[#e6edb0] text-[#1c2516] hover:bg-[#d7e29f]' : 'bg-[#1b2218] text-white hover:bg-[#34402d]'}`}>
+                      Manage in App Store <ArrowRight size={16} />
+                    </a>
+                  ) : (
+                    <button type="button" disabled={openingPortal} onClick={() => void openExistingPlan()}
+                      className={`mt-9 flex items-center justify-center gap-2 rounded-2xl px-5 py-3.5 text-sm font-black transition-colors disabled:opacity-50 ${featured ? 'bg-[#e6edb0] text-[#1c2516] hover:bg-[#d7e29f]' : 'bg-[#1b2218] text-white hover:bg-[#34402d]'}`}>
+                      Manage plan <ArrowRight size={16} />
+                    </button>
+                  )
+                ) : (
+                  <Link href={destination} className={`mt-9 flex items-center justify-center gap-2 rounded-2xl px-5 py-3.5 text-sm font-black transition-colors ${featured ? inApp ? 'bg-white text-[#171711] hover:bg-[#eeeae1]' : 'bg-[#e6edb0] text-[#1c2516] hover:bg-[#d7e29f]' : inApp ? 'bg-[#171711] text-white hover:bg-[#34342d]' : 'bg-[#1b2218] text-white hover:bg-[#34402d]'}`}>
+                    {isFree ? 'Continue with Free' : 'Get ' + tier.name}
+                    <ArrowRight size={16} />
+                  </Link>
+                )}
               </section>
             );
           })}
         </div>
+
+        {manageError && (
+          <p role="alert" className="mx-auto mt-5 max-w-xl rounded-xl border border-red-200 bg-red-50 p-3 text-center text-xs font-semibold text-red-700">
+            {manageError}
+          </p>
+        )}
 
         {priceError && (
           <div className="mx-auto mt-5 flex max-w-xl flex-wrap items-center justify-center gap-3 text-center text-xs text-[#9b6439]" role="alert">

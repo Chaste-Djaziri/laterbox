@@ -35,6 +35,14 @@ public enum CloudSyncState: String {
     }
 }
 
+enum StorageFullError: LocalizedError {
+    case full
+
+    var errorDescription: String? {
+        "Your cloud storage is full. Delete stored files or change your plan on the LaterBox website before saving anything new."
+    }
+}
+
 @MainActor
 public final class SyncCoordinator: ObservableObject {
     public static let shared = SyncCoordinator()
@@ -84,6 +92,22 @@ public final class SyncCoordinator: ObservableObject {
     @Published public var isShowingCapture: Bool = false
     @Published public var showingAuthSheet: Bool = false
     @Published public var showingPlansSheet: Bool = false
+    @Published public var showingStorageFullAlert: Bool = false
+
+    public var isCloudStorageFull: Bool {
+        guard !isGuestMode, isAuthenticated,
+              let used = billingEntitlement?.storageUsedBytes,
+              let limit = billingEntitlement?.storageLimitBytes,
+              limit > 0 else { return false }
+        return used >= limit
+    }
+
+    public func ensureStorageWritable() throws {
+        guard !isCloudStorageFull else {
+            showingStorageFullAlert = true
+            throw StorageFullError.full
+        }
+    }
     @Published public var catalogUpdateTrigger: UUID = UUID()
     @Published public var pendingPullCount: Int = 0
     @Published public var pendingPushCount: Int = 0
@@ -399,6 +423,11 @@ public final class SyncCoordinator: ObservableObject {
         collectionName: String? = nil,
         context: ModelContext
     ) {
+        guard !isCloudStorageFull else {
+            showingStorageFullAlert = true
+            LBHaptic.warning()
+            return
+        }
         let cleanTitle = title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             ? (url ?? "Untitled Link")
             : title
@@ -452,6 +481,7 @@ public final class SyncCoordinator: ObservableObject {
 
     @discardableResult
     func saveDraft(_ draft: CaptureDraft, context: ModelContext, status: ItemStatus? = nil) throws -> LBItem {
+        try ensureStorageWritable()
         guard !draft.content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || !draft.attachments.isEmpty else { throw AIProviderError.invalidCapture }
         let id = draft.id
         if let existing = try context.fetch(FetchDescriptor<LBItem>(predicate: #Predicate { $0.id == id })).first { return existing }
@@ -511,6 +541,10 @@ public final class SyncCoordinator: ObservableObject {
             let existing = try context.fetch(FetchDescriptor<LBCollection>())
             if let found = existing.first(where: { $0.name.localizedCaseInsensitiveCompare(raw) == .orderedSame }) {
                 return found
+            }
+            guard !isCloudStorageFull else {
+                showingStorageFullAlert = true
+                return nil
             }
             let (icon, color) = defaultCollectionStyle(for: raw)
             let newCollection = LBCollection(
@@ -594,6 +628,11 @@ public final class SyncCoordinator: ObservableObject {
 
     // MARK: - Item Actions
     public func markDone(item: LBItem, context: ModelContext) {
+        guard !isCloudStorageFull else {
+            showingStorageFullAlert = true
+            LBHaptic.warning()
+            return
+        }
         item.status = ItemStatus.saved.rawValue
         item.updatedAt = Date()
         item.isSyncPending = true
@@ -608,6 +647,11 @@ public final class SyncCoordinator: ObservableObject {
     /// Dismiss a return reminder without deleting the saved content.
     /// The item remains recoverable from Archive.
     public func dismissReturn(item: LBItem, context: ModelContext) {
+        guard !isCloudStorageFull else {
+            showingStorageFullAlert = true
+            LBHaptic.warning()
+            return
+        }
         guard item.status == ItemStatus.deferred.rawValue else { return }
         item.status = ItemStatus.archived.rawValue
         item.returnAt = nil
@@ -622,6 +666,11 @@ public final class SyncCoordinator: ObservableObject {
     }
 
     public func scheduleItem(item: LBItem, date: Date, context: ModelContext) {
+        guard !isCloudStorageFull else {
+            showingStorageFullAlert = true
+            LBHaptic.warning()
+            return
+        }
         item.status = ItemStatus.deferred.rawValue
         item.inboxEnteredAt = nil
         item.returnAt = date
@@ -638,6 +687,11 @@ public final class SyncCoordinator: ObservableObject {
     }
 
     public func toggleFavorite(item: LBItem, context: ModelContext) {
+        guard !isCloudStorageFull else {
+            showingStorageFullAlert = true
+            LBHaptic.warning()
+            return
+        }
         item.favorite.toggle()
         item.updatedAt = Date()
         item.isSyncPending = true
@@ -674,6 +728,11 @@ public final class SyncCoordinator: ObservableObject {
     }
 
     public func restoreItem(item: LBItem, context: ModelContext) {
+        guard !isCloudStorageFull else {
+            showingStorageFullAlert = true
+            LBHaptic.warning()
+            return
+        }
         item.status = ItemStatus.saved.rawValue
         item.updatedAt = Date()
         item.isSyncPending = true
@@ -904,6 +963,10 @@ public final class SyncCoordinator: ObservableObject {
             self.lastSyncErrorMessage = nil
             self.pendingPullCount = 0
             _ = self.updateLocalPendingPushCount(context: context)
+            if isCloudStorageFull {
+                // A successful cloud deletion can release space immediately.
+                _ = await refreshEntitlement()
+            }
         } catch {
             self.handleSyncError(error, announce: announceFailure)
         }

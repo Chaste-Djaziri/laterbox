@@ -1,13 +1,8 @@
-//
-//  SubscriptionSettingsView.swift
-//  laterbox-ios
-//
-//  Created by Chaste Djaziri on 11.10.26.
-//
-
+// laterbox-ios/laterbox-ios/Views/Settings/SubscriptionSettingsView.swift
 import SwiftUI
-import StoreKit
 
+/// All new plans are purchased through the LaterBox web account.
+/// Existing App Store purchases stay restorable during the transition.
 public struct SubscriptionSettingsView: View {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.openURL) private var openURL
@@ -16,288 +11,179 @@ public struct SubscriptionSettingsView: View {
 
     public init() {}
 
+    private var planName: String {
+        if let plan = coordinator.billingEntitlement?.storagePlan {
+            return plan.capitalized
+        }
+        return storeKit.isProSubscriptionActive ? "Plus (App Store)" : "Free"
+    }
+
+    private var quota: CloudStorageQuota {
+        .from(coordinator.billingEntitlement)
+    }
+
     public var body: some View {
         ZStack {
             InboxGrainBackground().ignoresSafeArea()
-
             ScrollView(showsIndicators: false) {
-                VStack(spacing: 20) {
-                    // Header Plan Status Card
+                VStack(spacing: 18) {
                     VStack(spacing: 12) {
-                        ZStack {
-                            RoundedRectangle(cornerRadius: 23, style: .continuous)
-                                .fill(AppTheme.accent)
-                                .frame(width: 76, height: 76)
-                            Image(systemName: "crown.fill")
-                                .font(.system(size: 34, weight: .bold))
-                                .foregroundColor(SettingsAppearance.textPrimary(for: colorScheme))
-                        }
-
-                        VStack(spacing: 4) {
-                            Text(coordinator.isProUser ? "LaterBox Pro" : "LaterBox Local")
-                                .font(.system(size: 24, weight: .bold, design: .rounded))
-                                .foregroundColor(SettingsAppearance.textPrimary(for: colorScheme))
-
-                            Text(coordinator.isProUser ? coordinator.hasCloudPro ? "Device Pro and account cloud access active" : "Device Pro active • Account connection optional" : "Free offline vault • Cloud synchronization available")
-                                .font(.subheadline)
-                                .foregroundColor(SettingsAppearance.textSecondary(for: colorScheme))
-                                .multilineTextAlignment(.center)
-                                .padding(.horizontal, 16)
+                        Image(systemName: "externaldrive.fill")
+                            .font(.system(size: 32, weight: .bold))
+                            .foregroundStyle(Color(hex: "171711"))
+                            .frame(width: 72, height: 72)
+                            .background(AppTheme.accent, in: RoundedRectangle(cornerRadius: 23))
+                        Text("LaterBox \(planName)")
+                            .font(.system(size: 25, weight: .bold, design: .rounded))
+                            .foregroundStyle(SettingsAppearance.textPrimary(for: colorScheme))
+                        Text("Your plan follows your LaterBox account across the web and iOS.")
+                            .font(.subheadline)
+                            .foregroundStyle(SettingsAppearance.textSecondary(for: colorScheme))
+                            .multilineTextAlignment(.center)
+                        if let provider = coordinator.billingEntitlement?.provider {
+                            Text("Managed by \(provider == "whop" ? "Whop" : provider == "apple" ? "App Store" : "Paddle")")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(SettingsAppearance.textSecondary(for: colorScheme))
                         }
                     }
+                    .padding(25)
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 26)
-                    .padding(.horizontal, 18)
                     .settingsCard(for: colorScheme, cornerRadius: 22)
 
-                    // Plan Overview Card
-                    VStack(alignment: .leading, spacing: 14) {
+                    VStack(alignment: .leading, spacing: 13) {
                         HStack {
-                            Text("Current membership")
+                            Text("Cloud storage")
                                 .font(.headline)
-                                .foregroundStyle(SettingsAppearance.textPrimary(for: colorScheme))
-
                             Spacer()
+                            Text(quota.percent.map { "\(Int($0.rounded()))%" } ?? "—")
+                                .font(.headline.monospacedDigit())
+                        }
+                        .foregroundStyle(SettingsAppearance.textPrimary(for: colorScheme))
 
-                            Text(coordinator.isProUser ? "Active" : "Free Forever")
-                                .font(.caption2.weight(.bold))
-                                .foregroundColor(SettingsAppearance.onAccent)
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 4)
-                                .background(Capsule().fill(AppTheme.accent))
+                        GeometryReader { geo in
+                            ZStack(alignment: .leading) {
+                                Capsule().fill(SettingsAppearance.border(for: colorScheme))
+                                if let fraction = quota.ringFraction {
+                                    Capsule().fill(quota.level.ringColor)
+                                        .frame(width: max(0, geo.size.width * fraction))
+                                }
+                            }
+                        }
+                        .frame(height: 9)
+
+                        HStack {
+                            Text(quota.usedLabel)
+                            Spacer()
+                            Text(quota.limitLabel)
+                        }
+                        .font(.caption)
+                        .foregroundStyle(SettingsAppearance.textSecondary(for: colorScheme))
+
+                        if quota.level == .full {
+                            Label("Storage full. New changes are paused until space is freed or your plan changes.", systemImage: "exclamationmark.triangle.fill")
+                                .font(.footnote)
+                                .foregroundStyle(.red)
+                        }
+                    }
+                    .padding(18)
+                    .settingsCard(for: colorScheme, cornerRadius: 20)
+
+                    VStack(alignment: .leading, spacing: 13) {
+                        Text("Subscription & billing")
+                            .font(.headline)
+                            .foregroundStyle(SettingsAppearance.textPrimary(for: colorScheme))
+                        Text("Free, Plus (10 GB) and Vault (100 GB) plans are managed on the LaterBox website. This iOS app displays the benefits of your existing account; it does not start new purchases.")
+                            .font(.subheadline)
+                            .foregroundStyle(SettingsAppearance.textSecondary(for: colorScheme))
+
+                        Button {
+                            LBHaptic.light()
+                            coordinator.showingPlansSheet = true
+                        } label: {
+                            Label("View plan details", systemImage: "square.stack")
+                                .font(.subheadline.weight(.semibold))
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 13)
+                        }
+                        .buttonStyle(.plain)
+                        .foregroundStyle(SettingsAppearance.textPrimary(for: colorScheme))
+                        .background(SettingsAppearance.surface(for: colorScheme), in: RoundedRectangle(cornerRadius: 13))
+
+                        if coordinator.billingEntitlement?.provider != nil || storeKit.isProSubscriptionActive {
+                            Button {
+                                LBHaptic.light()
+                                Task { await storeKit.manageSubscription() }
+                            } label: {
+                                Label("Manage existing subscription", systemImage: "creditcard")
+                                    .font(.subheadline.weight(.semibold))
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 13)
+                            }
+                            .buttonStyle(.plain)
+                            .foregroundStyle(SettingsAppearance.textPrimary(for: colorScheme))
+                            .background(SettingsAppearance.surface(for: colorScheme), in: RoundedRectangle(cornerRadius: 13))
                         }
 
-                        VStack(alignment: .leading, spacing: 10) {
-                            if coordinator.isProUser {
-                                Text(coordinator.hasCloudPro ? "Your connected account has Pro access on iOS and the web." : "Pro works on this device without registration. Connect an account only if you want cloud sync, backup, and web access.")
-                                    .font(.subheadline)
-                                    .foregroundColor(SettingsAppearance.textSecondary(for: colorScheme))
-                                    .lineSpacing(2)
-                            } else {
-                                Text("Local mode is 100% free forever. Your items are saved offline on this device with full privacy and zero tracking.")
-                                    .font(.subheadline)
-                                    .foregroundColor(SettingsAppearance.textSecondary(for: colorScheme))
-                                    .lineSpacing(2)
-                            }
+                        if let end = coordinator.billingEntitlement?.accessEndDate {
+                            Text("\(coordinator.billingEntitlement?.willCancel == true ? "Access ends" : "Current period ends") \(end.formatted(date: .long, time: .omitted))")
+                                .font(.caption)
+                                .foregroundStyle(SettingsAppearance.textSecondary(for: colorScheme))
+                        }
 
-                            Divider().background(SettingsAppearance.border(for: colorScheme))
+                        Button {
+                            Task { await coordinator.refreshEntitlement() }
+                        } label: {
+                            Label(coordinator.isCheckingEntitlement ? "Checking…" : "Refresh account plan", systemImage: "arrow.clockwise")
+                                .font(.caption.weight(.semibold))
+                        }
+                        .disabled(coordinator.isCheckingEntitlement)
+                        .buttonStyle(.plain)
 
-                            VStack(alignment: .leading, spacing: 8) {
-                                featureRow(icon: "icloud.fill", title: "Multi-Device Cloud Sync", unlocked: coordinator.hasCloudPro)
-                                featureRow(icon: "wand.and.stars", title: "Pro AI Provider Options", unlocked: coordinator.isProUser)
-                                featureRow(icon: "safari.fill", title: "Web Pro Access", unlocked: coordinator.hasCloudPro)
-                                featureRow(icon: "lock.icloud.fill", title: "Cloud Backup & Restore", unlocked: coordinator.hasCloudPro)
-                            }
+                        if let error = coordinator.billingError ?? storeKit.errorMessage {
+                            Text(error)
+                                .font(.caption)
+                                .foregroundStyle(.red)
                         }
                     }
                     .padding(18)
                     .settingsCard(for: colorScheme, cornerRadius: 20)
 
                     ConnectProView()
-                    // Subscription Management Actions
+
                     VStack(alignment: .leading, spacing: 12) {
-                        Text("Manage subscription")
+                        Text("Existing App Store subscribers")
                             .font(.headline)
                             .foregroundStyle(SettingsAppearance.textPrimary(for: colorScheme))
-
-                        if coordinator.billingEntitlement?.provider != nil || storeKit.isProSubscriptionActive {
-                            Button(action: {
-                                LBHaptic.light()
-                                Task { await storeKit.manageSubscription() }
-                            }) {
-                                HStack(spacing: 8) {
-                                    Image(systemName: ["paddle", "whop"].contains(storeKit.managementProvider ?? "") ? "creditcard" : "applelogo")
-                                    Text(storeKit.managementProvider == "paddle" ? "Manage Paddle Subscription" : storeKit.managementProvider == "whop" ? "Manage Whop Subscription" : "Manage Apple Subscription")
-                                        .font(.subheadline.weight(.semibold))
-                                    Spacer()
-                                    Image(systemName: "arrow.up.right")
-                                        .font(.caption.weight(.bold))
-                                }
-                                .foregroundColor(SettingsAppearance.textPrimary(for: colorScheme))
-                                .padding(.horizontal, 16)
-                                .padding(.vertical, 14)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                        .fill(SettingsAppearance.surface(for: colorScheme))
-                                )
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                        .strokeBorder(SettingsAppearance.border(for: colorScheme), lineWidth: 1)
-                                )
-                            }
-                            .buttonStyle(.plain)
-                        } else {
-                            VStack(spacing: 12) {
-                                Button(action: {
-                                    LBHaptic.medium()
-                                    coordinator.showingPlansSheet = true
-                                }) {
-                                    HStack(spacing: 8) {
-                                        Image(systemName: "sparkles")
-                                            .font(.subheadline.weight(.semibold))
-                                        Text("Upgrade to LaterBox Pro")
-                                            .font(.headline.weight(.bold))
-                                        Image(systemName: "arrow.right")
-                                            .font(.subheadline.weight(.semibold))
-                                    }
-                                    .foregroundColor(.white)
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 14)
-                                    .background(
-                                        RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                            .fill(AppTheme.darkSurface)
-                                    )
-                                }
-                                .buttonStyle(.plain)
-
-                                Text("\(storeKit.monthlyDisplayPrice) / month or \(storeKit.annualDisplayPrice) / year")
-                                    .font(.caption)
-                                    .foregroundColor(SettingsAppearance.textSecondary(for: colorScheme))
-                                    .frame(maxWidth: .infinity, alignment: .center)
-                            }
-                        }
-
-                        if storeKit.isProSubscriptionActive && coordinator.billingEntitlement?.provider == "paddle" {
-                            Button("Manage account’s Paddle subscription") { Task { await storeKit.manageSubscription(provider: "paddle") } }
-                                .font(.caption)
-                        }
-                        if let entitlement = coordinator.billingEntitlement, entitlement.provider != nil {
-                            Text("Managed by \(entitlement.provider == "apple" ? "Apple" : entitlement.provider == "whop" ? "Whop" : "Paddle"). To switch payment providers, cancel renewal there and subscribe with the other provider after access ends.")
-                                .font(.caption)
-                                .foregroundColor(SettingsAppearance.textSecondary(for: colorScheme))
-                            if let end = entitlement.accessEndDate {
-                                Text("\(entitlement.willCancel ? "Access ends" : entitlement.status == "trialing" ? "Trial ends" : entitlement.status == "past_due" ? "Grace period ends" : "Renews") \(end.formatted(date: .long, time: .omitted))")
-                                    .font(.caption)
-                            }
-                        }
-                        if storeKit.registrationAccountId == coordinator.currentUserId,
-                           let message = storeKit.cloudRegistrationMessage {
-                            Text(message).font(.caption).foregroundColor(SettingsAppearance.textSecondary(for: colorScheme))
-                        }
-                        if let error = storeKit.errorMessage ?? coordinator.billingError {
-                            VStack(alignment: .leading, spacing: 8) {
-                                HStack(alignment: .top, spacing: 6) {
-                                    Image(systemName: "exclamationmark.triangle.fill")
-                                        .font(.caption)
-                                        .foregroundColor(.red)
-                                    Text(error)
-                                        .font(.caption)
-                                        .foregroundColor(.red)
-                                        .fixedSize(horizontal: false, vertical: true)
-                                }
-
-                                HStack(spacing: 10) {
-                                    Button(action: {
-                                        LBHaptic.medium()
-                                        Task {
-                                            await coordinator.refreshEntitlement()
-                                        }
-                                    }) {
-                                        HStack(spacing: 6) {
-                                            if coordinator.isCheckingEntitlement {
-                                                ProgressView()
-                                                    .tint(.red)
-                                                    .scaleEffect(0.8)
-                                            } else {
-                                                Image(systemName: "arrow.clockwise")
-                                                    .font(.caption.weight(.bold))
-                                            }
-                                            Text(coordinator.isCheckingEntitlement ? "Checking…" : "Retry")
-                                                .font(.caption.weight(.bold))
-                                        }
-                                        .padding(.horizontal, 12)
-                                        .padding(.vertical, 6)
-                                        .background(Color.red.opacity(0.12))
-                                        .foregroundColor(.red)
-                                        .clipShape(Capsule())
-                                    }
-                                    .buttonStyle(.plain)
-                                    .disabled(coordinator.isCheckingEntitlement)
-
-                                    if coordinator.sessionExpired || error.localizedCaseInsensitiveContains("sign in") || error.localizedCaseInsensitiveContains("session expired") {
-                                        Button(action: {
-                                            LBHaptic.light()
-                                            coordinator.showingAuthSheet = true
-                                        }) {
-                                            HStack(spacing: 6) {
-                                                Image(systemName: "person.crop.circle.badge.exclamationmark")
-                                                    .font(.caption.weight(.bold))
-                                                Text("Sign In")
-                                                    .font(.caption.weight(.bold))
-                                            }
-                                            .padding(.horizontal, 12)
-                                            .padding(.vertical, 6)
-                                            .background(AppTheme.accent.opacity(0.25))
-                                            .foregroundColor(SettingsAppearance.textPrimary(for: colorScheme))
-                                            .clipShape(Capsule())
-                                        }
-                                        .buttonStyle(.plain)
-                                    }
-                                }
-                            }
-                            .padding(12)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(Color.red.opacity(0.06))
-                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                    .strokeBorder(Color.red.opacity(0.15), lineWidth: 1)
-                            )
-                        }
-                        Button("Compare plans") { coordinator.showingPlansSheet = true }
-                            .font(.caption.weight(.semibold))
-                            .frame(maxWidth: .infinity, alignment: .center)
-
-                        // Restore Purchases Button
-                        Button(action: {
+                        Text("Purchases made through Apple remain available. Restore them if you previously subscribed on this Apple ID.")
+                            .font(.caption)
+                            .foregroundStyle(SettingsAppearance.textSecondary(for: colorScheme))
+                        Button {
                             LBHaptic.light()
-                            Task {
-                                await storeKit.restorePurchases()
-                            }
-                        }) {
-                            HStack(spacing: 6) {
-                                Image(systemName: "arrow.clockwise")
-                                    .font(.caption)
-                                Text("Restore Previous Purchases")
-                                    .font(.caption.weight(.semibold))
-                            }
-                            .foregroundColor(SettingsAppearance.textSecondary(for: colorScheme))
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 8)
+                            Task { await storeKit.restorePurchases() }
+                        } label: {
+                            Label("Restore previous purchases", systemImage: "arrow.clockwise")
+                                .font(.subheadline.weight(.semibold))
                         }
                         .buttonStyle(.plain)
+                        .disabled(storeKit.isRestoring)
                     }
                     .padding(18)
                     .settingsCard(for: colorScheme, cornerRadius: 20)
 
-                    Button("LaterBox Service Terms") { if let url = URL(string: StoreKitManager.termsOfServiceUrl) { openURL(url) } }
-                        .font(.caption)
-                    // Legal Links
-                    HStack(spacing: 16) {
-                        Button("Terms of Use (EULA)") {
-                            if let url = URL(string: StoreKitManager.eulaUrl) {
-                                openURL(url)
-                            }
+                    HStack(spacing: 14) {
+                        Button("Terms of Use") {
+                            if let url = URL(string: StoreKitManager.termsOfServiceUrl) { openURL(url) }
                         }
-                        .font(.caption.weight(.medium))
-                        .foregroundColor(SettingsAppearance.textSecondary(for: colorScheme))
-
-                        Text("•")
-                            .foregroundColor(SettingsAppearance.textSecondary(for: colorScheme).opacity(0.5))
-
                         Button("Privacy Policy") {
-                            if let url = URL(string: StoreKitManager.privacyPolicyUrl) {
-                                openURL(url)
-                            }
+                            if let url = URL(string: StoreKitManager.privacyPolicyUrl) { openURL(url) }
                         }
-                        .font(.caption.weight(.medium))
-                        .foregroundColor(SettingsAppearance.textSecondary(for: colorScheme))
                     }
-                    .padding(.top, 4)
+                    .font(.caption)
+                    .foregroundStyle(SettingsAppearance.textSecondary(for: colorScheme))
                 }
-                .padding(.horizontal, 20)
+                .padding(.horizontal, 18)
                 .padding(.top, 12)
-                .padding(.bottom, 32)
+                .padding(.bottom, 35)
             }
         }
         .task {
@@ -306,21 +192,5 @@ public struct SubscriptionSettingsView: View {
         }
         .navigationTitle("Subscription & Plans")
         .navigationBarTitleDisplayMode(.inline)
-    }
-
-    private func featureRow(icon: String, title: String, unlocked: Bool) -> some View {
-        HStack(spacing: 10) {
-            Image(systemName: icon)
-                .font(.subheadline)
-                .foregroundColor(unlocked ? SettingsAppearance.textPrimary(for: colorScheme) : SettingsAppearance.textSecondary(for: colorScheme))
-                .frame(width: 20)
-            Text(title)
-                .font(.subheadline)
-                .foregroundColor(SettingsAppearance.textPrimary(for: colorScheme))
-            Spacer()
-            Image(systemName: unlocked ? "checkmark.circle.fill" : "lock.fill")
-                .font(.caption)
-                .foregroundColor(unlocked ? Color.green : SettingsAppearance.textSecondary(for: colorScheme).opacity(0.6))
-        }
     }
 }

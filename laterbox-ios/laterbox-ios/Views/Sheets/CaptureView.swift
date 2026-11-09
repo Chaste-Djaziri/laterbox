@@ -16,6 +16,7 @@ struct CaptureComposerScreen: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
     @Environment(\.colorScheme) private var colorScheme
+    @ObservedObject private var coordinator = SyncCoordinator.shared
     @Query(sort: \LBCollection.name) private var collections: [LBCollection]
 
     let mode: CaptureComposerMode
@@ -118,6 +119,14 @@ struct CaptureComposerScreen: View {
                             }
                             .id(step)
                             .transition(.opacity)
+                        }
+
+                        if savedItem == nil && coordinator.isCloudStorageFull {
+                            Label("Storage full. New saves and attachments are paused. Permanently delete stored files or change your web plan.", systemImage: "exclamationmark.triangle.fill")
+                                .font(.footnote)
+                                .foregroundStyle(.red)
+                                .padding(13)
+                                .cardSurface(colorScheme)
                         }
 
                         if let errorMessage {
@@ -313,6 +322,7 @@ struct CaptureComposerScreen: View {
                     .padding(10)
                     .frame(minHeight: max(availableHeight - 300, 260))
                     .accessibilityIdentifier("capture.content")
+                    .disabled(coordinator.isCloudStorageFull)
                     .onChange(of: capture.content) { _, _ in
                         metadataLink = nil
                     }
@@ -764,7 +774,7 @@ struct CaptureComposerScreen: View {
                             .background(surface, in: RoundedRectangle(cornerRadius: 13))
                             .overlay(RoundedRectangle(cornerRadius: 13).strokeBorder(border, lineWidth: 1))
                     }
-                    .disabled(!canSave || !validCustomReturn)
+                    .disabled(!canSave || !validCustomReturn || coordinator.isCloudStorageFull)
                     .opacity(canSave && validCustomReturn ? 1 : 0.45)
                 }
 
@@ -793,7 +803,7 @@ struct CaptureComposerScreen: View {
                     .frame(height: 46)
                     .background(accent, in: RoundedRectangle(cornerRadius: 13))
                 }
-                .disabled(!canSave || !validCustomReturn)
+                .disabled(!canSave || !validCustomReturn || coordinator.isCloudStorageFull)
                 .opacity(canSave && validCustomReturn ? 1 : 0.45)
                 .accessibilityIdentifier(step == .details ? "capture.save" : "capture.continue")
             }
@@ -837,6 +847,7 @@ struct CaptureComposerScreen: View {
         }
         .accessibilityLabel("Add attachment or save asset only")
         .accessibilityIdentifier("capture.assets")
+        .disabled(coordinator.isCloudStorageFull)
     }
 
     private func sectionHeading(_ title: String, subtitle: String) -> some View {

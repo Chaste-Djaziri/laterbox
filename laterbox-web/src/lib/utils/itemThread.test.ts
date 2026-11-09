@@ -8,7 +8,6 @@ import {
   addThreadEntry,
   deleteThreadEntry,
   editThreadEntry,
-  toggleThreadReaction,
 } from './itemThread';
 
 test('parseItemThread handles empty and plain-text fallback', () => {

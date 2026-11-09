@@ -321,7 +321,7 @@ public final class StoreKitManager: ObservableObject {
     }
 
     public var managementProvider: String? {
-        isProSubscriptionActive ? "apple" : SyncCoordinator.shared.billingEntitlement?.provider
+        SyncCoordinator.shared.billingEntitlement?.provider ?? (isProSubscriptionActive ? "apple" : nil)
     }
 
     public func manageSubscription(provider: String? = nil) async {

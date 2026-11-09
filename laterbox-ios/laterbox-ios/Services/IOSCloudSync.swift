@@ -612,7 +612,8 @@ extension SyncCoordinator {
             pushedCount += 1
         }
 
-        guard hasCloudPro && !deletionsOnly else { return pushedCount }
+        // Deletions are always allowed; do not push additions while quota is full.
+        guard hasCloudPro && !deletionsOnly && !isCloudStorageFull else { return pushedCount }
 
         let pending = try context.fetch(FetchDescriptor<LBItem>())
             .filter { $0.isSyncPending && ($0.userId == nil || $0.userId == uid) }
