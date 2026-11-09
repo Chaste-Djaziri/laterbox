@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[Web / Marketing scroll convergence cards]** Enlarge floating cards in the "Later shouldn't mean lost" convergence section into prominent, tactile visual cards with larger icons, typography, and shadows. Upgrade scroll convergence from state-driven scroll events to a GPU-accelerated GSAP ScrollTrigger timeline with smooth inertia scrubbing (`scrub: 1`) for buttery transitions between Stage 1, item convergence, and Stage 2 ("ONE PLACE FOR EVERYTHING LATER").
+
 - **[Web / Marketing problem section animation fix]** Fix invisible problem cards and headings in the "We all have a place called LATER" section by migrating from `gsap.from` to `fromTo` with `clearProps: 'all'` and `once: true`. Prevents elements from sticking at `opacity: 0` during hydration/scroll, and preserves CSS rotation tilt transforms on the behavioral quote cards.
 
 - **[Web / Mobile sidebar drawer reliability]** Fix mobile sidebar opener failing on physical touch devices by transitioning from dynamic portal/style injection to native CSS `translate-x` transitions with pointer-events protection. Disable Lenis touch hijacking on mobile devices to preserve native touch scrolling and eliminate tap delays across both marketing and documentation sidebars.
