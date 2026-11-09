@@ -683,7 +683,7 @@ export function InteractiveDashboardPreview({
           {/* ================================================================= */}
           {/* EMAIL TABLE ROWS */}
           {/* ================================================================= */}
-          <div className="flex-1 overflow-y-auto divide-y divide-[#e5e4dc] bg-white">
+          <div data-lenis-prevent className="flex-1 overflow-y-auto divide-y divide-[#e5e4dc] bg-white">
             {visibleItems.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-20 px-4 text-center space-y-3">
                 <div className="w-12 h-12 rounded-2xl bg-[#faf8f5] border border-[#dedad0] flex items-center justify-center text-[#8c8a80]">
