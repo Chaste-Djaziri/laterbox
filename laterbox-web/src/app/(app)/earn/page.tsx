@@ -111,13 +111,13 @@ export default function EarnPage(){
       <section className="rounded-3xl bg-[#e6edb0] p-7">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div><span className="text-xs font-black uppercase tracking-widest text-[#526741]">Your referral status</span>
-            <h2 className="mt-2 text-2xl font-black">{data.status==='suspended'?'Account under review':data.status==='not_launched'?'Your personal code is reserved':data.status==='eligible'?'Activate your earnings':'Your referral program'}</h2>
-            <p className="mt-3 max-w-xl text-sm leading-6 text-[#536748]">{!data.programEnabled?'Affiliate commissions and trial offers are being prepared. Links may be shared, but no reward is active yet.':data.status==='eligible'?'Confirm your legal age and the terms to become eligible for payouts.':data.status==='active'?'You can earn without owning a paid plan. New referrals must complete two paid months after a trial before recurring commissions start.':'Please contact support if your referral access is suspended.'}</p>
+            <h2 className="mt-2 text-2xl font-black">{data.status==='suspended'?'Account under review':data.status==='not_launched'?'Your personal code is reserved':data.status==='eligible'?'Connect Whop to start referring':'Your referral program'}</h2>
+            <p className="mt-3 max-w-xl text-sm leading-6 text-[#536748]">{!data.programEnabled?'Affiliate commissions and trial offers are being prepared. Links may be shared, but no reward is active yet.':data.status==='eligible'?'Connect and verify Whop, then confirm your age and accept the terms to activate referrals.':data.status==='active'?'You can earn without owning a paid plan. New referrals must complete two paid months after a trial before recurring commissions start.':'Please contact support if your referral access is suspended.'}</p>
           </div>
           <span className="rounded-xl border border-[#b8cb9c] bg-white/75 px-4 py-2 text-sm font-bold">{data.plan.toUpperCase()} account</span>
         </div>
       </section>
-      {data.referralCode&&<section className="rounded-3xl border border-[#e1e7d7] bg-white p-6 sm:p-8">
+      {data.referralCode&&data.status==='active'&&data.payoutConnected&&<section className="rounded-3xl border border-[#e1e7d7] bg-white p-6 sm:p-8">
         <div className="flex items-center gap-3"><Gift size={22} className="text-[#6b8951]"/><h2 className="text-xl font-black">Your referral link and code</h2></div>
         <p className="mt-2 text-sm text-[#7b8573]">Share either one. Include a clear affiliate disclosure in promotional posts.</p>
         <div className="mt-5 flex flex-wrap gap-2">
@@ -137,17 +137,18 @@ export default function EarnPage(){
               autoComplete="off" spellCheck={false} className="min-w-0 flex-1 rounded-xl border border-[#dce5d5] bg-white px-4 py-3 font-mono text-sm"/>
             <button onClick={()=>void saveCode()} disabled={working} className="rounded-xl bg-[#171711] px-5 py-3 text-sm font-bold text-white disabled:opacity-50">{working?'Checking…':'Save code'}</button>
           </div>
-          <p className="mt-2 text-xs text-[#7f8978]">4–32 lowercase characters: letters, numbers, underscores or hyphens. Availability is checked when saving. One change every 30 days.</p>
+          <p className="mt-2 text-xs text-[#7f8978]">8–32 lowercase characters: letters, numbers, underscores or hyphens. Availability is checked when saving. One change every 30 days.</p>
           {codeError&&<p role="alert" className="mt-2 text-xs font-semibold text-red-700">{codeError}</p>}
         </div>}
         <p className="mt-4 text-xs text-[#818a79]">Introductory commission: {data.rateBps?data.rateBps/100:0}% of eligible net renewal revenue, followed by a lower ongoing rate. Commissions are not guaranteed.</p>
       </section>}
       {data.status==='eligible'&&<section className="rounded-3xl border border-[#e1e7d7] bg-white p-7">
-        <h2 className="text-xl font-black">Activate referral earnings</h2>
-        <p className="mt-2 text-sm text-[#7c8674]">No paid LaterBox plan required. The payout recipient must be an adult and comply with Whop's identity checks.</p>
+        <h2 className="text-xl font-black">Connect Whop and activate Earn</h2>
+        <p className="mt-2 text-sm text-[#7c8674]">Connect a verified Whop account first. You can join with a Free LaterBox plan; you must also be an adult and accept the terms.</p>
+        <button type="button" disabled={connecting || data.payoutConnected} onClick={()=>void connect()} className="mt-4 rounded-xl border border-[#bbc9aa] bg-[#e6edb0] px-5 py-3 text-sm font-bold disabled:opacity-70">{data.payoutConnected?'Whop connected':connecting?'Connecting…':'Connect Whop to continue'}</button>
         <label className="mt-4 flex gap-3 text-sm"><input type="checkbox" checked={adult} onChange={e=>setAdult(e.target.checked)}/>I confirm I am at least 18 years old.</label>
         <label className="mt-3 flex gap-3 text-sm"><input type="checkbox" checked={terms} onChange={e=>setTerms(e.target.checked)}/>I accept the <Link href="/earn-terms" className="font-bold underline">affiliate program terms</Link>.</label>
-        <button disabled={!adult||!terms||working} onClick={()=>void enroll()} className="mt-5 rounded-xl bg-[#171711] px-6 py-3 text-sm font-bold text-white disabled:opacity-40">Join Earn</button>
+        <button disabled={!data.payoutConnected||!adult||!terms||working} onClick={()=>void enroll()} className="mt-5 rounded-xl bg-[#171711] px-6 py-3 text-sm font-bold text-white disabled:opacity-40">Join Earn</button>
       </section>}
       {data.status==='active'&&<section className="flex flex-wrap items-center justify-between gap-4 rounded-3xl border border-[#e1e7d7] bg-white p-6">
         <div><h2 className="font-black">{data.payoutConnected?'Whop account verified':'Connect Whop for payouts'}</h2>
@@ -172,7 +173,7 @@ export default function EarnPage(){
         <h2 className="text-xl font-black">How it works</h2>
         <div className="mt-5 grid gap-4 md:grid-cols-4">
           {[
-            ['1','Share','Send your unique code or referral link.'],
+            ['1','Connect','Verify Whop, then share your unique referral link.'],
             ['2','Trial','Your new subscriber receives a free month only on a verified trial offer.'],
             ['3','Qualify','They must remain subscribed and complete two successful paid billing periods.'],
             ['4','Earn','Eligible renewals accrue commission; Whop handles verified payouts.'],

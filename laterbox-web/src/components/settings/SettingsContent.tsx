@@ -9,6 +9,7 @@ import { useItems } from '@/lib/store/ItemContext';
 import { useBilling } from '@/lib/store/BillingContext';
 import { AppleSubscriptionDetails } from '@/components/billing/AppleSubscriptionDetails';
 import { ConnectedSignIns } from '@/components/account/ConnectedSignIns';
+import { ConnectedWhop } from '@/components/account/ConnectedWhop';
 import { presentEntitlement } from '@/lib/billing/types';
 import { CloudSyncIndicator } from '@/components/ui/CloudSyncIndicator';
 import { BackupRestorePanel } from '@/components/settings/BackupRestorePanel';
@@ -507,6 +508,7 @@ export function SettingsContent({ section }: { section: SettingsSectionId }) {
               </div>
 
               <ConnectedSignIns userId={user.id} />
+              <ConnectedWhop userId={user.id} />
 
               {/* Password Update Form */}
               {showPasswordForm && (

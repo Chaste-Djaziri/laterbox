@@ -110,9 +110,9 @@ export async function lookupReferral(input:unknown, buyerUserId?:string) {
   const code=normalizeReferralCode(input);
   if(!code)return null;
   const {data,error}=await getBillingAdminClient().from('affiliate_profiles')
-    .select('user_id,referral_code,status').eq('referral_code',code).maybeSingle();
+    .select('user_id,referral_code,status,verified_whop_user_id,age_confirmed_at').eq('referral_code',code).maybeSingle();
   if(error)throw error;
-  if(!data||data.status!=='active'||data.user_id===buyerUserId)return null;
+  if(!data||data.status!=='active'||!data.verified_whop_user_id||!data.age_confirmed_at||data.user_id===buyerUserId)return null;
   return data;
 }
 export async function customizeReferralCode(userId:string,input:unknown) {
@@ -144,7 +144,7 @@ export async function enrollAffiliate(userId:string):Promise<'created'|'existing
   if(!settings.enabled)return 'unavailable';
   const db=getBillingAdminClient();
   const profile=await ensureEarnProfile(userId);
-  if(profile.status==='suspended')return 'unavailable';
+  if(profile.status==='suspended'||!profile.verified_whop_user_id)return 'unavailable';
   if(profile.age_confirmed_at)return 'existing';
   const {error}=await db.from('affiliate_profiles').update({
     age_confirmed_at:new Date().toISOString(),
@@ -188,7 +188,7 @@ export async function getEarnState(userId:string):Promise<EarnState> {
   const {data:balances,error:totalsError}=await db.rpc('affiliate_balance_totals',{target_user_id:userId});
   if(totalsError)throw totalsError;
   const totals=Array.isArray(balances)?balances[0]:balances;
-  const status:EarnState['status']=!settings.enabled?'not_launched':profile.status==='suspended'?'suspended':profile.age_confirmed_at?'active':'eligible';
+  const status:EarnState['status']=!settings.enabled?'not_launched':profile.status==='suspended'?'suspended':profile.age_confirmed_at&&profile.verified_whop_user_id?'active':'eligible';
   const code=profile.referral_code as string;
   return {
     programEnabled:settings.enabled,payoutsEnabled:settings.automatic_payouts,

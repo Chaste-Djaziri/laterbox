@@ -2,7 +2,6 @@
 import {NextRequest,NextResponse} from 'next/server';
 import {getBillingAdminClient} from '@/lib/billing/server';
 import {EARN_OAUTH_COOKIE,verifyOAuthState,verifiedWhopUser,whopOauthConfiguration} from '@/lib/earn/whop-connect';
-import {earnSettings} from '@/lib/earn/affiliate';
 
 export const dynamic='force-dynamic';
 export async function GET(request:NextRequest) {
@@ -21,7 +20,6 @@ export async function GET(request:NextRequest) {
     const cfg=whopOauthConfiguration();
     const transaction=verifyOAuthState(request.cookies.get(EARN_OAUTH_COOKIE)?.value??'',cfg.cookieSecret);
     if(!transaction||transaction.state!==returnedState) return finish('failed');
-    if(!(await earnSettings()).enabled)return finish('failed');
     const whopUserId=await verifiedWhopUser(code,transaction,cfg);
     const {data,error}=await getBillingAdminClient().from('affiliate_profiles')
       .update({verified_whop_user_id:whopUserId})

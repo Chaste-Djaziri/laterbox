@@ -28,7 +28,7 @@ export async function POST(request: Request) {
   }
   try {
     const result = await enrollAffiliate(user.id);
-    if(result === 'unavailable') return NextResponse.json({error:'Earn is not open for this account yet. Please try again later.'},{status:403});
+    if(result === 'unavailable') return NextResponse.json({error:'Connect and verify your Whop account before joining Earn, or wait for the program to open.'},{status:403});
     return NextResponse.json({result,state:await getEarnState(user.id)},{headers:{'Cache-Control':'private, no-store'}});
   } catch(error) {
     console.error('[earn] enrollment error',error);

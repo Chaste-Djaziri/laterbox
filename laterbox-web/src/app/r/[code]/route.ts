@@ -12,7 +12,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{code
   try {
     if(!(await earnSettings()).enabled) return NextResponse.redirect(target,303);
     const { data, error } = await getBillingAdminClient().from('affiliate_profiles')
-      .select('user_id').eq('referral_code',code).eq('status','active').maybeSingle();
+      .select('user_id').eq('referral_code',code).eq('status','active').not('verified_whop_user_id','is',null).not('age_confirmed_at','is',null).maybeSingle();
     if(error || !data) return NextResponse.redirect(target,303);
     const response = NextResponse.redirect(target,303);
     response.cookies.set('laterbox_ref',code,{
