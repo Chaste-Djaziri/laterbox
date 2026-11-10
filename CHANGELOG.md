@@ -1,5 +1,8 @@
 # Free extension and local library
 
+- **[Web / Whop OAuth setup]** Add a local, clipboard-safe provisioning utility for the confidential Whop OAuth client credentials and signed referral session settings, without logging or committing secret values.
+- **[Web / Cloudflare Earn credentials]** Support syncing only new OAuth and settlement secrets to avoid conflicts with existing Whop Worker environment bindings.
+
 - **[Web / Cloudflare version deployment]** Add a production-safe Worker upload and version promotion route that preserves existing custom-domain triggers when the API token lacks zone routes permissions.
 
 - **[Web / Referral code validation]** Align minimum customized code length with the database's eight-character constraint so valid UI submissions persist reliably.
