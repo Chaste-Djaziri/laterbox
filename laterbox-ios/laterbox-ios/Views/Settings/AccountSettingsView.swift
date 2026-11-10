@@ -24,6 +24,7 @@ public struct AccountSettingsView: View {
     @State private var identityOwnerID: String?
     @State private var loadingIdentities = false
     @State private var identityError: String?
+    @State private var whopConnected: Bool?
 
     private enum LinkStatus {
         case connected, notConnected, unverified, unknown
@@ -241,6 +242,17 @@ public struct AccountSettingsView: View {
                     }
                 }
 
+                Divider().overlay(SettingsAppearance.border(for: colorScheme))
+                identityRow(name: "Whop", detail: "Referral earnings and payouts", symbol: "wallet.pass.fill", status: whopConnected.map { $0 ? .connected : .notConnected } ?? .unknown)
+                if whopConnected == false {
+                    Button("Connect Whop") {
+                        if let url = URL(string: "\(LaterBoxAPIService.shared.billingUrl)/earn") {
+                            UIApplication.shared.open(url)
+                        }
+                    }
+                    .font(.caption.weight(.semibold))
+                }
+
                 if let identityError {
                     Label(identityError, systemImage: "exclamationmark.triangle")
                         .font(.caption)
@@ -359,6 +371,7 @@ public struct AccountSettingsView: View {
             identityOwnerID = nil
             identityError = nil
             loadingIdentities = false
+            whopConnected = nil
             return
         }
         loadingIdentities = true
@@ -378,11 +391,18 @@ public struct AccountSettingsView: View {
             guard coordinator.currentUserId == userID else { return }
             identities = result
             identityOwnerID = userID
+            do {
+                let earn = try await LaterBoxAPIService.shared.fetchEarnDashboard(token: token)
+                if coordinator.currentUserId == userID { whopConnected = earn.payoutConnected }
+            } catch {
+                if coordinator.currentUserId == userID { whopConnected = nil }
+            }
         } catch {
             guard coordinator.currentUserId == userID else { return }
             identities = nil
             identityOwnerID = nil
             identityError = "Unable to verify your connected accounts. Try refreshing."
+            whopConnected = nil
         }
     }
 

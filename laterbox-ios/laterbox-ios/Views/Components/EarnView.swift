@@ -42,7 +42,7 @@ struct EarnView: View {
                     } else if let dashboard {
                         summary(for: dashboard)
                         eligibilityPanel(for: dashboard)
-                        if dashboard.referralCode != nil { referralPanel(for: dashboard) }
+                        if dashboard.referralCode != nil && dashboard.status == "active" && dashboard.payoutConnected { referralPanel(for: dashboard) }
                         if dashboard.status == "eligible" { enrollmentPanel(for: dashboard) }
                         earningsPanel(for: dashboard)
                         payoutHistory(for: dashboard)
@@ -248,7 +248,7 @@ struct EarnView: View {
         case "not_launched":
             return "We are finalizing commission rates, payout verification, and the program terms. No new commissions can be earned yet."
         case "eligible":
-            return "Free and paid accounts can refer. Confirm you are an adult and accept the affiliate terms to earn."
+            return "Connect and verify Whop first. Then confirm your age and accept the terms to activate referrals on Free or paid plans."
         case "active":
             return "Share your code. Eligible recurring payments earn commission after the referred user finishes a free trial and two paid months."
         case "suspended":
@@ -350,9 +350,20 @@ struct EarnView: View {
             Text("Activate referral earnings")
                 .font(.headline)
                 .foregroundStyle(primary)
-            Text("All accounts, including Free, can share their referral code. Confirm your age and accept the terms before activating commissions.")
+            Text("Connect a verified Whop account, confirm your age, and accept the terms before activating referrals. A paid LaterBox plan is not required.")
                 .font(.subheadline)
                 .foregroundStyle(secondary)
+            if !value.payoutConnected {
+                Button("Connect Whop to continue") {
+                    if let url = URL(string: "\(LaterBoxAPIService.shared.billingUrl)/earn") { openURL(url) }
+                }
+                .font(.subheadline.weight(.bold))
+                .foregroundStyle(Color(hex: "31502A"))
+            } else {
+                Label("Whop verified", systemImage: "checkmark.seal.fill")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.green)
+            }
             Toggle("I confirm that I am 18 or older", isOn: $confirmsAdult)
                 .font(.subheadline)
                 .tint(AppTheme.accent)
@@ -379,8 +390,8 @@ struct EarnView: View {
                 .foregroundStyle(.white)
                 .background(Color(hex: "171711"), in: RoundedRectangle(cornerRadius: 13))
             }
-            .disabled(isJoining || !confirmsAdult || !acceptsTerms)
-            .opacity(isJoining || !confirmsAdult || !acceptsTerms ? 0.55 : 1)
+            .disabled(isJoining || !value.payoutConnected || !confirmsAdult || !acceptsTerms)
+            .opacity(isJoining || !value.payoutConnected || !confirmsAdult || !acceptsTerms ? 0.55 : 1)
         }
         .earnPanel(surface: surface, stroke: stroke)
     }
