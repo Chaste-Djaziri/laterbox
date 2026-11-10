@@ -36,7 +36,9 @@ const page=await req<{data:WhopPlanInfo[]}>('/plans?account_id='+company+'&first
 const plans=page.data??[];
 const ids:Record<string,string>={};
 for(const [sku,plan] of Object.entries(WHOP_STORAGE_PLANS) as [WhopPlanKey,(typeof WHOP_STORAGE_PLANS)[WhopPlanKey]][]) {
- const title=`${plan.label} ${plan.interval==='month'?'Monthly':'Yearly'} Referral Trial`;
+ const fullTitle=`${plan.label} ${plan.interval==='month'?'Monthly':'Yearly'} Referral Trial`;
+ const title=fullTitle.length<=30?fullTitle:
+   `${plan.label} ${plan.interval==='month'?'Monthly':'Yearly'} Trial`;
  const productId=productMap[plan.storage];
  const named=plans.filter((p:{title?:string;product?:{id?:string}})=>p.title===title&&p.product?.id===productId);
  if(named.length>1)throw Error('Duplicate hidden trial plan: '+title);

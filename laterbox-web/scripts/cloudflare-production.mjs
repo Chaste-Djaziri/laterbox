@@ -8,8 +8,8 @@ import { dirname, resolve } from 'node:path';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const mode = process.argv[2];
-if (!['sync-secrets', 'deploy'].includes(mode)) {
-  throw new Error('Expected one of: sync-secrets | deploy');
+if (!['validate', 'sync-secrets', 'deploy'].includes(mode)) {
+  throw new Error('Expected one of: validate | sync-secrets | deploy');
 }
 
 function parseDotEnv(content) {
@@ -25,6 +25,12 @@ function parseDotEnv(content) {
 }
 
 const env = parseDotEnv(await readFile(resolve(root, '.env'), 'utf8'));
+const referralTrialPlanKeys = ['PLUS','PLUS50','VAULT','VAULT250','VAULT500','VAULT1TB','VAULT2TB']
+  .flatMap(tier => ['MONTHLY','YEARLY'].map(period => `WHOP_${tier}_${period}_REFERRAL_TRIAL_PLAN_ID`));
+const optionalEarnSecrets = [
+  'WHOP_CLIENT_ID','WHOP_CLIENT_SECRET','WHOP_OAUTH_REDIRECT_URI',
+  'EARN_OAUTH_COOKIE_SECRET','EARN_CRON_SECRET','WHOP_BUSINESS_ID',
+];
 const required = [
   'WHOP_COMPANY_ID',
   'WHOP_COMPANY_API_KEY',
@@ -47,6 +53,7 @@ const required = [
   'NEXT_PUBLIC_SUPABASE_URL',
   'NEXT_PUBLIC_SUPABASE_ANON_KEY',
   'SUPABASE_SERVICE_ROLE_KEY',
+  ...referralTrialPlanKeys,
 ];
 for (const name of required) {
   if (!env[name]) throw new Error(`Production .env is missing ${name}. No changes were made.`);
@@ -75,7 +82,12 @@ const prodEnv = {
   NEXTJS_ENV: 'production',
   NEXT_PUBLIC_APP_ORIGIN: productionOrigin,
 };
-const secretPayload = Object.fromEntries(required.map(name => [name, env[name]]));
+const secretPayload = Object.fromEntries(
+  [...required,...optionalEarnSecrets.filter(name => Boolean(env[name]))]
+    .map(name => [name, env[name]])
+);
+const missingEarnSecrets=optionalEarnSecrets.filter(name=>!env[name]);
+if(missingEarnSecrets.length) console.log('Optional Earn production variables not configured:',missingEarnSecrets.join(', '));
 secretPayload.NEXT_PUBLIC_APP_ORIGIN = productionOrigin;
 const privateValues = Object.values(secretPayload).filter(value => value.length > 8);
 function redact(message) {
@@ -93,7 +105,9 @@ function run(executable, argv, { stdin } = {}) {
   });
 }
 
-if (mode === 'sync-secrets') {
+if (mode === 'validate') {
+  console.log('Validated production Whop, Supabase, 14 standard and 14 referral-trial plan bindings. No changes made.');
+} else if (mode === 'sync-secrets') {
   console.log(`Syncing ${Object.keys(secretPayload).length} encrypted runtime variables to Worker laterbox-web.`);
   console.log('Secret values will not be displayed, written to disk, or committed.');
   await run('npx', ['wrangler', 'secret', 'bulk', '--name', 'laterbox-web'], {

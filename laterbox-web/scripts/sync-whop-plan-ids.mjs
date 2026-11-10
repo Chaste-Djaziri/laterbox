@@ -1,12 +1,15 @@
 // laterbox-web/scripts/sync-whop-plan-ids.mjs
-// Copy the verified NEW public Whop plan IDs from provisioning .env.local into
+// Copy verified standard and hidden referral-trial Whop plan IDs from .env.local into
 // production .env. Never read or print private API keys, service keys or secrets.
 import {readFile,writeFile} from 'node:fs/promises';
 import {dirname,resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 const dir=resolve(dirname(fileURLToPath(import.meta.url)),'..');
-const newKeys=['PLUS50','VAULT250','VAULT500','VAULT1TB','VAULT2TB']
+const standardKeys=['PLUS50','VAULT250','VAULT500','VAULT1TB','VAULT2TB']
   .flatMap(name=>['MONTHLY','YEARLY'].map(b=>`WHOP_${name}_${b}_PLAN_ID`));
+const trialKeys=['PLUS','PLUS50','VAULT','VAULT250','VAULT500','VAULT1TB','VAULT2TB']
+  .flatMap(name=>['MONTHLY','YEARLY'].map(b=>`WHOP_${name}_${b}_REFERRAL_TRIAL_PLAN_ID`));
+const newKeys=[...standardKeys,...trialKeys];
 function parse(text){
  const result={};for(const line of text.split(/\r?\n/)){
  const m=line.match(/^([A-Z_0-9]+)=(.*)$/);if(m)result[m[1]]=m[2].replace(/^["']|["']$/g,'');
