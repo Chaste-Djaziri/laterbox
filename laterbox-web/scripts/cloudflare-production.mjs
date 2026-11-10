@@ -8,8 +8,8 @@ import { dirname, resolve } from 'node:path';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const mode = process.argv[2];
-if (!['validate', 'sync-secrets', 'deploy'].includes(mode)) {
-  throw new Error('Expected one of: validate | sync-secrets | deploy');
+if (!['validate', 'sync-secrets', 'deploy', 'upload', 'activate-upload'].includes(mode)) {
+  throw new Error('Expected one of: validate | sync-secrets | deploy | upload | activate-upload');
 }
 
 function parseDotEnv(content) {
@@ -114,9 +114,12 @@ if (mode === 'validate') {
     stdin: JSON.stringify(secretPayload),
   });
   console.log('Cloudflare Worker secrets updated.');
+} else if (mode === 'activate-upload') {
+  console.log('Activating most recently uploaded Worker version without changing domain routes.');
+  await run('npx',['wrangler','versions','deploy','--name','laterbox-web','--yes']);
 } else {
   console.log('Deploying LaterBox to Cloudflare with production Supabase and app origin.');
   console.log('Next.js build will not use .env.local to override production values.');
-  await run('npm', ['run', 'deploy']);
-  console.log('Production Worker deployment completed.');
+  await run('npm', ['run', mode === 'upload' ? 'upload' : 'deploy']);
+  console.log(mode === 'upload' ? 'Production Worker version uploaded; activation still required.' : 'Production Worker deployment completed.');
 }

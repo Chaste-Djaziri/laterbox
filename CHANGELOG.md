@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[Web / Cloudflare version deployment]** Add a production-safe Worker upload and version promotion route that preserves existing custom-domain triggers when the API token lacks zone routes permissions.
+
 - **[Web / Referral code validation]** Align minimum customized code length with the database's eight-character constraint so valid UI submissions persist reliably.
 
 - **[Web / Referral links]** Accept unique customized referral codes from the validated server-side code format and remove outdated paid-only enrollment messaging.
