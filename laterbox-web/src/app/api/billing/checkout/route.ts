@@ -1,3 +1,4 @@
+import {requireFeature} from '@/lib/platform/operations';
 // laterbox-web/src/app/api/billing/checkout/route.ts
 import {NextResponse} from 'next/server';
 import {subscriptionHasAccess} from '@/lib/billing/eligibility';
@@ -8,6 +9,8 @@ export const dynamic='force-dynamic';
 
 /** All prices and referral decisions are server-owned. Browser provides only SKU and code. */
 export async function POST(request:Request) {
+  try {if(!(await requireFeature('checkout')))return Response.json({error:'This service is temporarily unavailable.'},{status:503});}
+  catch{return Response.json({error:'Service status temporarily unavailable.'},{status:503});}
   const user=await getRequestUser(request);
   if(!user?.id||!user.email) {
     return NextResponse.json({error:'Sign in to purchase a storage plan.'},{status:401});

@@ -1,3 +1,4 @@
+import {requireFeature} from '@/lib/platform/operations';
 import { NextResponse } from 'next/server';
 import { getBillingAdminClient, getRequestUser } from '@/lib/billing/server';
 
@@ -6,6 +7,8 @@ const intents = new Set(['chat', 'capture', 'search', 'clarify']);
 const stringFields = ['reply', 'content', 'title', 'category', 'contentType', 'summary', 'formattedContent', 'query', 'returnDate'];
 
 export async function POST(request: Request) {
+  try {if(!(await requireFeature('ai')))return Response.json({error:'This service is temporarily unavailable.'},{status:503});}
+  catch{return Response.json({error:'Service status temporarily unavailable.'},{status:503});}
   // Fail closed before authentication, body parsing, or any model request.
   if (process.env.ANDROID_GEMINI_FALLBACK_ENABLED !== 'true') {
     return NextResponse.json({ error: 'Gemini fallback is disabled.' }, { status: 503 });

@@ -2,6 +2,7 @@
 // All monetary amounts and attribution are calculated server-side from Whop.
 // Every account has a code, even if its subscription is Free.
 import { getBillingAdminClient } from '@/lib/billing/server';
+import { requireFeature } from '@/lib/platform/operations';
 
 export type EarnPlan = 'free' | 'plus' | 'vault';
 export type EarnRole = 'community_referrer';
@@ -88,12 +89,14 @@ export async function earnSettings():Promise<EarnSettings> {
     .select('enabled,automatic_payouts,trial_enabled,trial_days,intro_commission_bps,ongoing_commission_bps,intro_payment_count,plus_commission_bps,vault_commission_bps,hold_days,minimum_payout_cents')
     .eq('id',true).single();
   if(error||!data)throw new Error('Earn database migration has not been applied.');
+  const permitted=await requireFeature('referrals');
+  const enabled=Boolean(data.enabled&&permitted&&process.env.EARN_TRACKING_ENABLED==='true');
   return {
     ...(data as EarnSettings),
-    enabled:Boolean(data.enabled&&process.env.EARN_TRACKING_ENABLED==='true'),
-    trial_enabled:Boolean(data.trial_enabled&&data.enabled&&process.env.EARN_TRACKING_ENABLED==='true'),
+    enabled,
+    trial_enabled:Boolean(data.trial_enabled&&enabled),
     // No recipient transfers until a separate production operations approval.
-    automatic_payouts:Boolean(data.automatic_payouts&&data.enabled&&process.env.EARN_TRACKING_ENABLED==='true'),
+    automatic_payouts:false,
   };
 }
 export async function ensureEarnProfile(userId:string) {

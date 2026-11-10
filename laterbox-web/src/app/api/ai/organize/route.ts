@@ -1,3 +1,4 @@
+import {requireFeature} from '@/lib/platform/operations';
 import { NextRequest, NextResponse } from 'next/server';
 
 export interface OrganizeSuggestion {
@@ -24,6 +25,8 @@ const FALLBACK_MODELS = [
 ];
 
 export async function POST(req: NextRequest) {
+  try {if(!(await requireFeature('ai')))return Response.json({error:'This service is temporarily unavailable.'},{status:503});}
+  catch{return Response.json({error:'Service status temporarily unavailable.'},{status:503});}
   try {
     const body = (await req.json()) as { items?: any[]; existingCollections?: string[] };
     const { items, existingCollections = [] } = body;

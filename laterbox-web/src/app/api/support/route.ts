@@ -1,3 +1,4 @@
+import {requireFeature} from '@/lib/platform/operations';
 import { NextResponse } from 'next/server';
 import { getBillingAdminClient, getRequestUser } from '@/lib/billing/server';
 import { parseSupportRequest } from '@/lib/support/request';
@@ -5,6 +6,8 @@ import { parseSupportRequest } from '@/lib/support/request';
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
+  try {if(!(await requireFeature('support')))return Response.json({error:'This service is temporarily unavailable.'},{status:503});}
+  catch{return Response.json({error:'Service status temporarily unavailable.'},{status:503});}
   try {
     // Bound the actual body, including requests without Content-Length.
     const reader = request.body?.getReader();

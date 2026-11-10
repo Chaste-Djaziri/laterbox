@@ -1,3 +1,4 @@
+import {requireFeature} from '@/lib/platform/operations';
 import { NextResponse } from 'next/server';
 import { getBillingAdminClient, getRequestUser } from '@/lib/billing/server';
 import { parseAmbiguousQuery } from '@/lib/search/ambiguousSearch';
@@ -36,6 +37,8 @@ export interface AiSearchResponse {
 }
 
 export async function POST(request: Request) {
+  try {if(!(await requireFeature('ai')))return Response.json({error:'This service is temporarily unavailable.'},{status:503});}
+  catch{return Response.json({error:'Service status temporarily unavailable.'},{status:503});}
   try {
     // 1. Verify user authentication and Pro plan entitlement
     const user = await getRequestUser(request);
