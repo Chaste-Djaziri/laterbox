@@ -1,5 +1,9 @@
 # Free extension and local library
 
+- **[Admin / Dashboard]** Introduce server-enforced LaterBox Member, Advocate, Owner, Admin, Support and Analyst roles, bootstrap the verified Owner account, and expose secure account-role status in Settings. Whop team roles are optional, display-only metadata.
+- **[Admin / Operations]** Add a dark operations dashboard for users and role administration, subscription and storage catalog visibility, referral performance, earnings and payout reporting; require Owner for role mutations and keep financial toggles disabled.
+- **[Cloudflare / Admin domain]** Configure `dash.laterbox.dev` as a protected administration entrance on the existing LaterBox Worker; align migration history with Supabase.
+
 - **[Web / Whop callback diagnostics]** Distinguish callback cookie/state errors, token exchange rejections, identity validation failures, and Supabase persistence errors without exposing OAuth secrets; show actionable referral connection errors instead of generic failure.
 
 - **[Web / Production deployment verification]** Tag the health response with its build commit and fail GitHub's Cloudflare release if the public domain still serves a different Worker revision. This detects incorrect Cloudflare accounts or missing domain routes before declaring deployment successful.

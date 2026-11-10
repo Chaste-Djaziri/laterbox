@@ -51,6 +51,10 @@
 		{
 			"pattern": "app.laterbox.dev",
 			"custom_domain": true
+		},
+		{
+			"pattern": "dash.laterbox.dev",
+			"custom_domain": true
 		}
 	],
 	"upload_source_maps": true,

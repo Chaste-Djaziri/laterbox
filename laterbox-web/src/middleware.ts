@@ -11,7 +11,7 @@ function routeDomain(request: NextRequest) {
   );
 
   const applyCors = (response: NextResponse) => {
-    if (hostname.startsWith('app.') || url.pathname === '/login' || url.pathname.startsWith('/extension/')) {
+    if (hostname.startsWith('app.') || hostname.startsWith('dash.') || url.pathname === '/login' || url.pathname.startsWith('/extension/')) {
       response.headers.set('X-Robots-Tag', 'noindex, follow');
     }
     if (isTrustedOrigin && origin) {
@@ -56,6 +56,13 @@ function routeDomain(request: NextRequest) {
     url.pathname.includes('.')
   ) {
     return applyCors(NextResponse.next());
+  }
+
+  // Dedicated control center hostname. API authorization remains server-enforced.
+  if (hostname === 'dash.laterbox.dev' || hostname.startsWith('dash.localhost')) {
+    if (url.pathname === '/') return applyCors(NextResponse.rewrite(new URL('/admin', request.url)));
+    if (url.pathname === '/admin' || url.pathname === '/login' || url.pathname === '/signup') return applyCors(NextResponse.next());
+    return applyCors(NextResponse.redirect(new URL('https://app.laterbox.dev' + url.pathname + url.search), 307));
   }
 
   // 1. Docs Subdomain (e.g. docs.laterbox.dev or docs.localhost:3000)
