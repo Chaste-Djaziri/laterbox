@@ -17,7 +17,7 @@ export function AdminHeader({
   onOpenMobile,
   actions,
 }: AdminHeaderProps) {
-  const { loading, operationsLoading, refreshAll, notice, error, signedIn } = useAdmin();
+  const { initialLoading, loading, operationsLoading, refreshAll, notice, error, signedIn } = useAdmin();
   const isRefreshing = loading || operationsLoading;
 
   return (
@@ -90,7 +90,7 @@ export function AdminHeader({
       )}
 
       {/* Loading state when first opening */}
-      {loading && !notice && !error && (
+      {initialLoading && !notice && !error && (
         <div className="mt-8 flex items-center gap-3 text-sm text-[#677362]">
           <Loader2 className="animate-spin text-[#435b34]" size={18} />
           <span>Loading secure platform data…</span>

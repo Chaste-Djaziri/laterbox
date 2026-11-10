@@ -1,7 +1,7 @@
 // laterbox-web/src/components/admin/AdminContext.tsx
 'use client';
 
-import { createContext, useContext, useCallback, useEffect, useState, type ReactNode } from 'react';
+import { createContext, useContext, useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { getSupabaseClient } from '@/lib/supabase/client';
 
 export type Role = 'member' | 'advocate' | 'support' | 'analyst' | 'admin' | 'owner';
@@ -105,6 +105,7 @@ interface AdminContextValue {
   operations: AdminOperationsPayload | null;
   loading: boolean;
   operationsLoading: boolean;
+  initialLoading: boolean;
   error: string;
   notice: string;
   signedIn: boolean | null;
@@ -141,6 +142,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
   const [signedIn, setSignedIn] = useState<boolean | null>(null);
   const [busyUser, setBusyUser] = useState<string | null>(null);
   const [busyOperations, setBusyOperations] = useState(false);
+  const initialLoadDoneRef = useRef(false);
 
   const getToken = useCallback(async () => {
     const {
@@ -173,7 +175,6 @@ export function AdminProvider({ children }: { children: ReactNode }) {
         setSignedIn(false);
       }
       setError(message);
-      setData(null);
     } finally {
       setLoading(false);
     }
@@ -193,19 +194,20 @@ export function AdminProvider({ children }: { children: ReactNode }) {
       }
       setOperations(body);
     } catch (e) {
-      // Keep dashboard active even if operations fetch fails
       const message = e instanceof Error ? e.message : 'Operations unavailable.';
-      if (!data) setError(message);
+      setError(prev => (!prev ? message : prev));
     } finally {
       setOperationsLoading(false);
     }
-  }, [getToken, data]);
+  }, [getToken]);
 
   const refreshAll = useCallback(async () => {
     await Promise.all([refreshDashboard(), refreshOperations()]);
   }, [refreshDashboard, refreshOperations]);
 
   useEffect(() => {
+    if (initialLoadDoneRef.current) return;
+    initialLoadDoneRef.current = true;
     void refreshAll();
   }, [refreshAll]);
 
@@ -313,6 +315,8 @@ export function AdminProvider({ children }: { children: ReactNode }) {
     setNotice('');
   }, []);
 
+  const initialLoading = (loading || operationsLoading) && !data && !operations;
+
   return (
     <AdminContext.Provider
       value={{
@@ -320,6 +324,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
         operations,
         loading,
         operationsLoading,
+        initialLoading,
         error,
         notice,
         signedIn,
