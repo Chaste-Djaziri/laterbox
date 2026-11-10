@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[Dashboard / Login]** Return dashboard-hostname OAuth and email-link sign-ins to /admin instead of /inbox, preserving the new dashboard session while keeping regular app redirects unchanged.
+
 - **[Admin / Dashboard]** Introduce server-enforced LaterBox Member, Advocate, Owner, Admin, Support and Analyst roles, bootstrap the verified Owner account, and expose secure account-role status in Settings. Whop team roles are optional, display-only metadata.
 - **[Admin / Operations]** Add a dark operations dashboard for users and role administration, subscription and storage catalog visibility, referral performance, earnings and payout reporting; require Owner for role mutations and keep financial toggles disabled.
 - **[Cloudflare / Admin domain]** Configure `dash.laterbox.dev` as a protected administration entrance on the existing LaterBox Worker; align migration history with Supabase.
