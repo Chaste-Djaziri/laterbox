@@ -49,36 +49,47 @@ export function StoragePricingPage({ inApp = false }: { inApp?: boolean }) {
   const plusSavings = yearlySavings(prices?.plus_month, prices?.plus_year);
 
   return (
-    <main className={`min-h-screen overflow-hidden text-[#171711] ${inApp ? 'bg-[#f7f5ee] px-4 py-10 sm:px-8' : 'bg-[#f8f9f4] px-4 py-16 sm:px-8'}`}>
+    <div className={`w-full text-[#171711] ${inApp ? 'bg-[#f7f5ee] px-4 py-8 pb-32 sm:px-8 sm:pb-40' : 'min-h-screen bg-[#f8f9f4] px-4 py-16 sm:px-8'}`}>
       <div className="mx-auto max-w-6xl">
-        {!inApp && (
-          <>
-        <header className="relative mx-auto max-w-3xl text-center">
-          <div className="pointer-events-none absolute -top-28 left-1/2 -z-0 h-72 w-96 -translate-x-1/2 rounded-full bg-[#e6edb0]/55 blur-[85px]" />
-          <div className="relative">
-            <span className="inline-flex items-center gap-2 rounded-full border border-[#cfd7b5] bg-[#e6edb0] px-4 py-2 text-[11px] font-black uppercase tracking-[0.16em]">
-              <Sparkles size={14} /> Storage that fits your life
+        {inApp ? (
+          <header className="mb-8 text-center max-w-2xl mx-auto">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-[#cfd7b5] bg-[#e6edb0] px-3.5 py-1.5 text-[11px] font-black uppercase tracking-[0.14em] text-[#242b1a]">
+              <Sparkles size={13} /> Storage plans
             </span>
-            <h1 className="mt-7 text-[clamp(2.7rem,6vw,4.8rem)] font-black leading-[1.06] tracking-[-0.055em]">
-              Keep what matters.<br /><span className="text-[#84975a]">Leave the clutter.</span>
+            <h1 className="mt-4 text-3xl sm:text-4xl font-black tracking-tight text-[#171711]">
+              Keep what matters. Choose your space.
             </h1>
-            <p className="mx-auto mt-6 max-w-xl text-base leading-7 text-[#697364] sm:text-lg">
-              Saving links is always free. Choose the cloud space you need, from 10 GB to 2 TB.
-              No complicated bundles, just space to grow.
+            <p className="mt-2 text-sm text-[#697364] leading-relaxed">
+              Saving links is always free. Upgrade anytime for extra cloud room from 10 GB to 2 TB.
             </p>
-          </div>
-        </header>
+          </header>
+        ) : (
+          <>
+            <header className="relative mx-auto max-w-3xl text-center">
+              <div className="pointer-events-none absolute -top-28 left-1/2 -z-0 h-72 w-96 -translate-x-1/2 rounded-full bg-[#e6edb0]/55 blur-[85px]" />
+              <div className="relative">
+                <span className="inline-flex items-center gap-2 rounded-full border border-[#cfd7b5] bg-[#e6edb0] px-4 py-2 text-[11px] font-black uppercase tracking-[0.16em]">
+                  <Sparkles size={14} /> Storage that fits your life
+                </span>
+                <h1 className="mt-7 text-[clamp(2.7rem,6vw,4.8rem)] font-black leading-[1.06] tracking-[-0.055em]">
+                  Keep what matters.<br /><span className="text-[#84975a]">Leave the clutter.</span>
+                </h1>
+                <p className="mx-auto mt-6 max-w-xl text-base leading-7 text-[#697364] sm:text-lg">
+                  Saving links is always free. Choose the cloud space you need, from 10 GB to 2 TB.
+                  No complicated bundles, just space to grow.
+                </p>
+              </div>
+            </header>
 
-        <div className="mt-10 flex flex-wrap items-center justify-center gap-x-7 gap-y-3 text-xs font-semibold text-[#58634e]">
-          <span className="flex items-center gap-2"><CheckCircle2 size={16} className="text-[#819b51]" /> Free cross-device sync</span>
-          <span className="flex items-center gap-2"><CheckCircle2 size={16} className="text-[#819b51]" /> Cancel your paid plan anytime</span>
-          <span className="flex items-center gap-2"><CheckCircle2 size={16} className="text-[#819b51]" /> Keep your library on Free</span>
-        </div>
-
+            <div className="mt-10 flex flex-wrap items-center justify-center gap-x-7 gap-y-3 text-xs font-semibold text-[#58634e]">
+              <span className="flex items-center gap-2"><CheckCircle2 size={16} className="text-[#819b51]" /> Free cross-device sync</span>
+              <span className="flex items-center gap-2"><CheckCircle2 size={16} className="text-[#819b51]" /> Cancel your paid plan anytime</span>
+              <span className="flex items-center gap-2"><CheckCircle2 size={16} className="text-[#819b51]" /> Keep your library on Free</span>
+            </div>
           </>
         )}
 
-        <div className={`${inApp ? "mt-0" : "mt-11"} flex flex-col items-center gap-3`}>
+        <div className={`${inApp ? "mt-4" : "mt-11"} flex flex-col items-center gap-3`}>
           <div className="inline-flex rounded-full border border-[#e1e5d8] bg-white p-1.5 shadow-sm" aria-label="Billing cycle">
             {(['month', 'year'] as const).map(value => (
               <button key={value} type="button" onClick={() => setInterval(value)}
@@ -183,6 +194,6 @@ export function StoragePricingPage({ inApp = false }: { inApp?: boolean }) {
         </p>
         <p className="mt-3 text-center text-xs text-[#929b8e]"><Link className="underline hover:text-[#34402d]" href="/terms">Terms</Link> · <Link className="underline hover:text-[#34402d]" href="/refund">Refunds</Link></p>
       </div>
-    </main>
+    </div>
   );
 }
