@@ -10,6 +10,7 @@ import { useBilling } from '@/lib/store/BillingContext';
 import { AppleSubscriptionDetails } from '@/components/billing/AppleSubscriptionDetails';
 import { ConnectedSignIns } from '@/components/account/ConnectedSignIns';
 import { ConnectedWhop } from '@/components/account/ConnectedWhop';
+import { AccountRolePanel } from '@/components/account/AccountRolePanel';
 import { presentEntitlement } from '@/lib/billing/types';
 import { CloudSyncIndicator } from '@/components/ui/CloudSyncIndicator';
 import { BackupRestorePanel } from '@/components/settings/BackupRestorePanel';
@@ -509,6 +510,7 @@ export function SettingsContent({ section }: { section: SettingsSectionId }) {
 
               <ConnectedSignIns userId={user.id} />
               <ConnectedWhop userId={user.id} />
+              <AccountRolePanel userId={user.id} />
 
               {/* Password Update Form */}
               {showPasswordForm && (
