@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[Web / Plans page scroll fix]** Fix storage plans page (`/plans`) not scrolling to view all plan tiers by removing root `overflow-hidden` and `min-h-screen` constraints on `StoragePricingPage`. Add proper overscroll containment and comfortable bottom padding in the app shell layout so all 8 plans, comparison details, and checkout actions can be scrolled smoothly on desktop and mobile.
+
 - **[Web / Admin infinite refresh fix]** Eliminate the recursive fetch dependency cycle in AdminContext where data updates re-instantiated callbacks, causing continuous API polling and UI flashing. Add initial-load guards and separate initial loading from background refresh indicators to ensure smooth, stable rendering across admin views.
 
 - **[Web / Admin routes and sidebar redesign]** Re-architect the platform administration area into dedicated App Router subroutes (`/admin/overview`, `/admin/users`, `/admin/plans`, `/admin/referrals`, `/admin/earnings`, `/admin/feedback`, `/admin/features`, `/admin/maintenance`, `/admin/operations`) with modular page views and shared context. Redesign the admin layout so the sidebar attaches flush to the screen edge matching the LaterBox dashboard aesthetic, with authentic active pill indicators, role badges, app navigation, and responsive mobile drawer support.
