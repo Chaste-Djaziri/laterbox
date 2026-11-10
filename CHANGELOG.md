@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[Web / Whop callback diagnostics]** Distinguish callback cookie/state errors, token exchange rejections, identity validation failures, and Supabase persistence errors without exposing OAuth secrets; show actionable referral connection errors instead of generic failure.
+
 - **[Web / Production deployment verification]** Tag the health response with its build commit and fail GitHub's Cloudflare release if the public domain still serves a different Worker revision. This detects incorrect Cloudflare accounts or missing domain routes before declaring deployment successful.
 
 - **[Whop OAuth Worker runtime]** Resolve secure OAuth bindings asynchronously using OpenNext's Cloudflare runtime context, validate local credential formats without printing secrets, and log only missing binding names when configuration is incomplete.

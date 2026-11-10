@@ -9,6 +9,17 @@ import type {EarnState} from '@/lib/earn/affiliate';
 const usd=(c:number)=>(c/100).toLocaleString('en-US',{style:'currency',currency:'USD'});
 const date=(v:string)=>new Date(v).toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'});
 type Response=EarnState&{error?:string};
+const whopConnectionErrors:Record<string,string>={
+  missing_parameters:'Whop did not return the expected authorization details. Start a new connection.',
+  state_missing:'The secure connection session cookie was not returned. Check browser cookie settings and try again.',
+  state_invalid:'Your connection session expired or could not be verified. Start a new Whop connection.',
+  configuration:'The LaterBox server could not read its Whop OAuth configuration. Contact support.',
+  token_exchange:'Whop approved access, but the server could not exchange the authorization code. Check the Whop app API-key permission oauth:token_exchange and its client secret.',
+  token_response:'Whop did not issue a usable access token. Try connecting again.',
+  userinfo:'Whop approved access, but its profile verification request failed. Please try again.',
+  identity:'Whop returned incomplete or inconsistent identity information. Please try again.',
+  database:'Whop approval succeeded, but LaterBox could not save the verified connection. Contact support.',
+};
 
 export default function EarnPage(){
   const [data,setData]=useState<EarnState|null>(null);
@@ -23,6 +34,7 @@ export default function EarnPage(){
   const [copied,setCopied]=useState(false);
   const [connecting,setConnecting]=useState(false);
   const [whopResult,setWhopResult]=useState<'connected'|'failed'|null>(null);
+  const [whopFailure,setWhopFailure]=useState('');
   const token=async()=>{
     const {data:session}=await getSupabaseClient().auth.getSession();
     if(!session.session?.access_token)throw new Error('Sign in to LaterBox to use Earn.');
@@ -45,7 +57,10 @@ export default function EarnPage(){
     const result=params.get('whop');
     if(result==='connected'||result==='failed'){
       setWhopResult(result);
+      const failure=params.get('reason')??'';
+      setWhopFailure(Object.hasOwn(whopConnectionErrors,failure)?failure:'');
       const clean=new URL(window.location.href);
+      clean.searchParams.delete('reason');
       clean.searchParams.delete('whop');
       window.history.replaceState(null,'',clean.pathname+clean.search+clean.hash);
     }
@@ -103,7 +118,7 @@ export default function EarnPage(){
       <button type="button" onClick={()=>void load()} disabled={loading} className="flex items-center gap-2 rounded-xl border border-[#dae1d0] bg-white px-4 py-3 text-sm font-bold"><RefreshCcw size={16}/>Refresh</button>
     </header>
     {whopResult==='connected'&&<p role="status" className="mt-6 rounded-xl border border-[#c5d7b1] bg-[#eff5dd] p-4 text-sm font-semibold text-[#39552e]">Whop connected successfully. Your personal referral link is ready below.</p>}
-    {whopResult==='failed'&&<p role="alert" className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">Whop could not be verified. Please try connecting again.</p>}
+    {whopResult==='failed'&&<p role="alert" className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">{whopConnectionErrors[whopFailure]??'Whop could not be verified. Start a new connection.'}</p>}
     {error&&<p role="alert" className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">{error}</p>}
     {!data&&loading&&<div className="mt-8 animate-pulse rounded-3xl bg-[#f0f3e8] p-9 text-sm">Checking your referral account…</div>}
     {data&&<div className="mt-8 space-y-6">

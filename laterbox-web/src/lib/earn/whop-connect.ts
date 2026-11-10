@@ -14,6 +14,14 @@ export interface EarnOAuthState {
 }
 export const EARN_OAUTH_COOKIE='lb_earn_whop_oauth';
 export const OAUTH_MAX_AGE=600;
+export type WhopConnectFailure='missing_parameters'|'state_missing'|'state_invalid'|'configuration'|'token_exchange'|'token_response'|'userinfo'|'identity'|'database';
+export class WhopConnectError extends Error {
+  constructor(public readonly stage:WhopConnectFailure, public readonly httpStatus?:number){
+    super('Whop OAuth '+stage+(httpStatus?' (HTTP '+httpStatus+')':''));
+    this.name='WhopConnectError';
+  }
+}
+
 
 export async function whopOauthConfiguration() {
   // OpenNext exposes encrypted Worker bindings through the Cloudflare context.
@@ -105,20 +113,20 @@ export async function verifiedWhopUser(
       client_id:config.id,client_secret:config.secret,code_verifier:state.verifier,
     }),
   });
-  if(!tokenResponse.ok)throw new Error('Whop rejected the connection.');
+  if(!tokenResponse.ok)throw new WhopConnectError('token_exchange',tokenResponse.status);
   const tokens=await tokenResponse.json() as {access_token?:string;id_token?:string};
-  if(!tokens.access_token)throw new Error('Whop did not provide an access token.');
+  if(!tokens.access_token)throw new WhopConnectError('token_response');
   if(tokens.id_token) {
     const parts=tokens.id_token.split('.');
-    if(parts.length!==3)throw new Error('Invalid Whop identity token.');
+    if(parts.length!==3)throw new WhopConnectError('identity');
     const body=JSON.parse(Buffer.from(parts[1],'base64url').toString('utf8')) as {nonce?:string};
-    if(body.nonce!==state.nonce)throw new Error('Whop identity nonce mismatch.');
+    if(body.nonce!==state.nonce)throw new WhopConnectError('identity');
   }
   const response=await fetch(`${config.host}/oauth/userinfo`,{
     headers:{Authorization:`Bearer ${tokens.access_token}`},cache:'no-store',
   });
-  if(!response.ok)throw new Error('Whop account verification failed.');
+  if(!response.ok)throw new WhopConnectError('userinfo',response.status);
   const user=await response.json() as {sub?:string};
-  if(!user.sub || !/^user_[A-Za-z0-9_-]+$/.test(user.sub))throw new Error('Whop returned an invalid user ID.');
+  if(!user.sub || !/^user_[A-Za-z0-9_-]+$/.test(user.sub))throw new WhopConnectError('identity');
   return user.sub;
 }
