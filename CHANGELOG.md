@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[Web / Admin routes and sidebar redesign]** Re-architect the platform administration area into dedicated App Router subroutes (`/admin/overview`, `/admin/users`, `/admin/plans`, `/admin/referrals`, `/admin/earnings`, `/admin/feedback`, `/admin/features`, `/admin/maintenance`, `/admin/operations`) with modular page views and shared context. Redesign the admin layout so the sidebar attaches flush to the screen edge matching the LaterBox dashboard aesthetic, with authentic active pill indicators, role badges, app navigation, and responsive mobile drawer support.
+
 - **[Admin / Redesign]** Replace the dark operations dashboard with LaterBox's warm light theme, add feedback and reports moderation, audited feature switches, safe account deletion and scheduled maintenance controls.
 - **[Platform / Maintenance]** Add a public maintenance status endpoint and a site-wide countdown/full-screen overlay. Enforce operations switches for Whop checkout, Earn attribution, support submissions, and AI endpoints without enabling automatic payouts.
 - **[Cloudflare / Admin domain]** Restrict the Control Center to `admin.laterbox.dev` and redirect the previous dashboard hostname; block the admin API on all non-admin hosts.
