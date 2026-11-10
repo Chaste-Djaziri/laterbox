@@ -15,7 +15,7 @@ concurrency:
 jobs:
   validate:
     runs-on: xcode-27
-    timeout-minutes: 40
+    timeout-minutes: 70
     steps:
       - uses: actions/checkout@v5
       - name: Confirm Xcode 27
@@ -29,6 +29,8 @@ jobs:
       - name: Test release preflight
         run: python -m unittest discover -s laterbox-ios/ci -p 'test_*.py'
       - name: Run native Swift and UI tests
+        env:
+          LATERBOX_NATIVE_BUILD_TIMEOUT: '1200'
         run: python laterbox-ios/ci/run_tests.py
       - uses: actions/upload-artifact@v6
         if: always()

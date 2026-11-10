@@ -37,5 +37,18 @@ class SimulatorValidationTests(unittest.TestCase):
             process.wait.assert_called_once_with(timeout=10)
 
 
+    def test_cleanup_timeout_does_not_mask_build_failure(self):
+        from subprocess import TimeoutExpired
+        with patch.object(run_tests.subprocess, 'run', side_effect=[
+            TimeoutExpired(['xcrun', 'simctl', 'shutdown'], 20),
+            TimeoutExpired(['xcrun', 'simctl', 'delete'], 20),
+        ]) as command, contextlib.redirect_stdout(io.StringIO()):
+            run_tests.cleanup_simulator('ci-device')
+        self.assertEqual(command.call_count, 2)
+
+    def test_build_timeout_has_room_for_slow_xcode_runners(self):
+        self.assertGreaterEqual(run_tests.BUILD_TIMEOUT, 1200)
+
+
 if __name__ == '__main__':
     unittest.main()

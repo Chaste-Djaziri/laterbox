@@ -7,6 +7,9 @@ import signal
 import subprocess
 import time
 
+BUILD_TIMEOUT = int(os.environ.get('LATERBOX_NATIVE_BUILD_TIMEOUT', '1200'))
+CLEANUP_TIMEOUT = 20
+
 root = Path(os.environ.get('RUNNER_TEMP', '/tmp/laterbox-native-ci'))
 root.mkdir(parents=True, exist_ok=True)
 
@@ -33,6 +36,19 @@ def run(name, command, timeout):
             print(log.read_text(errors='replace')[-16000:], flush=True)
             print('::endgroup::', flush=True)
 
+def cleanup_simulator(simulator):
+    # Cleanup must never replace the original build/test error with another timeout.
+    for operation in ('shutdown', 'delete'):
+        try:
+            result = subprocess.run(['xcrun', 'simctl', operation, simulator],
+                                    timeout=CLEANUP_TIMEOUT, check=False,
+                                    stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True)
+            if result.returncode:
+                print(f'::warning::Simulator {operation} returned {result.returncode}; cleanup will continue.', flush=True)
+        except (subprocess.TimeoutExpired, OSError) as error:
+            print(f'::warning::Simulator {operation} failed during cleanup: {type(error).__name__}', flush=True)
+
+
 def simulator_profile(runtimes):
     available = [runtime for runtime in runtimes if runtime.get('isAvailable')
                  and runtime.get('version', '').split('.')[0] == '27'
@@ -53,7 +69,7 @@ def main():
     simulator = subprocess.check_output(['xcrun', 'simctl', 'create', 'LaterBox CI ' + str(os.getpid()), device_type, runtime], timeout=60).decode().strip()
     print(f'Created CI simulator {simulator} ({runtime})', flush=True)
     base = ['xcodebuild', '-project', 'laterbox-ios/laterbox-ios.xcodeproj', '-scheme', 'laterbox-ios',
-            '-destination', 'platform=iOS Simulator,id=' + simulator, '-derivedDataPath', str(root / 'DerivedData'),
+            '-destination', 'platform=iOS Simulator,id=' + simulator, '-derivedDataPath', str(root / 'DerivedData'), '-jobs', '4',
             # Keychain-backed purchase identity requires the app identifier entitlement.
             # Simulator ad-hoc signing supplies it without a distribution certificate.
             'CODE_SIGNING_ALLOWED=YES', 'CODE_SIGN_IDENTITY=-',
@@ -63,7 +79,7 @@ def main():
         # A fresh device performs first-boot data migration. Keep it bounded, but
         # allow more than the previous three minutes on a busy runner.
         run('SimulatorReady', ['xcrun', 'simctl', 'bootstatus', simulator, '-b'], 600)
-        run('NativeBuild', base + ['build-for-testing'], 600)
+        run('NativeBuild', base + ['build-for-testing'], BUILD_TIMEOUT)
         for target, name in [('laterbox-iosTests', 'NativeSwiftTests'), ('laterbox-iosUITests', 'NativeUITests')]:
             result_bundle = root / (name + '.xcresult')
             if result_bundle.exists():
@@ -73,12 +89,15 @@ def main():
                              '-maximum-test-execution-time-allowance', '180', '-resultBundlePath', str(result_bundle)], 600)
     except Exception as error:
         print(f'::error::{error}', flush=True)
-        with (root / 'SimulatorDiagnostics.log').open('w') as output:
-            subprocess.run(['xcrun', 'simctl', 'list', 'devices', '-j'], stdout=output, stderr=subprocess.STDOUT, timeout=30, check=False)
+        try:
+            with (root / 'SimulatorDiagnostics.log').open('w') as output:
+                subprocess.run(['xcrun', 'simctl', 'list', 'devices', '-j'],
+                               stdout=output, stderr=subprocess.STDOUT, timeout=20, check=False)
+        except (subprocess.TimeoutExpired, OSError):
+            print('::warning::Simulator diagnostics unavailable; retaining original failure.', flush=True)
         raise
     finally:
-        subprocess.run(['xcrun', 'simctl', 'shutdown', simulator], timeout=30, check=False)
-        subprocess.run(['xcrun', 'simctl', 'delete', simulator], timeout=30, check=False)
+        cleanup_simulator(simulator)
 
 
 if __name__ == '__main__':
