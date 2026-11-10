@@ -50,7 +50,7 @@ function routeDomain(request: NextRequest) {
   // Administration pages are hosted exclusively on admin.laterbox.dev.
   // Existing dashboard hostname is a redirect, never a second admin origin.
   if (hostname === 'dash.laterbox.dev') return applyCors(NextResponse.redirect(new URL('https://admin.laterbox.dev' + (url.pathname === '/admin' ? '/' : url.pathname) + url.search), 308));
-  if (url.pathname === '/admin' && hostname !== 'admin.laterbox.dev' && hostname !== 'admin.localhost' && hostname !== 'localhost:3000') return new NextResponse('Not found',{status:404});
+  if ((url.pathname === '/admin' || url.pathname.startsWith('/admin/')) && hostname !== 'admin.laterbox.dev' && hostname !== 'admin.localhost' && !hostname.startsWith('localhost:')) return new NextResponse('Not found',{status:404});
 
   // Exclude static assets, api endpoints, branding, and files with extensions
   if (
@@ -66,7 +66,7 @@ function routeDomain(request: NextRequest) {
   // Isolated administration hostname; normal app pages cannot be served here.
   if (hostname === 'admin.laterbox.dev' || hostname.startsWith('admin.localhost')) {
     if (url.pathname === '/') return applyCors(NextResponse.rewrite(new URL('/admin', request.url)));
-    if (url.pathname === '/admin' || url.pathname === '/login' || url.pathname === '/signup') return applyCors(NextResponse.next());
+    if (url.pathname === '/admin' || url.pathname.startsWith('/admin/') || url.pathname === '/login' || url.pathname === '/signup') return applyCors(NextResponse.next());
     return applyCors(NextResponse.redirect(new URL('https://app.laterbox.dev' + url.pathname + url.search), 307));
   }
 
