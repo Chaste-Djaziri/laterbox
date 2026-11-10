@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[Web / Admin infinite refresh fix]** Eliminate the recursive fetch dependency cycle in AdminContext where data updates re-instantiated callbacks, causing continuous API polling and UI flashing. Add initial-load guards and separate initial loading from background refresh indicators to ensure smooth, stable rendering across admin views.
+
 - **[Web / Admin routes and sidebar redesign]** Re-architect the platform administration area into dedicated App Router subroutes (`/admin/overview`, `/admin/users`, `/admin/plans`, `/admin/referrals`, `/admin/earnings`, `/admin/feedback`, `/admin/features`, `/admin/maintenance`, `/admin/operations`) with modular page views and shared context. Redesign the admin layout so the sidebar attaches flush to the screen edge matching the LaterBox dashboard aesthetic, with authentic active pill indicators, role badges, app navigation, and responsive mobile drawer support.
 
 - **[Admin / Redesign]** Replace the dark operations dashboard with LaterBox's warm light theme, add feedback and reports moderation, audited feature switches, safe account deletion and scheduled maintenance controls.
