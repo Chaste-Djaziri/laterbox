@@ -208,7 +208,7 @@ export async function processWhopWebhook(event: WhopWebhook, deliveryId: string)
   } else if ([
     'membership.activated', 'membership.updated', 'membership.went_valid',
     'membership.went_invalid', 'membership.cancel_at_period_end_changed',
-    'membership_deactivated', 'membership_activated', 'membership_deactivated',
+    'membership.deactivated', 'membership.metadata_updated',
   ].includes(event.type)) {
     const id = string(event.data.id);
     if (id?.startsWith('mem_')) {

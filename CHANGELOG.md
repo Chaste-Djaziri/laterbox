@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[Web / Billing production readiness]** Recognize Whop membership deactivation events correctly and keep billing state synchronized on cancellations; clarify how to run trial-plan provisioning.
+
 - **[Web / Whop trial provisioning]** Type the HTTP error response safely so referral-trial catalog provisioning passes production TypeScript checks.
 
 - **[Web / Marketing animation visibility hardening]** Fix hidden/invisible components in "Not another to-do list" and downstream marketing sections by upgrading entrance animations from `gsap.from` to `fromTo` with `clearProps: 'all'` and `once: true`. Eliminates stuck `opacity: 0` states and ensures all demonstration rows and section content remain visible and interactive.

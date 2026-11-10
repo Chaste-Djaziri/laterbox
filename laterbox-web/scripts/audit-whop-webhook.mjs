@@ -11,8 +11,8 @@ if(!apiKey?.startsWith('apik_')||!companyId?.startsWith('biz_')) throw Error('Mi
 const url='https://app.laterbox.dev/api/billing/whop/webhook';
 const expected=new Set([
   'payment.succeeded','payment.failed','payment.pending',
-  'membership.went_valid','membership.went_invalid','membership.cancel_at_period_end_changed',
-  'membership.metadata_updated','refund.created','refund.updated',
+  'membership.activated','membership.deactivated','membership.updated',
+  'membership.cancel_at_period_end_changed','refund.created','refund.updated',
   'dispute.created','dispute.updated',
 ]);
 const response=await fetch('https://api.whop.com/api/v1/webhooks?first=100&account_id='+encodeURIComponent(companyId),{
