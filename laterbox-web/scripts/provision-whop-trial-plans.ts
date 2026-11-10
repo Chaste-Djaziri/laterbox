@@ -1,6 +1,7 @@
 // laterbox-web/scripts/provision-whop-trial-plans.ts
 // Creates hidden Whop 30-day referral trial prices. Idempotent, never modifies
 // standard subscription prices. Live creation needs explicit confirmation.
+// Run with: npx tsx scripts/provision-whop-trial-plans.ts --production
 import {loadEnvConfig} from '@next/env';
 import {readFile,writeFile} from 'node:fs/promises';
 import {resolve} from 'node:path';
@@ -24,6 +25,7 @@ async function req<T=Record<string,unknown>>(path:string,init:RequestInit={}):Pr
  if(!response.ok)throw Error(`Whop HTTP ${response.status}: ${JSON.stringify(body.error||{}).slice(0,400)}`);
  return body;
 }
+async function main() {
 const products=await req<{data:{title:string;id:string}[]}>('/products?account_id='+company+'&first=100');
 const productMap={
  plus:products.data?.find((p:{title:string})=>p.title==='LaterBox Plus')?.id,
@@ -69,3 +71,5 @@ if(apply) {
  await writeFile(path,lines.join('\n')+'\n',{mode:0o600});
  console.log('Verified trial IDs stored locally; all trial plans are hidden.');
 }
+}
+main().catch(error=>{console.error(error instanceof Error?error.message:'Provisioning failed');process.exitCode=1;});
