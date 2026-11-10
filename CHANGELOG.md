@@ -1,5 +1,9 @@
 # Free extension and local library
 
+- **[Admin / Redesign]** Replace the dark operations dashboard with LaterBox's warm light theme, add feedback and reports moderation, audited feature switches, safe account deletion and scheduled maintenance controls.
+- **[Platform / Maintenance]** Add a public maintenance status endpoint and a site-wide countdown/full-screen overlay. Enforce operations switches for Whop checkout, Earn attribution, support submissions, and AI endpoints without enabling automatic payouts.
+- **[Cloudflare / Admin domain]** Restrict the Control Center to `admin.laterbox.dev` and redirect the previous dashboard hostname; block the admin API on all non-admin hosts.
+
 - **[Dashboard / Login]** Return dashboard-hostname OAuth and email-link sign-ins to /admin instead of /inbox, preserving the new dashboard session while keeping regular app redirects unchanged.
 
 - **[Admin / Dashboard]** Introduce server-enforced LaterBox Member, Advocate, Owner, Admin, Support and Analyst roles, bootstrap the verified Owner account, and expose secure account-role status in Settings. Whop team roles are optional, display-only metadata.

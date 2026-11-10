@@ -53,7 +53,7 @@
 			"custom_domain": true
 		},
 		{
-			"pattern": "dash.laterbox.dev",
+			"pattern": "admin.laterbox.dev",
 			"custom_domain": true
 		}
 	],
@@ -77,6 +77,7 @@
 		"WHOP_VAULT1TB_YEARLY_PLAN_ID": "plan_4mF2Q4DlERgQE",
 		"WHOP_VAULT2TB_MONTHLY_PLAN_ID": "plan_Pu4NVn48HX3Vt",
 		"WHOP_VAULT2TB_YEARLY_PLAN_ID": "plan_Ar6OXWGUEvYNa",
-		"EARN_TRACKING_ENABLED": "false"
+		"EARN_TRACKING_ENABLED": "true",
+		"PLATFORM_OPERATIONS_ENFORCED": "true"
 	}
 }

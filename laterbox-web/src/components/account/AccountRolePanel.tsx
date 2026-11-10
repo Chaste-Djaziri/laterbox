@@ -24,6 +24,6 @@ export function AccountRolePanel({userId}:{userId:string}){
   <div className="flex items-center gap-2"><ShieldCheck size={18}/><h3 className="text-sm font-bold">LaterBox account role</h3></div>
   {error?<p role="status" className="mt-2 text-xs text-amber-700">{error}</p>:<p className="mt-2 text-sm font-semibold capitalize">{details?.role??'Checking access…'}</p>}
   {details&&<p className="mt-1 text-xs text-[#727c68]">Whop: {details.whopConnected?'Connected':'Not connected'}{details.whopTeamRole?' · Whop team: '+details.whopTeamRole:''}. Whop business roles never grant LaterBox administration.</p>}
-  {(details?.staffRole==='owner'||details?.staffRole==='admin')&&<a href="https://dash.laterbox.dev" className="mt-3 inline-flex items-center gap-2 text-sm font-bold text-[#475e36] underline">Open control center <ExternalLink size={14}/></a>}
+  {(details?.staffRole==='owner'||details?.staffRole==='admin')&&<a href="https://admin.laterbox.dev" className="mt-3 inline-flex items-center gap-2 text-sm font-bold text-[#475e36] underline">Open control center <ExternalLink size={14}/></a>}
  </section>;
 }

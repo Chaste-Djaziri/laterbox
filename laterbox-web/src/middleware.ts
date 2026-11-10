@@ -11,7 +11,7 @@ function routeDomain(request: NextRequest) {
   );
 
   const applyCors = (response: NextResponse) => {
-    if (hostname.startsWith('app.') || hostname.startsWith('dash.') || url.pathname === '/login' || url.pathname.startsWith('/extension/')) {
+    if (hostname.startsWith('app.') || hostname.startsWith('admin.') || url.pathname === '/login' || url.pathname.startsWith('/extension/')) {
       response.headers.set('X-Robots-Tag', 'noindex, follow');
     }
     if (isTrustedOrigin && origin) {
@@ -47,6 +47,11 @@ function routeDomain(request: NextRequest) {
     return applyCors(NextResponse.redirect(canonical, 308));
   }
 
+  // Administration pages are hosted exclusively on admin.laterbox.dev.
+  // Existing dashboard hostname is a redirect, never a second admin origin.
+  if (hostname === 'dash.laterbox.dev') return applyCors(NextResponse.redirect(new URL('https://admin.laterbox.dev' + (url.pathname === '/admin' ? '/' : url.pathname) + url.search), 308));
+  if (url.pathname === '/admin' && hostname !== 'admin.laterbox.dev' && hostname !== 'admin.localhost' && hostname !== 'localhost:3000') return new NextResponse('Not found',{status:404});
+
   // Exclude static assets, api endpoints, branding, and files with extensions
   if (
     url.pathname.startsWith('/_next') ||
@@ -58,8 +63,8 @@ function routeDomain(request: NextRequest) {
     return applyCors(NextResponse.next());
   }
 
-  // Dedicated control center hostname. API authorization remains server-enforced.
-  if (hostname === 'dash.laterbox.dev' || hostname.startsWith('dash.localhost')) {
+  // Isolated administration hostname; normal app pages cannot be served here.
+  if (hostname === 'admin.laterbox.dev' || hostname.startsWith('admin.localhost')) {
     if (url.pathname === '/') return applyCors(NextResponse.rewrite(new URL('/admin', request.url)));
     if (url.pathname === '/admin' || url.pathname === '/login' || url.pathname === '/signup') return applyCors(NextResponse.next());
     return applyCors(NextResponse.redirect(new URL('https://app.laterbox.dev' + url.pathname + url.search), 307));
