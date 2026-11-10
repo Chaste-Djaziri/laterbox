@@ -121,6 +121,7 @@ export async function customizeReferralCode(userId:string,input:unknown) {
     return {error:'Use 8–32 lowercase letters, numbers, hyphens or underscores. Reserved names are unavailable.',status:400};
   const db=getBillingAdminClient();
   const profile=await ensureEarnProfile(userId);
+  if(!profile.verified_whop_user_id)return {error:'Connect Whop to customize your referral code.',status:403};
   if(profile.referral_code===code)return {code,status:200};
   if(profile.code_changed_at && Date.now()-Date.parse(profile.code_changed_at)<30*86400000)
     return {error:'You can change your referral code once every 30 days.',status:429};
@@ -195,7 +196,8 @@ export async function getEarnState(userId:string):Promise<EarnState> {
     trialEnabled:settings.trial_enabled,trialDays:settings.trial_days,
     eligible:true,eligibleAt:null,plan,role:'community_referrer',
     rateBps:settings.intro_commission_bps,memberSince:active[0]?.created_at??null,status,
-    referralCode:code,referralUrl:`https://laterbox.dev/r/${code}`,
+    referralCode:profile.verified_whop_user_id?code:null,
+    referralUrl:profile.verified_whop_user_id?`https://laterbox.dev/r/${code}`:null,
     payoutConnected:Boolean(profile.verified_whop_user_id),
     balances:{
       pendingCents:Number(totals?.pending_cents??0),availableCents:Number(totals?.available_cents??0),

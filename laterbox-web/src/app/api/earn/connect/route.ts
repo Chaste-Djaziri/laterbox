@@ -9,9 +9,11 @@ export async function POST(request:Request) {
   const user=await getRequestUser(request);
   if(!user?.id)return NextResponse.json({error:'Sign in to LaterBox first.'},{status:401});
   try {
+    // Validate OAuth settings before account database operations so connection
+    // errors identify the correct subsystem without exposing private values.
+    const config=whopOauthConfiguration();
     const profile=await ensureEarnProfile(user.id);
     if(profile.status!=='active') return NextResponse.json({error:'Whop linking is unavailable for this account.'},{status:403});
-    const config=whopOauthConfiguration();
     const state=newOAuthState(user.id);
     const url=authorizeWhopURL(state,config);
     const response=NextResponse.json({url},{headers:{'Cache-Control':'private, no-store'}});
@@ -22,6 +24,11 @@ export async function POST(request:Request) {
     return response;
   } catch(error) {
     console.error('[earn] Whop connect unavailable',error);
-    return NextResponse.json({error:'Whop connection is not configured yet. Payout setup will be available after launch.'},{status:503});
+    const message=error instanceof Error?error.message:'';
+    const configurationError=message.startsWith('Whop Earn OAuth')||message.startsWith('Whop OAuth');
+    return NextResponse.json({
+      error:configurationError?'Whop connection configuration needs attention. Please contact support.':'Unable to start Whop verification. Please try again.',
+      code:configurationError?'oauth_configuration':'connection_unavailable',
+    },{status:503});
   }
 }

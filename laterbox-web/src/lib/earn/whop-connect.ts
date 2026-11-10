@@ -3,6 +3,7 @@
 // access tokens or the app secret; recipients are verified via Whop userinfo.
 import {createHmac, randomBytes, createHash, timingSafeEqual} from 'node:crypto';
 import {whopEnvironment} from '@/lib/billing/whop';
+import {getCloudflareContext} from '@opennextjs/cloudflare';
 
 export interface EarnOAuthState {
   userId:string;
@@ -15,10 +16,18 @@ export const EARN_OAUTH_COOKIE='lb_earn_whop_oauth';
 export const OAUTH_MAX_AGE=600;
 
 export function whopOauthConfiguration() {
-  const id=process.env.WHOP_CLIENT_ID;
-  const secret=process.env.WHOP_CLIENT_SECRET;
-  const uri=process.env.WHOP_OAUTH_REDIRECT_URI;
-  const cookieSecret=process.env.EARN_OAUTH_COOKIE_SECRET;
+  // OpenNext exposes encrypted Worker bindings through the Cloudflare context.
+  // Fall back to process.env for local Next.js development and tests.
+  let workerEnv:Record<string,unknown>={};
+  try {workerEnv=getCloudflareContext().env as unknown as Record<string,unknown>;} catch {/* local Node.js */}
+  const value=(key:string):string|undefined=>{
+    const binding=workerEnv[key];
+    return typeof binding==='string'&&binding.length?binding:process.env[key];
+  };
+  const id=value('WHOP_CLIENT_ID');
+  const secret=value('WHOP_CLIENT_SECRET');
+  const uri=value('WHOP_OAUTH_REDIRECT_URI');
+  const cookieSecret=value('EARN_OAUTH_COOKIE_SECRET');
   if(!id?.startsWith('app_') || !secret || !cookieSecret || cookieSecret.length<32 || !uri) {
     throw new Error('Whop Earn OAuth is not configured.');
   }

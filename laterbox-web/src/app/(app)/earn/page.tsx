@@ -22,6 +22,7 @@ export default function EarnPage(){
   const [codeError,setCodeError]=useState('');
   const [copied,setCopied]=useState(false);
   const [connecting,setConnecting]=useState(false);
+  const [whopResult,setWhopResult]=useState<'connected'|'failed'|null>(null);
   const token=async()=>{
     const {data:session}=await getSupabaseClient().auth.getSession();
     if(!session.session?.access_token)throw new Error('Sign in to LaterBox to use Earn.');
@@ -39,7 +40,17 @@ export default function EarnPage(){
     }catch(err){setError(err instanceof Error?err.message:'Could not load Earn.');}
     finally{setLoading(false);}
   },[]);
-  useEffect(()=>{void load();},[load]);
+  useEffect(()=>{
+    const params=new URLSearchParams(window.location.search);
+    const result=params.get('whop');
+    if(result==='connected'||result==='failed'){
+      setWhopResult(result);
+      const clean=new URL(window.location.href);
+      clean.searchParams.delete('whop');
+      window.history.replaceState(null,'',clean.pathname+clean.search+clean.hash);
+    }
+    void load();
+  },[load]);
 
   const copy=async(value:string)=>{
     try{await navigator.clipboard.writeText(value);setCopied(true);window.setTimeout(()=>setCopied(false),2500);}
@@ -91,9 +102,19 @@ export default function EarnPage(){
       </div>
       <button type="button" onClick={()=>void load()} disabled={loading} className="flex items-center gap-2 rounded-xl border border-[#dae1d0] bg-white px-4 py-3 text-sm font-bold"><RefreshCcw size={16}/>Refresh</button>
     </header>
+    {whopResult==='connected'&&<p role="status" className="mt-6 rounded-xl border border-[#c5d7b1] bg-[#eff5dd] p-4 text-sm font-semibold text-[#39552e]">Whop connected successfully. Your personal referral link is ready below.</p>}
+    {whopResult==='failed'&&<p role="alert" className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">Whop could not be verified. Please try connecting again.</p>}
     {error&&<p role="alert" className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">{error}</p>}
     {!data&&loading&&<div className="mt-8 animate-pulse rounded-3xl bg-[#f0f3e8] p-9 text-sm">Checking your referral account…</div>}
     {data&&<div className="mt-8 space-y-6">
+      {!data.payoutConnected&&<section className="rounded-3xl border border-[#c6d5ad] bg-[#e6edb0] p-7 sm:p-9">
+        <span className="text-xs font-black uppercase tracking-widest text-[#526741]">Step 1 · Required</span>
+        <h2 className="mt-3 text-2xl font-black">Connect your Whop account to unlock referrals</h2>
+        <p className="mt-3 max-w-2xl text-sm leading-7 text-[#536748]">Securely verify your Whop identity first. After connecting, your personal code and shareable referral link will appear here. A paid LaterBox plan is not required.</p>
+        <button type="button" onClick={()=>void connect()} disabled={connecting} className="mt-5 rounded-xl bg-[#171711] px-6 py-3 text-sm font-black text-white disabled:opacity-50">{connecting?'Connecting to Whop…':'Connect Whop'}</button>
+        <p className="mt-3 text-xs text-[#536748]">Referrals and commissions only become active after accepting Earn terms and when the program launches.</p>
+      </section>}
+      {data.payoutConnected&&<section className="rounded-2xl border border-[#dbe5cd] bg-[#f3f8e8] px-5 py-4 text-sm font-bold text-[#48613d]">✓ Whop account verified · Your referral details are below.</section>}
       <div className="grid gap-4 sm:grid-cols-3">
         {[
           ['Pending',data.balances.pendingCents,Clock3,'Awaiting verification and hold'],
@@ -111,15 +132,15 @@ export default function EarnPage(){
       <section className="rounded-3xl bg-[#e6edb0] p-7">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div><span className="text-xs font-black uppercase tracking-widest text-[#526741]">Your referral status</span>
-            <h2 className="mt-2 text-2xl font-black">{data.status==='suspended'?'Account under review':data.status==='not_launched'?'Your personal code is reserved':data.status==='eligible'?'Connect Whop to start referring':'Your referral program'}</h2>
-            <p className="mt-3 max-w-xl text-sm leading-6 text-[#536748]">{!data.programEnabled?'Affiliate commissions and trial offers are being prepared. Links may be shared, but no reward is active yet.':data.status==='eligible'?'Connect and verify Whop, then confirm your age and accept the terms to activate referrals.':data.status==='active'?'You can earn without owning a paid plan. New referrals must complete two paid months after a trial before recurring commissions start.':'Please contact support if your referral access is suspended.'}</p>
+            <h2 className="mt-2 text-2xl font-black">{data.status==='suspended'?'Account under review':data.status==='not_launched'?'Your personal code is reserved':data.status==='eligible'?(data.payoutConnected?'Whop verified · Finish enrollment':'Connect Whop to start referring'):'Your referral program'}</h2>
+            <p className="mt-3 max-w-xl text-sm leading-6 text-[#536748]">{!data.programEnabled?'Affiliate commissions and trial offers are being prepared. You can connect Whop and receive your reserved referral code now, but no rewards are active yet.':data.status==='eligible'?'Connect and verify Whop, then confirm your age and accept the terms to activate referrals.':data.status==='active'?'You can earn without owning a paid plan. New referrals must complete two paid months after a trial before recurring commissions start.':'Please contact support if your referral access is suspended.'}</p>
           </div>
           <span className="rounded-xl border border-[#b8cb9c] bg-white/75 px-4 py-2 text-sm font-bold">{data.plan.toUpperCase()} account</span>
         </div>
       </section>
-      {data.referralCode&&data.status==='active'&&data.payoutConnected&&<section className="rounded-3xl border border-[#e1e7d7] bg-white p-6 sm:p-8">
+      {data.referralCode&&data.payoutConnected&&data.status!=='suspended'&&<section className="rounded-3xl border border-[#e1e7d7] bg-white p-6 sm:p-8">
         <div className="flex items-center gap-3"><Gift size={22} className="text-[#6b8951]"/><h2 className="text-xl font-black">Your referral link and code</h2></div>
-        <p className="mt-2 text-sm text-[#7b8573]">Share either one. Include a clear affiliate disclosure in promotional posts.</p>
+        <p className="mt-2 text-sm text-[#7b8573]">Your unique code is unlocked by Whop verification. {data.status==='active'&&data.programEnabled?'Share either one and disclose your affiliate relationship.':'Your code is reserved; referral attribution and commissions will start only when your Earn enrollment and the referral program are active.'}</p>
         <div className="mt-5 flex flex-wrap gap-2">
           <div className="min-w-0 flex-1 break-all rounded-xl border border-[#dce6d3] bg-[#f8faf3] px-4 py-3 font-mono text-sm">{data.referralUrl}</div>
           <button onClick={()=>void copy(`${data.referralUrl}\nI may earn a commission if you buy through my link.`)} className="flex items-center gap-2 rounded-xl bg-[#e6edb0] px-5 py-3 text-sm font-bold"><Copy size={16}/>{copied?'Copied':'Copy link'}</button>
@@ -140,12 +161,12 @@ export default function EarnPage(){
           <p className="mt-2 text-xs text-[#7f8978]">8–32 lowercase characters: letters, numbers, underscores or hyphens. Availability is checked when saving. One change every 30 days.</p>
           {codeError&&<p role="alert" className="mt-2 text-xs font-semibold text-red-700">{codeError}</p>}
         </div>}
-        <p className="mt-4 text-xs text-[#818a79]">Introductory commission: {data.rateBps?data.rateBps/100:0}% of eligible net renewal revenue, followed by a lower ongoing rate. Commissions are not guaranteed.</p>
+        {data.programEnabled&&data.status==='active'&&<p className="mt-4 text-xs text-[#818a79]">Introductory commission: {data.rateBps?data.rateBps/100:0}% of eligible net renewal revenue, followed by a lower ongoing rate. Commissions are not guaranteed.</p>}
       </section>}
       {data.status==='eligible'&&<section className="rounded-3xl border border-[#e1e7d7] bg-white p-7">
         <h2 className="text-xl font-black">Connect Whop and activate Earn</h2>
         <p className="mt-2 text-sm text-[#7c8674]">Connect a verified Whop account first. You can join with a Free LaterBox plan; you must also be an adult and accept the terms.</p>
-        <button type="button" disabled={connecting || data.payoutConnected} onClick={()=>void connect()} className="mt-4 rounded-xl border border-[#bbc9aa] bg-[#e6edb0] px-5 py-3 text-sm font-bold disabled:opacity-70">{data.payoutConnected?'Whop connected':connecting?'Connecting…':'Connect Whop to continue'}</button>
+        {data.payoutConnected&&<p className="mt-4 text-sm font-semibold text-[#48613d]">✓ Whop identity verified. Complete the final two checks to join Earn.</p>}
         <label className="mt-4 flex gap-3 text-sm"><input type="checkbox" checked={adult} onChange={e=>setAdult(e.target.checked)}/>I confirm I am at least 18 years old.</label>
         <label className="mt-3 flex gap-3 text-sm"><input type="checkbox" checked={terms} onChange={e=>setTerms(e.target.checked)}/>I accept the <Link href="/earn-terms" className="font-bold underline">affiliate program terms</Link>.</label>
         <button disabled={!data.payoutConnected||!adult||!terms||working} onClick={()=>void enroll()} className="mt-5 rounded-xl bg-[#171711] px-6 py-3 text-sm font-bold text-white disabled:opacity-40">Join Earn</button>

@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[Earn / Whop onboarding]** Put verified Whop account connection first, reveal the personal referral code immediately after verification even while commissions are paused, and show callback success or failure clearly. Resolve OAuth runtime credentials through Cloudflare Worker bindings with safe local fallback and actionable connection failures.
+
 - **[Supabase Preview migrations]** Align the four November 9 migration filenames with their already-applied production history versions; SQL remains unchanged and no migration repair/replay is necessary.
 
 - **[Referral onboarding / Whop]** Require a verified Whop account before Earn activation or referral attribution. Show Whop in web and iOS connected accounts, and guide Free and paid users through Whop-first onboarding.
