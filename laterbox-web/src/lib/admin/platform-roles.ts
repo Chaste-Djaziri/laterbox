@@ -29,6 +29,8 @@ export async function resolveRole(userId:string,includeWhopTeam=false):Promise<R
 }
 
 export async function authorizeAdmin(request:Request,minimum:'read'|'manage'|'owner'='read'){
+ const host=new URL(request.url).hostname;
+ if(host!=='admin.laterbox.dev' && host!=='admin.localhost' && host!=='localhost' && host!=='127.0.0.1')return {error:'The administration API is available only on admin.laterbox.dev.',status:404} as const;
  const user=await getRequestUser(request);
  if(!user)return {error:'Sign in to access the LaterBox dashboard.',status:401} as const;
  const roles=await resolveRole(user.id);
