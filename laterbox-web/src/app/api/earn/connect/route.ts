@@ -11,7 +11,7 @@ export async function POST(request:Request) {
   try {
     // Validate OAuth settings before account database operations so connection
     // errors identify the correct subsystem without exposing private values.
-    const config=whopOauthConfiguration();
+    const config=await whopOauthConfiguration();
     const profile=await ensureEarnProfile(user.id);
     if(profile.status!=='active') return NextResponse.json({error:'Whop linking is unavailable for this account.'},{status:403});
     const state=newOAuthState(user.id);

@@ -17,7 +17,7 @@ export async function GET(request:NextRequest) {
   const returnedState=request.nextUrl.searchParams.get('state');
   if(!code||!returnedState || code.length>2048)return finish('failed');
   try {
-    const cfg=whopOauthConfiguration();
+    const cfg=await whopOauthConfiguration();
     const transaction=verifyOAuthState(request.cookies.get(EARN_OAUTH_COOKIE)?.value??'',cfg.cookieSecret);
     if(!transaction||transaction.state!==returnedState) return finish('failed');
     const whopUserId=await verifiedWhopUser(code,transaction,cfg);

@@ -15,11 +15,11 @@ export interface EarnOAuthState {
 export const EARN_OAUTH_COOKIE='lb_earn_whop_oauth';
 export const OAUTH_MAX_AGE=600;
 
-export function whopOauthConfiguration() {
+export async function whopOauthConfiguration() {
   // OpenNext exposes encrypted Worker bindings through the Cloudflare context.
   // Fall back to process.env for local Next.js development and tests.
   let workerEnv:Record<string,unknown>={};
-  try {workerEnv=getCloudflareContext().env as unknown as Record<string,unknown>;} catch {/* local Node.js */}
+  try {workerEnv=(await getCloudflareContext({async:true})).env as unknown as Record<string,unknown>;} catch {/* Local Node.js process.env is the fallback. */}
   const value=(key:string):string|undefined=>{
     const binding=workerEnv[key];
     return typeof binding==='string'&&binding.length?binding:process.env[key];
@@ -28,10 +28,17 @@ export function whopOauthConfiguration() {
   const secret=value('WHOP_CLIENT_SECRET');
   const uri=value('WHOP_OAUTH_REDIRECT_URI');
   const cookieSecret=value('EARN_OAUTH_COOKIE_SECRET');
-  if(!id?.startsWith('app_') || !secret || !cookieSecret || cookieSecret.length<32 || !uri) {
+  const missing=[
+    !id?.startsWith('app_')?'WHOP_CLIENT_ID':null,
+    !secret?'WHOP_CLIENT_SECRET':null,
+    !cookieSecret||cookieSecret.length<32?'EARN_OAUTH_COOKIE_SECRET':null,
+    !uri?'WHOP_OAUTH_REDIRECT_URI':null,
+  ].filter((name):name is string=>Boolean(name));
+  if(missing.length) {
+    console.error('[earn] Missing or invalid Whop OAuth Worker bindings:',missing.join(', '));
     throw new Error('Whop Earn OAuth is not configured.');
   }
-  const parsed=new URL(uri);
+  const parsed=new URL(uri!);
   if(!['https:','http:'].includes(parsed.protocol) || (process.env.NODE_ENV==='production'&&parsed.protocol!=='https:')) {
     throw new Error('Whop OAuth callback must use a secure URL.');
   }
@@ -39,7 +46,7 @@ export function whopOauthConfiguration() {
     throw new Error('Whop OAuth callback is not registered correctly.');
   }
   return {
-    id,secret,uri,cookieSecret,
+    id:id!,secret:secret!,uri:uri!,cookieSecret:cookieSecret!,
     host:whopEnvironment()==='production'?'https://api.whop.com':'https://sandbox-api.whop.com',
   };
 }
@@ -76,7 +83,7 @@ export function verifyOAuthState(value:string,secret:string):EarnOAuthState|null
      item.created>Date.now()+30000) return null;
   return item as unknown as EarnOAuthState;
 }
-export function authorizeWhopURL(state:EarnOAuthState,config:ReturnType<typeof whopOauthConfiguration>):string {
+export function authorizeWhopURL(state:EarnOAuthState,config:Awaited<ReturnType<typeof whopOauthConfiguration>>):string {
   const challenge=createHash('sha256').update(state.verifier).digest('base64url');
   const url=new URL(`${config.host}/oauth/authorize`);
   url.search=new URLSearchParams({
@@ -88,7 +95,7 @@ export function authorizeWhopURL(state:EarnOAuthState,config:ReturnType<typeof w
 }
 
 export async function verifiedWhopUser(
-  code:string,state:EarnOAuthState,config:ReturnType<typeof whopOauthConfiguration>
+  code:string,state:EarnOAuthState,config:Awaited<ReturnType<typeof whopOauthConfiguration>>
 ):Promise<string> {
   const tokenResponse=await fetch(`${config.host}/oauth/token`,{
     method:'POST',cache:'no-store',

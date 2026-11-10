@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[Whop OAuth Worker runtime]** Resolve secure OAuth bindings asynchronously using OpenNext's Cloudflare runtime context, validate local credential formats without printing secrets, and log only missing binding names when configuration is incomplete.
+
 - **[Earn / Whop onboarding]** Put verified Whop account connection first, reveal the personal referral code immediately after verification even while commissions are paused, and show callback success or failure clearly. Resolve OAuth runtime credentials through Cloudflare Worker bindings with safe local fallback and actionable connection failures.
 
 - **[Supabase Preview migrations]** Align the four November 9 migration filenames with their already-applied production history versions; SQL remains unchanged and no migration repair/replay is necessary.
