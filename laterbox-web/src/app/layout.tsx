@@ -4,6 +4,7 @@ import { AuthProvider } from '@/lib/store/AuthContext';
 import { ItemProvider } from '@/lib/store/ItemContext';
 import { BillingProvider } from '@/lib/store/BillingContext';
 import { WebUpdateBanner } from '@/components/ui/WebUpdateBanner';
+import { MaintenanceOverlay } from '@/components/platform/MaintenanceOverlay';
 
 // Preserve the Whop Pixel payload exactly as supplied by the business.
 const WHOP_PIXEL = `!function(w,d,s,u,n,a,b){if(w[n])return;a=w[n]={q:[],t:+new Date,s:[],o:u,track:function(){a.q.push([+new Date].concat([].slice.call(arguments)))},setScope:function(){a.s=[].slice.call(arguments).filter(function(x){return typeof x==="string"});a.q.push([+new Date,"setScope"].concat(a.s))},scope:function(){var c=[].slice.call(arguments);return{track:function(){a.q.push([+new Date].concat([].slice.call(arguments)).concat([{__scope:c}]))}}}};b=d.createElement(s);b.async=1;b.src=u+"/s.js";d.getElementsByTagName(s)[0].parentNode.insertBefore(b,d.getElementsByTagName(s)[0])}(window,document,"script","https://t.whop.tw","whop");whop.setScope("biz_VzpmkYvhtl23Ma");whop.track("page");`;
@@ -44,6 +45,7 @@ export default function RootLayout({
             <ItemProvider>
               {children}
               <WebUpdateBanner />
+              <MaintenanceOverlay />
             </ItemProvider>
           </BillingProvider>
         </AuthProvider>
