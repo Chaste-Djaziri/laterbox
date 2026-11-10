@@ -1,5 +1,10 @@
 # Free extension and local library
 
+- **[Supabase Preview migrations]** Align the four November 9 migration filenames with their already-applied production history versions; SQL remains unchanged and no migration repair/replay is necessary.
+
+- **[Referral onboarding / Whop]** Require a verified Whop account before Earn activation or referral attribution. Show Whop in web and iOS connected accounts, and guide Free and paid users through Whop-first onboarding.
+- **[iOS CI reliability]** Bound Xcode build concurrency, increase native build test time budget, retain simulator logs, and prevent stuck simulator cleanup from masking the original build failure.
+
 - **[Web / Whop OAuth setup]** Add a local, clipboard-safe provisioning utility for the confidential Whop OAuth client credentials and signed referral session settings, without logging or committing secret values.
 - **[Web / Cloudflare Earn credentials]** Support syncing only new OAuth and settlement secrets to avoid conflicts with existing Whop Worker environment bindings.
 
