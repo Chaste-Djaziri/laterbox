@@ -48,7 +48,7 @@ export function MaintenanceOverlay(){
   <span className="flex items-center gap-2"><Clock3 size={17}/><strong>Scheduled maintenance</strong></span>
   <span>Starts in {format(m.startsAt,now)}</span>
  </div>;
- return <div role="dialog" aria-modal="true" aria-labelledby="laterbox-maintenance-heading" className="fixed inset-0 z-[2147483646] flex items-center justify-center overflow-y-auto bg-[#f7f5ee] px-5 py-10 text-[#171711]">
+ return <div role="dialog" aria-modal="true" aria-labelledby="laterbox-maintenance-heading" className="fixed inset-0 z-[2147483647] flex items-center justify-center overflow-y-auto bg-[#f7f5ee] px-5 py-10 text-[#171711]">
   <div className="w-full max-w-xl rounded-[28px] border border-[#e3e8d3] bg-white p-8 text-center shadow-[0_30px_100px_-25px_rgba(23,23,17,0.18)] sm:p-12">
    <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-[#e6edb0]"><Construction size={30}/></div>
    <p className="mt-7 text-xs font-bold uppercase tracking-[.22em] text-[#748064]">LaterBox · Maintenance</p>
