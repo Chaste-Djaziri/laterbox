@@ -1,3 +1,4 @@
+// laterbox-web/src/app/api/health/route.ts
 import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -12,6 +13,7 @@ export async function GET() {
       status: "ok",
       service: "laterbox-web",
       marker: "laterbox-health-ok",
+      revision: process.env.NEXT_PUBLIC_DEPLOY_COMMIT || null,
       timestamp: new Date().toISOString(),
     },
     {

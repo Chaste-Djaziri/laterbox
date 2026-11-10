@@ -42,6 +42,7 @@ jobs:
       - name: Build Cloudflare application
         working-directory: laterbox-web
         env:
+          NEXT_PUBLIC_DEPLOY_COMMIT: ${{ github.sha }}
           LATERBOX_SKIP_VERSION_BUMP: '1'
           NEXT_PUBLIC_PADDLE_ENV: production
           NEXT_PUBLIC_PADDLE_CLIENT_TOKEN_PROD: ${{ vars.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN_PROD || secrets.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN_PROD }}
@@ -81,6 +82,10 @@ jobs:
           test -n "$CLOUDFLARE_ACCOUNT_ID" || { echo '::error::Missing CLOUDFLARE_ACCOUNT_ID'; exit 1; }
           echo 'Deploying the latest Worker version before updating Apple secrets (Cloudflare 10215 safeguard).'
           npx opennextjs-cloudflare deploy
+      - name: Verify production domain serves deployed commit
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        working-directory: laterbox-web
+        run: node scripts/verify-production-revision.mjs "$GITHUB_SHA"
       - name: Configure Apple purchase verification
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         working-directory: laterbox-web

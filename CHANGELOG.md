@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[Web / Production deployment verification]** Tag the health response with its build commit and fail GitHub's Cloudflare release if the public domain still serves a different Worker revision. This detects incorrect Cloudflare accounts or missing domain routes before declaring deployment successful.
+
 - **[Whop OAuth Worker runtime]** Resolve secure OAuth bindings asynchronously using OpenNext's Cloudflare runtime context, validate local credential formats without printing secrets, and log only missing binding names when configuration is incomplete.
 
 - **[Earn / Whop onboarding]** Put verified Whop account connection first, reveal the personal referral code immediately after verification even while commissions are paused, and show callback success or failure clearly. Resolve OAuth runtime credentials through Cloudflare Worker bindings with safe local fallback and actionable connection failures.
