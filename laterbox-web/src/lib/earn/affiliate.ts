@@ -44,7 +44,7 @@ export type EarnSettings = {
 export function normalizeReferralCode(value: unknown): string | null {
   if(typeof value!=='string')return null;
   const code=value.trim().toLowerCase();
-  return /^[a-z0-9][a-z0-9_-]{3,31}$/.test(code) ? code : null;
+  return /^[a-z0-9][a-z0-9_-]{7,31}$/.test(code) ? code : null;
 }
 const reserved=new Set([
   'laterbox','whop','admin','api','app','account','support','help',
@@ -118,7 +118,7 @@ export async function lookupReferral(input:unknown, buyerUserId?:string) {
 export async function customizeReferralCode(userId:string,input:unknown) {
   const code=normalizeReferralCode(input);
   if(!code||!referralCodeAllowed(code))
-    return {error:'Use 4–32 lowercase letters, numbers, hyphens or underscores. Reserved names are unavailable.',status:400};
+    return {error:'Use 8–32 lowercase letters, numbers, hyphens or underscores. Reserved names are unavailable.',status:400};
   const db=getBillingAdminClient();
   const profile=await ensureEarnProfile(userId);
   if(profile.referral_code===code)return {code,status:200};

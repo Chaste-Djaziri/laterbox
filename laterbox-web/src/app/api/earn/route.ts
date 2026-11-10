@@ -28,7 +28,7 @@ export async function POST(request: Request) {
   }
   try {
     const result = await enrollAffiliate(user.id);
-    if(result === 'unavailable') return NextResponse.json({error:'Earn is not open for this account yet. An active paid subscription for two months is required.'},{status:403});
+    if(result === 'unavailable') return NextResponse.json({error:'Earn is not open for this account yet. Please try again later.'},{status:403});
     return NextResponse.json({result,state:await getEarnState(user.id)},{headers:{'Cache-Control':'private, no-store'}});
   } catch(error) {
     console.error('[earn] enrollment error',error);

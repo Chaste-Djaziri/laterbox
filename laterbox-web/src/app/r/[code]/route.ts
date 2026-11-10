@@ -1,14 +1,14 @@
 // laterbox-web/src/app/r/[code]/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getBillingAdminClient } from '@/lib/billing/server';
-import { earnSettings } from '@/lib/earn/affiliate';
+import { earnSettings, referralCodeAllowed } from '@/lib/earn/affiliate';
 
 // A server-verified redirect creates a 30-day, HTTP-only attribution cookie.
 // Unlike client localStorage, the code cannot be replaced by a later page script.
 export async function GET(request: NextRequest, context: { params: Promise<{code:string}> }) {
   const {code} = await context.params;
   const target = new URL('/signup', request.url);
-  if(!/^lb_[a-f0-9]{24}$/.test(code)) return NextResponse.redirect(target,303);
+  if(!referralCodeAllowed(code)) return NextResponse.redirect(target,303);
   try {
     if(!(await earnSettings()).enabled) return NextResponse.redirect(target,303);
     const { data, error } = await getBillingAdminClient().from('affiliate_profiles')

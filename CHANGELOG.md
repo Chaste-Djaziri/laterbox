@@ -1,5 +1,11 @@
 # Free extension and local library
 
+- **[Web / Referral code validation]** Align minimum customized code length with the database's eight-character constraint so valid UI submissions persist reliably.
+
+- **[Web / Referral links]** Accept unique customized referral codes from the validated server-side code format and remove outdated paid-only enrollment messaging.
+
+- **[Whop / Trial catalog provisioning]** Shorten only over-limit referral trial plan names to meet Whop's 30-character maximum, retaining previous names for idempotent retries.
+
 - **[Web / Billing production readiness]** Recognize Whop membership deactivation events correctly and keep billing state synchronized on cancellations; clarify how to run trial-plan provisioning.
 
 - **[Web / Whop trial provisioning]** Type the HTTP error response safely so referral-trial catalog provisioning passes production TypeScript checks.
