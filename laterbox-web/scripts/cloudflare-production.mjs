@@ -8,8 +8,8 @@ import { dirname, resolve } from 'node:path';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const mode = process.argv[2];
-if (!['validate', 'sync-secrets', 'deploy', 'upload', 'activate-upload'].includes(mode)) {
-  throw new Error('Expected one of: validate | sync-secrets | deploy | upload | activate-upload');
+if (!['validate', 'sync-secrets', 'sync-earn-secrets', 'deploy', 'upload', 'activate-upload'].includes(mode)) {
+  throw new Error('Expected one of: validate | sync-secrets | sync-earn-secrets | deploy | upload | activate-upload');
 }
 
 function parseDotEnv(content) {
@@ -107,6 +107,12 @@ function run(executable, argv, { stdin } = {}) {
 
 if (mode === 'validate') {
   console.log('Validated production Whop, Supabase, 14 standard and 14 referral-trial plan bindings. No changes made.');
+} else if (mode === 'sync-earn-secrets') {
+  if (missingEarnSecrets.length) throw new Error('Earn variables missing; nothing was synchronized.');
+  const earnSecrets = Object.fromEntries(optionalEarnSecrets.map(name=>[name,env[name]]));
+  console.log('Syncing '+Object.keys(earnSecrets).length+' Earn-only encrypted bindings; existing billing variables are untouched.');
+  await run('npx',['wrangler','secret','bulk','--name','laterbox-web'],{stdin:JSON.stringify(earnSecrets)});
+  console.log('Whop Earn OAuth and settlement secrets synchronized.');
 } else if (mode === 'sync-secrets') {
   console.log(`Syncing ${Object.keys(secretPayload).length} encrypted runtime variables to Worker laterbox-web.`);
   console.log('Secret values will not be displayed, written to disk, or committed.');
