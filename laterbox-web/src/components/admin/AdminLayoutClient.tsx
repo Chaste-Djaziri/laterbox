@@ -47,3 +47,4 @@ export function AdminLayoutClient({ children }: { children: ReactNode }) {
     </AdminProvider>
   );
 }
+

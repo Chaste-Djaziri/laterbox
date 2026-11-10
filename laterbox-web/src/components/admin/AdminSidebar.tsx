@@ -178,3 +178,4 @@ export function AdminSidebar({ mobileOpen = false, onCloseMobile }: AdminSidebar
     </>
   );
 }
+
