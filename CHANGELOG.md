@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[iOS / Earn dashboard refinement & sub-pages]** Refine the iOS Earn UI with dedicated sub-pages for Earnings Activity, Payout History, and Program Rules. Upgrade the referral module with 1-tap copy on links and codes, a quick "Copy all" invite bundle, native iOS ShareLink integration, haptic feedback, and inline previews for recent activity.
+
 - **[iOS / Earn reload & minimal referral tools]** Add a dedicated reload button to the Earn header, ignore background task cancellations so pull-to-refresh never displays false 'cancelled' error messages, and simplify the referral card to display only the link, copy button, and code without verbose descriptive copy.
 
 - **[iOS / Earn dashboard streamlining]** Simplify the iOS Earn dashboard to match the minimal web design. Remove the redundant marketing hero header, title, and green "Your referral status" card. Streamline Whop connect banners, balance metrics, shareable link tools, and 4-step process cards into a clean, direct layout.
