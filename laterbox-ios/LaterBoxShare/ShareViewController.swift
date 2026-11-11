@@ -9,9 +9,8 @@ import PhotosUI
 final class ShareViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
-        overrideUserInterfaceStyle = .dark
         let model = ShareCaptureModel(context: extensionContext)
-        let host = UIHostingController(rootView: ShareChatCaptureScreen(model: model).preferredColorScheme(.dark))
+        let host = UIHostingController(rootView: ShareChatCaptureScreen(model: model))
         addChild(host)
         view.addSubview(host.view)
         host.view.translatesAutoresizingMaskIntoConstraints = false
@@ -1453,14 +1452,16 @@ struct ShareEditSheet: View {
 // Both this extension and the iOS app display ChatCaptureComposer from Shared/.
 private struct ShareChatCaptureScreen: View {
     @ObservedObject var model: ShareCaptureModel
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         Group {
             if model.loading && model.capture.content.isEmpty && model.capture.attachments.isEmpty {
                 ProgressView("Preparing capture…")
-                    .tint(Color(red: 230.0 / 255.0, green: 237.0 / 255.0, blue: 176.0 / 255.0))
+                    .tint(LaterAIStyle.accent)
+                    .foregroundStyle(LaterAIStyle.textPrimary(for: colorScheme))
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background(Color.black)
+                    .background(LaterAIStyle.canvas(for: colorScheme).ignoresSafeArea())
             } else {
                 ChatCaptureComposer(
                     capture: $model.capture,

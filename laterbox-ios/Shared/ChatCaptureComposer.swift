@@ -6,8 +6,10 @@ import UniformTypeIdentifiers
 
 /// Chat-first capture and review used for Quick Save, Capture, and incoming shares.
 /// A host owns persistence; this view owns only the conversation and picker UI.
+/// Adapts dynamically to system Light and Dark appearance using LaterBox's warm theme.
 struct ChatCaptureComposer: View {
     @Binding var capture: SharedCapture
+    @Environment(\.colorScheme) private var colorScheme
 
     var title = "Capture"
     var saved = false
@@ -31,8 +33,13 @@ struct ChatCaptureComposer: View {
     @State private var showingPhotos = false
     @State private var selectedPhoto: PhotosPickerItem?
 
-    private let accent = Color(red: 230.0 / 255.0, green: 237.0 / 255.0, blue: 176.0 / 255.0)
-    private let panel = Color(white: 0.10)
+    private var accent: Color { LaterAIStyle.accent }
+    private var brandGreen: Color { LaterAIStyle.brandGreen }
+    private var surface: Color { LaterAIStyle.surface(for: colorScheme) }
+    private var canvas: Color { LaterAIStyle.canvas(for: colorScheme) }
+    private var textPrimary: Color { LaterAIStyle.textPrimary(for: colorScheme) }
+    private var textSecondary: Color { LaterAIStyle.textSecondary(for: colorScheme) }
+    private var border: Color { LaterAIStyle.border(for: colorScheme) }
 
     private var canSave: Bool {
         !capture.content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
@@ -71,7 +78,8 @@ struct ChatCaptureComposer: View {
                                     }
                                 }
                                 .padding(12)
-                                .background(panel, in: RoundedRectangle(cornerRadius: 16))
+                                .background(surface, in: RoundedRectangle(cornerRadius: 16))
+                                .overlay(RoundedRectangle(cornerRadius: 16).strokeBorder(border, lineWidth: 1))
                             }
 
                             if saved {
@@ -87,7 +95,8 @@ struct ChatCaptureComposer: View {
                                 .font(.footnote)
                                 .foregroundStyle(.orange)
                                 .padding(12)
-                                .background(panel, in: RoundedRectangle(cornerRadius: 12))
+                                .background(surface, in: RoundedRectangle(cornerRadius: 12))
+                                .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(border, lineWidth: 1))
                         }
                         Color.clear.frame(height: 1).id("capture-bottom")
                     }
@@ -106,7 +115,7 @@ struct ChatCaptureComposer: View {
                 }
             }
 
-            Divider().overlay(Color.white.opacity(0.08))
+            Divider().background(border)
             if saved {
                 savedActions
             } else if reviewing {
@@ -115,9 +124,8 @@ struct ChatCaptureComposer: View {
                 composeBar
             }
         }
-        .background(Color(white: 0.047).ignoresSafeArea())
-        .foregroundStyle(.white)
-        .preferredColorScheme(.dark)
+        .background(canvas.ignoresSafeArea())
+        .foregroundStyle(textPrimary)
         .onAppear {
             reviewing = canSave
         }
@@ -130,7 +138,6 @@ struct ChatCaptureComposer: View {
                         let kind = UTType(filenameExtension: url.pathExtension)?.identifier ?? UTType.item.identifier
                         capture.attachments.append(try SharedCaptureStore.copyFile(url, type: kind))
                     } catch {
-                        // Do not silently drop a failed file: leave existing content intact.
                         importError = "Unable to import \(url.lastPathComponent). Try again."
                     }
                 }
@@ -174,7 +181,7 @@ struct ChatCaptureComposer: View {
                     DatePicker("Return date", selection: $chosenDate, in: Date()...,
                                displayedComponents: [.date, .hourAndMinute])
                         .datePickerStyle(.graphical)
-                        .tint(accent)
+                        .tint(brandGreen)
                         .padding()
                     Spacer()
                     Button {
@@ -186,21 +193,22 @@ struct ChatCaptureComposer: View {
                             .font(.headline)
                             .frame(maxWidth: .infinity)
                             .padding(14)
-                            .foregroundStyle(.black)
+                            .foregroundStyle(Color(red: 23.0 / 255, green: 23.0 / 255, blue: 17.0 / 255))
                             .background(accent, in: RoundedRectangle(cornerRadius: 14))
                     }
                     .disabled(!canSave || isSaving)
                     .padding()
                 }
+                .background(canvas.ignoresSafeArea())
                 .navigationTitle("Choose return date")
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {
                         Button("Cancel") { showingReturnDate = false }
+                            .foregroundStyle(textPrimary)
                     }
                 }
             }
-            .preferredColorScheme(.dark)
             .presentationDetents([.medium, .large])
         }
     }
@@ -215,7 +223,7 @@ struct ChatCaptureComposer: View {
                 Label("CAPTURE REVIEW", systemImage: "sparkles")
                     .font(.caption2.weight(.bold))
                     .tracking(0.5)
-                    .foregroundStyle(accent)
+                    .foregroundStyle(brandGreen)
                 Spacer()
                 Button {
                     showingDetails = true
@@ -224,7 +232,7 @@ struct ChatCaptureComposer: View {
                         .font(.caption.weight(.semibold))
                 }
                 .buttonStyle(.plain)
-                .foregroundStyle(accent)
+                .foregroundStyle(brandGreen)
             }
 
             if let imageURL = previewImageURL {
@@ -241,13 +249,13 @@ struct ChatCaptureComposer: View {
                             .accessibilityLabel("Social preview image")
                     case .empty:
                         RoundedRectangle(cornerRadius: 14)
-                            .fill(Color.white.opacity(0.06))
+                            .fill(surface)
                             .frame(height: 180)
                             .overlay {
-                                ProgressView().tint(accent)
+                                ProgressView().tint(brandGreen)
                             }
                     case .failure:
-                        EmptyView() // Keep text preview when a remote image fails.
+                        EmptyView()
                     @unknown default:
                         EmptyView()
                     }
@@ -256,20 +264,20 @@ struct ChatCaptureComposer: View {
 
             Text(capture.title.isEmpty ? inferredTitle : capture.title)
                 .font(.headline)
-                .foregroundStyle(.white)
+                .foregroundStyle(textPrimary)
                 .lineLimit(3)
 
             if let url = detectedURL {
                 Label(URL(string: url)?.host ?? url, systemImage: "link")
                     .font(.caption)
-                    .foregroundStyle(accent)
+                    .foregroundStyle(brandGreen)
                     .lineLimit(1)
             }
 
             if let summary = capture.metadataDescription, !summary.isEmpty {
                 Text(summary)
                     .font(.footnote)
-                    .foregroundStyle(.white.opacity(0.7))
+                    .foregroundStyle(textSecondary)
                     .lineLimit(3)
             }
 
@@ -280,20 +288,21 @@ struct ChatCaptureComposer: View {
                 }
             }
             .font(.caption)
-            .foregroundStyle(.white.opacity(0.65))
+            .foregroundStyle(textSecondary)
 
             if let date = capture.returnAt {
                 Label(date.formatted(date: .abbreviated, time: .shortened),
                       systemImage: "calendar.badge.clock")
                     .font(.caption.weight(.medium))
-                    .foregroundStyle(accent)
+                    .foregroundStyle(brandGreen)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(16)
-        .background(panel, in: RoundedRectangle(cornerRadius: 18))
+        .background(surface, in: RoundedRectangle(cornerRadius: 18))
         .overlay(RoundedRectangle(cornerRadius: 18)
-            .strokeBorder(Color.white.opacity(0.10), lineWidth: 1))
+            .strokeBorder(border, lineWidth: 1))
+        .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.25 : 0.04), radius: 8, y: 3)
     }
 
     private var previewImageURL: URL? {
@@ -322,8 +331,10 @@ struct ChatCaptureComposer: View {
     private func attachmentRow(_ attachment: SharedAttachment) -> some View {
         HStack(spacing: 10) {
             Image(systemName: "doc.fill")
-                .foregroundStyle(accent)
-            Text(attachment.name).lineLimit(1)
+                .foregroundStyle(brandGreen)
+            Text(attachment.name)
+                .foregroundStyle(textPrimary)
+                .lineLimit(1)
             Spacer()
             if !saved {
                 Button {
@@ -331,7 +342,7 @@ struct ChatCaptureComposer: View {
                     if !canSave { reviewing = false }
                 } label: {
                     Image(systemName: "xmark.circle.fill")
-                        .foregroundStyle(.white.opacity(0.55))
+                        .foregroundStyle(textSecondary)
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Remove attachment")
@@ -351,9 +362,10 @@ struct ChatCaptureComposer: View {
         } label: {
             Image(systemName: "plus")
                 .font(.title3.weight(.medium))
-                .foregroundStyle(.white)
+                .foregroundStyle(textPrimary)
                 .frame(width: 44, height: 44)
-                .background(Color.white.opacity(0.12), in: RoundedRectangle(cornerRadius: 14))
+                .background(surface, in: RoundedRectangle(cornerRadius: 14))
+                .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(border, lineWidth: 1))
         }
         .accessibilityLabel("Add attachment")
     }
@@ -363,10 +375,12 @@ struct ChatCaptureComposer: View {
             attachmentMenu
             TextField("Type a note or paste a link…", text: $input, axis: .vertical)
                 .lineLimit(1...5)
-                .tint(accent)
+                .tint(brandGreen)
+                .foregroundStyle(textPrimary)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 12)
-                .background(Color.white.opacity(0.10), in: RoundedRectangle(cornerRadius: 18))
+                .background(LaterAIStyle.fieldBackground(for: colorScheme), in: RoundedRectangle(cornerRadius: 18))
+                .overlay(RoundedRectangle(cornerRadius: 18).strokeBorder(border, lineWidth: 1))
                 .accessibilityIdentifier("capture.message")
             Button {
                 let text = input.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -378,7 +392,7 @@ struct ChatCaptureComposer: View {
             } label: {
                 Image(systemName: "arrow.up")
                     .font(.headline.weight(.bold))
-                    .foregroundStyle(.black)
+                    .foregroundStyle(Color(red: 23.0 / 255, green: 23.0 / 255, blue: 17.0 / 255))
                     .frame(width: 44, height: 44)
                     .background(accent, in: Circle())
             }
@@ -402,33 +416,33 @@ struct ChatCaptureComposer: View {
     private var reviewOptions: [LaterAIOptionItem] {
         var options: [LaterAIOptionItem] = [
             LaterAIOptionItem(title: "No Reminder", subtitle: "Save in inbox",
-                              icon: "tray", isPrimary: true) {
+                               icon: "tray", isPrimary: true) {
                 capture.returnAt = nil
                 onSave()
             },
             LaterAIOptionItem(title: "In 10 Minutes", subtitle: "Quick return",
-                              icon: "timer") {
+                               icon: "timer") {
                 capture.returnAt = Date().addingTimeInterval(600)
                 onSave()
             },
             LaterAIOptionItem(title: "Tomorrow", subtitle: "9:00 AM",
-                              icon: "calendar.badge.clock") {
+                               icon: "calendar.badge.clock") {
                 capture.returnAt = Calendar.current.date(
                     bySettingHour: 9, minute: 0, second: 0,
                     of: Date().addingTimeInterval(86400))
                 onSave()
             },
             LaterAIOptionItem(title: "Choose Date", subtitle: "Pick a return time",
-                              icon: "slider.horizontal.3") {
+                               icon: "slider.horizontal.3") {
                 chosenDate = capture.returnAt ?? Date().addingTimeInterval(86400)
                 showingReturnDate = true
             },
             LaterAIOptionItem(title: "Edit Details", subtitle: "Title, tags, collection",
-                              icon: "pencil") {
+                               icon: "pencil") {
                 showingDetails = true
             },
             LaterAIOptionItem(title: "Change Message", subtitle: "Return to composer",
-                              icon: "keyboard") {
+                               icon: "keyboard") {
                 input = capture.content
                 reviewing = false
             }
@@ -473,14 +487,17 @@ struct ChatCaptureComposer: View {
         )
         .disabled(isSaving)
     }
-
 }
 
 private struct ChatCaptureDetails: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var colorScheme
     @Binding var capture: SharedCapture
     @State private var tagsText = ""
-    private let accent = Color(red: 230.0 / 255.0, green: 237.0 / 255.0, blue: 176.0 / 255.0)
+
+    private var accent: Color { LaterAIStyle.accent }
+    private var brandGreen: Color { LaterAIStyle.brandGreen }
+    private var canvas: Color { LaterAIStyle.canvas(for: colorScheme) }
 
     var body: some View {
         NavigationStack {
@@ -518,16 +535,15 @@ private struct ChatCaptureDetails: View {
                 }
             }
             .scrollContentBackground(.hidden)
-            .background(Color(white: 0.06))
+            .background(canvas.ignoresSafeArea())
             .navigationTitle("Edit capture")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") { dismiss() }.tint(accent)
+                    Button("Done") { dismiss() }.tint(brandGreen)
                 }
             }
             .onAppear { tagsText = capture.tags.joined(separator: ", ") }
         }
-        .preferredColorScheme(.dark)
     }
 }
