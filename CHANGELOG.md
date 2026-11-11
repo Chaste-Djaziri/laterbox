@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[macOS / Inbox category tabs]** Make the active Primary, Articles, Media, and Updates tab highlights strictly rectangular, without rounded corners; keep the outer inbox table corners unchanged.
+
 - **[macOS / Web-style inbox email table]** Replace the Inbox placeholder with the native email-table shell matching Web: toolbar, categories, row structure, theme-aware surfaces, and an honest not-yet-connected inbox state until macOS sync is implemented.
 
 - **[macOS / App naming]** Set the native Mac app's exact visible name and built product to `Laterbox`, while preserving the `LaterBoxMac` Xcode target and bundle identifier.
