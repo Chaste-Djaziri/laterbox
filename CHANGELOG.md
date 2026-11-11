@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[Web / Earn dashboard full-width layout]** Remove the redundant green referral status banner card and expand all Earn dashboard components to full width to seamlessly match the dashboard layout.
+
 - **[Web / Earn dashboard layout streamlining]** Remove redundant marketing hero header, title, and manual refresh button from the Earn dashboard. Remove persistent "Whop account verified" banner on subsequent visits so it only displays immediately following a successful OAuth connection, presenting referral components directly.
 
 - **[Web / Earn dashboard loading skeleton]** Build a dedicated, full-surface loading skeleton for the Earn tab in the user dashboard. Replace the generic single text box with realistic placeholders for Whop connection status, balance metric cards, referral link/code tools, activity history, and workflow steps.
