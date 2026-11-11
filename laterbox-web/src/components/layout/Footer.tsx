@@ -11,8 +11,8 @@ const sections = [
     links: [
       { label: 'All downloads', href: '/download' },
       { label: 'Storage plans', href: '/pricing' },
-      { label: 'Getting started', href: '/guide' },
       { label: 'Documentation', href: '/docs' },
+      { label: 'Guide (Coming soon)', href: '/guide' },
     ],
   },
   {
@@ -28,7 +28,7 @@ const sections = [
     title: 'Resources',
     links: [
       { label: 'Documentation', href: '/docs' },
-      { label: 'Getting started guide', href: '/guide' },
+      { label: 'Guide (Coming soon)', href: '/guide' },
       { label: 'Privacy', href: '/privacy' },
       { label: 'Terms of service', href: '/terms' },
       { label: 'Refund policy', href: '/refund' },

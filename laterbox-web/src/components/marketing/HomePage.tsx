@@ -756,10 +756,10 @@ export default function LandingPage() {
           <ArrowRight className="w-3.5 h-3.5 text-[#6c6b63]" />
         </Link>
         <Link
-          href="/guide"
+          href="/docs"
           className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full bg-white border border-[#e4e0d5] text-[#171711] text-xs font-bold hover:border-[#171711] hover:bg-[#faf8f5] shadow-2xs transition-all"
         >
-          <span>Getting started guide</span>
+          <span>Product documentation</span>
           <ArrowRight className="w-3.5 h-3.5 text-[#6c6b63]" />
         </Link>
         <Link
