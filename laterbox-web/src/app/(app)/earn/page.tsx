@@ -2,7 +2,7 @@
 'use client';
 import {useCallback,useEffect,useState} from 'react';
 import Link from 'next/link';
-import {ArrowUpRight,Check,Clock3,Coins,Copy,Gift,RefreshCcw,ShieldCheck,Wallet} from 'lucide-react';
+import {ArrowUpRight,Check,Clock3,Coins,Copy,Gift,ShieldCheck,Wallet} from 'lucide-react';
 import {getSupabaseClient} from '@/lib/supabase/client';
 import type {EarnState} from '@/lib/earn/affiliate';
 
@@ -210,19 +210,12 @@ export default function EarnPage(){
     }catch(err){setError(err instanceof Error?err.message:'Connection failed.');setConnecting(false);}
   };
 
-  return <main className="mx-auto max-w-6xl px-5 py-10 text-[#171711] sm:px-8">
-    <header className="flex flex-wrap items-start justify-between gap-5">
-      <div><span className="rounded-full bg-[#e6edb0] px-3 py-2 text-xs font-black uppercase tracking-widest">LaterBox Earn</span>
-        <h1 className="mt-5 text-4xl font-black tracking-[-0.06em] sm:text-5xl">Good things are better shared.</h1>
-        <p className="mt-3 max-w-2xl text-sm leading-7 text-[#717a69]">Anyone can refer, even on Free. Earn commission on eligible recurring subscriptions after a referred customer completes their free trial and two paid months.</p>
-      </div>
-      <button type="button" onClick={()=>void load()} disabled={loading} className="flex items-center gap-2 rounded-xl border border-[#dae1d0] bg-white px-4 py-3 text-sm font-bold cursor-pointer hover:bg-[#faf8f5] transition-colors"><RefreshCcw size={16} className={loading ? 'animate-spin' : ''}/>Refresh</button>
-    </header>
-    {whopResult==='connected'&&<p role="status" className="mt-6 rounded-xl border border-[#c5d7b1] bg-[#eff5dd] p-4 text-sm font-semibold text-[#39552e]">Whop connected successfully. Your personal referral link is ready below.</p>}
-    {whopResult==='failed'&&<p role="alert" className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">{whopConnectionErrors[whopFailure]??'Whop could not be verified. Start a new connection.'}</p>}
-    {error&&<p role="alert" className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">{error}</p>}
+  return <main className="mx-auto max-w-6xl px-5 py-6 sm:py-8 text-[#171711] sm:px-8 space-y-6">
+    {whopResult==='connected'&&<p role="status" className="rounded-xl border border-[#c5d7b1] bg-[#eff5dd] p-4 text-sm font-semibold text-[#39552e]">Whop connected successfully. Your personal referral link is ready below.</p>}
+    {whopResult==='failed'&&<p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">{whopConnectionErrors[whopFailure]??'Whop could not be verified. Start a new connection.'}</p>}
+    {error&&<p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">{error}</p>}
     {!data&&loading&&<EarnSkeleton />}
-    {data&&<div className="mt-8 space-y-6">
+    {data&&<div className="space-y-6">
       {!data.payoutConnected&&<section className="rounded-3xl border border-[#c6d5ad] bg-[#e6edb0] p-7 sm:p-9">
         <span className="text-xs font-black uppercase tracking-widest text-[#526741]">Step 1 · Required</span>
         <h2 className="mt-3 text-2xl font-black">Connect your Whop account to unlock referrals</h2>
@@ -230,7 +223,6 @@ export default function EarnPage(){
         <button type="button" onClick={()=>void connect()} disabled={connecting} className="mt-5 rounded-xl bg-[#171711] px-6 py-3 text-sm font-black text-white disabled:opacity-50">{connecting?'Connecting to Whop…':'Connect Whop'}</button>
         <p className="mt-3 text-xs text-[#536748]">Referrals and commissions only become active after accepting Earn terms and when the program launches.</p>
       </section>}
-      {data.payoutConnected&&<section className="rounded-2xl border border-[#dbe5cd] bg-[#f3f8e8] px-5 py-4 text-sm font-bold text-[#48613d]">✓ Whop account verified · Your referral details are below.</section>}
       <div className="grid gap-4 sm:grid-cols-3">
         {[
           ['Pending',data.balances.pendingCents,Clock3,'Awaiting verification and hold'],
