@@ -122,12 +122,11 @@ public struct PlansView: View {
                             .settingsCard(for: colorScheme, cornerRadius: 16)
                         }
 
-                        if storeKit.isProSubscriptionActive {
-                            Button("Restore existing App Store purchases") {
-                                Task { await storeKit.restorePurchases() }
-                            }
-                            .font(.caption.weight(.semibold))
+                        Button("Restore Purchases") {
+                            Task { await storeKit.restorePurchases() }
                         }
+                        .font(.caption.weight(.semibold))
+                        .accessibilityIdentifier("Restore Purchases")
                     }
                     .padding(.horizontal, 18)
                     .padding(.bottom, 32)
