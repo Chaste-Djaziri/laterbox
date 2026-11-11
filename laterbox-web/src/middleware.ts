@@ -119,7 +119,21 @@ function routeDomain(request: NextRequest) {
       return applyCors(NextResponse.redirect(new URL(`https://docs.laterbox.dev${cleanPath}`, request.url), 308));
     }
     // All other app routes (/inbox, /library, /settings, /plans, /item, /login, /extension, /downloads, /tutorial) pass through
-    return applyCors(NextResponse.next());
+    const response = applyCors(NextResponse.next());
+  if (url.pathname.startsWith('/r/')) {
+    const code = url.pathname.split('/')[2]?.trim().toLowerCase();
+    if (code && /^[a-z0-9][a-z0-9_-]{3,31}$/.test(code)) {
+      response.cookies.set('laterbox_ref', code, {
+        path: '/',
+        httpOnly: false,
+        sameSite: 'lax',
+        secure: process.env.NODE_ENV === 'production',
+        maxAge: 30 * 24 * 60 * 60,
+        ...(process.env.NODE_ENV === 'production' ? { domain: '.laterbox.dev' } : {}),
+      });
+    }
+  }
+  return response;
   }
 
   // 3. Marketing / Apex Domain (laterbox.dev or www.laterbox.dev)
@@ -160,7 +174,21 @@ function routeDomain(request: NextRequest) {
     }
   }
 
-  return applyCors(NextResponse.next());
+  const response = applyCors(NextResponse.next());
+  if (url.pathname.startsWith('/r/')) {
+    const code = url.pathname.split('/')[2]?.trim().toLowerCase();
+    if (code && /^[a-z0-9][a-z0-9_-]{3,31}$/.test(code)) {
+      response.cookies.set('laterbox_ref', code, {
+        path: '/',
+        httpOnly: false,
+        sameSite: 'lax',
+        secure: process.env.NODE_ENV === 'production',
+        maxAge: 30 * 24 * 60 * 60,
+        ...(process.env.NODE_ENV === 'production' ? { domain: '.laterbox.dev' } : {}),
+      });
+    }
+  }
+  return response;
 }
 
 export default routeDomain;
