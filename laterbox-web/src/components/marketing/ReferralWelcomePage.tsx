@@ -328,3 +328,4 @@ export function ReferralWelcomePage({ referralCode }: ReferralWelcomePageProps) 
     </div>
   );
 }
+

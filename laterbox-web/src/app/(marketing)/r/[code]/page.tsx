@@ -24,3 +24,4 @@ export default function ReferralWelcomeRoute({ params }: PageProps) {
   const { code } = use(params);
   return <ReferralWelcomePage referralCode={code} />;
 }
+
