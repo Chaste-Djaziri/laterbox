@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[Web / Your LaterBox Your Rules interactive showcase]** Redesign the right-side visual component of the "Your LaterBox. Your rules." homepage section. Replace the static tilted perspective container with a dynamic, tactile interactive canvas that updates in real-time as users select different preference rules (Quick Capture simulator, schedule return presets, real-time light/dark theme switcher, offline sync cache visualizer, smart tags organizer, and local-first encryption card).
+
 - **[Web / Maintenance overlay dev bypass]** Bypass the site-wide maintenance screen and polling in local development environments and on localhost/127.0.0.1 domains so local development and testing are never blocked by production maintenance schedules.
 
 - **[Web / Plans page scroll fix]** Fix storage plans page (`/plans`) not scrolling to view all plan tiers by removing root `overflow-hidden` and `min-h-screen` constraints on `StoragePricingPage`. Add proper overscroll containment and comfortable bottom padding in the app shell layout so all 8 plans, comparison details, and checkout actions can be scrolled smoothly on desktop and mobile.
