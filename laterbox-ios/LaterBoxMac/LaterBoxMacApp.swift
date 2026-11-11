@@ -2,6 +2,7 @@
 import SwiftUI
 import Security
 import AuthenticationServices
+import AppKit
 
 private enum MacColors {
     static let accent = Color(red: 230 / 255, green: 237 / 255, blue: 176 / 255)
@@ -14,6 +15,7 @@ struct LaterBoxMacApp: App {
             MacLoginView()
                 .frame(minWidth: 430, minHeight: 480)
         }
+        .windowStyle(.hiddenTitleBar)
         .defaultSize(width: 550, height: 620)
         .windowResizability(.contentMinSize)
     }
@@ -292,9 +294,83 @@ private final class MacOAuthWindowProvider: NSObject, ASWebAuthenticationPresent
     }
 }
 
+
+private struct MacWindowChrome: NSViewRepresentable {
+    func makeNSView(context: Context) -> NSView {
+        let view = NSView()
+        DispatchQueue.main.async { configure(view.window) }
+        return view
+    }
+
+    func updateNSView(_ view: NSView, context: Context) {
+        DispatchQueue.main.async { configure(view.window) }
+    }
+
+    private func configure(_ window: NSWindow?) {
+        guard let window else { return }
+        window.titleVisibility = .hidden
+        window.titlebarAppearsTransparent = true
+        window.isMovableByWindowBackground = true
+        for type in [NSWindow.ButtonType.closeButton, .miniaturizeButton, .zoomButton] {
+            window.standardWindowButton(type)?.isHidden = true
+        }
+    }
+}
+
+private struct MacEmailInput: View {
+    @Binding var email: String
+    let submit: () -> Void
+    @FocusState private var focused: Bool
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
+        HStack(spacing: 11) {
+            Image(systemName: "envelope")
+                .font(.system(size: 15, weight: .medium))
+                .foregroundStyle(focused ? .primary : .secondary)
+                .frame(width: 19)
+                .accessibilityHidden(true)
+            TextField("Email address", text: $email)
+                .font(.system(size: 14))
+                .textContentType(.emailAddress)
+                .textFieldStyle(.plain)
+                .focused($focused)
+                .onSubmit(submit)
+                .accessibilityIdentifier("mac.auth.email")
+            if !email.isEmpty {
+                Button {
+                    email = ""
+                    focused = true
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 14))
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Clear email")
+            }
+        }
+        .padding(.horizontal, 14)
+        .frame(height: 48)
+        .background(
+            colorScheme == .dark ? Color.white.opacity(0.055) : Color.white,
+            in: RoundedRectangle(cornerRadius: 12, style: .continuous)
+        )
+        .overlay {
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .strokeBorder(
+                    focused ? Color.primary.opacity(0.65) : Color.primary.opacity(0.13),
+                    lineWidth: focused ? 1.5 : 1
+                )
+        }
+        .animation(.easeOut(duration: 0.16), value: focused)
+    }
+}
+
 struct MacLoginView: View {
     @StateObject private var auth = MacAuthModel()
     @Environment(\.colorScheme) private var scheme
+    @Environment(\.dismissWindow) private var dismissWindow
 
     private var title: String {
         switch auth.step {
@@ -306,8 +382,9 @@ struct MacLoginView: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            Spacer(minLength: 18)
+        ZStack(alignment: .topLeading) {
+            VStack(spacing: 0) {
+                Spacer(minLength: 18)
             VStack(spacing: 22) {
                 HStack(spacing: 9) {
                     Image(systemName: "tray.full.fill")
@@ -329,10 +406,7 @@ struct MacLoginView: View {
                 } else {
                     VStack(spacing: 12) {
                         if auth.step == .email || auth.step == .signup {
-                            TextField("Email address", text: $auth.email)
-                                .textContentType(.emailAddress)
-                                .accessibilityIdentifier("mac.auth.email")
-                                .onSubmit(auth.submit)
+                            MacEmailInput(email: $auth.email, submit: auth.submit)
                         } else {
                             HStack {
                                 Text(auth.email)
@@ -460,6 +534,23 @@ struct MacLoginView: View {
         .padding(.horizontal, 30)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(nsColor: .windowBackgroundColor))
+
+            Button {
+                NSApp.keyWindow?.close()
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 32, height: 32)
+                    .background(Color.primary.opacity(0.055), in: RoundedRectangle(cornerRadius: 10))
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Close LaterBox")
+            .padding(.leading, 20)
+            .padding(.top, 20)
+        }
+        .background(MacWindowChrome().frame(width: 0, height: 0))
     }
 
     private func providerButton(_ title: String, symbol: String, provider: String) -> some View {
