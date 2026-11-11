@@ -90,6 +90,7 @@ private final class MacAuthModel: ObservableObject {
     enum Step: Equatable { case restoring, email, password, signup, verify, authenticated }
     @Published var step: Step = .restoring
     @Published var email = ""
+    @Published private(set) var accountEmail = ""
     @Published var password = ""
     @Published var confirmPassword = ""
     @Published var code = ""
@@ -147,6 +148,8 @@ private final class MacAuthModel: ObservableObject {
                 if revision == sessionRevision { step = .email }
                 return
             }
+
+            if let token = credentials["access_token"] { updateAccountEmail(from: token) }
 
             // Prefer refresh if a refresh token is available, even if the old
             // access token looks valid. This also detects revoked sessions.
@@ -243,6 +246,20 @@ private final class MacAuthModel: ObservableObject {
     private func isRejectedCredentials(_ error: Error) -> Bool {
         let nsError = error as NSError
         return nsError.domain == "LaterBoxAuth" && [400, 401, 403].contains(nsError.code)
+    }
+
+    // Resolve display initials from the authenticated JWT; supports restored
+    // sessions and browser OAuth without requiring a separate profile API.
+    private func updateAccountEmail(from token: String) {
+        let parts = token.split(separator: ".")
+        guard parts.count == 3 else { return }
+        var encoded = String(parts[1]).replacingOccurrences(of: "-", with: "+")
+            .replacingOccurrences(of: "_", with: "/")
+        encoded += String(repeating: "=", count: (4 - encoded.count % 4) % 4)
+        guard let data = Data(base64Encoded: encoded),
+              let payload = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let email = payload["email"] as? String else { return }
+        accountEmail = email
     }
 
     private func hasUnexpiredJWT(_ token: String) -> Bool {
@@ -444,7 +461,11 @@ private final class MacAuthModel: ObservableObject {
         let updated = SecItemUpdate(sessionQuery as CFDictionary, [
             kSecValueData as String: value
         ] as CFDictionary)
-        if updated == errSecSuccess { return }
+        if updated == errSecSuccess {
+            updateAccountEmail(from: access)
+            if accountEmail.isEmpty { accountEmail = email }
+            return
+        }
         guard updated == errSecItemNotFound else {
             throw NSError(domain: NSOSStatusErrorDomain, code: Int(updated),
                           userInfo: [NSLocalizedDescriptionKey: "Unable to update your saved session."])
@@ -456,11 +477,14 @@ private final class MacAuthModel: ObservableObject {
             throw NSError(domain: NSOSStatusErrorDomain, code: Int(status),
                           userInfo: [NSLocalizedDescriptionKey: "Unable to save your sign-in securely."])
         }
+        updateAccountEmail(from: access)
+        if accountEmail.isEmpty { accountEmail = email }
     }
 
     func signOut() {
         sessionRevision += 1
         clearSession()
+        accountEmail = ""
         password = ""
         confirmPassword = ""
         code = ""
@@ -608,7 +632,7 @@ struct MacLoginView: View {
     var body: some View {
         Group {
             if auth.step == .authenticated {
-                MacDashboardView(signOut: auth.signOut)
+                MacDashboardView(signOut: auth.signOut, accountEmail: auth.accountEmail)
             } else if auth.step == .restoring {
                 ZStack {
                     MacAuthCanvas().ignoresSafeArea()

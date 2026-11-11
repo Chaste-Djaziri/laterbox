@@ -55,8 +55,12 @@ private enum DashboardRoute: String, CaseIterable, Identifiable {
 
 struct MacDashboardView: View {
     let signOut: () -> Void
+    let accountEmail: String
     @State private var selection: DashboardRoute = .inbox
     @State private var showingQuickSave = false
+    @State private var searchQuery = ""
+    @State private var searchFocused = false
+    @FocusState private var searchInputFocused: Bool
     @Environment(\.colorScheme) private var scheme
 
     private var mainBackground: Color {
@@ -73,6 +77,12 @@ struct MacDashboardView: View {
             }
         }
         .background(mainBackground)
+        .onChange(of: searchInputFocused) { _, focused in searchFocused = focused }
+        .background {
+            Button("") { searchInputFocused = true }
+                .keyboardShortcut("k", modifiers: [.command])
+                .hidden()
+        }
         .sheet(isPresented: $showingQuickSave) {
             MacQuickSavePlaceholder()
         }
@@ -169,26 +179,190 @@ struct MacDashboardView: View {
         .accessibilityAddTraits(active ? [.isSelected] : [])
     }
 
+    private var searchMatches: [DashboardRoute] {
+        let query = searchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { return [] }
+        return DashboardRoute.allCases.filter { $0.rawValue.localizedCaseInsensitiveContains(query) }
+    }
+
+    private var accountInitials: String {
+        let username = accountEmail.split(separator: "@").first.map(String.init) ?? ""
+        let initials = String(username.prefix(2)).uppercased()
+        return initials.isEmpty ? "U" : initials
+    }
+
     private var header: some View {
-        HStack(spacing: 16) {
+        HStack(spacing: 12) {
             Text(selection.rawValue)
-                .font(.system(size: 21, weight: .semibold))
-            Spacer()
-            Button { selection = .inbox } label: {
-                Image(systemName: "house")
+                .font(.system(size: 23, weight: .bold))
+                .tracking(-0.6)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+                .fixedSize(horizontal: true, vertical: false)
+
+            Spacer(minLength: 8)
+
+            searchField
+                .frame(maxWidth: 500)
+
+            Spacer(minLength: 8)
+
+            HStack(spacing: 9) {
+                Button {} label: {
+                    Label("AI organize", systemImage: "sparkles")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(DashboardStyle.ink)
+                        .padding(.horizontal, 13)
+                        .frame(height: 36)
+                        .background(DashboardStyle.lime, in: Capsule())
+                }
+                .buttonStyle(.plain)
+                .disabled(true)
+                .opacity(0.65)
+                .help("AI organizing will be available after items are connected")
+
+                Button { selection = .settings; dismissSearch() } label: {
+                    Image(systemName: "gearshape")
+                        .font(.system(size: 16, weight: .medium))
+                        .frame(width: 36, height: 36)
+                }
+                .buttonStyle(.plain)
+                .background(headerSurface, in: Circle())
+                .overlay(Circle().strokeBorder(headerBorder))
+                .help("Settings")
+                .accessibilityLabel("Settings")
+
+                Menu {
+                    Button { selection = .settings; dismissSearch() } label: {
+                        Label("Settings", systemImage: "gearshape")
+                    }
+                    Divider()
+                    Button(role: .destructive) { signOut() } label: {
+                        Label("Sign out", systemImage: "rectangle.portrait.and.arrow.right")
+                    }
+                } label: {
+                    Text(accountInitials)
+                        .font(.system(size: 16, weight: .heavy, design: .rounded))
+                        .tracking(-0.4)
+                        .foregroundStyle(DashboardStyle.lime)
+                        .frame(width: 44, height: 44)
+                        .background(DashboardStyle.ink, in: Circle())
+                        .overlay {
+                            Circle()
+                                .strokeBorder(scheme == .dark ? Color.white.opacity(0.18) : Color.white, lineWidth: 2)
+                        }
+                        .contentShape(Circle())
+                }
+                .menuStyle(.borderlessButton)
+                .menuIndicator(.hidden)
+                .frame(width: 44, height: 44)
+                .help(accountEmail.isEmpty ? "Account" : accountEmail)
+                .accessibilityLabel("Account")
             }
-            .buttonStyle(.plain)
-            .help("Inbox")
-            Button { signOut() } label: {
-                Image(systemName: "rectangle.portrait.and.arrow.right")
-            }
-            .buttonStyle(.plain)
-            .help("Sign out")
-            .accessibilityLabel("Sign out")
         }
-        .padding(.leading, 30)
-        .padding(.trailing, 24)
-        .frame(height: 74)
+        .padding(.leading, 2)
+        .padding(.trailing, 20)
+        .frame(height: 52)
+    }
+
+    private var headerSurface: Color {
+        scheme == .dark
+            ? Color(red: 41 / 255, green: 44 / 255, blue: 46 / 255)
+            : .white
+    }
+
+    private var headerBorder: Color {
+        scheme == .dark ? Color.white.opacity(0.13) : Color(red: 228 / 255, green: 224 / 255, blue: 213 / 255)
+    }
+
+    private var searchField: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 14, weight: .medium))
+                .foregroundStyle(.secondary)
+            TextField("Search in \(selection.rawValue.lowercased()) or library…  ⌘K", text: $searchQuery)
+                .textFieldStyle(.plain)
+                .font(.system(size: 13))
+                .focused($searchInputFocused)
+                .onSubmit {
+                    if let first = searchMatches.first {
+                        selection = first
+                        dismissSearch()
+                    }
+                }
+                .onExitCommand(perform: dismissSearch)
+                .accessibilityIdentifier("mac.dashboard.search")
+            if !searchQuery.isEmpty {
+                Button {
+                    searchQuery = ""
+                    searchInputFocused = true
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 13))
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+                .help("Clear search")
+            } else {
+                Text("⌘K")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(.tertiary)
+            }
+        }
+        .padding(.horizontal, 15)
+        .frame(height: 41)
+        .background(headerSurface, in: Capsule())
+        .overlay {
+            Capsule().strokeBorder(searchInputFocused ? Color.primary.opacity(0.48) : headerBorder,
+                                   lineWidth: searchInputFocused ? 1.4 : 1)
+        }
+        .popover(isPresented: Binding(
+            get: { searchFocused && !searchQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty },
+            set: { if !$0 { searchFocused = false } }
+        ), arrowEdge: .bottom) {
+            VStack(alignment: .leading, spacing: 7) {
+                Text("Navigate to")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 9)
+                if searchMatches.isEmpty {
+                    Text("No matching sections")
+                        .font(.system(size: 13))
+                        .foregroundStyle(.secondary)
+                        .padding(9)
+                } else {
+                    ForEach(searchMatches) { route in
+                        Button {
+                            selection = route
+                            dismissSearch()
+                        } label: {
+                            Label(route.rawValue, systemImage: route.icon)
+                                .font(.system(size: 13))
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(.vertical, 7)
+                                .padding(.horizontal, 10)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .background(Color.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: 9))
+                    }
+                }
+                Divider()
+                Text("Saved-item search will be available after cloud sync is connected.")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.horizontal, 9)
+            }
+            .padding(12)
+            .frame(width: 320)
+        }
+    }
+
+    private func dismissSearch() {
+        searchQuery = ""
+        searchFocused = false
+        searchInputFocused = false
     }
 
     private var page: some View {
