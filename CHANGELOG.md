@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[macOS / Custom authentication window]** Use a clean custom email field with focus styling and inline clear action, hide native titlebar controls, and add an in-app window close button.
+
 - **[macOS / Minimal authentication]** Replace the split login artwork with a centered, compact sign-in/sign-up form; add Google OAuth and native Apple sign-in alongside email authentication and account verification.
 
 - **[macOS / Initial native sign-in]** Introduce a macOS SwiftUI app target in the existing Apple Xcode project with a desktop-designed Supabase email/password sign-in screen and email verification flow. The iOS target remains separate.
