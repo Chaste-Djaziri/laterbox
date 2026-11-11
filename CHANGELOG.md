@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[Admin / Minimal feedback email table]** Simplify the admin feedback table into the clean, uncluttered email inbox row design used on the user dashboard. Remove excess select controls and multiple dropdowns, featuring sleek tabs with active indicators, sender column, bold subject with inline message snippet, subtle category/platform badges, date stamp, and hover quick actions with one-click row navigation to full details.
+
 - **[Admin / Feedback inbox table & details view]** Upgrade Admin Feedback & Reports into a comprehensive triage inbox featuring a structured data table with status tabs (Open, In Progress, Resolved, All), live count metrics, search across contacts and messages, category and platform filters, and a dedicated ticket details view (/admin/feedback/[id]) with sender metadata, full message formatting, technical diagnostics, and one-click triage updates.
 
 - **[Admin / Collapsed icon sidebar]** Redesign the Admin Control Center sidebar into the exact collapsed icon rail format of the user app dashboard: 84px width, cream container, brand logo, rounded 52px navigation items with active green indicators, live badge counts, quick return to user app, and floating side tooltips.
