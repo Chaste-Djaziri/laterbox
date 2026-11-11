@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[Extension / Google Search result save buttons]** Add native "Save to LaterBox" action buttons directly beneath Google Search results. Automatically extracts result destination URLs, titles, and snippets, with light/dark theme adaptation and one-click saving to LaterBox.
+
 - **[Extension / Login enforcement & simplified UI]** Require LaterBox authentication for extension captures, context menus, and shortcuts. Streamline the popup to hide save actions and page previews when signed out with a direct one-click sign-in prompt. Strip away verbose configuration text and bloated paragraphs in favor of a clean, minimal "How to use" guide with quick tips and keyboard shortcuts.
 
 - **[Web / Sidebar Earn tab relocation]** Move the Earn navigation tab into the Collections group in the dashboard sidebar rail, clustering workspace assets and rewards together between core triage and system utilities.
