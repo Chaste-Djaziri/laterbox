@@ -84,7 +84,7 @@ struct MacDashboardView: View {
                 .hidden()
         }
         .sheet(isPresented: $showingQuickSave) {
-            MacQuickSavePlaceholder()
+            MacQuickSaveView()
         }
     }
 
@@ -391,23 +391,3 @@ struct MacDashboardView: View {
     }
 }
 
-private struct MacQuickSavePlaceholder: View {
-    @Environment(\.dismiss) private var dismiss
-
-    var body: some View {
-        VStack(spacing: 18) {
-            Image(systemName: "bookmark")
-                .font(.system(size: 32))
-            Text("Quick Save")
-                .font(.title2.weight(.semibold))
-            Text("Saving items on macOS will be available when the shared data layer is connected.")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-            Button("Close") { dismiss() }
-                .keyboardShortcut(.cancelAction)
-        }
-        .padding(32)
-        .frame(width: 400)
-    }
-}
