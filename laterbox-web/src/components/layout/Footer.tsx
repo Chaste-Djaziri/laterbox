@@ -9,7 +9,7 @@ const sections = [
   {
     title: 'Explore',
     links: [
-      { label: 'Features', href: '/features' },
+      { label: 'Features', href: '/#features' },
       { label: 'How it works', href: '/#how-it-works' },
       { label: 'Storage plans', href: '/pricing' },
       { label: 'Getting started', href: '/guide' },
@@ -27,8 +27,8 @@ const sections = [
   {
     title: 'Resources',
     links: [
-      { label: 'About us', href: '/about' },
-      { label: 'Help & guides', href: '/docs' },
+      { label: 'Documentation', href: '/docs' },
+      { label: 'FAQ', href: '/#faq' },
       { label: 'Privacy', href: '/privacy' },
       { label: 'Terms of service', href: '/terms' },
       { label: 'Refund policy', href: '/refund' },
