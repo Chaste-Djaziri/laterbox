@@ -29,7 +29,6 @@ interface HeaderNavLink {
 const navLinks: readonly HeaderNavLink[] = [
   { href: '/download', label: 'Downloads', icon: Download, badge: 'Apps', detail: 'iOS, macOS, Android & Extensions' },
   { href: '/pricing', label: 'Pricing', icon: CreditCard, detail: 'Storage plans & subscription tiers' },
-  { href: '/guide', label: 'Guide', icon: HelpCircle, detail: 'Getting started & interactive workflows' },
   { href: '/docs', label: 'Docs', icon: BookOpen, detail: 'Architecture, APIs & reference' },
 ];
 
@@ -91,8 +90,8 @@ export function Header() {
         <div className="mx-auto flex min-h-9 max-w-[1240px] items-center justify-center gap-2 px-4 py-2 text-center text-[11px] font-medium tracking-[0.01em] sm:text-xs">
           <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#e6edb0]" aria-hidden="true" />
           <span>Less tab clutter. More room to think.</span>
-          <Link href="/guide" className="inline-flex items-center gap-1 font-bold text-[#e6edb0] underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#e6edb0]">
-            Explore the guide <ArrowRight className="h-3 w-3" aria-hidden="true" />
+          <Link href="/download" className="inline-flex items-center gap-1 font-bold text-[#e6edb0] underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#e6edb0]">
+            Get LaterBox <ArrowRight className="h-3 w-3" aria-hidden="true" />
           </Link>
         </div>
       </div>
