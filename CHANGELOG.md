@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[Web / Header navigation dedicated routes]** Restructure header navigation to exclusively use distinct page routes (`/download`, `/pricing`, `/guide`, `/docs`), removing all in-page anchor links leading back to the same page. Update top promo bar to link directly to the interactive guide (`/guide`).
+
 - **[Web / Header navigation & marketing routes streamlining]** Streamline header navigation links to keep only essential and relevant destinations: Features (`/#features`), How it works (`/#how-it-works`), Downloads (`/download`), Pricing (`/pricing`), Docs (`/docs`), and FAQ (`/#faq`). Remove redundant "More" dropdown. Prune obsolete placeholder marketing routes (`/about`, `/features`, `/browser-extension`) and consolidate section anchors so visitors land directly on rich interactive product showcases.
 
 - **[Web / Your LaterBox Your Rules interactive showcase]** Redesign the right-side visual component of the "Your LaterBox. Your rules." homepage section. Replace the static tilted perspective container with a dynamic, tactile interactive canvas that updates in real-time as users select different preference rules (Quick Capture simulator, schedule return presets, real-time light/dark theme switcher, offline sync cache visualizer, smart tags organizer, and local-first encryption card).
