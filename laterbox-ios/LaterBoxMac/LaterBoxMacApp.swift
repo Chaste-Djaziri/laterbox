@@ -8,6 +8,59 @@ private enum MacColors {
     static let accent = Color(red: 230 / 255, green: 237 / 255, blue: 176 / 255)
 }
 
+// Matches the deterministic graphite texture used by InboxGrainBackground on iOS.
+private struct MacAuthCanvas: View {
+    @Environment(\.colorScheme) private var scheme
+
+    var body: some View {
+        ZStack {
+            if scheme == .dark {
+                LinearGradient(
+                    colors: [
+                        Color(red: 34 / 255, green: 36 / 255, blue: 39 / 255),
+                        Color(red: 27 / 255, green: 29 / 255, blue: 32 / 255),
+                        Color(red: 23 / 255, green: 25 / 255, blue: 27 / 255)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+                Canvas(opaque: false, rendersAsynchronously: true) { context, size in
+                    guard size.width > 0, size.height > 0 else { return }
+                    var highlights = Path()
+                    var shadows = Path()
+                    let count = min(9_000, Int(size.width * size.height / 62))
+                    for index in 0..<count {
+                        let seed = UInt64(index)
+                        let x = Self.noise(seed &* 3 &+ 11) * size.width
+                        let y = Self.noise(seed &* 3 &+ 12) * size.height
+                        let diameter = 0.6 + Self.noise(seed &* 3 &+ 13) * 0.8
+                        let dot = CGRect(x: x, y: y, width: diameter, height: diameter)
+                        if index.isMultiple(of: 2) {
+                            highlights.addRect(dot)
+                        } else {
+                            shadows.addRect(dot)
+                        }
+                    }
+                    context.fill(highlights, with: .color(.white.opacity(0.075)))
+                    context.fill(shadows, with: .color(.black.opacity(0.16)))
+                }
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
+            } else {
+                Color(red: 248 / 255, green: 249 / 255, blue: 245 / 255)
+            }
+        }
+    }
+
+    private static func noise(_ value: UInt64) -> CGFloat {
+        var seed = value &+ 0x9E3779B97F4A7C15
+        seed = (seed ^ (seed >> 30)) &* 0xBF58476D1CE4E5B9
+        seed = (seed ^ (seed >> 27)) &* 0x94D049BB133111EB
+        seed ^= seed >> 31
+        return CGFloat(seed & 0xFFFF) / 65_535
+    }
+}
+
 @main
 struct LaterBoxMacApp: App {
     var body: some Scene {
@@ -394,13 +447,13 @@ private struct MacAuthInput: View {
         .padding(.horizontal, 14)
         .frame(height: 48)
         .background(
-            colorScheme == .dark ? Color.white.opacity(0.055) : Color.white,
+            colorScheme == .dark ? Color(red: 41 / 255, green: 44 / 255, blue: 46 / 255) : Color.white,
             in: RoundedRectangle(cornerRadius: 12, style: .continuous)
         )
         .overlay {
             RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .strokeBorder(
-                    focused ? Color.primary.opacity(0.65) : Color.primary.opacity(0.13),
+                    focused ? Color.primary.opacity(0.60) : (colorScheme == .dark ? Color.white.opacity(0.13) : Color(red: 220 / 255, green: 224 / 255, blue: 214 / 255)),
                     lineWidth: focused ? 1.5 : 1
                 )
         }
@@ -424,6 +477,7 @@ struct MacLoginView: View {
 
     var body: some View {
         ZStack(alignment: .topLeading) {
+            MacAuthCanvas().ignoresSafeArea()
             VStack(spacing: 0) {
                 Spacer(minLength: 18)
             VStack(spacing: 22) {
@@ -552,7 +606,7 @@ struct MacLoginView: View {
         }
         .padding(.horizontal, 30)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color(nsColor: .windowBackgroundColor))
+        .background(Color.clear)
 
         }
         .background(MacWindowChrome().frame(width: 0, height: 0))
@@ -569,8 +623,8 @@ struct MacLoginView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 11))
-        .overlay(RoundedRectangle(cornerRadius: 11).strokeBorder(.primary.opacity(0.12)))
+        .background(scheme == .dark ? Color(red: 41 / 255, green: 44 / 255, blue: 46 / 255) : .white, in: RoundedRectangle(cornerRadius: 11))
+        .overlay(RoundedRectangle(cornerRadius: 11).strokeBorder(scheme == .dark ? Color.white.opacity(0.13) : Color(red: 220 / 255, green: 224 / 255, blue: 214 / 255)))
         .disabled(auth.busy)
     }
 }
