@@ -235,6 +235,7 @@ struct CaptureComposerScreen: View {
                     .overlay(RoundedRectangle(cornerRadius: 13).strokeBorder(border, lineWidth: 1))
             }
             .accessibilityLabel(step == .capture ? "Close create item" : "Previous step")
+            .accessibilityIdentifier("capture.close")
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(savedItem == nil ? "Create Item" : "Item Saved")
@@ -738,6 +739,7 @@ struct CaptureComposerScreen: View {
                 }
                 .foregroundStyle(Color(hex: "171711"))
                 .background(accent, in: RoundedRectangle(cornerRadius: 14))
+                .accessibilityIdentifier("capture.done")
             } else {
                 if step == .capture {
                     assetMenu
