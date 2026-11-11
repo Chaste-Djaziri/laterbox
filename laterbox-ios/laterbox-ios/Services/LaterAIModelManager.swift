@@ -263,7 +263,9 @@ final class LaterAIModelManager: ObservableObject {
         isResettingForSignOut = true
         defer { isResettingForSignOut = false }
         if selectedProvider != .local { selectedProvider = .local }
-        if isOnDeviceModelEnabled { isOnDeviceModelEnabled = false }
+        if isOnDeviceModelEnabled != OnDeviceModelSupport.isSupported {
+            isOnDeviceModelEnabled = OnDeviceModelSupport.isSupported
+        }
         if !bazaarlinkApiKey.isEmpty { bazaarlinkApiKey = "" }
         if !geminiApiKey.isEmpty { geminiApiKey = "" }
         if !openaiApiKey.isEmpty { openaiApiKey = "" }
