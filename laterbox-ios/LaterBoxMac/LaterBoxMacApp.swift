@@ -87,7 +87,7 @@ private struct MacAuthError: Decodable {
 
 @MainActor
 private final class MacAuthModel: ObservableObject {
-    enum Step { case email, password, signup, verify, authenticated }
+    enum Step: Equatable { case email, password, signup, verify, authenticated }
     @Published var step: Step = .email
     @Published var email = ""
     @Published var password = ""
@@ -476,8 +476,12 @@ struct MacLoginView: View {
     }
 
     var body: some View {
-        ZStack(alignment: .topLeading) {
-            MacAuthCanvas().ignoresSafeArea()
+        Group {
+            if auth.step == .authenticated {
+                MacDashboardView(signOut: auth.signOut)
+            } else {
+                ZStack(alignment: .topLeading) {
+                    MacAuthCanvas().ignoresSafeArea()
             VStack(spacing: 0) {
                 Spacer(minLength: 18)
             VStack(spacing: 22) {
@@ -609,7 +613,15 @@ struct MacLoginView: View {
         .background(Color.clear)
 
         }
-        .background(MacWindowChrome().frame(width: 0, height: 0))
+                .background(MacWindowChrome().frame(width: 0, height: 0))
+            }
+        }
+        .onChange(of: auth.step) { _, step in
+            guard let window = NSApp.keyWindow else { return }
+            let size = step == .authenticated ? NSSize(width: 1050, height: 740) : NSSize(width: 550, height: 620)
+            window.setContentSize(size)
+            window.center()
+        }
     }
 
     private func providerButton(_ title: String, symbol: String, provider: String) -> some View {
