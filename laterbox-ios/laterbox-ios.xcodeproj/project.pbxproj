@@ -77,11 +77,11 @@
 		9CD0ABE6B11066E3BE4E19C1 /* LaterBoxShare.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = LaterBoxShare.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		9F81B1954BAF7A76CDFE5F0E /* ShareViewController.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
 		A11110000000000000000003 /* ChatCaptureComposer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ChatCaptureComposer.swift; sourceTree = "<group>"; };
+		ABCD00000000000000000001 /* LaterBoxMac.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LaterBoxMac.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		DAC0F63DC56B313D3701E636 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
 		LBW000100000000000000001 /* LaterBoxWidgets.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LaterBoxWidgets.swift; sourceTree = "<group>"; };
 		LBW000200000000000000001 /* LaterBoxWidgets.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = LaterBoxWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		LBW000500000000000000001 /* QuickSaveIntent.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = QuickSaveIntent.swift; sourceTree = "<group>"; };
-		ABCD00000000000000000001 /* LaterBoxMac.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LaterBoxMac.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -92,7 +92,13 @@
 			);
 			target = 5194A4F73072E2E100DE79B5 /* laterbox-ios */;
 		};
-		ABCD00000000000000000010 /* Exceptions for LaterBoxMac */ = {isa = PBXFileSystemSynchronizedBuildFileExceptionSet; membershipExceptions = (Info.plist, LaterBoxMac.entitlements,); target = ABCD00000000000000000006 /* LaterBoxMac */; };
+		ABCD00000000000000000010 /* Exceptions for "LaterBoxMac" folder in "LaterBoxMac" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = ABCD00000000000000000006 /* LaterBoxMac */;
+		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -114,7 +120,14 @@
 			path = "laterbox-iosUITests";
 			sourceTree = "<group>";
 		};
-		ABCD00000000000000000002 /* LaterBoxMac */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (ABCD00000000000000000010 /* Exceptions for LaterBoxMac */,); path = LaterBoxMac; sourceTree = "<group>"; };
+		ABCD00000000000000000002 /* LaterBoxMac */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				ABCD00000000000000000010 /* Exceptions for "LaterBoxMac" folder in "LaterBoxMac" target */,
+			);
+			path = LaterBoxMac;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -147,6 +160,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		ABCD00000000000000000003 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		LBW001400000000000000001 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -154,7 +174,6 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		ABCD00000000000000000003 /* Frameworks */ = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -299,6 +318,26 @@
 			productReference = 5194A5113072E2E100DE79B5 /* laterbox-iosUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
+		ABCD00000000000000000006 /* LaterBoxMac */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = ABCD00000000000000000007 /* Build configuration list for PBXNativeTarget "LaterBoxMac" */;
+			buildPhases = (
+				ABCD00000000000000000005 /* Sources */,
+				ABCD00000000000000000003 /* Frameworks */,
+				ABCD00000000000000000004 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				ABCD00000000000000000002 /* LaterBoxMac */,
+			);
+			name = LaterBoxMac;
+			productName = LaterBoxMac;
+			productReference = ABCD00000000000000000001 /* LaterBoxMac.app */;
+			productType = "com.apple.product-type.application";
+		};
 		F9296E9CF9CDFD9079666B59 /* LaterBoxShare */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = DBCA85860435523381768280 /* Build configuration list for PBXNativeTarget "LaterBoxShare" */;
@@ -333,7 +372,6 @@
 			productReference = LBW000200000000000000001 /* LaterBoxWidgets.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
-		ABCD00000000000000000006 /* LaterBoxMac */ = {isa = PBXNativeTarget; buildConfigurationList = ABCD00000000000000000007 /* Build configuration list for PBXNativeTarget "LaterBoxMac" */; buildPhases = (ABCD00000000000000000005 /* Sources */, ABCD00000000000000000003 /* Frameworks */, ABCD00000000000000000004 /* Resources */,); buildRules = (); dependencies = (); fileSystemSynchronizedGroups = (ABCD00000000000000000002 /* LaterBoxMac */,); name = LaterBoxMac; productName = LaterBoxMac; productReference = ABCD00000000000000000001 /* LaterBoxMac.app */; productType = "com.apple.product-type.application"; };
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -410,6 +448,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		ABCD00000000000000000004 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		LBW001500000000000000001 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -417,7 +462,6 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		ABCD00000000000000000004 /* Resources */ = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -456,6 +500,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		ABCD00000000000000000005 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		LBW001300000000000000001 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -466,7 +517,6 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		ABCD00000000000000000005 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -861,6 +911,57 @@
 			};
 			name = Release;
 		};
+		ABCD00000000000000000008 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CODE_SIGN_ENTITLEMENTS = LaterBoxMac/LaterBoxMac.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = LS42X27YFY;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = LaterBoxMac/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = LaterBox;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = pro.micorp.laterbox.macos;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SUPPORTED_PLATFORMS = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		ABCD00000000000000000009 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CODE_SIGN_ENTITLEMENTS = LaterBoxMac/LaterBoxMac.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = LS42X27YFY;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = LaterBoxMac/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = LaterBox;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = pro.micorp.laterbox.macos;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SUPPORTED_PLATFORMS = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
 		E3CAB64614901325D29759EF /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -925,8 +1026,6 @@
 			};
 			name = Release;
 		};
-		ABCD00000000000000000008 /* Debug */ = {isa = XCBuildConfiguration; buildSettings = { ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES; CODE_SIGN_STYLE = Automatic; DEVELOPMENT_TEAM = LS42X27YFY; CODE_SIGN_ENTITLEMENTS = LaterBoxMac/LaterBoxMac.entitlements; ENABLE_APP_SANDBOX = YES; ENABLE_HARDENED_RUNTIME = YES; ENABLE_PREVIEWS = YES; GENERATE_INFOPLIST_FILE = YES; INFOPLIST_FILE = "LaterBoxMac/Info.plist"; INFOPLIST_KEY_CFBundleDisplayName = LaterBox; INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity"; MACOSX_DEPLOYMENT_TARGET = 14.0; PRODUCT_BUNDLE_IDENTIFIER = pro.micorp.laterbox.macos; PRODUCT_NAME = "$(TARGET_NAME)"; SDKROOT = macosx; SUPPORTED_PLATFORMS = macosx; SWIFT_VERSION = 5.0; SWIFT_EMIT_LOC_STRINGS = YES; SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG; SWIFT_OPTIMIZATION_LEVEL = "-Onone"; }; name = Debug; };
-		ABCD00000000000000000009 /* Release */ = {isa = XCBuildConfiguration; buildSettings = { ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES; CODE_SIGN_STYLE = Automatic; DEVELOPMENT_TEAM = LS42X27YFY; CODE_SIGN_ENTITLEMENTS = LaterBoxMac/LaterBoxMac.entitlements; ENABLE_APP_SANDBOX = YES; ENABLE_HARDENED_RUNTIME = YES; ENABLE_PREVIEWS = YES; GENERATE_INFOPLIST_FILE = YES; INFOPLIST_FILE = "LaterBoxMac/Info.plist"; INFOPLIST_KEY_CFBundleDisplayName = LaterBox; INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity"; MACOSX_DEPLOYMENT_TARGET = 14.0; PRODUCT_BUNDLE_IDENTIFIER = pro.micorp.laterbox.macos; PRODUCT_NAME = "$(TARGET_NAME)"; SDKROOT = macosx; SUPPORTED_PLATFORMS = macosx; SWIFT_VERSION = 5.0; SWIFT_EMIT_LOC_STRINGS = YES; SWIFT_COMPILATION_MODE = wholemodule; }; name = Release; };
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -966,6 +1065,15 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
+		ABCD00000000000000000007 /* Build configuration list for PBXNativeTarget "LaterBoxMac" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				ABCD00000000000000000008 /* Debug */,
+				ABCD00000000000000000009 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		DBCA85860435523381768280 /* Build configuration list for PBXNativeTarget "LaterBoxShare" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
@@ -984,7 +1092,6 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		ABCD00000000000000000007 /* Build configuration list for PBXNativeTarget "LaterBoxMac" */ = {isa = XCConfigurationList; buildConfigurations = (ABCD00000000000000000008 /* Debug */, ABCD00000000000000000009 /* Release */,); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
 /* End XCConfigurationList section */
 	};
 	rootObject = 5194A4F03072E2E100DE79B5 /* Project object */;

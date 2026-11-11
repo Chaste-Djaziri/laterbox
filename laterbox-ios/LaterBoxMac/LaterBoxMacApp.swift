@@ -317,29 +317,70 @@ private struct MacWindowChrome: NSViewRepresentable {
     }
 }
 
-private struct MacEmailInput: View {
-    @Binding var email: String
+
+private struct MacAuthInput: View {
+    enum Kind { case email, password, confirmation, code }
+    let kind: Kind
+    @Binding var value: String
     let submit: () -> Void
+    var showsPassword: Binding<Bool>? = nil
     @FocusState private var focused: Bool
     @Environment(\.colorScheme) private var colorScheme
 
+    private var symbol: String {
+        switch kind {
+        case .email: return "envelope"
+        case .password, .confirmation: return "lock"
+        case .code: return "number"
+        }
+    }
+
+    private var placeholder: String {
+        switch kind {
+        case .email: return "Email address"
+        case .password: return "Password"
+        case .confirmation: return "Confirm password"
+        case .code: return "8-digit code"
+        }
+    }
+
     var body: some View {
         HStack(spacing: 11) {
-            Image(systemName: "envelope")
+            Image(systemName: symbol)
                 .font(.system(size: 15, weight: .medium))
                 .foregroundStyle(focused ? .primary : .secondary)
                 .frame(width: 19)
                 .accessibilityHidden(true)
-            TextField("Email address", text: $email)
-                .font(.system(size: 14))
-                .textContentType(.emailAddress)
-                .textFieldStyle(.plain)
-                .focused($focused)
-                .onSubmit(submit)
-                .accessibilityIdentifier("mac.auth.email")
-            if !email.isEmpty {
+
+            Group {
+                if kind == .password || kind == .confirmation {
+                    if showsPassword?.wrappedValue == true && kind == .password {
+                        TextField(placeholder, text: $value)
+                    } else {
+                        SecureField(placeholder, text: $value)
+                    }
+                } else {
+                    TextField(placeholder, text: $value)
+                }
+            }
+            .font(.system(size: 14))
+            .textContentType(kind == .email ? .emailAddress : (kind == .confirmation ? .newPassword : (kind == .password ? .password : .oneTimeCode)))
+            .textFieldStyle(.plain)
+            .focused($focused)
+            .onSubmit(submit)
+            .accessibilityIdentifier("mac.auth.\(kind == .email ? "email" : kind == .password ? "password" : kind == .confirmation ? "confirm" : "code")")
+
+            if kind == .password, let showsPassword {
+                Button { showsPassword.wrappedValue.toggle() } label: {
+                    Image(systemName: showsPassword.wrappedValue ? "eye.slash" : "eye")
+                        .font(.system(size: 14))
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(showsPassword.wrappedValue ? "Hide password" : "Show password")
+            } else if kind == .email && !value.isEmpty {
                 Button {
-                    email = ""
+                    value = ""
                     focused = true
                 } label: {
                     Image(systemName: "xmark.circle.fill")
@@ -386,16 +427,12 @@ struct MacLoginView: View {
             VStack(spacing: 0) {
                 Spacer(minLength: 18)
             VStack(spacing: 22) {
-                HStack(spacing: 9) {
-                    Image(systemName: "tray.full.fill")
-                        .font(.system(size: 20, weight: .medium))
-                        .foregroundStyle(.black)
-                        .frame(width: 39, height: 39)
-                        .background(MacColors.accent, in: RoundedRectangle(cornerRadius: 12))
-                    Text("laterbox")
-                        .font(.system(size: 23, weight: .bold, design: .rounded))
-                        .tracking(-1)
-                }
+                Image(scheme == .dark ? "LaterboxLogoWhite" : "LaterboxLogo")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 190, height: 56)
+                    .accessibilityLabel("LaterBox")
+
                 Text(title)
                     .font(.system(size: 25, weight: .semibold))
                     .tracking(-0.6)
@@ -406,7 +443,7 @@ struct MacLoginView: View {
                 } else {
                     VStack(spacing: 12) {
                         if auth.step == .email || auth.step == .signup {
-                            MacEmailInput(email: $auth.email, submit: auth.submit)
+                            MacAuthInput(kind: .email, value: $auth.email, submit: auth.submit)
                         } else {
                             HStack {
                                 Text(auth.email)
@@ -421,36 +458,18 @@ struct MacLoginView: View {
                         }
 
                         if auth.step == .password || auth.step == .signup {
-                            HStack {
-                                Group {
-                                    if auth.showPassword {
-                                        TextField("Password", text: $auth.password)
-                                    } else {
-                                        SecureField("Password", text: $auth.password)
-                                    }
-                                }
-                                .onSubmit(auth.submit)
-                                Button {
-                                    auth.showPassword.toggle()
-                                } label: {
-                                    Image(systemName: auth.showPassword ? "eye.slash" : "eye")
-                                        .foregroundStyle(.secondary)
-                                }
-                                .buttonStyle(.plain)
-                            }
+                            MacAuthInput(kind: .password, value: $auth.password, submit: auth.submit, showsPassword: $auth.showPassword)
                         }
 
                         if auth.step == .signup {
-                            SecureField("Confirm password", text: $auth.confirmPassword)
-                                .onSubmit(auth.submit)
+                            MacAuthInput(kind: .confirmation, value: $auth.confirmPassword, submit: auth.submit)
                         }
 
                         if auth.step == .verify {
-                            TextField("8-digit code", text: $auth.code)
-                                .onChange(of: auth.code) { _, value in
-                                    auth.code = String(value.filter(\.isNumber).prefix(8))
+                            MacAuthInput(kind: .code, value: $auth.code, submit: auth.submit)
+                                .onChange(of: auth.code) { _, next in
+                                    auth.code = String(next.filter(\.isNumber).prefix(8))
                                 }
-                                .onSubmit(auth.submit)
                         }
 
                         if let error = auth.error {
