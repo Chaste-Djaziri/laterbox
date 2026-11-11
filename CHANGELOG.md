@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[Web / Pricing page background clean-up]** Remove the header and card background blur color gradients on the storage pricing page (`StoragePricingPage`), preparing the surface for a clean redesign.
+
 - **[Web / Downloads page direct minimalism]** Strip away excess copy, redundant descriptions, and verbose sub-sections on the downloads page. Streamline into a direct, focused layout featuring concise platform cards (iOS App Store, Chrome extension, Android APK, and Web App) with immediate one-click actions and an unobtrusive upcoming desktop row.
 
 - **[Web / Downloads page redesign]** Simplify and modernize the downloads page layout and section architecture. Replace cluttered release note placement and repetitive placeholder cards with a clean, focused hierarchy: primary available clients (iOS App Store, Chrome Web Store extension, Android APK, and Web PWA), a streamlined desktop companion roadmap (macOS, Windows, Linux), clear platform capabilities, and cleanly integrated release notes.
