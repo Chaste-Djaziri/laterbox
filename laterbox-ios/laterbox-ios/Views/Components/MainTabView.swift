@@ -29,6 +29,7 @@ struct MainTabView: View {
     @Environment(\.colorScheme) private var colorScheme
     @State private var selectedTab: MainTab = .inbox
     @ObservedObject private var coordinator = SyncCoordinator.shared
+    @ObservedObject private var maintenanceManager = PlatformMaintenanceManager.shared
 
     var body: some View {
         TabView(selection: $selectedTab) {
@@ -59,6 +60,17 @@ struct MainTabView: View {
         .toolbarBackground(.visible, for: .tabBar)
         .accessibilityIdentifier("LaterBox Main Tabs")
         .background(InboxGrainBackground().ignoresSafeArea())
+        .overlay(alignment: .bottom) {
+            if maintenanceManager.isMaintenanceActive || maintenanceManager.isMaintenanceUpcoming {
+                MaintenanceFloatingBannerView()
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 60)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    .zIndex(100)
+            }
+        }
+        .animation(.spring(response: 0.35, dampingFraction: 0.75), value: maintenanceManager.isMaintenanceActive)
+        .animation(.spring(response: 0.35, dampingFraction: 0.75), value: maintenanceManager.isMaintenanceUpcoming)
         .onChange(of: selectedTab) { previous, current in
             // Feedback for user-driven tab navigation, not automatic Quick Save routing.
             if previous != current && !coordinator.showingQuickCapture {

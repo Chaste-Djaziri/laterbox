@@ -197,6 +197,7 @@ struct ContentView: View {
                     await StoreKitManager.shared.updatePurchasedProducts()
                     await coordinator.refreshEntitlement()
                     await coordinator.syncPendingItems(context: modelContext, announceFailure: false)
+                    await PlatformMaintenanceManager.shared.checkStatus()
                 }
                 clipboardManager.checkForCopiedItem()
                 openPendingQuickSaveControl()

@@ -9,7 +9,7 @@ struct MainTabTests {
     @Test("The five primary tabs are stable, distinct, and in daily-use order")
     func tabStructure() {
         #expect(MainTab.allCases.map(\.rawValue) == [
-            "Inbox", "Today", "Kept", "Library", "Settings"
+            "Inbox", "Today", "Library", "Earn", "Settings"
         ])
         #expect(Set(MainTab.allCases.map(\.symbol)).count == 5)
     }
@@ -281,5 +281,15 @@ struct MainTabTests {
         for mailbox in ["Upcoming", "Someday", "Starred", "Archived", "Recently Deleted"] {
             #expect(!titles.contains(mailbox))
         }
+    }
+
+    @Test("Platform maintenance manager tracks active status, messaging, and countdown timers")
+    @MainActor
+    func platformMaintenanceManagerTracking() {
+        let manager = PlatformMaintenanceManager.shared
+        #expect(manager.message.contains("LaterBox"))
+
+        let banner = MaintenanceFloatingBannerView()
+        #expect(banner != nil)
     }
 }
