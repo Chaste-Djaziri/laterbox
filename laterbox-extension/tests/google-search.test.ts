@@ -23,6 +23,51 @@ const searchResultHtml = (id: string, url: string, title: string, snippet: strin
   </div>
 </div>`;
 
+const searchResultWithSitelinks = `
+<div class="MjjYud" id="res-main">
+  <div class="g">
+    <div class="yuRUbf">
+      <a href="https://www.microsoft.com/en-us">
+        <h3 class="LC20lb">Microsoft – AI, Cloud, Productivity</h3>
+      </a>
+    </div>
+    <div class="VwiC3b">Main Microsoft snippet text.</div>
+    <div class="StTG7b">
+      <table class="mslg">
+        <tr>
+          <td class="usJj9c">
+            <h3><a href="https://support.microsoft.com">Support</a></h3>
+            <div>Help with products</div>
+          </td>
+          <td class="usJj9c">
+            <h3><a href="https://www.microsoft.com/microsoft-365">Microsoft 365</a></h3>
+            <div>Office apps</div>
+          </td>
+        </tr>
+      </table>
+    </div>
+  </div>
+</div>`;
+
+const videoSearchResultHtml = `
+<div class="MjjYud" id="res-video">
+  <div class="g">
+    <div class="yuRUbf">
+      <div class="B6fmyf"><button>⋮</button></div>
+      <div class="TbwUpd">www.youtube.com › watch</div>
+    </div>
+    <div class="n0jPhd">
+      <a href="https://www.youtube.com/watch?v=12345" id="video-anchor">
+        <h3 class="LC20lb">Microsoft FINALLY Fixed the Right Click Menu</h3>
+      </a>
+    </div>
+    <div class="video-body">
+      <div class="thumbnail">12:46</div>
+      <div class="VwiC3b">Video description snippet...</div>
+    </div>
+  </div>
+</div>`;
+
 test('isGoogleSearch accurately validates Google Search URLs', () => {
   assert.equal(isGoogleSearch('https://www.google.com/search?q=laterbox'), true);
   assert.equal(isGoogleSearch('https://google.com/search?q=test'), true);
@@ -74,6 +119,29 @@ test('findGoogleSearchResults extracts organic results with titles, URLs, and sn
   assert.equal(results[1].title, 'GitHub Repo');
   assert.equal(results[1].url, 'https://github.com/test');
   assert.equal(results[1].snippet, 'Open source repo.');
+});
+
+test('findGoogleSearchResults excludes sitelinks and sub-pages, keeping only the main link', () => {
+  const pageUrl = 'https://www.google.com/search?q=microsoft';
+  const doc = new JSDOM(searchResultWithSitelinks, { url: pageUrl }).window.document;
+  const results = findGoogleSearchResults(doc, pageUrl);
+
+  // Must only extract the primary search result, NOT sub-pages like Support or Microsoft 365
+  assert.equal(results.length, 1);
+  assert.equal(results[0].title, 'Microsoft – AI, Cloud, Productivity');
+  assert.equal(results[0].url, 'https://www.microsoft.com/en-us');
+});
+
+test('findGoogleSearchResults aligns correctly on Video tab results directly beneath the title', () => {
+  const pageUrl = 'https://www.google.com/search?q=microsoft&tbm=vid';
+  const doc = new JSDOM(videoSearchResultHtml, { url: pageUrl }).window.document;
+  const results = findGoogleSearchResults(doc, pageUrl);
+
+  assert.equal(results.length, 1);
+  assert.equal(results[0].title, 'Microsoft FINALLY Fixed the Right Click Menu');
+  assert.equal(results[0].url, 'https://www.youtube.com/watch?v=12345');
+  // Insertion point must be the title anchor (id="video-anchor"), NOT the breadcrumb (.yuRUbf)
+  assert.equal(results[0].insertionPoint.id, 'video-anchor');
 });
 
 test('createGoogleSearchControls reconciles controls, avoids duplicates, and responds to enabled state', () => {

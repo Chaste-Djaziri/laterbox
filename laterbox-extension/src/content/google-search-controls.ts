@@ -50,6 +50,27 @@ export function extractGoogleTargetUrl(raw: string | null, baseUrl: string): str
   return null;
 }
 
+const SUBPAGE_SELECTORS = [
+  ".StTG7b",
+  ".mslg",
+  ".usJj9c",
+  ".fl",
+  "[data-sitelinks-unit]",
+  "[data-content-feature=\"1\"]",
+  "[data-content-feature=\"5\"]",
+  "table",
+  "ul",
+  "ol",
+  ".K62Hnf",
+  ".csDO3b",
+  ".AuVDad",
+  ".cUnQKe",
+  ".mvhjeb",
+  ".related-question-pair",
+  "[data-initq]",
+  "g-accordion-expander",
+].join(", ");
+
 export function findGoogleSearchResults(doc: Document, pageUrl: string): GoogleSearchResult[] {
   if (!isGoogleSearch(pageUrl)) return [];
 
@@ -63,20 +84,25 @@ export function findGoogleSearchResults(doc: Document, pageUrl: string): GoogleS
       continue;
     }
 
+    // Skip sub-pages, sitelinks, accordion questions, and nested result blocks
+    if (h3.closest(SUBPAGE_SELECTORS)) {
+      continue;
+    }
+
     const anchor =
       h3.closest<HTMLAnchorElement>("a") ||
-      h3.querySelector<HTMLAnchorElement>("a") ||
-      h3.parentElement?.closest<HTMLAnchorElement>("a");
+      h3.querySelector<HTMLAnchorElement>("a");
     if (!anchor) continue;
 
     const targetUrl = extractGoogleTargetUrl(anchor.getAttribute("href"), pageUrl);
     if (!targetUrl || seenUrls.has(targetUrl)) continue;
 
-    let root: Element | null =
+    const root: Element | null =
       h3.closest(".g, [data-sokoban-container], .MjjYud, .hlcw0c, [data-hveid]") ||
       anchor.parentElement ||
       h3.parentElement;
 
+    // Only allow one primary save button per search result block
     if (!root || seenRoots.has(root)) continue;
 
     const title = h3.textContent?.trim() || anchor.textContent?.trim() || "";
@@ -85,9 +111,18 @@ export function findGoogleSearchResults(doc: Document, pageUrl: string): GoogleS
     const snippet =
       root.querySelector(".VwiC3b, [data-sncf], .yXK7lf")?.textContent?.trim() || "";
 
-    const headerContainer =
-      h3.closest<HTMLElement>(".yuRUbf, .tF2Cxc") || anchor;
-    const insertionPoint = headerContainer;
+    // Determine insertion point: directly beneath the title heading
+    // In standard search, .yuRUbf wraps both breadcrumb and h3.
+    // In video search (and other tabs), .yuRUbf only wraps breadcrumbs while h3 is outside.
+    const yuRUbf = h3.closest<HTMLElement>(".yuRUbf");
+    let insertionPoint: HTMLElement;
+    if (yuRUbf && yuRUbf.contains(h3)) {
+      insertionPoint = yuRUbf;
+    } else {
+      // For video search and layouts where h3 is outside .yuRUbf:
+      // Insert after the title anchor to position directly beneath the title heading
+      insertionPoint = anchor;
+    }
 
     seenRoots.add(root);
     seenUrls.add(targetUrl);

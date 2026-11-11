@@ -156,10 +156,11 @@ const syncLinkedInProfileControls=createLinkedInProfileControls(document,createP
 const syncXProfileControls=createXProfileControls(document,(profile,resolve)=>createProfileControl(profile,resolve,'X'));
 const syncInstagramProfileControls=createInstagramProfileControls(document,(profile,resolve)=>createProfileControl(profile,resolve,'Instagram'));
 const createGoogleControl=(result:GoogleSearchResult,resolve:()=>GoogleSearchResult|undefined)=>{
-  const container=document.createElement('span');container.setAttribute('data-laterbox-control','');container.style.cssText='display:inline-block;margin:3px 0 6px;max-width:100%';
+  const container=document.createElement('span');container.setAttribute('data-laterbox-control','');container.style.cssText='display:block;margin:4px 0 6px;max-width:100%;clear:both;direction:ltr;text-align:left;transform:none!important';
   const local=container.attachShadow({mode:'closed'});local.append(style.cloneNode(true));
   const appearance=document.createElement('style');appearance.textContent=`
-    button{display:inline-flex;align-items:center;gap:6px;height:26px;min-height:26px;padding:0 11px;border-radius:9999px;border:1px solid #dadce0;background:#ffffff;color:#3c4043;font:500 11px/1.2 system-ui,-apple-system,sans-serif;cursor:pointer;box-shadow:none;transition:background .15s,border-color .15s,color .15s}
+    :host{all:initial;display:block;direction:ltr;text-align:left;transform:none!important}
+    button{display:inline-flex;align-items:center;gap:6px;height:26px;min-height:26px;padding:0 11px;border-radius:9999px;border:1px solid #dadce0;background:#ffffff;color:#3c4043;font:500 11px/1.2 system-ui,-apple-system,sans-serif;cursor:pointer;box-shadow:none;direction:ltr;transform:none!important;transition:background .15s,border-color .15s,color .15s}
     button:hover{background:#f1f3f4;border-color:#c6c9ce;color:#202124}
     button:focus-visible{outline:2px solid #26734d;outline-offset:2px}
     button svg{width:12px;height:12px;color:#26734d;flex-shrink:0}
