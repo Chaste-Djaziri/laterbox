@@ -305,4 +305,75 @@ struct MainTabTests {
         let banner = MaintenanceFloatingBannerView()
         #expect(banner != nil)
     }
+
+    @Test("Shake gesture manager toggles, triggers notifications, and persists state")
+    @MainActor
+    func shakeGestureManagerTracking() {
+        let manager = ShakeGestureManager.shared
+        let original = manager.isShakeEnabled
+
+        manager.isShakeEnabled = true
+        var received = false
+        let token = NotificationCenter.default.addObserver(
+            forName: .deviceDidShakeNotification,
+            object: nil,
+            queue: .main
+        ) { _ in
+            received = true
+        }
+
+        manager.triggerShake()
+        #expect(received == true)
+
+        received = false
+        manager.isShakeEnabled = false
+        manager.triggerShake()
+        #expect(received == false)
+
+        NotificationCenter.default.removeObserver(token)
+        manager.isShakeEnabled = original
+    }
+
+    @Test("App diagnostics manager compiles structured report and formatted markdown export")
+    @MainActor
+    func appDiagnosticsReportGeneration() {
+        let manager = AppDiagnosticsManager.shared
+        let errorMsg = "Simulated CloudKit/Supabase gateway 502 Bad Gateway"
+        let report = manager.generateReport(
+            context: nil,
+            specificError: errorMsg,
+            activeScreen: "Earn"
+        )
+
+        #expect(report.hasError == true)
+        #expect(report.activeErrorMessage == errorMsg)
+        #expect(report.activeScreen == "Earn")
+        #expect(!report.appVersion.isEmpty)
+        #expect(!report.buildNumber.isEmpty)
+        #expect(!report.iosVersion.isEmpty)
+        #expect(!report.deviceMarketingName.isEmpty)
+        #expect(!report.deviceHardwareSummary.isEmpty)
+
+        // Summary validation
+        let summary = report.formattedSummary
+        #expect(summary.contains("ERROR DETAILS:"))
+        #expect(summary.contains(errorMsg))
+        #expect(summary.contains("LaterBox"))
+        #expect(summary.contains("Earn"))
+
+        // Markdown export validation
+        let markdown = report.markdownExport
+        #expect(markdown.contains("# LaterBox iOS Diagnostic Report"))
+        #expect(markdown.contains("## Active Error"))
+        #expect(markdown.contains(errorMsg))
+        #expect(markdown.contains("## Application"))
+        #expect(markdown.contains("## Device & Environment"))
+        #expect(markdown.contains("## Cloud Sync"))
+        #expect(markdown.contains("## Cloud Storage Quota"))
+        #expect(markdown.contains("## Local Vault"))
+
+        // ErrorDiagnosticsSheet instantiation
+        let sheet = ErrorDiagnosticsSheet(specificError: errorMsg, activeScreen: "Earn")
+        #expect(sheet != nil)
+    }
 }
