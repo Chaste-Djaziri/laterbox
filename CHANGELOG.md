@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[iOS / Earn dashboard streamlining]** Simplify the iOS Earn dashboard to match the minimal web design. Remove the redundant marketing hero header, title, and green "Your referral status" card. Streamline Whop connect banners, balance metrics, shareable link tools, and 4-step process cards into a clean, direct layout.
+
 - **[Extension / YouTube video and channel save controls]** Add native on-page "Save to LaterBox" controls to YouTube watch pages, Shorts, and video cards, as well as a "Save channel" button on YouTube channel and creator profiles. Automatically captures canonical video URLs, titles, channel author metadata, and high-res thumbnails with dark/light theme integration.
 
 - **[Extension / Google Search video alignment & sitelinks exclusion]** Fix save button alignment on Google Search Video results, ensuring the button appears directly below video titles rather than inline with breadcrumbs. Restrict button injection exclusively to primary search results, filtering out nested sub-pages, sitelinks, and accordion panels.
