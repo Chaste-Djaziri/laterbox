@@ -9,8 +9,9 @@ import { usePathname, useRouter } from 'next/navigation';
 import {
   Archive, CalendarClock, CalendarDays, Check, CheckCircle2, Clock, Compass,
   Crown, Download, FolderOpen, HelpCircle, Inbox, Minus, Pencil, Plus,
-  Settings, Star, Trash2, X, Coins,
+  Settings, Star, Trash2, X, Coins, ShieldCheck,
 } from 'lucide-react';
+import { useAuth } from '@/lib/store/AuthContext';
 import { useItems } from '@/lib/store/ItemContext';
 import { useBilling } from '@/lib/store/BillingContext';
 import { presentEntitlement } from '@/lib/billing/types';
@@ -25,11 +26,16 @@ interface AppSidebarProps {
 export function AppSidebar({ onOpenCapture }: AppSidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const { user, getToken } = useAuth();
   const {
     inboxItems, starredItems, savedItems, archivedItems, deletedItems, items,
     collections, createCollection, renameCollection, deleteCollection,
   } = useItems();
   const { entitlement } = useBilling();
+
+  const [hasAdminAccess, setHasAdminAccess] = useState(false);
+  const [adminUrl, setAdminUrl] = useState('/admin');
+  const [isExternalAdmin, setIsExternalAdmin] = useState(false);
 
   const [now, setNow] = useState(() => new Date());
   const [collectionsOpen, setCollectionsOpen] = useState(false);
@@ -121,6 +127,54 @@ export function AppSidebar({ onOpenCapture }: AppSidebarProps) {
     };
   }, [collectionsOpen, updateCollectionPosition]);
 
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+      setAdminUrl(isLocal ? '/admin' : 'https://admin.laterbox.dev');
+      setIsExternalAdmin(!isLocal);
+    }
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+    if (!user) {
+      setHasAdminAccess(false);
+      return;
+    }
+
+    async function checkRole() {
+      try {
+        const token = await getToken();
+        if (!token) return;
+        const res = await fetch('/api/account/role', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        if (!res.ok) return;
+        const data = (await res.json()) as { role?: string; staffRole?: string | null };
+        if (!isMounted) return;
+        const isAdmin = Boolean(
+          data?.staffRole === 'owner' ||
+          data?.staffRole === 'admin' ||
+          data?.staffRole === 'support' ||
+          data?.staffRole === 'analyst' ||
+          data?.role === 'owner' ||
+          data?.role === 'admin'
+        );
+        setHasAdminAccess(isAdmin);
+      } catch {
+        // Ignore network errors
+      }
+    }
+
+    checkRole();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [user, getToken]);
+
   const todayCount = useMemo(() => recentInboxArrivals(items, now).length, [items, now]);
   const upcomingCount = useMemo(() => scheduleItems(items, 'upcoming', now).length, [items, now]);
   const somedayCount = useMemo(() => scheduleItems(items, 'someday', now).length, [items, now]);
@@ -137,18 +191,22 @@ export function AppSidebar({ onOpenCapture }: AppSidebarProps) {
     { href: '/trash', label: 'Recently Deleted', icon: Trash2, count: deletedItems.length },
   ];
 
-  const systemLinks = [
+  const systemLinks = useMemo(() => [
     { href: '/tutorial', label: 'Guide', icon: Compass },
     { href: '/downloads', label: 'Apps', icon: Download },
     { href: '/earn', label: 'Earn', icon: Coins },
     { href: '/help', label: 'Help & FAQ', icon: HelpCircle },
     { href: '/settings', label: 'Settings', icon: Settings },
-  ];
+    ...(hasAdminAccess
+      ? [{ href: adminUrl, label: 'Admin', icon: ShieldCheck, isExternal: isExternalAdmin }]
+      : []),
+  ], [hasAdminAccess, adminUrl, isExternalAdmin]);
 
   const isActive = (href: string) => {
     if (href === '/inbox') return pathname === '/inbox' || pathname === '/';
     if (href === '/downloads') return pathname === '/downloads' || pathname === '/download';
     if (href === '/trash') return pathname === '/trash' || pathname === '/deleted';
+    if (href === '/admin') return pathname === '/admin' || pathname.startsWith('/admin/');
     return pathname === href || pathname.startsWith(`${href}/`);
   };
 
@@ -186,11 +244,40 @@ export function AppSidebar({ onOpenCapture }: AppSidebarProps) {
     }`;
 
   const renderLink = ({
-    href, label, icon: Icon, count,
+    href, label, icon: Icon, count, isExternal,
   }: {
-    href: string; label: string; icon: typeof Inbox; count?: number;
+    href: string; label: string; icon: typeof Inbox; count?: number; isExternal?: boolean;
   }) => {
     const active = isActive(href);
+    const content = (
+      <>
+        <Icon className="h-[26px] w-[26px]" strokeWidth={active ? 2.3 : 1.85} aria-hidden="true" />
+        {Boolean(count) && (
+          <span
+            aria-hidden="true"
+            className="absolute -right-0.5 -top-0.5 flex h-[17px] min-w-[17px] items-center justify-center rounded-full border-2 border-[#f7f5ee] bg-[#20271c] px-0.5 text-[9px] font-black leading-none text-white"
+          >
+            {Math.min(count ?? 0, 99)}{count && count > 99 ? '+' : ''}
+          </span>
+        )}
+      </>
+    );
+
+    if (isExternal) {
+      return (
+        <a
+          key={href}
+          href={href}
+          aria-label={label}
+          {...tooltipHandlers(label)}
+          onClick={() => setTooltip(null)}
+          className={railItemClass(false)}
+        >
+          {content}
+        </a>
+      );
+    }
+
     return (
       <Link
         key={href}
@@ -201,15 +288,7 @@ export function AppSidebar({ onOpenCapture }: AppSidebarProps) {
         onClick={() => setTooltip(null)}
         className={railItemClass(active)}
       >
-        <Icon className="h-[26px] w-[26px]" strokeWidth={active ? 2.3 : 1.85} aria-hidden="true" />
-        {Boolean(count) && (
-          <span
-            aria-hidden="true"
-            className="absolute -right-0.5 -top-0.5 flex h-[17px] min-w-[17px] items-center justify-center rounded-full border-2 border-[#f7f5ee] bg-[#20271c] px-0.5 text-[9px] font-black leading-none text-white"
-          >
-            {Math.min(count ?? 0, 99)}{count && count > 99 ? '+' : ''}
-          </span>
-        )}
+        {content}
       </Link>
     );
   };
