@@ -21,6 +21,107 @@ const whopConnectionErrors:Record<string,string>={
   database:'Whop approval succeeded, but LaterBox could not save the verified connection. Contact support.',
 };
 
+function EarnSkeleton() {
+  return (
+    <div className="mt-8 space-y-6 animate-pulse" aria-busy="true" aria-label="Loading your referral account">
+      {/* Whop Connection Banner Skeleton */}
+      <section className="rounded-3xl border border-[#d8e2ca] bg-[#eef4e2] p-7 sm:p-9 space-y-4">
+        <div className="h-4 w-28 rounded-full bg-[#d8e2ca]" />
+        <div className="h-7 w-full max-w-md rounded-xl bg-[#d8e2ca]" />
+        <div className="space-y-2 max-w-xl">
+          <div className="h-3.5 w-full rounded-md bg-[#d8e2ca]/80" />
+          <div className="h-3.5 w-4/5 rounded-md bg-[#d8e2ca]/80" />
+        </div>
+        <div className="pt-2">
+          <div className="h-11 w-36 rounded-xl bg-[#171711]/20" />
+        </div>
+      </section>
+
+      {/* 3 Metrics Cards Skeleton */}
+      <div className="grid gap-4 sm:grid-cols-3">
+        {[1, 2, 3].map((i) => (
+          <section key={i} className="rounded-3xl border border-[#e1e7d7] bg-white p-6 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="h-4 w-20 rounded bg-[#e8ede1]" />
+              <div className="h-5 w-5 rounded-full bg-[#e8ede1]" />
+            </div>
+            <div className="h-9 w-28 rounded-lg bg-[#e8ede1] pt-1" />
+            <div className="h-3 w-40 rounded bg-[#e8ede1]/80" />
+          </section>
+        ))}
+      </div>
+
+      {/* Referral Link & Code Box Skeleton */}
+      <section className="rounded-3xl border border-[#e1e7d7] bg-white p-6 sm:p-8 space-y-4">
+        <div className="flex items-center gap-3">
+          <div className="h-6 w-6 rounded-lg bg-[#e8ede1]" />
+          <div className="h-5 w-56 rounded-md bg-[#e8ede1]" />
+        </div>
+        <div className="h-3.5 w-full max-w-lg rounded-md bg-[#e8ede1]/80" />
+        <div className="pt-2 flex flex-wrap gap-2">
+          <div className="h-12 flex-1 min-w-[200px] rounded-xl border border-[#dce6d3] bg-[#f8faf3]" />
+          <div className="h-12 w-32 rounded-xl bg-[#e6edb0]/60" />
+        </div>
+        <div className="flex items-center gap-4 pt-1">
+          <div className="h-4 w-24 rounded bg-[#e8ede1]" />
+          <div className="h-4 w-20 rounded bg-[#e8ede1]" />
+          <div className="h-4 w-24 rounded bg-[#e8ede1]" />
+        </div>
+      </section>
+
+      {/* 2-Column Split Activity Skeleton */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        {/* Referral Progress Skeleton */}
+        <section className="rounded-3xl border border-[#e1e7d7] bg-white p-6 space-y-4">
+          <div className="h-5 w-40 rounded-md bg-[#e8ede1]" />
+          <div className="divide-y divide-[#f0f3eb] pt-1">
+            {[1, 2, 3].map((j) => (
+              <div key={j} className="flex justify-between items-center py-4">
+                <div className="space-y-2">
+                  <div className="h-4 w-28 rounded bg-[#e8ede1]" />
+                  <div className="h-3 w-36 rounded bg-[#e8ede1]/70" />
+                </div>
+                <div className="h-5 w-16 rounded-full bg-[#e8ede1]" />
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* Earnings & Payouts Skeleton */}
+        <section className="rounded-3xl border border-[#e1e7d7] bg-white p-6 space-y-4">
+          <div className="h-5 w-44 rounded-md bg-[#e8ede1]" />
+          <div className="divide-y divide-[#f0f3eb] pt-1">
+            {[1, 2, 3].map((k) => (
+              <div key={k} className="flex justify-between items-center py-4">
+                <div className="space-y-2">
+                  <div className="h-4 w-32 rounded bg-[#e8ede1]" />
+                  <div className="h-3 w-28 rounded bg-[#e8ede1]/70" />
+                </div>
+                <div className="h-5 w-14 rounded bg-[#e8ede1]" />
+              </div>
+            ))}
+          </div>
+        </section>
+      </div>
+
+      {/* How It Works Skeleton */}
+      <section className="rounded-3xl border border-[#e1e7d7] bg-white p-6 space-y-5">
+        <div className="h-5 w-32 rounded-md bg-[#e8ede1]" />
+        <div className="grid gap-4 md:grid-cols-4 pt-1">
+          {[1, 2, 3, 4].map((step) => (
+            <div key={step} className="space-y-2">
+              <div className="h-8 w-8 rounded-full bg-[#e8ede1]" />
+              <div className="h-4 w-20 rounded bg-[#e8ede1]" />
+              <div className="h-3 w-full rounded bg-[#e8ede1]/70" />
+              <div className="h-3 w-3/4 rounded bg-[#e8ede1]/70" />
+            </div>
+          ))}
+        </div>
+      </section>
+    </div>
+  );
+}
+
 export default function EarnPage(){
   const [data,setData]=useState<EarnState|null>(null);
   const [loading,setLoading]=useState(true);
@@ -115,12 +216,12 @@ export default function EarnPage(){
         <h1 className="mt-5 text-4xl font-black tracking-[-0.06em] sm:text-5xl">Good things are better shared.</h1>
         <p className="mt-3 max-w-2xl text-sm leading-7 text-[#717a69]">Anyone can refer, even on Free. Earn commission on eligible recurring subscriptions after a referred customer completes their free trial and two paid months.</p>
       </div>
-      <button type="button" onClick={()=>void load()} disabled={loading} className="flex items-center gap-2 rounded-xl border border-[#dae1d0] bg-white px-4 py-3 text-sm font-bold"><RefreshCcw size={16}/>Refresh</button>
+      <button type="button" onClick={()=>void load()} disabled={loading} className="flex items-center gap-2 rounded-xl border border-[#dae1d0] bg-white px-4 py-3 text-sm font-bold cursor-pointer hover:bg-[#faf8f5] transition-colors"><RefreshCcw size={16} className={loading ? 'animate-spin' : ''}/>Refresh</button>
     </header>
     {whopResult==='connected'&&<p role="status" className="mt-6 rounded-xl border border-[#c5d7b1] bg-[#eff5dd] p-4 text-sm font-semibold text-[#39552e]">Whop connected successfully. Your personal referral link is ready below.</p>}
     {whopResult==='failed'&&<p role="alert" className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">{whopConnectionErrors[whopFailure]??'Whop could not be verified. Start a new connection.'}</p>}
     {error&&<p role="alert" className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">{error}</p>}
-    {!data&&loading&&<div className="mt-8 animate-pulse rounded-3xl bg-[#f0f3e8] p-9 text-sm">Checking your referral account…</div>}
+    {!data&&loading&&<EarnSkeleton />}
     {data&&<div className="mt-8 space-y-6">
       {!data.payoutConnected&&<section className="rounded-3xl border border-[#c6d5ad] bg-[#e6edb0] p-7 sm:p-9">
         <span className="text-xs font-black uppercase tracking-widest text-[#526741]">Step 1 · Required</span>
