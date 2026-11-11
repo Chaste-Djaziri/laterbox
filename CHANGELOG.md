@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[Marketing / Dynamic referral welcome page]** Create a public, dynamic referral welcome landing page at `/r/[code]` welcoming referred visitors to LaterBox. Displays the personalized invite code, highlights the 500 MB cloud vault and 30-day storage trial perks, features instant universal capture and calm email-style triage previews, and seamlessly preserves 30-day attribution cookies with a direct one-click onboarding flow.
+
 - **[Admin / Minimal feedback email table]** Simplify the admin feedback table into the clean, uncluttered email inbox row design used on the user dashboard. Remove excess select controls and multiple dropdowns, featuring sleek tabs with active indicators, sender column, bold subject with inline message snippet, subtle category/platform badges, date stamp, and hover quick actions with one-click row navigation to full details.
 
 - **[Admin / Feedback inbox table & details view]** Upgrade Admin Feedback & Reports into a comprehensive triage inbox featuring a structured data table with status tabs (Open, In Progress, Resolved, All), live count metrics, search across contacts and messages, category and platform filters, and a dedicated ticket details view (/admin/feedback/[id]) with sender metadata, full message formatting, technical diagnostics, and one-click triage updates.
