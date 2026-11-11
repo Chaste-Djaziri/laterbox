@@ -8,7 +8,9 @@ import { createLinkedInControls } from './linkedin-controls';
 import { createXControls } from './x-controls';
 import { createXProfileControls } from './x-profile';
 import { createLinkedInProfileControls } from './linkedin-profile';
+import { createGoogleSearchControls, type GoogleSearchResult } from './google-search-controls';
 import type { InstagramPost } from './social';
+import type { PageContext } from '../lib/page';
 import type { Capture, CaptureResult } from '../types/capture';
 
 installDashboardBridge();
@@ -153,7 +155,37 @@ const createProfileControl=(profile:{root:Element;insertionPoint:HTMLElement;url
 const syncLinkedInProfileControls=createLinkedInProfileControls(document,createProfileControl);
 const syncXProfileControls=createXProfileControls(document,(profile,resolve)=>createProfileControl(profile,resolve,'X'));
 const syncInstagramProfileControls=createInstagramProfileControls(document,(profile,resolve)=>createProfileControl(profile,resolve,'Instagram'));
-function addSocialControls(){syncInstagramControls(enabled,location.href);syncLinkedInControls(enabled,location.href);syncLinkedInProfileControls(enabled,location.href);syncXControls(enabled,location.href);syncXProfileControls(enabled,location.href);syncInstagramProfileControls(enabled,location.href);}
+const createGoogleControl=(result:GoogleSearchResult,resolve:()=>GoogleSearchResult|undefined)=>{
+  const container=document.createElement('span');container.setAttribute('data-laterbox-control','');container.style.cssText='display:inline-block;margin:3px 0 6px;max-width:100%';
+  const local=container.attachShadow({mode:'closed'});local.append(style.cloneNode(true));
+  const appearance=document.createElement('style');appearance.textContent=`
+    button{display:inline-flex;align-items:center;gap:6px;height:26px;min-height:26px;padding:0 11px;border-radius:9999px;border:1px solid #dadce0;background:#ffffff;color:#3c4043;font:500 11px/1.2 system-ui,-apple-system,sans-serif;cursor:pointer;box-shadow:none;transition:background .15s,border-color .15s,color .15s}
+    button:hover{background:#f1f3f4;border-color:#c6c9ce;color:#202124}
+    button:focus-visible{outline:2px solid #26734d;outline-offset:2px}
+    button svg{width:12px;height:12px;color:#26734d;flex-shrink:0}
+    .dark button{background:#303134;border-color:#5f6368;color:#bdc1c6}
+    .dark button:hover{background:#3c4043;border-color:#70757a;color:#e8eaed}
+    button[data-state=saved]{background:#edf5ee!important;color:#25653c!important;border-color:#c3ddc6!important}
+    .dark button[data-state=saved]{background:#173823!important;color:#7ee7a5!important;border-color:#25653c!important}
+  `;
+  local.append(appearance);
+  const wrapper=document.createElement('span');
+  const isDark=Boolean(document.documentElement.getAttribute('data-darkmode')==='true' || document.body.classList.contains('tEndDb') || (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches));
+  if(isDark)wrapper.classList.add('dark');
+  local.append(wrapper);
+  const button=document.createElement('button');button.type='button';button.dataset.saveLabel='Save to LaterBox';button.title='Save this search result to LaterBox';button.setAttribute('aria-label',`Save ${result.title} to LaterBox`);decorate(button,'Save to LaterBox');wrapper.append(button);
+  container.addEventListener('click',event=>event.stopPropagation());
+  button.addEventListener('click',event=>{
+    event.stopPropagation();event.preventDefault();if(!event.isTrusted || button.disabled)return;
+    const current=resolve();if(!current){show('This search result changed. Try its updated save button.');return;}
+    let siteName='';try{siteName=new URL(current.url).hostname.replace(/^www\./,'');}catch{}
+    const pageContext:PageContext={url:current.url,canonicalUrl:current.url,title:current.title,description:current.snippet || '',selection:'',siteName};
+    void submit(captureFromPage(pageContext,'page'),button);
+  });
+  return container;
+};
+const syncGoogleSearchControls=createGoogleSearchControls(document,createGoogleControl);
+function addSocialControls(){syncInstagramControls(enabled,location.href);syncLinkedInControls(enabled,location.href);syncLinkedInProfileControls(enabled,location.href);syncXControls(enabled,location.href);syncXProfileControls(enabled,location.href);syncInstagramProfileControls(enabled,location.href);syncGoogleSearchControls(enabled,location.href);}
 const observer=new MutationObserver(()=>{
   if(scheduled || !enabled)return;scheduled=true;setTimeout(()=>{scheduled=false;addSocialControls();},500);
 });
