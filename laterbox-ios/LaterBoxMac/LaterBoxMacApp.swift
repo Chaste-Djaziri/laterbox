@@ -87,8 +87,8 @@ private struct MacAuthError: Decodable {
 
 @MainActor
 private final class MacAuthModel: ObservableObject {
-    enum Step: Equatable { case email, password, signup, verify, authenticated }
-    @Published var step: Step = .email
+    enum Step: Equatable { case restoring, email, password, signup, verify, authenticated }
+    @Published var step: Step = .restoring
     @Published var email = ""
     @Published var password = ""
     @Published var confirmPassword = ""
@@ -103,10 +103,14 @@ private final class MacAuthModel: ObservableObject {
     private let callbackScheme = "laterbox-macos"
     private let redirect = "laterbox-macos://auth-callback"
     private var oauthSession: ASWebAuthenticationSession?
+    private var sessionRevision = 0
+    private var restoringSession = false
+    private var refreshingSession = false
 
     var isValid: Bool {
         let validEmail = email.trimmingCharacters(in: .whitespacesAndNewlines).contains("@")
         switch step {
+        case .restoring: return false
         case .email: return validEmail
         case .password: return !password.isEmpty
         case .signup: return validEmail && password.count >= 6 && password == confirmPassword
@@ -120,6 +124,7 @@ private final class MacAuthModel: ObservableObject {
         error = nil
         info = nil
         switch step {
+        case .restoring: break
         case .email:
             email = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
             step = .password
@@ -128,6 +133,128 @@ private final class MacAuthModel: ObservableObject {
         case .verify: Task { await verify() }
         case .authenticated: break
         }
+    }
+
+    // Read previous credentials from the macOS Keychain before displaying auth.
+    // Network outages never erase a user's session.
+    func restoreSession() async {
+        guard step == .restoring, !restoringSession else { return }
+        restoringSession = true
+        defer { restoringSession = false }
+        let revision = sessionRevision
+        do {
+            guard let credentials = try readCredentials() else {
+                if revision == sessionRevision { step = .email }
+                return
+            }
+
+            // Prefer refresh if a refresh token is available, even if the old
+            // access token looks valid. This also detects revoked sessions.
+            if let refresh = credentials["refresh_token"], !refresh.isEmpty {
+                do {
+                    let data = try await post("/auth/v1/token?grant_type=refresh_token", body: [
+                        "refresh_token": refresh
+                    ])
+                    guard revision == sessionRevision else { return }
+                    try storeSession(data)
+                    step = .authenticated
+                    return
+                } catch {
+                    guard revision == sessionRevision else { return }
+                    if isRejectedCredentials(error) {
+                        clearSession()
+                        step = .email
+                        return
+                    }
+                    // Keep the native offline shell available with saved
+                    // credentials even if the access token has expired.
+                    step = .authenticated
+                    info = "Offline. Your account will reconnect automatically."
+                    return
+                }
+            }
+
+            // Older sessions may lack refresh tokens. Only trust a valid,
+            // nonexpired JWT, then require sign-in when it expires.
+            if let token = credentials["access_token"], hasUnexpiredJWT(token) {
+                guard revision == sessionRevision else { return }
+                step = .authenticated
+            } else if revision == sessionRevision {
+                clearSession()
+                step = .email
+            }
+        } catch {
+            if revision == sessionRevision {
+                step = .email
+                self.error = "Could not access the saved macOS session."
+            }
+        }
+    }
+
+    // Called when returning to the foreground. Refreshes token rotation without
+    // causing a sign-out on temporary connectivity failures.
+    func refreshSessionIfNeeded() async {
+        guard step == .authenticated, !restoringSession, !refreshingSession else { return }
+        refreshingSession = true
+        defer { refreshingSession = false }
+        let revision = sessionRevision
+        guard let credentials = try? readCredentials(),
+              let refresh = credentials["refresh_token"], !refresh.isEmpty else { return }
+        do {
+            let data = try await post("/auth/v1/token?grant_type=refresh_token", body: [
+                "refresh_token": refresh
+            ])
+            guard revision == sessionRevision else { return }
+            try storeSession(data)
+            info = nil
+        } catch {
+            guard revision == sessionRevision else { return }
+            if isRejectedCredentials(error) {
+                clearSession()
+                step = .email
+                self.error = "Your session expired. Please sign in again."
+            }
+        }
+    }
+
+    private func readCredentials() throws -> [String: String]? {
+        var query = sessionQuery
+        query[kSecReturnData as String] = true
+        query[kSecMatchLimit as String] = kSecMatchLimitOne
+        var result: CFTypeRef?
+        let status = SecItemCopyMatching(query as CFDictionary, &result)
+        if status == errSecItemNotFound { return nil }
+        guard status == errSecSuccess else {
+            throw NSError(domain: NSOSStatusErrorDomain, code: Int(status))
+        }
+        guard let data = result as? Data else { return nil }
+        return try JSONDecoder().decode([String: String].self, from: data)
+    }
+
+    private var sessionQuery: [String: Any] {
+        [kSecClass as String: kSecClassGenericPassword,
+         kSecAttrAccount as String: "laterbox-macos-session"]
+    }
+
+    private func clearSession() {
+        SecItemDelete(sessionQuery as CFDictionary)
+    }
+
+    private func isRejectedCredentials(_ error: Error) -> Bool {
+        let nsError = error as NSError
+        return nsError.domain == "LaterBoxAuth" && [400, 401, 403].contains(nsError.code)
+    }
+
+    private func hasUnexpiredJWT(_ token: String) -> Bool {
+        let parts = token.split(separator: ".")
+        guard parts.count == 3 else { return false }
+        var base64 = String(parts[1]).replacingOccurrences(of: "-", with: "+")
+            .replacingOccurrences(of: "_", with: "/")
+        base64 += String(repeating: "=", count: (4 - base64.count % 4) % 4)
+        guard let data = Data(base64Encoded: base64),
+              let payload = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let expiration = payload["exp"] as? TimeInterval else { return false }
+        return expiration > Date().timeIntervalSince1970 + 30
     }
 
     func showSignup() {
@@ -313,12 +440,16 @@ private final class MacAuthModel: ObservableObject {
 
     private func saveCredentials(access: String, refresh: String?) throws {
         let value = try JSONEncoder().encode(["access_token": access, "refresh_token": refresh ?? ""])
-        let lookup: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrAccount as String: "laterbox-macos-session"
-        ]
-        SecItemDelete(lookup as CFDictionary)
-        var insert = lookup
+        // Update in place so a failed write never destroys the old session.
+        let updated = SecItemUpdate(sessionQuery as CFDictionary, [
+            kSecValueData as String: value
+        ] as CFDictionary)
+        if updated == errSecSuccess { return }
+        guard updated == errSecItemNotFound else {
+            throw NSError(domain: NSOSStatusErrorDomain, code: Int(updated),
+                          userInfo: [NSLocalizedDescriptionKey: "Unable to update your saved session."])
+        }
+        var insert = sessionQuery
         insert[kSecValueData as String] = value
         let status = SecItemAdd(insert as CFDictionary, nil)
         guard status == errSecSuccess else {
@@ -328,11 +459,8 @@ private final class MacAuthModel: ObservableObject {
     }
 
     func signOut() {
-        let lookup: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrAccount as String: "laterbox-macos-session"
-        ]
-        SecItemDelete(lookup as CFDictionary)
+        sessionRevision += 1
+        clearSession()
         password = ""
         confirmPassword = ""
         code = ""
@@ -465,9 +593,11 @@ struct MacLoginView: View {
     @StateObject private var auth = MacAuthModel()
     @Environment(\.colorScheme) private var scheme
     @Environment(\.dismissWindow) private var dismissWindow
+    @Environment(\.scenePhase) private var scenePhase
 
     private var title: String {
         switch auth.step {
+        case .restoring: return ""
         case .email, .password: return "Sign in"
         case .signup: return "Create account"
         case .verify: return "Verify email"
@@ -479,6 +609,12 @@ struct MacLoginView: View {
         Group {
             if auth.step == .authenticated {
                 MacDashboardView(signOut: auth.signOut)
+            } else if auth.step == .restoring {
+                ZStack {
+                    MacAuthCanvas().ignoresSafeArea()
+                    ProgressView().controlSize(.large)
+                }
+                .background(MacWindowChrome().frame(width: 0, height: 0))
             } else {
                 ZStack(alignment: .topLeading) {
                     MacAuthCanvas().ignoresSafeArea()
@@ -615,6 +751,10 @@ struct MacLoginView: View {
         }
                 .background(MacWindowChrome().frame(width: 0, height: 0))
             }
+        }
+        .task { await auth.restoreSession() }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active { Task { await auth.refreshSessionIfNeeded() } }
         }
         .onChange(of: auth.step) { _, step in
             guard let window = NSApp.keyWindow else { return }
