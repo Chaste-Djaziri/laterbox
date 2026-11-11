@@ -279,7 +279,9 @@ export function AdminProvider({ children }: { children: ReactNode }) {
 
   const updateOperations = useCallback(
     async (payload: Record<string, unknown>, confirmMsg?: string): Promise<boolean> => {
-      if (!operations?.isOwner) return false;
+      const isTicket = payload?.action === 'ticket';
+      const permitted = isTicket ? Boolean(operations?.canManage || operations?.isOwner) : Boolean(operations?.isOwner);
+      if (!permitted) return false;
       if (confirmMsg && !window.confirm(confirmMsg)) return false;
 
       setBusyOperations(true);
@@ -307,7 +309,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
         setBusyOperations(false);
       }
     },
-    [operations?.isOwner, getToken, refreshOperations]
+    [operations?.isOwner, operations?.canManage, getToken, refreshOperations]
   );
 
   const clearFeedback = useCallback(() => {

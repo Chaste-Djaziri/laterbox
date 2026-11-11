@@ -24,11 +24,12 @@ export async function GET(request:Request){
  }catch(error){console.error('[operations] read failed',error);return NextResponse.json({error:'Operations could not be loaded.'},{status:503})}
 }
 export async function PATCH(request:Request){
- let auth:Awaited<ReturnType<typeof authorizeAdmin>>;
- try{auth=await authorizeAdmin(request,'owner');}catch{return NextResponse.json({error:'Authorization unavailable.'},{status:503})}
- if('error'in auth)return NextResponse.json({error:auth.error},{status:auth.status});
  let body:Input;
  try{body=await request.json()}catch{return NextResponse.json({error:'Invalid request.'},{status:400})}
+ const requiredRole = body.action === 'ticket' ? 'manage' : 'owner';
+ let auth:Awaited<ReturnType<typeof authorizeAdmin>>;
+ try{auth=await authorizeAdmin(request,requiredRole);}catch{return NextResponse.json({error:'Authorization unavailable.'},{status:503})}
+ if('error'in auth)return NextResponse.json({error:auth.error},{status:auth.status});
  const db=getBillingAdminClient();
  try{
   if(body.action==='feature'){
