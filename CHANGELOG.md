@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[Web / Header navigation & marketing routes streamlining]** Streamline header navigation links to keep only essential and relevant destinations: Features (`/#features`), How it works (`/#how-it-works`), Downloads (`/download`), Pricing (`/pricing`), Docs (`/docs`), and FAQ (`/#faq`). Remove redundant "More" dropdown. Prune obsolete placeholder marketing routes (`/about`, `/features`, `/browser-extension`) and consolidate section anchors so visitors land directly on rich interactive product showcases.
+
 - **[Web / Your LaterBox Your Rules interactive showcase]** Redesign the right-side visual component of the "Your LaterBox. Your rules." homepage section. Replace the static tilted perspective container with a dynamic, tactile interactive canvas that updates in real-time as users select different preference rules (Quick Capture simulator, schedule return presets, real-time light/dark theme switcher, offline sync cache visualizer, smart tags organizer, and local-first encryption card).
 
 - **[Web / Maintenance overlay dev bypass]** Bypass the site-wide maintenance screen and polling in local development environments and on localhost/127.0.0.1 domains so local development and testing are never blocked by production maintenance schedules.
