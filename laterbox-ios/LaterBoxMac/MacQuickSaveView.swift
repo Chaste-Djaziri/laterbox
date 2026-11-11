@@ -69,7 +69,18 @@ struct MacQuickSaveView: View {
     @State private var tags: [String] = []
     @State private var newTag = ""
     @State private var attachments: [URL] = []
-    @State private var showFileImporter = false
+    private enum TaskMode: String, CaseIterable {
+        case single = "Single task"
+        case checklist = "Checklist"
+    }
+    private struct TaskEntry: Identifiable {
+        let id = UUID()
+        var title = ""
+    }
+    @State private var taskMode: TaskMode = .single
+    @State private var taskTitle = ""
+    @State private var taskEntries: [TaskEntry] = [TaskEntry(), TaskEntry()]
+    @State private var isChoosingFiles = false
     @State private var copied = false
     @State private var errorMessage: String?
 
@@ -93,8 +104,13 @@ struct MacQuickSaveView: View {
             guard let url = URL(string: content.trimmingCharacters(in: .whitespacesAndNewlines)),
                   let scheme = url.scheme?.lowercased() else { return false }
             return ["http", "https"].contains(scheme) && url.host != nil
-        case .note, .task:
+        case .note:
             return !content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        case .task:
+            guard !taskTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return false }
+            return taskMode == .single || taskEntries.filter {
+                !$0.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            }.count >= 2
         case .file:
             return !attachments.isEmpty
         }
@@ -103,7 +119,8 @@ struct MacQuickSaveView: View {
     var body: some View {
         VStack(spacing: 0) {
             topBar
-            Divider().overlay(line)
+            stepNavigation
+            Rectangle().fill(line).frame(height: 1)
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 20) {
                     if step == 0 { captureStep }
@@ -118,22 +135,11 @@ struct MacQuickSaveView: View {
         .frame(width: 570, height: 595)
         .background(surface)
         .preferredColorScheme(scheme)
-        .fileImporter(isPresented: $showFileImporter, allowedContentTypes: [.item], allowsMultipleSelection: true) { result in
-            switch result {
-            case .success(let urls):
-                attachments.append(contentsOf: urls.filter { url in
-                    !attachments.contains(url)
-                })
-                errorMessage = nil
-            case .failure(let error):
-                errorMessage = error.localizedDescription
-            }
-        }
         .onAppear { focusedInput = true }
     }
 
     private var topBar: some View {
-        HStack(alignment: .center) {
+        HStack {
             VStack(alignment: .leading, spacing: 5) {
                 Text("Quick Save")
                     .font(.system(size: 23, weight: .bold))
@@ -142,9 +148,7 @@ struct MacQuickSaveView: View {
                     .font(.system(size: 12))
                     .foregroundStyle(muted)
             }
-
             Spacer()
-
             Button { dismiss() } label: {
                 Image(systemName: "xmark")
                     .font(.system(size: 13, weight: .semibold))
@@ -154,29 +158,46 @@ struct MacQuickSaveView: View {
             }
             .buttonStyle(.plain)
             .keyboardShortcut(.cancelAction)
-            .help("Close")
         }
         .padding(.horizontal, 28)
-        .padding(.vertical, 20)
-        .overlay(alignment: .bottom) {
-            HStack(spacing: 8) {
-                ForEach(0..<3, id: \.self) { index in
-                    HStack(spacing: 5) {
+        .padding(.top, 23)
+        .padding(.bottom, 16)
+    }
+
+    private var stepNavigation: some View {
+        HStack(spacing: 8) {
+            ForEach(0..<3, id: \.self) { index in
+                Button {
+                    guard index <= step || validCapture else { return }
+                    errorMessage = nil
+                    step = index
+                } label: {
+                    HStack(spacing: 9) {
                         Text("\(index + 1)")
-                            .font(.system(size: 10, weight: .bold, design: .rounded))
+                            .font(.system(size: 11, weight: .bold))
+                            .frame(width: 23, height: 23)
+                            .background(Color.black.opacity(0.055), in: Circle())
                         Text(["Capture", "Schedule", "Details"][index])
-                            .font(.system(size: 11, weight: .semibold))
+                            .font(.system(size: 12, weight: .semibold))
+                        Spacer(minLength: 0)
+                        if index < step {
+                            Image(systemName: "checkmark")
+                                .font(.system(size: 10, weight: .bold))
+                        }
                     }
-                    .foregroundStyle(index == step ? CaptureStyle.ink : (index < step ? CaptureStyle.ink : muted))
+                    .foregroundStyle(index == step ? CaptureStyle.ink : .primary)
                     .padding(.horizontal, 11)
-                    .frame(height: 26)
-                    .background(index == step ? CaptureStyle.lime : (index < step ? CaptureStyle.lime.opacity(0.55) : panel),
-                                in: Capsule())
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 40)
+                    .background(index == step ? CaptureStyle.lime : panel,
+                                in: RoundedRectangle(cornerRadius: 12))
                 }
+                .buttonStyle(.plain)
+                .disabled(index > step && !validCapture)
             }
-            .offset(y: 16)
         }
-        .padding(.bottom, 15)
+        .padding(.horizontal, 28)
+        .padding(.bottom, 16)
     }
 
     private var captureStep: some View {
@@ -188,7 +209,7 @@ struct MacQuickSaveView: View {
                     Button {
                         kind = option
                         errorMessage = nil
-                        if option == .file { showFileImporter = true }
+                        if option == .file { openFilePicker() }
                     } label: {
                         VStack(spacing: 9) {
                             Image(systemName: option.symbol)
@@ -212,7 +233,7 @@ struct MacQuickSaveView: View {
             }
 
             if kind == .file {
-                Button { showFileImporter = true } label: {
+                Button { openFilePicker() } label: {
                     Label("Choose files", systemImage: "plus")
                         .font(.system(size: 13, weight: .semibold))
                         .frame(maxWidth: .infinity)
@@ -241,8 +262,10 @@ struct MacQuickSaveView: View {
                         }
                     }
                 }
+            } else if kind == .task {
+                taskCapture
             } else {
-                sectionLabel(kind == .link ? "LINK" : kind == .task ? "TASK" : "YOUR NOTE")
+                sectionLabel(kind == .link ? "LINK" : "YOUR NOTE")
                 if kind == .note {
                     TextEditor(text: $content)
                         .font(.system(size: 14))
@@ -279,6 +302,102 @@ struct MacQuickSaveView: View {
                 Text(errorMessage)
                     .font(.system(size: 12))
                     .foregroundStyle(.red)
+            }
+        }
+    }
+
+    private var taskCapture: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            sectionLabel("TASK FORMAT")
+            HStack(spacing: 9) {
+                ForEach(TaskMode.allCases, id: \.self) { mode in
+                    Button {
+                        taskMode = mode
+                        errorMessage = nil
+                    } label: {
+                        Label(mode.rawValue, systemImage: mode == .single ? "checkmark.square" : "list.bullet.rectangle")
+                            .font(.system(size: 12, weight: .semibold))
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 38)
+                            .foregroundStyle(taskMode == mode ? CaptureStyle.ink : .primary)
+                            .background(taskMode == mode ? CaptureStyle.lime : panel,
+                                        in: RoundedRectangle(cornerRadius: 10))
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+
+            sectionLabel(taskMode == .checklist ? "GROUP TITLE" : "TASK TITLE")
+            TextField(taskMode == .checklist ? "Name this task group…" : "What needs to get done?", text: $taskTitle)
+                .font(.system(size: 14))
+                .textFieldStyle(.plain)
+                .padding(.horizontal, 14)
+                .frame(height: 48)
+                .background(panel, in: RoundedRectangle(cornerRadius: 12))
+                .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(line))
+                .accessibilityIdentifier("mac.quicksave.taskTitle")
+
+            if taskMode == .checklist {
+                HStack {
+                    sectionLabel("TASKS")
+                    Spacer()
+                    Text("At least two")
+                        .font(.system(size: 11))
+                        .foregroundStyle(muted)
+                }
+
+                ForEach($taskEntries) { $entry in
+                    HStack(spacing: 9) {
+                        Image(systemName: "square").foregroundStyle(muted)
+                        TextField("Task name…", text: $entry.title)
+                            .textFieldStyle(.plain)
+                            .font(.system(size: 13))
+                        Button {
+                            taskEntries.removeAll { $0.id == entry.id }
+                        } label: {
+                            Image(systemName: "xmark")
+                                .font(.system(size: 11))
+                                .foregroundStyle(muted)
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(taskEntries.count <= 2)
+                        .help("Remove task")
+                    }
+                    .padding(.horizontal, 13)
+                    .frame(height: 42)
+                    .background(panel, in: RoundedRectangle(cornerRadius: 11))
+                    .overlay(RoundedRectangle(cornerRadius: 11).strokeBorder(line))
+                }
+
+                Button {
+                    taskEntries.append(TaskEntry())
+                } label: {
+                    Label("Add another task", systemImage: "plus.circle")
+                        .font(.system(size: 12, weight: .semibold))
+                }
+                .buttonStyle(.plain)
+            }
+        }
+    }
+
+    // Avoid stacking SwiftUI fileImporter sheets on the Quick Save sheet:
+    // NSOpenPanel opens asynchronously and keeps the current draft intact.
+    private func openFilePicker() {
+        guard !isChoosingFiles else { return }
+        isChoosingFiles = true
+        let panel = NSOpenPanel()
+        panel.allowsMultipleSelection = true
+        panel.canChooseFiles = true
+        panel.canChooseDirectories = false
+        panel.prompt = "Attach"
+        panel.begin { response in
+            Task { @MainActor in
+                isChoosingFiles = false
+                guard response == .OK else { return }
+                for url in panel.urls where !attachments.contains(url) {
+                    attachments.append(url)
+                }
+                errorMessage = nil
             }
         }
     }
@@ -343,9 +462,9 @@ struct MacQuickSaveView: View {
         VStack(alignment: .leading, spacing: 17) {
             sectionLabel("FINISH THE DETAILS")
             VStack(alignment: .leading, spacing: 7) {
-                Text("Title (optional)")
+                Text(kind == .task ? "Description (optional)" : "Title (optional)")
                     .font(.system(size: 12, weight: .medium))
-                TextField("Give this a name…", text: $title)
+                TextField(kind == .task ? "Add a short description…" : "Give this a name…", text: $title)
                     .textFieldStyle(.plain)
                     .font(.system(size: 14))
                     .padding(.horizontal, 14)
@@ -399,9 +518,9 @@ struct MacQuickSaveView: View {
     }
 
     private var summary: String {
-        let text = title.isEmpty ? content : title
+        let text = kind == .task ? taskTitle : (title.isEmpty ? content : title)
         if kind == .file { return attachments.map(\.lastPathComponent).joined(separator: ", ") }
-        return text.isEmpty ? kind.rawValue : text
+        return kind == .task && taskMode == .checklist ? "\(text) · \(taskEntries.filter { !$0.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }.count) tasks" : (text.isEmpty ? kind.rawValue : text)
     }
 
     private func addTag() {
@@ -449,7 +568,7 @@ struct MacQuickSaveView: View {
                 Button {
                     if step == 0 && !validCapture {
                         errorMessage = kind == .link ? "Enter a valid http or https URL." :
-                            kind == .file ? "Choose at least one file to continue." : "Add some content to continue."
+                            kind == .file ? "Choose at least one file to continue." : kind == .task ? (taskMode == .checklist ? "Add a group title and at least two named tasks." : "Give your task a title.") : "Add some content to continue."
                         return
                     }
                     errorMessage = nil
@@ -477,10 +596,17 @@ struct MacQuickSaveView: View {
 
     private func copyDraft() {
         let schedule = preset == .custom ? customDate.formatted(date: .abbreviated, time: .shortened) : preset.rawValue
+        let checklist = taskEntries
+            .filter { !$0.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+            .enumerated()
+            .map { "\($0.offset + 1). \($0.element.title)" }
+            .joined(separator: "\n")
         let draft = [
-            "Type: \(kind.rawValue)",
-            title.isEmpty ? nil : "Title: \(title)",
-            content.isEmpty ? nil : "Content: \(content)",
+            "Type: \(kind == .task && taskMode == .checklist ? "Task checklist" : kind.rawValue)",
+            kind == .task ? "Title: \(taskTitle)" : (title.isEmpty ? nil : "Title: \(title)"),
+            kind == .task && taskMode == .checklist ? "Tasks:\n" + checklist : nil,
+            kind == .task && !title.isEmpty ? "Description: \(title)" : nil,
+            kind == .task || content.isEmpty ? nil : "Content: \(content)",
             attachments.isEmpty ? nil : "Files: \(attachments.map(\.lastPathComponent).joined(separator: ", "))",
             "Schedule: \(schedule)",
             tags.isEmpty ? nil : "Tags: \(tags.map { "#" + $0 }.joined(separator: " "))"
