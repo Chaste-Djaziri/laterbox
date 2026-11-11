@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[Web / Dashboard sidebar admin navigation]** Display an Admin navigation button in the dashboard sidebar rail for authenticated users with administrative privileges (owner, admin, support, analyst), routing to `/admin` in local environments and `https://admin.laterbox.dev` in production.
+
 - **[Web / Earn dashboard full-width layout]** Remove the redundant green referral status banner card and expand all Earn dashboard components to full width to seamlessly match the dashboard layout.
 
 - **[Web / Earn dashboard layout streamlining]** Remove redundant marketing hero header, title, and manual refresh button from the Earn dashboard. Remove persistent "Whop account verified" banner on subsequent visits so it only displays immediately following a successful OAuth connection, presenting referral components directly.
