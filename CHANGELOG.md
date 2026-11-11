@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[macOS / Matched iOS authentication themes]** Match macOS authentication to the iOS graphite-grain dark canvas and soft light palette, including themed input and social sign-in surfaces without changing the native window controls.
+
 - **[macOS / Shared auth fields and brand logo]** Apply reusable rounded custom inputs to password, confirmation and code fields, and display the official LaterBox full logo in light and dark authentication screens.
 
 - **[macOS / Native window controls]** Restore the standard macOS close, minimize, and zoom traffic-light controls while keeping the window title hidden; remove the custom close button.
