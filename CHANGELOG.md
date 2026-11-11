@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[Web / Pricing 3-card layout & dynamic storage slider]** Re-architect storage pricing into a clear 3-card structure: Free (500 MB), Plus (10 GB standard), and Vault Scalable Storage featuring an interactive slider for remaining high-capacity tiers (50 GB, 100 GB, 250 GB, 500 GB, 1 TB, 2 TB) with real-time price, quota, and checkout attribution updates.
+
 - **[Web / Pricing page background clean-up]** Remove the header and card background blur color gradients on the storage pricing page (`StoragePricingPage`), preparing the surface for a clean redesign.
 
 - **[Web / Downloads page direct minimalism]** Strip away excess copy, redundant descriptions, and verbose sub-sections on the downloads page. Streamline into a direct, focused layout featuring concise platform cards (iOS App Store, Chrome extension, Android APK, and Web App) with immediate one-click actions and an unobtrusive upcoming desktop row.
