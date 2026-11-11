@@ -81,6 +81,7 @@
 		LBW000100000000000000001 /* LaterBoxWidgets.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LaterBoxWidgets.swift; sourceTree = "<group>"; };
 		LBW000200000000000000001 /* LaterBoxWidgets.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = LaterBoxWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		LBW000500000000000000001 /* QuickSaveIntent.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = QuickSaveIntent.swift; sourceTree = "<group>"; };
+		ABCD00000000000000000001 /* LaterBoxMac.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LaterBoxMac.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -112,6 +113,7 @@
 			path = "laterbox-iosUITests";
 			sourceTree = "<group>";
 		};
+		ABCD00000000000000000002 /* LaterBoxMac */ = {isa = PBXFileSystemSynchronizedRootGroup; path = LaterBoxMac; sourceTree = "<group>"; };
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -151,6 +153,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		ABCD00000000000000000003 /* Frameworks */ = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -166,6 +169,7 @@
 			isa = PBXGroup;
 			children = (
 				5194A4FA3072E2E100DE79B5 /* laterbox-ios */,
+				ABCD00000000000000000002 /* LaterBoxMac */,
 				5194A50A3072E2E100DE79B5 /* laterbox-iosTests */,
 				5194A5143072E2E100DE79B5 /* laterbox-iosUITests */,
 				5194A4F93072E2E100DE79B5 /* Products */,
@@ -180,6 +184,7 @@
 			isa = PBXGroup;
 			children = (
 				5194A4F83072E2E100DE79B5 /* laterbox-ios.app */,
+				ABCD00000000000000000001 /* LaterBoxMac.app */,
 				5194A5073072E2E100DE79B5 /* laterbox-iosTests.xctest */,
 				5194A5113072E2E100DE79B5 /* laterbox-iosUITests.xctest */,
 				9CD0ABE6B11066E3BE4E19C1 /* LaterBoxShare.appex */,
@@ -327,6 +332,7 @@
 			productReference = LBW000200000000000000001 /* LaterBoxWidgets.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
+		ABCD00000000000000000006 /* LaterBoxMac */ = {isa = PBXNativeTarget; buildConfigurationList = ABCD00000000000000000007 /* Build configuration list for PBXNativeTarget "LaterBoxMac" */; buildPhases = (ABCD00000000000000000005 /* Sources */, ABCD00000000000000000003 /* Frameworks */, ABCD00000000000000000004 /* Resources */,); buildRules = (); dependencies = (); fileSystemSynchronizedGroups = (ABCD00000000000000000002 /* LaterBoxMac */,); name = LaterBoxMac; productName = LaterBoxMac; productReference = ABCD00000000000000000001 /* LaterBoxMac.app */; productType = "com.apple.product-type.application"; };
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -369,6 +375,7 @@
 				5194A5103072E2E100DE79B5 /* laterbox-iosUITests */,
 				F9296E9CF9CDFD9079666B59 /* LaterBoxShare */,
 				LBW001200000000000000001 /* LaterBoxWidgets */,
+				ABCD00000000000000000006 /* LaterBoxMac */,
 			);
 		};
 /* End PBXProject section */
@@ -409,6 +416,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		ABCD00000000000000000004 /* Resources */ = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -457,6 +465,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		ABCD00000000000000000005 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -915,6 +924,8 @@
 			};
 			name = Release;
 		};
+		ABCD00000000000000000008 /* Debug */ = {isa = XCBuildConfiguration; buildSettings = { ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES; CODE_SIGN_STYLE = Automatic; DEVELOPMENT_TEAM = LS42X27YFY; ENABLE_APP_SANDBOX = YES; ENABLE_HARDENED_RUNTIME = YES; ENABLE_PREVIEWS = YES; GENERATE_INFOPLIST_FILE = YES; INFOPLIST_KEY_CFBundleDisplayName = LaterBox; INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity"; MACOSX_DEPLOYMENT_TARGET = 14.0; PRODUCT_BUNDLE_IDENTIFIER = pro.micorp.laterbox.macos; PRODUCT_NAME = "$(TARGET_NAME)"; SDKROOT = macosx; SUPPORTED_PLATFORMS = macosx; SWIFT_VERSION = 5.0; SWIFT_EMIT_LOC_STRINGS = YES; SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG; SWIFT_OPTIMIZATION_LEVEL = "-Onone"; }; name = Debug; };
+		ABCD00000000000000000009 /* Release */ = {isa = XCBuildConfiguration; buildSettings = { ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES; CODE_SIGN_STYLE = Automatic; DEVELOPMENT_TEAM = LS42X27YFY; ENABLE_APP_SANDBOX = YES; ENABLE_HARDENED_RUNTIME = YES; ENABLE_PREVIEWS = YES; GENERATE_INFOPLIST_FILE = YES; INFOPLIST_KEY_CFBundleDisplayName = LaterBox; INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity"; MACOSX_DEPLOYMENT_TARGET = 14.0; PRODUCT_BUNDLE_IDENTIFIER = pro.micorp.laterbox.macos; PRODUCT_NAME = "$(TARGET_NAME)"; SDKROOT = macosx; SUPPORTED_PLATFORMS = macosx; SWIFT_VERSION = 5.0; SWIFT_EMIT_LOC_STRINGS = YES; SWIFT_COMPILATION_MODE = wholemodule; }; name = Release; };
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -972,6 +983,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
+		ABCD00000000000000000007 /* Build configuration list for PBXNativeTarget "LaterBoxMac" */ = {isa = XCConfigurationList; buildConfigurations = (ABCD00000000000000000008 /* Debug */, ABCD00000000000000000009 /* Release */,); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
 /* End XCConfigurationList section */
 	};
 	rootObject = 5194A4F03072E2E100DE79B5 /* Project object */;
