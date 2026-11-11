@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[Web / Downloads page redesign]** Simplify and modernize the downloads page layout and section architecture. Replace cluttered release note placement and repetitive placeholder cards with a clean, focused hierarchy: primary available clients (iOS App Store, Chrome Web Store extension, Android APK, and Web PWA), a streamlined desktop companion roadmap (macOS, Windows, Linux), clear platform capabilities, and cleanly integrated release notes.
+
 - **[Web / Header navigation dedicated routes]** Restructure header navigation to exclusively use distinct page routes (`/download`, `/pricing`, `/guide`, `/docs`), removing all in-page anchor links leading back to the same page. Update top promo bar to link directly to the interactive guide (`/guide`).
 
 - **[Web / Header navigation & marketing routes streamlining]** Streamline header navigation links to keep only essential and relevant destinations: Features (`/#features`), How it works (`/#how-it-works`), Downloads (`/download`), Pricing (`/pricing`), Docs (`/docs`), and FAQ (`/#faq`). Remove redundant "More" dropdown. Prune obsolete placeholder marketing routes (`/about`, `/features`, `/browser-extension`) and consolidate section anchors so visitors land directly on rich interactive product showcases.
