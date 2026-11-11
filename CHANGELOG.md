@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[Extension / Google Search video alignment & sitelinks exclusion]** Fix save button alignment on Google Search Video results, ensuring the button appears directly below video titles rather than inline with breadcrumbs. Restrict button injection exclusively to primary search results, filtering out nested sub-pages, sitelinks, and accordion panels.
+
 - **[Extension / Google Search result save buttons]** Add native "Save to LaterBox" action buttons directly beneath Google Search results. Automatically extracts result destination URLs, titles, and snippets, with light/dark theme adaptation and one-click saving to LaterBox.
 
 - **[Extension / Login enforcement & simplified UI]** Require LaterBox authentication for extension captures, context menus, and shortcuts. Streamline the popup to hide save actions and page previews when signed out with a direct one-click sign-in prompt. Strip away verbose configuration text and bloated paragraphs in favor of a clean, minimal "How to use" guide with quick tips and keyboard shortcuts.
