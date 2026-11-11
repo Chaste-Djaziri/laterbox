@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[Extension / Login enforcement & simplified UI]** Require LaterBox authentication for extension captures, context menus, and shortcuts. Streamline the popup to hide save actions and page previews when signed out with a direct one-click sign-in prompt. Strip away verbose configuration text and bloated paragraphs in favor of a clean, minimal "How to use" guide with quick tips and keyboard shortcuts.
+
 - **[Web / Sidebar Earn tab relocation]** Move the Earn navigation tab into the Collections group in the dashboard sidebar rail, clustering workspace assets and rewards together between core triage and system utilities.
 
 - **[Marketing / Referral welcome personalized inviter name]** Resolve and display the referrer's display name dynamically on the public invite page (`/r/[code]`). Features personalized greeting copy ("Alex invited you to LaterBox"), dynamic action buttons, and inviter badges to maximize onboarding trust and conversions.
