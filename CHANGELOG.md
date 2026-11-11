@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[macOS / Quick Save usability]** Rework capture steps into their own aligned progress navigation, add named single-task and titled multi-task checklist capture with removable entries and draft export, and replace the freezing nested file importer with a nonblocking native NSOpenPanel.
+
 - **[macOS / Native Quick Save modal]** Replace the placeholder sheet with a polished, three-step Capture → Schedule → Details flow for links, notes, tasks, and file drafts. Support native input, scheduled presets, tags, file picker and clipboard draft export; clearly disclose that cloud saving awaits macOS sync integration.
 
 - **[macOS / Friendly inbox empty states]** Replace the technical inbox placeholder with a welcoming, theme-aware illustration and concise guidance; distinguish disconnected macOS sync from a genuinely empty category, with an actionable Web fallback and clear Quick Save preview label.
