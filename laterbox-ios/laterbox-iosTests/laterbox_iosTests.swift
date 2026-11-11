@@ -329,16 +329,16 @@ private struct CaptureProvider: LaterAIProvider {
 extension LaterAITests {
     @Test func freeUsersDoNotMakeCloudRequests() async throws {
         let coordinator = SyncCoordinator.shared
-        let previous = (coordinator.currentUserId, coordinator.currentUserEmail, coordinator.authToken, coordinator.isProUser)
-        coordinator.setProForTesting(false)
-        coordinator.currentUserEmail = "free@example.com"
-        coordinator.currentUserId = "free-uid"
-        coordinator.authToken = "free-token"
+        let previous = (coordinator.currentUserId, coordinator.currentUserEmail, coordinator.authToken, coordinator.isGuestMode)
+        coordinator.isGuestMode = true
+        coordinator.currentUserEmail = nil
+        coordinator.currentUserId = nil
+        coordinator.authToken = nil
         defer {
             coordinator.currentUserId = previous.0
             coordinator.currentUserEmail = previous.1
             coordinator.authToken = previous.2
-            coordinator.setProForTesting(previous.3)
+            coordinator.isGuestMode = previous.3
         }
         let container = try ModelContainer(for: LBItem.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
         let transport = MockCloudTransport()
@@ -347,16 +347,16 @@ extension LaterAITests {
     }
     @Test func freeUsersCannotForceSyncPendingItems() async throws {
         let coordinator = SyncCoordinator.shared
-        let previous = (coordinator.currentUserId, coordinator.currentUserEmail, coordinator.authToken, coordinator.isProUser)
-        coordinator.setProForTesting(false)
-        coordinator.currentUserEmail = "free@example.com"
-        coordinator.currentUserId = "free-uid"
-        coordinator.authToken = "free-token"
+        let previous = (coordinator.currentUserId, coordinator.currentUserEmail, coordinator.authToken, coordinator.isGuestMode)
+        coordinator.isGuestMode = true
+        coordinator.currentUserEmail = nil
+        coordinator.currentUserId = nil
+        coordinator.authToken = nil
         defer {
             coordinator.currentUserId = previous.0
             coordinator.currentUserEmail = previous.1
             coordinator.authToken = previous.2
-            coordinator.setProForTesting(previous.3)
+            coordinator.isGuestMode = previous.3
         }
         let container = try ModelContainer(for: LBItem.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
         let transport = MockCloudTransport()
@@ -830,9 +830,10 @@ extension LaterAITests {
         #expect(coordinator.syncState == .synced)
         #expect(coordinator.lastSyncedAt != nil)
 
-        // Verify local guest item merged to current user
+        // Verify local guest item merged to current user and pushed
         #expect(guestItem.userId == testUID)
-        #expect(guestItem.isSyncPending == true)
+        #expect(guestItem.isSyncPending == false)
+        #expect(transport.uploads.count == 1)
         #expect(coordinator.countUnassignedLocalItems(context: context, targetUserId: testUID) == 0)
 
         // Verify remote item hydrated into catalog
