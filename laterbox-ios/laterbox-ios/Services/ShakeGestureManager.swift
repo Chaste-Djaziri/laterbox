@@ -8,6 +8,7 @@
 
 import UIKit
 import SwiftUI
+import Combine
 
 extension Notification.Name {
     public static let deviceDidShakeNotification = Notification.Name("LBDeviceDidShakeNotification")
@@ -84,3 +85,4 @@ extension UIWindow {
         }
     }
 }
+
