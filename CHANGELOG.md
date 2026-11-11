@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[Web / Downloads page direct minimalism]** Strip away excess copy, redundant descriptions, and verbose sub-sections on the downloads page. Streamline into a direct, focused layout featuring concise platform cards (iOS App Store, Chrome extension, Android APK, and Web App) with immediate one-click actions and an unobtrusive upcoming desktop row.
+
 - **[Web / Downloads page redesign]** Simplify and modernize the downloads page layout and section architecture. Replace cluttered release note placement and repetitive placeholder cards with a clean, focused hierarchy: primary available clients (iOS App Store, Chrome Web Store extension, Android APK, and Web PWA), a streamlined desktop companion roadmap (macOS, Windows, Linux), clear platform capabilities, and cleanly integrated release notes.
 
 - **[Web / Header navigation dedicated routes]** Restructure header navigation to exclusively use distinct page routes (`/download`, `/pricing`, `/guide`, `/docs`), removing all in-page anchor links leading back to the same page. Update top promo bar to link directly to the interactive guide (`/guide`).
