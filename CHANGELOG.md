@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[macOS / Dock icon bundle fix]** Package a native LaterBox .icns file and reference it from the macOS bundle Info.plist so the Dock resolves the branded icon instead of the generic application placeholder.
+
 - **[macOS / Dock app icon]** Configure LaterBoxMac with the existing official LaterBox app icon in native macOS icon sizes, ensuring the icon appears in the Dock and application bundle.
 
 - **[macOS / Matched iOS authentication themes]** Match macOS authentication to the iOS graphite-grain dark canvas and soft light palette, including themed input and social sign-in surfaces without changing the native window controls.
