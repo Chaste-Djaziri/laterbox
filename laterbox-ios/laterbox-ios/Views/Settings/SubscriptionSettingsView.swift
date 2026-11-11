@@ -108,6 +108,7 @@ public struct SubscriptionSettingsView: View {
                         .buttonStyle(.plain)
                         .foregroundStyle(SettingsAppearance.textPrimary(for: colorScheme))
                         .background(SettingsAppearance.surface(for: colorScheme), in: RoundedRectangle(cornerRadius: 13))
+                        .accessibilityIdentifier("Upgrade to LaterBox Pro")
 
                         if coordinator.billingEntitlement?.provider != nil || storeKit.isProSubscriptionActive {
                             Button {
@@ -166,6 +167,7 @@ public struct SubscriptionSettingsView: View {
                         }
                         .buttonStyle(.plain)
                         .disabled(storeKit.isRestoring)
+                        .accessibilityIdentifier("Restore Purchases")
                     }
                     .padding(18)
                     .settingsCard(for: colorScheme, cornerRadius: 20)
