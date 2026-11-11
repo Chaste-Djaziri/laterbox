@@ -29,7 +29,7 @@ export function AdminHeader({
             <button
               type="button"
               onClick={onOpenMobile}
-              className="lg:hidden rounded-xl border border-[#d9dece] p-2 text-[#171711] hover:bg-[#edf0e4] transition-colors focus:outline-none"
+              className="md:hidden rounded-xl border border-[#d9dece] p-2 text-[#171711] hover:bg-[#edf0e4] transition-colors focus:outline-none"
               aria-label="Open navigation menu"
             >
               <Menu size={20} />

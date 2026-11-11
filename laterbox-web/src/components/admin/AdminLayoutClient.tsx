@@ -18,7 +18,7 @@ export function AdminLayoutClient({ children }: { children: ReactNode }) {
         {/* Main Content Area */}
         <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden bg-[#f7f5ee]">
           {/* Mobile Top Navigation Header */}
-          <div className="flex lg:hidden items-center justify-between border-b border-[#e4e5d9] bg-[#f7f5ee] px-4 py-3 shrink-0">
+          <div className="flex md:hidden items-center justify-between border-b border-[#e4e5d9] bg-[#f7f5ee] px-4 py-3 shrink-0">
             <button
               type="button"
               onClick={() => setMobileOpen(true)}
