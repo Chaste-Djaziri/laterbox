@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[macOS / Native signed-in sidebar]** Introduce a signed-in Mac dashboard with the web-inspired 84px icon rail, grouped destinations, selection states, tooltips, quick-save sheet and placeholder page shells while keeping unimplemented cloud data explicitly unavailable.
+
 - **[macOS / Dock icon bundle fix]** Package a native LaterBox .icns file and reference it from the macOS bundle Info.plist so the Dock resolves the branded icon instead of the generic application placeholder.
 
 - **[macOS / Dock app icon]** Configure LaterBoxMac with the existing official LaterBox app icon in native macOS icon sizes, ensuring the icon appears in the Dock and application bundle.
