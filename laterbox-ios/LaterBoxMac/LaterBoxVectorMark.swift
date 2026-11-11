@@ -1,0 +1,165 @@
+// laterbox-ios/LaterBoxMac/LaterBoxVectorMark.swift
+import SwiftUI
+
+/// Transparent, resolution-independent recreation of the three faces of the LaterBox cube.
+/// The paths come from the original 1024 x 1024 brand mark, cropped to its ink bounds.
+/// No raster asset, background fill, mask image, or embedded font is required.
+enum LaterBoxMarkAppearance {
+    /// Dark ink for light surfaces.
+    case light
+    /// White ink for dark surfaces.
+    case dark
+    /// Automatically choose the ink based on the current color scheme.
+    case automatic
+}
+
+/// Reusable mark; customize its size, ink, light/dark appearance and animation.
+struct LaterBoxVectorMark: View {
+    @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var assembled = false
+    @State private var lidFloating = false
+
+    var size: CGFloat = 42
+    var appearance: LaterBoxMarkAppearance = .automatic
+    var ink: Color? = nil
+    var animates: Bool = true
+    /// Show the separated pieces immediately so launch matches the static screen.
+    var showsPiecesBeforeAssembly: Bool = false
+    /// Disable the repeating lid float for the one-time launch animation.
+    var floatsLid: Bool = true
+    /// Increment to replay the gentle assembly animation (e.g. when tapping the logo).
+    var replayToken: Int = 0
+
+    private var resolvedInk: Color {
+        if let ink { return ink }
+        switch appearance {
+        case .light: return Color(red: 23 / 255, green: 23 / 255, blue: 17 / 255)
+        case .dark: return Color.white
+        case .automatic: return colorScheme == .dark ? Color.white : Color(red: 23 / 255, green: 23 / 255, blue: 17 / 255)
+        }
+    }
+
+    private var showAssembled: Bool {
+        !animates || reduceMotion || assembled
+    }
+
+    var body: some View {
+        ZStack {
+            LaterBoxMarkShape(part: .left)
+                .fill(resolvedInk, style: FillStyle(eoFill: true))
+                .offset(x: showAssembled ? 0 : -size * 0.075)
+                .opacity(showAssembled || showsPiecesBeforeAssembly ? 1 : 0)
+
+            LaterBoxMarkShape(part: .right)
+                .fill(resolvedInk, style: FillStyle(eoFill: true))
+                .offset(x: showAssembled ? 0 : size * 0.075)
+                .opacity(showAssembled || showsPiecesBeforeAssembly ? 1 : 0)
+
+            LaterBoxMarkShape(part: .lid)
+                .fill(resolvedInk, style: FillStyle(eoFill: true))
+                .offset(y: showAssembled ? (lidFloating ? -size * 0.018 : 0) : -size * 0.12)
+                .opacity(showAssembled || showsPiecesBeforeAssembly ? 1 : 0)
+        }
+        .frame(width: size, height: size)
+        .accessibilityHidden(true)
+        .task(id: replayToken) {
+            await animateAssembly()
+        }
+    }
+
+    @MainActor
+    private func animateAssembly() async {
+        guard animates && !reduceMotion else {
+            assembled = true
+            lidFloating = false
+            return
+        }
+
+        assembled = false
+        lidFloating = false
+        await Task.yield()
+        guard !Task.isCancelled else { return }
+        withAnimation(.spring(response: 0.65, dampingFraction: 0.78)) {
+            assembled = true
+        }
+
+        guard floatsLid else { return }
+        try? await Task.sleep(for: .milliseconds(800))
+        guard !Task.isCancelled else { return }
+        withAnimation(.easeInOut(duration: 2.6).repeatForever(autoreverses: true)) {
+            lidFloating = true
+        }
+    }
+}
+
+/// The vector has exactly three independent ink pieces, allowing each face to animate.
+/// All coordinates are relative to the cropped 603 x 656 artboard (original x=211, y=167).
+struct LaterBoxMarkShape: Shape {
+    enum Part {
+        case lid
+        case left
+        case right
+    }
+
+    var part: Part
+
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        switch part {
+        case .lid:
+            polygon([
+                (11, 157), (11, 160), (15, 165), (254, 295), (290, 313),
+                (302, 312), (539, 187), (581, 164), (587, 159),
+                (587, 155), (584, 151), (506, 107), (375, 36),
+                (309, 2), (302, 0), (288, 3), (163, 69), (14, 153)
+            ], into: &path)
+            // Center of the cube lid: open, not painted white.
+            polygon([
+                (118, 157), (299, 63), (479, 157), (299, 262)
+            ], into: &path)
+
+        case .left:
+            polygon([
+                (0, 190), (0, 502), (2, 508), (11, 516), (263, 651),
+                (275, 656), (274, 582), (73, 471), (67, 466), (67, 227)
+            ], into: &path)
+
+        case .right:
+            polygon([
+                (601, 185), (577, 199), (433, 274), (302, 337),
+                (302, 650), (467, 571), (574, 523), (591, 514),
+                (598, 508), (601, 502), (601, 406), (595, 393),
+                (577, 380), (587, 371), (595, 360), (601, 343)
+            ], into: &path)
+            // Cut-out counters of the B. These also remain transparent.
+            polygon([
+                (543, 284), (542, 343), (539, 350), (528, 362),
+                (508, 374), (441, 401), (370, 434), (367, 433),
+                (367, 360), (369, 358), (466, 318), (537, 284)
+            ], into: &path)
+            polygon([
+                (540, 432), (544, 440), (544, 469), (539, 480),
+                (528, 491), (504, 504), (440, 531), (368, 566),
+                (366, 565), (367, 487), (441, 453), (509, 426),
+                (526, 424), (534, 427)
+            ], into: &path)
+        }
+
+        let scale = min(rect.width / 603, rect.height / 656)
+        let offsetX = rect.minX + (rect.width - 603 * scale) / 2
+        let offsetY = rect.minY + (rect.height - 656 * scale) / 2
+        return path.applying(CGAffineTransform(
+            a: scale, b: 0, c: 0, d: scale, tx: offsetX, ty: offsetY
+        ))
+    }
+
+    private func polygon(_ points: [(CGFloat, CGFloat)], into path: inout Path) {
+        guard let first = points.first else { return }
+        path.move(to: CGPoint(x: first.0, y: first.1))
+        for (x, y) in points.dropFirst() {
+            path.addLine(to: CGPoint(x: x, y: y))
+        }
+        path.closeSubpath()
+    }
+}

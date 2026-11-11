@@ -758,7 +758,7 @@ struct MacLoginView: View {
         }
         .onChange(of: auth.step) { _, step in
             guard let window = NSApp.keyWindow else { return }
-            let size = step == .authenticated ? NSSize(width: 1050, height: 740) : NSSize(width: 550, height: 620)
+            let size = step == .authenticated ? NSSize(width: 1160, height: 800) : NSSize(width: 550, height: 620)
             window.setContentSize(size)
             window.center()
         }

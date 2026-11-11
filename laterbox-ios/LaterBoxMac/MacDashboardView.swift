@@ -68,13 +68,9 @@ struct MacDashboardView: View {
             sidebar
             VStack(spacing: 0) {
                 header
-                Rectangle()
-                    .fill(scheme == .dark ? Color.white.opacity(0.08) : Color.black.opacity(0.055))
-                    .frame(height: 1)
                 page
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
-            .background(mainBackground)
         }
         .background(mainBackground)
         .sheet(isPresented: $showingQuickSave) {
@@ -85,12 +81,9 @@ struct MacDashboardView: View {
     private var sidebar: some View {
         VStack(spacing: 0) {
             Button { selection = .inbox } label: {
-                Image(nsImage: NSImage(named: NSImage.applicationIconName) ?? NSImage())
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 45, height: 45)
+                LaterBoxVectorMark(size: 38, appearance: .automatic, animates: false)
                     .frame(width: 52, height: 52)
-                    .background(DashboardStyle.lime, in: RoundedRectangle(cornerRadius: 16))
+                    .contentShape(RoundedRectangle(cornerRadius: 16))
             }
             .buttonStyle(.plain)
             .help("LaterBox home")
@@ -152,7 +145,7 @@ struct MacDashboardView: View {
                 .padding(.bottom, 7)
         }
         .frame(width: 84)
-        .background(scheme == .dark ? Color(red: 34 / 255, green: 36 / 255, blue: 39 / 255) : DashboardStyle.cream)
+        .background(Color.clear)
     }
 
     private var divider: some View {
