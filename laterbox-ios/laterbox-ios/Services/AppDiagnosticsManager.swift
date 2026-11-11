@@ -178,14 +178,16 @@ public final class AppDiagnosticsManager {
                 total = items.count
                 for item in items {
                     switch item.status {
-                    case .inbox:
+                    case ItemStatus.inbox.rawValue, "inbox":
                         inbox += 1
-                    case .saved, .deferred:
+                    case ItemStatus.saved.rawValue, ItemStatus.deferred.rawValue, "saved", "deferred":
                         saved += 1
-                    case .archived:
+                    case ItemStatus.archived.rawValue, "archived":
                         archived += 1
-                    case .deleted:
+                    case ItemStatus.deleted.rawValue, "deleted":
                         deleted += 1
+                    default:
+                        break
                     }
                 }
             }
@@ -270,3 +272,4 @@ public final class AppDiagnosticsManager {
         UIPasteboard.general.string = text
     }
 }
+
