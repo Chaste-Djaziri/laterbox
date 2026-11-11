@@ -3,42 +3,35 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import {
   ArrowRight,
   Check,
-  CheckCircle2,
   Clock,
   Cloud,
   Copy,
-  Download,
-  FolderOpen,
   Gift,
-  Inbox,
   Laptop,
   Lock,
-  Plus,
-  ShieldCheck,
   Smartphone,
   Sparkles,
-  Star,
   Zap,
 } from 'lucide-react';
 
 interface ReferralWelcomePageProps {
   referralCode: string;
+  referrerName?: string | null;
 }
 
-export function ReferralWelcomePage({ referralCode }: ReferralWelcomePageProps) {
+export function ReferralWelcomePage({ referralCode, referrerName }: ReferralWelcomePageProps) {
   const [copied, setCopied] = useState(false);
   const cleanCode = (referralCode || '').trim().toLowerCase();
+  const displayName = referrerName?.trim() || null;
 
   // Persist attribution cookie & storage on visitor landing
   useEffect(() => {
     if (!cleanCode) return;
 
     try {
-      // 30 days cookie
       const maxAge = 30 * 24 * 60 * 60;
       const isProd = typeof window !== 'undefined' && window.location.hostname.endsWith('laterbox.dev');
       const domainAttr = isProd ? '; domain=.laterbox.dev' : '';
@@ -46,7 +39,6 @@ export function ReferralWelcomePage({ referralCode }: ReferralWelcomePageProps) 
         isProd ? '; Secure' : ''
       }`;
 
-      // Local storage backup
       localStorage.setItem('laterbox_ref', cleanCode);
       sessionStorage.setItem('laterbox_ref', cleanCode);
     } catch {
@@ -79,10 +71,16 @@ export function ReferralWelcomePage({ referralCode }: ReferralWelcomePageProps) 
         {/* =================================================================== */}
         <div className="text-center space-y-5">
           {/* Active Referral Pill */}
-          <div className="inline-flex items-center gap-2 rounded-full border border-[#d3df9e] bg-[#e6edb0]/70 px-4 py-1.5 shadow-xs backdrop-blur-sm">
+          <div className="inline-flex flex-wrap items-center justify-center gap-2 rounded-full border border-[#d3df9e] bg-[#e6edb0]/70 px-4 py-1.5 shadow-xs backdrop-blur-sm">
             <Gift className="h-4 w-4 text-[#3e5229]" />
             <span className="text-xs sm:text-sm font-bold text-[#233318]">
-              Personal Invite Activated:
+              {displayName ? (
+                <>
+                  Invited by <span className="underline decoration-[#7d9953] underline-offset-2">{displayName}</span>
+                </>
+              ) : (
+                'Personal Invite Activated:'
+              )}
             </span>
             <code className="rounded-md bg-[#233318] px-2 py-0.5 text-xs font-mono font-black text-[#e6edb0]">
               {cleanCode.toUpperCase()}
@@ -98,11 +96,19 @@ export function ReferralWelcomePage({ referralCode }: ReferralWelcomePageProps) 
           </div>
 
           <h1 className="text-4xl sm:text-6xl font-black tracking-tight text-[#171711] max-w-3xl mx-auto leading-[1.08]">
-            You&apos;ve been invited to LaterBox.
+            {displayName ? (
+              <>
+                <span className="text-[#364925]">{displayName}</span> invited you to LaterBox.
+              </>
+            ) : (
+              "You've been invited to LaterBox."
+            )}
           </h1>
 
           <p className="mx-auto max-w-2xl text-base sm:text-lg text-[#555f4f] leading-relaxed">
-            Your friend invited you to join LaterBox — the calm, local-first inbox for your links, articles, videos, and notes. Save anything in one click, and triage it whenever you&apos;re ready.
+            {displayName
+              ? `${displayName} invited you to join LaterBox — the calm, local-first inbox for your links, articles, videos, and notes. Save anything in one click, and triage it whenever you're ready.`
+              : "Your friend invited you to join LaterBox — the calm, local-first inbox for your links, articles, videos, and notes. Save anything in one click, and triage it whenever you're ready."}
           </p>
 
           {/* Primary Action Buttons */}
@@ -111,7 +117,7 @@ export function ReferralWelcomePage({ referralCode }: ReferralWelcomePageProps) 
               href={signupHref}
               className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 rounded-2xl bg-[#171711] px-7 py-4 text-sm font-bold text-[#e6edb0] shadow-lg shadow-[#171711]/10 transition-all hover:bg-[#2b3323] hover:scale-[1.02] focus-visible:outline-2 focus-visible:outline-[#758a50]"
             >
-              <span>Claim Invite &amp; Start Free</span>
+              <span>{displayName ? `Accept ${displayName}'s Invite & Start Free` : 'Claim Invite & Start Free'}</span>
               <ArrowRight className="h-4 w-4" />
             </Link>
 
@@ -138,7 +144,9 @@ export function ReferralWelcomePage({ referralCode }: ReferralWelcomePageProps) 
                 Exclusive Referral Benefits
               </span>
               <h2 className="mt-1 text-xl sm:text-2xl font-bold text-[#171711]">
-                What you unlock with code &ldquo;{cleanCode}&rdquo;
+                {displayName
+                  ? `What you unlock with ${displayName}'s invite code (${cleanCode})`
+                  : `What you unlock with code "${cleanCode}"`}
               </h2>
             </div>
             <div className="flex items-center gap-2 rounded-2xl bg-[#edf0e2] px-4 py-2 border border-[#d3df9e]">
@@ -207,7 +215,6 @@ export function ReferralWelcomePage({ referralCode }: ReferralWelcomePageProps) 
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Step 1 */}
             <div className="rounded-2xl border border-[#e4e5d9] bg-white p-6 space-y-3">
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#171711] text-xs font-bold text-[#e6edb0]">
                 1
@@ -218,7 +225,6 @@ export function ReferralWelcomePage({ referralCode }: ReferralWelcomePageProps) 
               </p>
             </div>
 
-            {/* Step 2 */}
             <div className="rounded-2xl border border-[#e4e5d9] bg-white p-6 space-y-3">
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#171711] text-xs font-bold text-[#e6edb0]">
                 2
@@ -229,7 +235,6 @@ export function ReferralWelcomePage({ referralCode }: ReferralWelcomePageProps) 
               </p>
             </div>
 
-            {/* Step 3 */}
             <div className="rounded-2xl border border-[#e4e5d9] bg-white p-6 space-y-3">
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#171711] text-xs font-bold text-[#e6edb0]">
                 3
@@ -286,14 +291,17 @@ export function ReferralWelcomePage({ referralCode }: ReferralWelcomePageProps) 
             Ready to reclaim your focus?
           </h2>
           <p className="text-sm text-[#677362] max-w-md mx-auto">
-            Join LaterBox with invite code <strong className="text-[#171711] font-mono">{cleanCode}</strong> and start saving for later in under 30 seconds.
+            {displayName
+              ? `Join ${displayName} on LaterBox with invite code `
+              : 'Join LaterBox with invite code '}
+            <strong className="text-[#171711] font-mono">{cleanCode}</strong> and start saving for later in under 30 seconds.
           </p>
           <div className="pt-2">
             <Link
               href={signupHref}
               className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[#171711] px-8 py-4 text-sm font-bold text-[#e6edb0] shadow-md hover:bg-[#2b3323] transition-all hover:scale-105"
             >
-              <span>Get Started with Code {cleanCode.toUpperCase()}</span>
+              <span>{displayName ? `Join ${displayName} on LaterBox` : `Get Started with Code ${cleanCode.toUpperCase()}`}</span>
               <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
@@ -311,7 +319,8 @@ export function ReferralWelcomePage({ referralCode }: ReferralWelcomePageProps) 
             </div>
             <div className="min-w-0">
               <p className="text-xs font-bold text-[#171711] truncate">
-                Invite: <span className="font-mono">{cleanCode.toUpperCase()}</span>
+                {displayName ? `${displayName}'s Invite: ` : 'Invite: '}
+                <span className="font-mono">{cleanCode.toUpperCase()}</span>
               </p>
               <p className="text-[11px] text-[#4d5c3d] truncate">500 MB Free Cloud Vault active</p>
             </div>
@@ -328,4 +337,3 @@ export function ReferralWelcomePage({ referralCode }: ReferralWelcomePageProps) 
     </div>
   );
 }
-
