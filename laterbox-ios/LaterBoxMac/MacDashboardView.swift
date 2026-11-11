@@ -365,8 +365,17 @@ struct MacDashboardView: View {
         searchInputFocused = false
     }
 
+    @ViewBuilder
     private var page: some View {
-        VStack(spacing: 14) {
+        if selection == .inbox {
+            MacInboxTableView(items: [], isConnected: false) {
+                showingQuickSave = true
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 12)
+            .padding(.bottom, 18)
+        } else {
+            VStack(spacing: 14) {
             Image(systemName: selection.icon)
                 .font(.system(size: 38, weight: .ultraLight))
                 .foregroundStyle(.secondary)
@@ -378,6 +387,7 @@ struct MacDashboardView: View {
         }
         .padding(30)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
     }
 }
 
