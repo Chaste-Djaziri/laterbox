@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[macOS / Web-style inbox email table]** Replace the Inbox placeholder with the native email-table shell matching Web: toolbar, categories, row structure, theme-aware surfaces, and an honest not-yet-connected inbox state until macOS sync is implemented.
+
 - **[macOS / App naming]** Set the native Mac app's exact visible name and built product to `Laterbox`, while preserving the `LaterBoxMac` Xcode target and bundle identifier.
 
 - **[macOS / Compact header and custom account avatar]** Align the dashboard title closely beside the monochrome brand icon, match the header's vertical position to the icon, and replace the tiny account glyph with a large branded initials avatar that persists the signed-in account email.
