@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[iOS / Share extension light and dark theme adaptation]** Update the iOS Share Sheet extension to adapt dynamically to both Light and Dark mode using LaterBox's warm canvas background (#F7F5EE), clean surface cards, and signature pastel lime accent (#E6EDB0), removing forced dark mode overrides across the composer and chrome.
+
 - **[iOS / Maintenance notification floating banner]** Add a real-time maintenance notification banner that floats above the iOS bottom navigation bar when admin maintenance is active or scheduled. Communicates temporary web access unavailability and potential cloud sync delays while reassuring local data integrity, featuring a live countdown action timer and collapsible view modes.
 
 - **[iOS / Earn dashboard refinement & sub-pages]** Refine the iOS Earn UI with dedicated sub-pages for Earnings Activity, Payout History, and Program Rules. Upgrade the referral module with 1-tap copy on links and codes, a quick "Copy all" invite bundle, native iOS ShareLink integration, haptic feedback, and inline previews for recent activity.
