@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[macOS / Compact header and custom account avatar]** Align the dashboard title closely beside the monochrome brand icon, match the header's vertical position to the icon, and replace the tiny account glyph with a large branded initials avatar that persists the signed-in account email.
+
 - **[macOS / Web-inspired dashboard header]** Replace the basic header with a centered, keyboard-focusable search field, navigation results, AI-organize availability state, Settings shortcut, and account menu with sign-out; match LaterBox light and dark surfaces without pretending unconnected item search is available.
 
 - **[macOS / Sidebar top alignment]** Remove the extra 64-point top inset on the dashboard navigation rail so the LaterBox mark and actions start directly below the native window controls.
