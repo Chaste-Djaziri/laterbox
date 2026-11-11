@@ -31,57 +31,25 @@ public final class ShakeGestureManager: ObservableObject {
         } else {
             self.isShakeEnabled = true
         }
-        Self.swizzleWindowMotionEndedIfNeeded()
     }
+
+    private var lastShakeTime: TimeInterval = 0
 
     public func triggerShake() {
         guard isShakeEnabled else { return }
+        let now = ProcessInfo.processInfo.systemUptime
+        guard now - lastShakeTime > 0.8 else { return }
+        lastShakeTime = now
         NotificationCenter.default.post(name: .deviceDidShakeNotification, object: nil)
-    }
-
-    private static var hasSwizzled = false
-
-    public static func swizzleWindowMotionEndedIfNeeded() {
-        guard !hasSwizzled else { return }
-        hasSwizzled = true
-
-        let originalSelector = #selector(UIResponder.motionEnded(_:with:))
-        let swizzledSelector = #selector(UIWindow.lb_motionEnded(_:with:))
-
-        guard let swizzledMethod = class_getInstanceMethod(UIWindow.self, swizzledSelector) else {
-            return
-        }
-
-        if let originalMethod = class_getInstanceMethod(UIWindow.self, originalSelector) {
-            let didAddMethod = class_addMethod(
-                UIWindow.self,
-                originalSelector,
-                method_getImplementation(swizzledMethod),
-                method_getTypeEncoding(swizzledMethod)
-            )
-
-            if didAddMethod {
-                class_replaceMethod(
-                    UIWindow.self,
-                    swizzledSelector,
-                    method_getImplementation(originalMethod),
-                    method_getTypeEncoding(originalMethod)
-                )
-            } else {
-                method_exchangeImplementations(originalMethod, swizzledMethod)
-            }
-        }
     }
 }
 
 extension UIWindow {
-    @objc func lb_motionEnded(_ motion: UIEvent.EventSubtype, with event: UIEvent?) {
-        lb_motionEnded(motion, with: event)
+    open override func motionEnded(_ motion: UIEvent.EventSubtype, with event: UIEvent?) {
+        super.motionEnded(motion, with: event)
 
         if motion == .motionShake {
-            if ShakeGestureManager.shared.isShakeEnabled {
-                NotificationCenter.default.post(name: .deviceDidShakeNotification, object: nil)
-            }
+            ShakeGestureManager.shared.triggerShake()
         }
     }
 }
