@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[macOS / Initial native sign-in]** Introduce a macOS SwiftUI app target in the existing Apple Xcode project with a desktop-designed Supabase email/password sign-in screen and email verification flow. The iOS target remains separate.
+
 - **[iOS / Shake to report & error sharing diagnostics]** Add shake gesture detection across any current app screen to trigger quick bug and error reporting. Includes a dedicated diagnostics and error sharing sheet with live device environment info (iOS version, device model, hardware capability, active tab, auth status, cloud sync metrics, and storage quota), 1-tap copy, native iOS ShareLink integration, and direct support request submission.
 
 - **[iOS / Share extension light and dark theme adaptation]** Update the iOS Share Sheet extension to adapt dynamically to both Light and Dark mode using LaterBox's warm canvas background (#F7F5EE), clean surface cards, and signature pastel lime accent (#E6EDB0), removing forced dark mode overrides across the composer and chrome.
