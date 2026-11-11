@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[macOS / Unified dashboard canvas]** Expand the signed-in workspace, replace the sidebar's boxed app icon with the genuine transparent monochrome LaterBox vector mark (white in dark mode, black in light), and use one continuous page background without a separating sidebar edge.
+
 - **[macOS / Persistent authentication]** Restore securely saved sessions at launch, refresh Supabase access tokens, keep signed-in dashboard across restarts and temporary network failures, and clear Keychain credentials on explicit sign-out.
 
 - **[macOS / Native signed-in sidebar]** Introduce a signed-in Mac dashboard with the web-inspired 84px icon rail, grouped destinations, selection states, tooltips, quick-save sheet and placeholder page shells while keeping unimplemented cloud data explicitly unavailable.
