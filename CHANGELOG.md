@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[macOS / Sidebar top alignment]** Remove the extra 64-point top inset on the dashboard navigation rail so the LaterBox mark and actions start directly below the native window controls.
+
 - **[macOS / Unified dashboard canvas]** Expand the signed-in workspace, replace the sidebar's boxed app icon with the genuine transparent monochrome LaterBox vector mark (white in dark mode, black in light), and use one continuous page background without a separating sidebar edge.
 
 - **[macOS / Persistent authentication]** Restore securely saved sessions at launch, refresh Supabase access tokens, keep signed-in dashboard across restarts and temporary network failures, and clear Keychain credentials on explicit sign-out.
