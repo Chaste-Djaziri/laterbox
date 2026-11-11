@@ -8,13 +8,10 @@ import { usePathname } from 'next/navigation';
 import {
   ArrowRight,
   BookOpen,
-  ChevronRight,
-  Compass,
   CreditCard,
   Download,
   HelpCircle,
   Menu,
-  Sparkles,
   X,
 } from 'lucide-react';
 import { APP_ORIGIN } from '@/lib/auth/config';
@@ -26,26 +23,14 @@ interface HeaderNavLink {
   label: string;
   icon: React.ComponentType<{ className?: string }>;
   badge?: string;
-}
-
-interface SecondaryNavLink {
-  href: string;
-  label: string;
-  detail: string;
-  icon: React.ComponentType<{ className?: string }>;
+  detail?: string;
 }
 
 const navLinks: readonly HeaderNavLink[] = [
-  { href: '/#features', label: 'Features', icon: Sparkles },
-  { href: '/#how-it-works', label: 'How it works', icon: Compass },
-  { href: '/download', label: 'Downloads', icon: Download },
-  { href: '/pricing', label: 'Pricing', icon: CreditCard },
-  { href: '/docs', label: 'Docs', icon: BookOpen },
-  { href: '/#faq', label: 'FAQ', icon: HelpCircle },
-];
-
-const mobileResourceLinks: readonly SecondaryNavLink[] = [
-  { href: '/guide', label: 'Getting started guide', detail: 'Step-by-step walkthrough & workflows', icon: HelpCircle },
+  { href: '/download', label: 'Downloads', icon: Download, badge: 'Apps', detail: 'iOS, macOS, Android & Extensions' },
+  { href: '/pricing', label: 'Pricing', icon: CreditCard, detail: 'Storage plans & subscription tiers' },
+  { href: '/guide', label: 'Guide', icon: HelpCircle, detail: 'Getting started & interactive workflows' },
+  { href: '/docs', label: 'Docs', icon: BookOpen, detail: 'Architecture, APIs & reference' },
 ];
 
 export function Header() {
@@ -93,7 +78,7 @@ export function Header() {
     }
   }, [mobileOpen]);
 
-  const activeLink = (href: string) => !href.startsWith('/#') && pathname === href;
+  const activeLink = (href: string) => pathname === href || (href === '/docs' && pathname.startsWith('/docs'));
   const closeMobile = () => setMobileOpen(false);
 
   return (
@@ -106,8 +91,8 @@ export function Header() {
         <div className="mx-auto flex min-h-9 max-w-[1240px] items-center justify-center gap-2 px-4 py-2 text-center text-[11px] font-medium tracking-[0.01em] sm:text-xs">
           <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#e6edb0]" aria-hidden="true" />
           <span>Less tab clutter. More room to think.</span>
-          <Link href="/#how-it-works" className="inline-flex items-center gap-1 font-bold text-[#e6edb0] underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#e6edb0]">
-            See how it works <ArrowRight className="h-3 w-3" aria-hidden="true" />
+          <Link href="/guide" className="inline-flex items-center gap-1 font-bold text-[#e6edb0] underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#e6edb0]">
+            Explore the guide <ArrowRight className="h-3 w-3" aria-hidden="true" />
           </Link>
         </div>
       </div>
@@ -129,13 +114,13 @@ export function Header() {
             <span className="text-[25px] font-black tracking-[-0.065em] text-[#181b14] sm:text-[27px]">laterbox<span className="text-[#84934f]">.</span></span>
           </Link>
 
-          <nav aria-label="Main navigation" className="hidden items-center gap-1 lg:flex xl:gap-2">
+          <nav aria-label="Main navigation" className="hidden items-center gap-1.5 lg:flex xl:gap-2">
             {navLinks.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
                 aria-current={activeLink(link.href) ? 'page' : undefined}
-                className={`rounded-full px-3.5 py-2 text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#678144] xl:px-4 ${
+                className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#678144] ${
                   activeLink(link.href) ? 'bg-[#e6edb0] text-[#181b14]' : 'text-[#606458] hover:bg-white hover:text-[#181b14]'
                 }`}
               >
@@ -218,9 +203,9 @@ export function Header() {
           {/* Main Navigation Section */}
           <div className="space-y-1.5">
             <p className="px-3 text-[10px] font-black uppercase tracking-[0.18em] text-[#92998a]">
-              Navigation
+              Pages
             </p>
-            <div className="space-y-0.5">
+            <div className="space-y-1">
               {navLinks.map((link) => {
                 const Icon = link.icon;
                 const isActive = activeLink(link.href);
@@ -230,43 +215,7 @@ export function Header() {
                     href={link.href}
                     onClick={closeMobile}
                     aria-current={isActive ? 'page' : undefined}
-                    className={`flex items-center justify-between rounded-xl px-3.5 py-2.5 text-sm font-bold transition-colors ${
-                      isActive
-                        ? 'bg-[#e6edb0] text-[#181b14] shadow-2xs'
-                        : 'text-[#383d34] hover:bg-white hover:text-[#181b14]'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <Icon className={`w-4 h-4 ${isActive ? 'text-[#181b14]' : 'text-[#7d8375]'}`} />
-                      <span>{link.label}</span>
-                    </div>
-                    {link.badge && (
-                      <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-white border border-[#d8dccf] text-[#606458]">
-                        {link.badge}
-                      </span>
-                    )}
-                  </Link>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Resources Section */}
-          <div className="space-y-1.5">
-            <p className="px-3 text-[10px] font-black uppercase tracking-[0.18em] text-[#92998a]">
-              Resources
-            </p>
-            <div className="space-y-1">
-              {mobileResourceLinks.map((link) => {
-                const Icon = link.icon;
-                const isActive = activeLink(link.href);
-                return (
-                  <Link
-                    key={link.href}
-                    href={link.href}
-                    onClick={closeMobile}
-                    aria-current={isActive ? 'page' : undefined}
-                    className={`group flex items-start justify-between rounded-xl px-3.5 py-2.5 transition-colors ${
+                    className={`flex items-start justify-between rounded-xl px-3.5 py-3 text-sm font-bold transition-colors ${
                       isActive
                         ? 'bg-[#e6edb0] text-[#181b14] shadow-2xs'
                         : 'text-[#383d34] hover:bg-white hover:text-[#181b14]'
@@ -275,11 +224,17 @@ export function Header() {
                     <div className="flex items-start gap-3">
                       <Icon className={`w-4 h-4 mt-0.5 shrink-0 ${isActive ? 'text-[#181b14]' : 'text-[#7d8375]'}`} />
                       <div>
-                        <span className="block font-bold text-sm leading-tight text-[#1b2018]">{link.label}</span>
-                        <span className="block text-[11px] font-normal text-[#7d8375] mt-0.5 leading-snug">{link.detail}</span>
+                        <span className="block font-bold text-sm leading-tight">{link.label}</span>
+                        {link.detail && (
+                          <span className="block text-[11px] font-normal text-[#7d8375] mt-0.5 leading-snug">{link.detail}</span>
+                        )}
                       </div>
                     </div>
-                    <ChevronRight className="w-4 h-4 text-[#a3aba0] shrink-0 mt-1 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    {link.badge && (
+                      <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-white border border-[#d8dccf] text-[#606458]">
+                        {link.badge}
+                      </span>
+                    )}
                   </Link>
                 );
               })}

@@ -9,10 +9,10 @@ const sections = [
   {
     title: 'Explore',
     links: [
-      { label: 'Features', href: '/#features' },
-      { label: 'How it works', href: '/#how-it-works' },
+      { label: 'All downloads', href: '/download' },
       { label: 'Storage plans', href: '/pricing' },
       { label: 'Getting started', href: '/guide' },
+      { label: 'Documentation', href: '/docs' },
     ],
   },
   {
@@ -21,14 +21,14 @@ const sections = [
       { label: 'Web app', href: `${APP_ORIGIN}/inbox` },
       { label: 'Chrome extension', href: 'https://chromewebstore.google.com/detail/laterbox-save-for-later/egiodciikkepjielhbnihmmchkbpeikp' },
       { label: 'iOS & iPadOS', href: 'https://apps.apple.com/us/app/laterbox-save-for-later/id6804139119' },
-      { label: 'All downloads', href: '/download' },
+      { label: 'Downloads page', href: '/download' },
     ],
   },
   {
     title: 'Resources',
     links: [
       { label: 'Documentation', href: '/docs' },
-      { label: 'FAQ', href: '/#faq' },
+      { label: 'Getting started guide', href: '/guide' },
       { label: 'Privacy', href: '/privacy' },
       { label: 'Terms of service', href: '/terms' },
       { label: 'Refund policy', href: '/refund' },
