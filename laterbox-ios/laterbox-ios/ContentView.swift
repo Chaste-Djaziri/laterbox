@@ -17,8 +17,11 @@ struct ContentView: View {
     @ObservedObject private var returnRouter = ReturnNotificationRouter.shared
     @StateObject private var aiManager = LaterAIManager.shared
     @ObservedObject private var clipboardManager = ClipboardDetectionManager.shared
+    @ObservedObject private var shakeManager = ShakeGestureManager.shared
     @State private var itemToPresent: LBItem? = nil
     @State private var showingSyncReport = false
+    @State private var showingErrorDiagnostics = false
+    @State private var activeDiagnosticsError: String? = nil
     @State private var showingSignOutFailure = false
     @State private var signOutFailureMessage = ""
     @State private var syncReportMessage = ""
@@ -105,6 +108,10 @@ struct ContentView: View {
                     }
                 }
             }
+            Button("Share error details") {
+                activeDiagnosticsError = coordinator.lastSyncErrorMessage
+                showingErrorDiagnostics = true
+            }
             Button("Report issue") {
                 syncReportMessage = "Cloud sync failed on iOS.\n\nWhat I was doing:\n\nError details:\n" + String((coordinator.lastSyncErrorMessage ?? "Unknown sync error").prefix(3000))
                 showingSyncReport = true
@@ -127,6 +134,15 @@ struct ContentView: View {
                         }
                     }
             }
+        }
+        .sheet(isPresented: $showingErrorDiagnostics) {
+            ErrorDiagnosticsSheet(specificError: activeDiagnosticsError, activeScreen: "General")
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .deviceDidShakeNotification)) { _ in
+            guard !showingErrorDiagnostics else { return }
+            LBHaptic.medium()
+            activeDiagnosticsError = coordinator.lastSyncErrorMessage
+            showingErrorDiagnostics = true
         }
         .animation(.spring(response: 0.35, dampingFraction: 0.85), value: lockManager.isLocked)
         .animation(.spring(response: 0.44, dampingFraction: 0.82), value: clipboardManager.isShowingBanner)
