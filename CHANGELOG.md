@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[macOS / Minimal authentication]** Replace the split login artwork with a centered, compact sign-in/sign-up form; add Google OAuth and native Apple sign-in alongside email authentication and account verification.
+
 - **[macOS / Initial native sign-in]** Introduce a macOS SwiftUI app target in the existing Apple Xcode project with a desktop-designed Supabase email/password sign-in screen and email verification flow. The iOS target remains separate.
 
 - **[iOS / Shake to report & error sharing diagnostics]** Add shake gesture detection across any current app screen to trigger quick bug and error reporting. Includes a dedicated diagnostics and error sharing sheet with live device environment info (iOS version, device model, hardware capability, active tab, auth status, cloud sync metrics, and storage quota), 1-tap copy, native iOS ShareLink integration, and direct support request submission.
