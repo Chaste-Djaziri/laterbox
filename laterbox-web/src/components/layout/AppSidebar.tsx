@@ -194,7 +194,6 @@ export function AppSidebar({ onOpenCapture }: AppSidebarProps) {
   const systemLinks = useMemo(() => [
     { href: '/tutorial', label: 'Guide', icon: Compass },
     { href: '/downloads', label: 'Apps', icon: Download },
-    { href: '/earn', label: 'Earn', icon: Coins },
     { href: '/help', label: 'Help & FAQ', icon: HelpCircle },
     { href: '/settings', label: 'Settings', icon: Settings },
     ...(hasAdminAccess
@@ -384,29 +383,33 @@ export function AppSidebar({ onOpenCapture }: AppSidebarProps) {
 
         <div className="my-4 flex justify-center" aria-hidden="true"><span className="h-px w-9 bg-[#e5e2d6]" /></div>
 
-        <button
-          ref={collectionButtonRef}
-          type="button"
-          aria-label="Collections"
-          aria-expanded={collectionsOpen}
-          aria-controls="laterbox-collections-panel"
-          {...tooltipHandlers('Collections')}
-          onClick={() => {
-            setTooltip(null);
-            if (collectionsOpen) closeCollections();
-            else {
-              updateCollectionPosition();
-              setCollectionsOpen(true);
-              setCollectionError('');
-            }
-          }}
-          className={railItemClass(collectionsOpen || pathname.startsWith('/library/')) + ' mx-auto'}
-        >
-          <FolderOpen className="h-[26px] w-[26px]" strokeWidth={2} aria-hidden="true" />
-          {collections.length > 0 && (
-            <span aria-hidden="true" className="absolute -right-0.5 -top-0.5 h-[8px] w-[8px] rounded-full bg-[#7b9652]" />
-          )}
-        </button>
+        <div className="flex flex-col items-center gap-1.5">
+          <button
+            ref={collectionButtonRef}
+            type="button"
+            aria-label="Collections"
+            aria-expanded={collectionsOpen}
+            aria-controls="laterbox-collections-panel"
+            {...tooltipHandlers('Collections')}
+            onClick={() => {
+              setTooltip(null);
+              if (collectionsOpen) closeCollections();
+              else {
+                updateCollectionPosition();
+                setCollectionsOpen(true);
+                setCollectionError('');
+              }
+            }}
+            className={railItemClass(collectionsOpen || pathname.startsWith('/library/')) + ' mx-auto'}
+          >
+            <FolderOpen className="h-[26px] w-[26px]" strokeWidth={2} aria-hidden="true" />
+            {collections.length > 0 && (
+              <span aria-hidden="true" className="absolute -right-0.5 -top-0.5 h-[8px] w-[8px] rounded-full bg-[#7b9652]" />
+            )}
+          </button>
+
+          {renderLink({ href: '/earn', label: 'Earn', icon: Coins })}
+        </div>
 
         <div className="my-4 flex justify-center" aria-hidden="true"><span className="h-px w-9 bg-[#e5e2d6]" /></div>
 
