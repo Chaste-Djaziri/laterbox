@@ -65,9 +65,8 @@ export function StoragePricingPage({ inApp = false }: { inApp?: boolean }) {
           </header>
         ) : (
           <>
-            <header className="relative mx-auto max-w-3xl text-center">
-              <div className="pointer-events-none absolute -top-28 left-1/2 -z-0 h-72 w-96 -translate-x-1/2 rounded-full bg-[#e6edb0]/55 blur-[85px]" />
-              <div className="relative">
+            <header className="mx-auto max-w-3xl text-center">
+              <div>
                 <span className="inline-flex items-center gap-2 rounded-full border border-[#cfd7b5] bg-[#e6edb0] px-4 py-2 text-[11px] font-black uppercase tracking-[0.16em]">
                   <Sparkles size={14} /> Storage that fits your life
                 </span>
@@ -113,7 +112,6 @@ export function StoragePricingPage({ inApp = false }: { inApp?: boolean }) {
             const destination = user || isFree ? href : `/login?next=${encodeURIComponent(href)}`;
             return (
               <section key={tier.key} className={`group relative flex flex-col overflow-hidden rounded-[30px] border p-7 transition-transform duration-300 hover:-translate-y-1 sm:p-8 ${featured ? inApp ? 'border-[#282821] bg-[#171711] text-white shadow-[0_18px_50px_rgba(23,23,17,.12)]' : 'border-[#20291b] bg-[#1b2218] text-white shadow-[0_24px_60px_rgba(29,39,20,.16)]' : inApp ? 'border-[#e4e0d5] bg-white shadow-[0_12px_32px_rgba(23,23,17,.04)]' : 'border-[#e0e4d9] bg-white shadow-[0_12px_32px_rgba(28,39,21,.04)]'}`}>
-                {featured && !inApp && <div className="pointer-events-none absolute -right-16 -top-24 h-56 w-56 rounded-full bg-[#c7df86]/10 blur-2xl" />}
                 <div className="relative flex items-center justify-between">
                   <span className={`inline-flex size-11 items-center justify-center rounded-2xl ${inApp ? featured ? 'bg-white/15 text-white' : 'bg-[#f2f0eb] text-[#56554f]' : featured ? 'bg-[#e6edb0] text-[#20291b]' : 'bg-[#f0f4e5] text-[#748851]'}`}>
                     {tier.key.startsWith('vault') ? <HardDrive size={21} /> : tier.key.startsWith('plus') ? <Zap size={21} /> : <Cloud size={21} />}
