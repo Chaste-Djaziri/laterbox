@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[macOS / Persistent authentication]** Restore securely saved sessions at launch, refresh Supabase access tokens, keep signed-in dashboard across restarts and temporary network failures, and clear Keychain credentials on explicit sign-out.
+
 - **[macOS / Native signed-in sidebar]** Introduce a signed-in Mac dashboard with the web-inspired 84px icon rail, grouped destinations, selection states, tooltips, quick-save sheet and placeholder page shells while keeping unimplemented cloud data explicitly unavailable.
 
 - **[macOS / Dock icon bundle fix]** Package a native LaterBox .icns file and reference it from the macOS bundle Info.plist so the Dock resolves the branded icon instead of the generic application placeholder.
