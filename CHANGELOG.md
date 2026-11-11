@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[Admin / Feedback inbox table & details view]** Upgrade Admin Feedback & Reports into a comprehensive triage inbox featuring a structured data table with status tabs (Open, In Progress, Resolved, All), live count metrics, search across contacts and messages, category and platform filters, and a dedicated ticket details view (/admin/feedback/[id]) with sender metadata, full message formatting, technical diagnostics, and one-click triage updates.
+
 - **[Admin / Collapsed icon sidebar]** Redesign the Admin Control Center sidebar into the exact collapsed icon rail format of the user app dashboard: 84px width, cream container, brand logo, rounded 52px navigation items with active green indicators, live badge counts, quick return to user app, and floating side tooltips.
 
 - **[Web / Dashboard sidebar admin navigation]** Display an Admin navigation button in the dashboard sidebar rail for authenticated users with administrative privileges (owner, admin, support, analyst), routing to `/admin` in local environments and `https://admin.laterbox.dev` in production.
