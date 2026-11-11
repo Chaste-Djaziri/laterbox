@@ -91,10 +91,25 @@ struct EarnView: View {
                 .font(.system(size: 28, weight: .bold))
                 .foregroundStyle(primary)
             Spacer()
-            if isLoading {
-                ProgressView()
-                    .controlSize(.small)
+            Button {
+                Task { await refresh() }
+            } label: {
+                if isLoading {
+                    ProgressView()
+                        .controlSize(.small)
+                        .frame(width: 36, height: 36)
+                } else {
+                    Image(systemName: "arrow.clockwise")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(primary)
+                        .frame(width: 36, height: 36)
+                        .background(surface, in: Circle())
+                        .overlay(Circle().strokeBorder(stroke, lineWidth: 1))
+                }
             }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Reload Earn")
+            .disabled(isLoading)
         }
         .padding(.bottom, 2)
     }
@@ -196,11 +211,6 @@ struct EarnView: View {
                     .font(.headline)
                     .foregroundStyle(primary)
             }
-            Text(value.status == "active" && value.programEnabled
-                ? "Share either one and disclose your affiliate relationship."
-                : "Your unique code is unlocked by Whop verification. Your code is reserved; referral attribution and commissions will start only when your Earn enrollment and the referral program are active.")
-                .font(.subheadline)
-                .foregroundStyle(secondary)
 
             if let url = value.referralUrl {
                 VStack(alignment: .leading, spacing: 8) {
@@ -213,7 +223,7 @@ struct EarnView: View {
                         .padding(12)
                         .background(stroke.opacity(0.25), in: RoundedRectangle(cornerRadius: 11))
                     Button {
-                        UIPasteboard.general.string = "\(url)\nI may earn a commission if you buy through my link."
+                        UIPasteboard.general.string = url
                         didCopy = true
                         Task {
                             try? await Task.sleep(nanoseconds: 2_500_000_000)
@@ -238,6 +248,10 @@ struct EarnView: View {
                     Button("Copy code") {
                         UIPasteboard.general.string = code
                         didCopy = true
+                        Task {
+                            try? await Task.sleep(nanoseconds: 2_500_000_000)
+                            didCopy = false
+                        }
                     }
                     .font(.system(size: 12, weight: .bold))
                     .foregroundStyle(Color(hex: "597442"))
@@ -449,13 +463,18 @@ struct EarnView: View {
         do {
             dashboard = try await LaterBoxAPIService.shared.fetchEarnDashboard(token: token)
         } catch {
+            if Task.isCancelled || error is CancellationError || (error as? URLError)?.code == .cancelled {
+                return
+            }
             if case CloudSyncError.unauthorized = error,
                await coordinator.refreshAuthSession(),
                let newToken = coordinator.authToken {
                 do {
                     dashboard = try await LaterBoxAPIService.shared.fetchEarnDashboard(token: newToken)
                 } catch {
-                    errorMessage = error.localizedDescription
+                    if !(Task.isCancelled || error is CancellationError || (error as? URLError)?.code == .cancelled) {
+                        errorMessage = error.localizedDescription
+                    }
                 }
             } else {
                 errorMessage = error.localizedDescription
