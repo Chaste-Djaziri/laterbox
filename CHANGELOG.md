@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[macOS / Native window controls]** Restore the standard macOS close, minimize, and zoom traffic-light controls while keeping the window title hidden; remove the custom close button.
+
 - **[macOS / Custom authentication window]** Use a clean custom email field with focus styling and inline clear action, hide native titlebar controls, and add an in-app window close button.
 
 - **[macOS / Minimal authentication]** Replace the split login artwork with a centered, compact sign-in/sign-up form; add Google OAuth and native Apple sign-in alongside email authentication and account verification.
