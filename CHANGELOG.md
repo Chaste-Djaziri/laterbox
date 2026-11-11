@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[macOS / Friendly inbox empty states]** Replace the technical inbox placeholder with a welcoming, theme-aware illustration and concise guidance; distinguish disconnected macOS sync from a genuinely empty category, with an actionable Web fallback and clear Quick Save preview label.
+
 - **[macOS / Inbox category tabs]** Make the active Primary, Articles, Media, and Updates tab highlights strictly rectangular, without rounded corners; keep the outer inbox table corners unchanged.
 
 - **[macOS / Web-style inbox email table]** Replace the Inbox placeholder with the native email-table shell matching Web: toolbar, categories, row structure, theme-aware surfaces, and an honest not-yet-connected inbox state until macOS sync is implemented.
