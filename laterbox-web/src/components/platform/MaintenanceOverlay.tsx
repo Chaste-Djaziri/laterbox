@@ -2,17 +2,43 @@
 'use client';
 import {useEffect,useMemo,useState} from 'react';
 import {Clock3,Construction} from 'lucide-react';
+
 type Status={maintenance:{state:'off'|'upcoming'|'active';mode:string;startsAt:string|null;endsAt:string|null;message:string};serverTime:string};
+
 const format=(target:string|null,now:number)=>{
  if(!target)return 'Until further notice';
  const delta=Math.max(0,Date.parse(target)-now);
  const days=Math.floor(delta/86400000),hours=Math.floor(delta%86400000/3600000),mins=Math.floor(delta%3600000/60000),secs=Math.floor(delta%60000/1000);
  return (days?days+'d ':'')+String(hours).padStart(2,'0')+':'+String(mins).padStart(2,'0')+':'+String(secs).padStart(2,'0');
 };
+
+function isLocalDevHost(hostname: string): boolean {
+ return (
+   hostname === 'localhost' ||
+   hostname === '127.0.0.1' ||
+   hostname === '[::1]' ||
+   hostname.endsWith('.localhost')
+ );
+}
+
 export function MaintenanceOverlay(){
- const [status,setStatus]=useState<Status|null>(null),[now,setNow]=useState(()=>Date.now());
+ const [status,setStatus]=useState<Status|null>(null);
+ const [now,setNow]=useState(()=>Date.now());
+ const [isLocalDev,setIsLocalDev]=useState(()=> {
+   if(process.env.NODE_ENV === 'development') return true;
+   if(typeof window !== 'undefined') return isLocalDevHost(window.location.hostname);
+   return false;
+ });
+
  useEffect(()=>{
-  if(typeof window==='undefined'||window.location.hostname==='admin.laterbox.dev'||window.location.hostname==='admin.localhost')return;
+  if(typeof window==='undefined')return;
+  const h=window.location.hostname;
+  if(process.env.NODE_ENV === 'development' || isLocalDevHost(h)){
+   setIsLocalDev(true);
+   return;
+  }
+  if(h==='admin.laterbox.dev')return;
+
   let mounted=true;
   const load=async()=>{
    try{
@@ -29,25 +55,30 @@ export function MaintenanceOverlay(){
   document.addEventListener('visibilitychange',refresh);
   return ()=>{mounted=false;window.clearInterval(poll);window.clearInterval(clock);document.removeEventListener('visibilitychange',refresh)};
  },[]);
+
  const state=useMemo(()=>{
-  if(!status)return 'off';
+  if(isLocalDev||!status)return 'off';
   const {mode,startsAt,endsAt}=status.maintenance;
   if(mode==='off'||(endsAt&&now>=Date.parse(endsAt)))return 'off';
   if(mode==='active')return 'active';
   return startsAt&&now<Date.parse(startsAt)?'upcoming':'active';
- },[status,now]);
+ },[status,now,isLocalDev]);
+
  useEffect(()=>{
-  if(state!=='active')return;
+  if(isLocalDev||state!=='active')return;
   const old=document.body.style.overflow;
   document.body.style.overflow='hidden';
   return ()=>{document.body.style.overflow=old};
- },[state]);
- if(!status||state==='off')return null;
+ },[state,isLocalDev]);
+
+ if(isLocalDev||!status||state==='off')return null;
+
  const m=status.maintenance;
  if(state==='upcoming')return <div role="status" className="fixed inset-x-0 bottom-4 z-[2100000000] mx-auto flex max-w-xl flex-wrap items-center justify-between gap-2 rounded-2xl border border-[#d7dfbe] bg-[#f6f8e8] px-5 py-3 text-sm text-[#29311d] shadow-xl">
   <span className="flex items-center gap-2"><Clock3 size={17}/><strong>Scheduled maintenance</strong></span>
   <span>Starts in {format(m.startsAt,now)}</span>
  </div>;
+
  return <div role="dialog" aria-modal="true" aria-labelledby="laterbox-maintenance-heading" className="fixed inset-0 z-[2147483647] flex items-center justify-center overflow-y-auto bg-[#f7f5ee] px-5 py-10 text-[#171711]">
   <div className="w-full max-w-xl rounded-[28px] border border-[#e3e8d3] bg-white p-8 text-center shadow-[0_30px_100px_-25px_rgba(23,23,17,0.18)] sm:p-12">
    <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-[#e6edb0]"><Construction size={30}/></div>
