@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[Web / Earn dashboard loading skeleton]** Build a dedicated, full-surface loading skeleton for the Earn tab in the user dashboard. Replace the generic single text box with realistic placeholders for Whop connection status, balance metric cards, referral link/code tools, activity history, and workflow steps.
+
 - **[Web / Guide coming soon state]** Remove Guide from primary header navigation and update the `/guide` page to a calm "Coming soon — working on it" state with shortcuts to documentation and downloads.
 
 - **[Web / Pricing 3-card layout & dynamic storage slider]** Re-architect storage pricing into a clear 3-card structure: Free (500 MB), Plus (10 GB standard), and Vault Scalable Storage featuring an interactive slider for remaining high-capacity tiers (50 GB, 100 GB, 250 GB, 500 GB, 1 TB, 2 TB) with real-time price, quota, and checkout attribution updates.
