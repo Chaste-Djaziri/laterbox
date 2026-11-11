@@ -1,22 +1,19 @@
 // laterbox-web/src/components/layout/Header.tsx
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   ArrowRight,
   BookOpen,
-  ChevronDown,
   ChevronRight,
   Compass,
   CreditCard,
   Download,
   HelpCircle,
-  Info,
   Menu,
-  Puzzle,
   Sparkles,
   X,
 } from 'lucide-react';
@@ -24,42 +21,38 @@ import { APP_ORIGIN } from '@/lib/auth/config';
 import { useAuth } from '@/lib/store/AuthContext';
 import { AppStoreTopBanner } from '@/components/marketing/AppStoreTopBanner';
 
-interface PrimaryLinkItem {
+interface HeaderNavLink {
   href: string;
   label: string;
   icon: React.ComponentType<{ className?: string }>;
   badge?: string;
 }
 
-interface ResourceLinkItem {
+interface SecondaryNavLink {
   href: string;
   label: string;
   detail: string;
   icon: React.ComponentType<{ className?: string }>;
 }
 
-const primaryLinks: readonly PrimaryLinkItem[] = [
-  { href: '/features', label: 'Features', icon: Sparkles },
+const navLinks: readonly HeaderNavLink[] = [
+  { href: '/#features', label: 'Features', icon: Sparkles },
   { href: '/#how-it-works', label: 'How it works', icon: Compass },
-  { href: '/browser-extension', label: 'Browser extension', icon: Puzzle, badge: 'Chrome' },
+  { href: '/download', label: 'Downloads', icon: Download },
   { href: '/pricing', label: 'Pricing', icon: CreditCard },
+  { href: '/docs', label: 'Docs', icon: BookOpen },
+  { href: '/#faq', label: 'FAQ', icon: HelpCircle },
 ];
 
-const resourceLinks: readonly ResourceLinkItem[] = [
-  { href: '/download', label: 'Apps & downloads', detail: 'iOS, macOS, Windows & Android', icon: Download },
-  { href: '/docs', label: 'Documentation', detail: 'Guides, API reference, & architecture', icon: BookOpen },
-  { href: '/guide', label: 'Getting started', detail: 'Your first save, step by step', icon: HelpCircle },
-  { href: '/about', label: 'About LaterBox', detail: 'The thinking behind the product', icon: Info },
+const mobileResourceLinks: readonly SecondaryNavLink[] = [
+  { href: '/guide', label: 'Getting started guide', detail: 'Step-by-step walkthrough & workflows', icon: HelpCircle },
 ];
 
 export function Header() {
   const pathname = usePathname();
   const { isAuthenticated, user, loading } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [resourcesOpen, setResourcesOpen] = useState(false);
   const [hasScrolled, setHasScrolled] = useState(false);
-
-  const resourcesRef = useRef<HTMLDivElement>(null);
 
   const isSignedIn = Boolean(user || isAuthenticated);
   const dashboardHref = `${APP_ORIGIN}/inbox`;
@@ -77,25 +70,17 @@ export function Header() {
   }, []);
 
   useEffect(() => {
-    if (!mobileOpen && !resourcesOpen) return;
+    if (!mobileOpen) return;
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         setMobileOpen(false);
-        setResourcesOpen(false);
-      }
-    };
-    const closeResourcesOutside = (event: PointerEvent) => {
-      if (resourcesRef.current && !resourcesRef.current.contains(event.target as Node)) {
-        setResourcesOpen(false);
       }
     };
     document.addEventListener('keydown', closeOnEscape);
-    document.addEventListener('pointerdown', closeResourcesOutside);
     return () => {
       document.removeEventListener('keydown', closeOnEscape);
-      document.removeEventListener('pointerdown', closeResourcesOutside);
     };
-  }, [mobileOpen, resourcesOpen]);
+  }, [mobileOpen]);
 
   // Lock body scroll when mobile sidebar is open
   useEffect(() => {
@@ -108,7 +93,7 @@ export function Header() {
     }
   }, [mobileOpen]);
 
-  const activeLink = (href: string) => href !== '/#how-it-works' && pathname === href;
+  const activeLink = (href: string) => !href.startsWith('/#') && pathname === href;
   const closeMobile = () => setMobileOpen(false);
 
   return (
@@ -144,43 +129,19 @@ export function Header() {
             <span className="text-[25px] font-black tracking-[-0.065em] text-[#181b14] sm:text-[27px]">laterbox<span className="text-[#84934f]">.</span></span>
           </Link>
 
-          <nav aria-label="Main navigation" className="hidden items-center gap-0.5 lg:flex xl:gap-1">
-            {primaryLinks.map(link => (
+          <nav aria-label="Main navigation" className="hidden items-center gap-1 lg:flex xl:gap-2">
+            {navLinks.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
                 aria-current={activeLink(link.href) ? 'page' : undefined}
-                className={`rounded-full px-3 py-3 text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#678144] xl:px-4 xl:text-sm ${
+                className={`rounded-full px-3.5 py-2 text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#678144] xl:px-4 ${
                   activeLink(link.href) ? 'bg-[#e6edb0] text-[#181b14]' : 'text-[#606458] hover:bg-white hover:text-[#181b14]'
                 }`}
-              >{link.label}</Link>
-            ))}
-            <div className="relative" ref={resourcesRef}>
-              <button
-                type="button"
-                aria-expanded={resourcesOpen}
-                aria-controls="laterbox-resources-menu"
-                aria-haspopup="true"
-                onClick={() => setResourcesOpen(value => !value)}
-                className={`inline-flex items-center gap-1.5 rounded-full px-3 py-3 text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#678144] xl:px-4 xl:text-sm ${
-                  resourcesOpen ? 'bg-white text-[#181b14]' : 'text-[#606458] hover:bg-white hover:text-[#181b14]'
-                }`}
               >
-                More <ChevronDown className={`h-3.5 w-3.5 transition-transform ${resourcesOpen ? 'rotate-180' : ''}`} aria-hidden="true" />
-              </button>
-              {resourcesOpen && (
-                <div id="laterbox-resources-menu" className="absolute left-1/2 top-[calc(100%+14px)] z-50 w-[290px] -translate-x-1/2 rounded-[20px] border border-[#e5e8db] bg-white p-2.5 shadow-[0_25px_80px_rgba(24,27,20,0.14)]">
-                  <p className="px-3 pb-1.5 pt-2 text-[10px] font-black uppercase tracking-[0.18em] text-[#939a87]">Explore LaterBox</p>
-                  {resourceLinks.map(link => (
-                    <Link key={link.href} href={link.href} onClick={() => setResourcesOpen(false)}
-                      className="block rounded-xl px-3 py-3 transition-colors hover:bg-[#f4f7eb] focus-visible:outline-2 focus-visible:outline-[#678144]">
-                      <span className="block text-sm font-bold text-[#1b2018]">{link.label}</span>
-                      <span className="mt-0.5 block text-xs text-[#7d8375]">{link.detail}</span>
-                    </Link>
-                  ))}
-                </div>
-              )}
-            </div>
+                {link.label}
+              </Link>
+            ))}
           </nav>
 
           <div className="flex shrink-0 items-center gap-2 sm:gap-3">
@@ -254,13 +215,13 @@ export function Header() {
 
         {/* Scrollable Navigation Body */}
         <div className="flex-1 overflow-y-auto px-4 py-5 space-y-6" data-lenis-prevent>
-          {/* Product Section */}
+          {/* Main Navigation Section */}
           <div className="space-y-1.5">
             <p className="px-3 text-[10px] font-black uppercase tracking-[0.18em] text-[#92998a]">
-              Product
+              Navigation
             </p>
             <div className="space-y-0.5">
-              {primaryLinks.map((link) => {
+              {navLinks.map((link) => {
                 const Icon = link.icon;
                 const isActive = activeLink(link.href);
                 return (
@@ -290,13 +251,13 @@ export function Header() {
             </div>
           </div>
 
-          {/* Apps & Resources Section */}
+          {/* Resources Section */}
           <div className="space-y-1.5">
             <p className="px-3 text-[10px] font-black uppercase tracking-[0.18em] text-[#92998a]">
-              Apps &amp; Resources
+              Resources
             </p>
             <div className="space-y-1">
-              {resourceLinks.map((link) => {
+              {mobileResourceLinks.map((link) => {
                 const Icon = link.icon;
                 const isActive = activeLink(link.href);
                 return (
