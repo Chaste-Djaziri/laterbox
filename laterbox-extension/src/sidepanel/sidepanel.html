@@ -10,7 +10,7 @@
   <body>
     <main class="panel">
       <header class="brand"><img class="brand-logo" src="/logo.png" alt="laterbox" /></header>
-      <section class="page-card">
+      <section id="page-card" class="page-card" hidden>
         <p id="domain" class="eyebrow">CURRENT PAGE</p>
         <h1 id="title">Loading page...</h1>
         <p id="url" class="url"></p>
@@ -21,13 +21,12 @@
         <button id="save-selection" type="button">Save selection</button>
       </section>
       <section id="disconnected" class="connection">
-        <p>Connect laterbox to save across devices.</p>
-        <button id="connect" type="button">Connect laterbox</button>
+        <p>Sign in to LaterBox to save across devices.</p>
+        <button id="connect" type="button">Sign in to LaterBox</button>
       </section>
       <section id="connected" class="connection" hidden>
-        <p class="connected"><span class="status-dot"></span> Connected to laterbox</p>
-        <p id="capture-mode-label" style="margin: 0 0 6px; color: #6c6b63; font-size: 12px;"></p>
-        <button id="save" type="button">Save to laterbox</button>
+        <p class="connected"><span class="status-dot"></span> Connected to LaterBox</p>
+        <button id="save" type="button">Save to LaterBox</button>
         <button id="disconnect" class="secondary" type="button">Disconnect</button>
       </section>
       <section id="highlight-permission" class="permission-note" hidden>

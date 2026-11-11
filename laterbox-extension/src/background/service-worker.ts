@@ -148,12 +148,21 @@ async function handleCommand(command: string): Promise<void> {
       return;
     }
     if (command !== 'save-current-page' && command !== 'save-selection') return;
+    const token = await getAccessToken();
+    const userId = await getConnectedUserId();
+    if (!token || !userId) {
+      await setCommandBadge('!');
+      return;
+    }
     const [tab] = await browser.tabs.query({ active: true, lastFocusedWindow: true });
     if (tab?.id === undefined) return;
     const page = await getPageContext(tab.id,{ url:tab.url || '', title:tab.title || '', selection:'' });
     if (browserCapabilities.isRestrictedUrl(page.url)) { await setCommandBadge('!'); return; }
     if (command === 'save-selection' && !page.selection) { await setCommandBadge('!'); return; }
-    await saveCapture(captureFromPage(page,command === 'save-selection' ? 'highlight' : 'page'));
+    const result = await saveCapture(captureFromPage(page,command === 'save-selection' ? 'highlight' : 'page'));
+    if (result.status === 'needsAuth') {
+      await setCommandBadge('!');
+    }
   } catch (error) {
     console.error("[LaterBox command] failed", command, error);
   }
@@ -170,6 +179,9 @@ async function savePageMessage(
   message: { url?: unknown; title?: unknown },
   sender: chrome.runtime.MessageSender,
 ) {
+  const token = await getAccessToken();
+  const userId = await getConnectedUserId();
+  if (!token || !userId) return { status: "needsAuth" };
   const url = typeof message.url === "string" ? message.url : sender.tab?.url;
   if (!url || !/^https?:\/\//i.test(url)) return { status: "needsAuth" };
   const [tab] = await browser.tabs.query({ active:true,lastFocusedWindow:true });
@@ -371,14 +383,24 @@ async function createContextMenus(): Promise<void> {
 
 async function handleContextMenu(info: chrome.contextMenus.OnClickData, tab?: chrome.tabs.Tab): Promise<void> {
   try {
+    const token = await getAccessToken();
+    const userId = await getConnectedUserId();
+    if (!token || !userId) {
+      await setCommandBadge('!');
+      return;
+    }
     const fallback = { url: info.pageUrl || tab?.url || '', title:tab?.title || '',selection:info.selectionText || '' };
     const page = tab?.id !== undefined ? await getPageContext(tab.id,fallback) : fallback;
+    let result: CaptureResult | undefined;
     if (info.menuItemId === SELECTION_MENU && info.selectionText) {
-      await saveCapture(captureFromPage(page,'highlight',info.selectionText));
+      result = await saveCapture(captureFromPage(page,'highlight',info.selectionText));
     } else if (info.menuItemId === LINK_MENU && info.linkUrl) {
-      await saveCapture(captureFromPage({ url:info.linkUrl,title:'',selection:'' },'link'));
+      result = await saveCapture(captureFromPage({ url:info.linkUrl,title:'',selection:'' },'link'));
     } else if (info.menuItemId === PAGE_MENU && !browserCapabilities.isRestrictedUrl(page.url)) {
-      await saveCapture(captureFromPage(page));
+      result = await saveCapture(captureFromPage(page));
+    }
+    if (result && result.status === 'needsAuth') {
+      await setCommandBadge('!');
     }
   } catch { await setCommandBadge('!'); }
 }

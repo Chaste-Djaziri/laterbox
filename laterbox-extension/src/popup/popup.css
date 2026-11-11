@@ -285,5 +285,82 @@ button:disabled {
 .shortcuts-section .status { margin: 0 0 8px; font-size: 11px; line-height: 1.65; white-space: pre-line; }
 .shortcuts-section button { width: 100%; padding: 9px 10px; font-size: 11px; text-align: left; }
 .shortcuts-section button span { float: right; }
+.auth-prompt {
+  margin: 0 0 10px !important;
+  color: #55544d !important;
+  font-size: 13px !important;
+  line-height: 1.5;
+}
+
+.connected-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 6px;
+  padding-top: 8px;
+}
+
+.guide-panel {
+  margin-top: 14px;
+  padding: 14px 16px;
+  border: 1px solid #e4e0d5;
+  border-radius: 16px;
+  background: #ffffff;
+}
+
+.guide-header {
+  margin-bottom: 10px;
+}
+
+.guide-header h2 {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #6c6b63;
+}
+
+.guide-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 12px;
+  color: #55544d;
+  line-height: 1.4;
+}
+
+.guide-list li {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.guide-bullet {
+  color: #26734d;
+  font-size: 8px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.guide-list strong {
+  color: #171711;
+  font-weight: 650;
+}
+
+kbd {
+  display: inline-block;
+  padding: 1px 5px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10.5px;
+  background: #f1f0e8;
+  border: 1px solid #d5d3c9;
+  border-radius: 4px;
+  color: #171711;
+}
+
 button:focus-visible { outline: 3px solid #26734d; outline-offset: 3px; }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }

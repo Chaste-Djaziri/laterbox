@@ -12,56 +12,70 @@
       <header class="brand">
         <img class="brand-logo" src="/logo.png" alt="laterbox" />
       </header>
-      <section class="card">
+
+      <!-- Active page card (only when logged in) -->
+      <section id="page-card" class="card" hidden>
         <p id="domain" class="domain">CURRENT PAGE</p>
         <h1 id="title" class="title">Current page</h1>
         <p id="url" class="url"></p>
       </section>
+
+      <!-- Text selection / quote card (only when logged in with selection) -->
       <section id="highlight" class="highlight-panel" hidden>
         <p class="eyebrow">HIGHLIGHT</p>
         <blockquote id="selection"></blockquote>
         <button id="save-highlight" type="button">Save highlight</button>
       </section>
+
+      <!-- Disconnected / Auth prompt -->
       <section id="disconnected" class="connection-panel">
-        <p>Connect laterbox to start saving across devices.</p>
-        <button id="connect" type="button">Connect laterbox</button>
+        <p class="auth-prompt">Sign in to save links, articles, and quotes to your LaterBox.</p>
+        <button id="connect" type="button">Sign in to LaterBox</button>
       </section>
+
+      <!-- Pending approval -->
       <section id="pending" class="connection-panel" hidden>
-        <p class="pending-label"><span class="pending-dot"></span>Waiting for connection...</p>
-        <p class="pending-sub">Complete authorization in your browser tab.</p>
+        <p class="pending-label"><span class="pending-dot"></span>Waiting for authorization...</p>
+        <p class="pending-sub">Complete sign-in in your browser tab.</p>
         <button id="open-approval" class="secondary-button" type="button">Open approval tab</button>
         <button id="cancel-connect" class="link-button" type="button">Cancel request</button>
       </section>
+
+      <!-- Connected actions -->
       <section id="connected" class="connection-panel" hidden>
-        <p class="connected-label"><span class="status-dot"></span>Connected to laterbox</p>
-        <p id="capture-mode-label" class="pending-sub"></p>
-        <button id="save" type="button">Save to laterbox</button>
+        <button id="save" type="button">Save to LaterBox</button>
         <button id="open-panel" class="secondary-button" type="button" hidden>Open side panel</button>
-        <button id="disconnect" class="link-button" type="button">Disconnect</button>
-      </section>
-      <section class="settings-panel" aria-labelledby="page-controls-title">
-        <div class="settings-heading">
-          <h2 id="page-controls-title">Save buttons on pages</h2>
-          <span class="settings-tag">ON-PAGE</span>
+        <div class="connected-footer">
+          <p class="connected-label"><span class="status-dot"></span>Connected to LaterBox</p>
+          <button id="disconnect" class="link-button" type="button">Disconnect</button>
         </div>
+      </section>
+
+      <!-- Settings: Quick save toggle -->
+      <section id="settings-panel" class="settings-panel" hidden>
         <label class="toggle-row" for="injected-controls">
           <span class="toggle-copy">
-            <span class="toggle-title">Quick save controls</span>
-            <span id="controls-description" class="toggle-description">Save selected text and Instagram posts, Reels and profiles, LinkedIn posts and profiles, and X/Twitter posts and profiles without opening the extension.</span>
+            <span class="toggle-title">Quick-save buttons</span>
+            <span id="controls-description" class="toggle-description">Show save buttons on web pages & social feeds</span>
           </span>
           <input id="injected-controls" type="checkbox" role="switch" aria-describedby="controls-description" checked />
           <span class="toggle-track" aria-hidden="true"></span>
         </label>
-        <div class="controls-examples" aria-label="Available page controls">
-          <span><span aria-hidden="true">❞</span> Select text · Save quote</span>
-          <span><span aria-hidden="true">＋</span> Instagram · LinkedIn · X · Save to LaterBox</span>
-        </div>
-        <p class="settings-hint">Quote controls appear on accessible pages. Instagram save buttons appear beside Share on supported posts and Reels. LinkedIn buttons appear beside Send or Repost on supported feed posts and post details. Save profile appears beside LinkedIn profile actions. X/Twitter post buttons appear beside the post action row, and Save profile appears beside profile controls. Right-click actions and shortcuts stay available when disabled.</p>
-        <div class="shortcuts-section">
-        <p id="shortcuts" class="status"></p>
-        <button id="configure-shortcuts" class="secondary-button" type="button">Manage keyboard shortcuts <span aria-hidden="true">↗</span></button>
-        </div>
       </section>
+
+      <!-- How to use guide -->
+      <section class="guide-panel" aria-labelledby="guide-title">
+        <div class="guide-header">
+          <h2 id="guide-title">How to use</h2>
+        </div>
+        <ul class="guide-list">
+          <li><span class="guide-bullet">●</span><span><strong>Click icon:</strong> Save active page to LaterBox</span></li>
+          <li><span class="guide-bullet">●</span><span><strong>Select text:</strong> Save highlights & quotes</span></li>
+          <li><span class="guide-bullet">●</span><span><strong>Right-click:</strong> Save links, images, or pages</span></li>
+          <li><span class="guide-bullet">●</span><span><strong>Shortcut:</strong> <kbd>Ctrl+Alt+L</kbd> / <kbd>⌥⌘L</kbd></span></li>
+        </ul>
+      </section>
+
       <p id="status" class="status" role="status"></p>
     </main>
     <script type="module" src="./popup.ts"></script>

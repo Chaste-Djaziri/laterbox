@@ -11,6 +11,7 @@ import { getConnectedUserId } from "../lib/storage";
 import { browser } from "../platform/api";
 import { browserCapabilities } from "../platform";
 
+const pageCard = document.querySelector<HTMLElement>("#page-card");
 const domainElement = document.querySelector<HTMLElement>("#domain")!;
 const titleElement = document.querySelector<HTMLElement>("#title")!;
 const urlElement = document.querySelector<HTMLElement>("#url")!;
@@ -69,10 +70,8 @@ function renderPage(): void {
   urlElement.textContent = page.url;
   domainElement.textContent = domainFor(page.url);
   if (page.selection) {
-    highlightPanel.hidden = false;
     selectionElement.textContent = page.selection;
   } else {
-    highlightPanel.hidden = true;
     selectionElement.textContent = "";
   }
 }
@@ -128,12 +127,9 @@ async function updateConnectionState(): Promise<void> {
   const token = await getAccessToken();
   const userId = await getConnectedUserId();
   const connected = token.startsWith("lb_ext_") && userId.length > 0;
-  const label = document.getElementById("capture-mode-label");
-  if (label) {
-    label.textContent = connected
-      ? "Connected · Cloud sync active"
-      : "Guest · Saves locally on this device";
-  }
+
+  if (pageCard) pageCard.hidden = !connected;
+  if (highlightPanel) highlightPanel.hidden = !connected || !page.selection;
 
   disconnectedPanel.hidden = connected;
   connectedPanel.hidden = !connected;
@@ -145,7 +141,7 @@ async function updateConnectionState(): Promise<void> {
 
 async function connect(): Promise<void> {
   connectButton.disabled = true;
-  setStatus("Opening laterbox...");
+  setStatus("Opening LaterBox...");
   try {
     await browser.storage.local.set({ captureMode: "account" });
     await connectLaterBox();
@@ -162,11 +158,19 @@ async function disconnect(): Promise<void> {
   disconnectButton.disabled = true;
   await disconnectLaterBox();
   await updateConnectionState();
-  setStatus("Disconnected from laterbox.");
+  setStatus("Disconnected from LaterBox.");
   disconnectButton.disabled = false;
 }
 
 async function savePage(): Promise<void> {
+  const token = await getAccessToken();
+  const userId = await getConnectedUserId();
+  if (!token || !userId) {
+    setStatus("Please sign in to LaterBox to save.", "error");
+    await updateConnectionState();
+    return;
+  }
+
   if (browserCapabilities.isRestrictedUrl(page.url)) {
     setStatus("This page cannot be captured.", "error");
     return;
@@ -177,6 +181,14 @@ async function savePage(): Promise<void> {
 }
 
 async function saveSelection(): Promise<void> {
+  const token = await getAccessToken();
+  const userId = await getConnectedUserId();
+  if (!token || !userId) {
+    setStatus("Please sign in to LaterBox to save.", "error");
+    await updateConnectionState();
+    return;
+  }
+
   if (!page.selection || browserCapabilities.isRestrictedUrl(page.url)) return;
   const [tab] = await browser.tabs.query({ active: true, lastFocusedWindow: true });
   if (tab?.id === undefined) return;
@@ -195,21 +207,20 @@ async function showResult(
   button: HTMLButtonElement,
 ): Promise<void> {
   if (result.status === "saved") {
-    setStatus(result.local ? "Saved locally. Open localhost:8080 to import." : "Saved to laterbox.", "success");
-  } else if (result.status === "proRequired") {
-    await updateConnectionState();
-    setStatus("Capture access was rejected. Update the capture backend and reconnect.", "error");
-    button.disabled = false;
+    setStatus("Saved to LaterBox.", "success");
   } else if (result.status === "needsAuth") {
     await updateConnectionState();
-    setStatus("Reconnect your LaterBox account. Pending captures stay assigned to their original account.", "error");
+    setStatus("Sign in to LaterBox to save.", "error");
     button.disabled = false;
   } else if (result.status === "error") {
-    setStatus("Could not save this content. Reload the page and try again.", "error"); button.disabled=false;
+    setStatus("Could not save this content. Reload the page and try again.", "error");
+    button.disabled = false;
   } else {
-    setStatus(result.reason === "server"
-      ? "Capture service unavailable. Pending save will retry automatically."
-      : "Offline. Pending save will sync to your account when online.");
+    setStatus(
+      result.reason === "server"
+        ? "Capture service unavailable. Will retry automatically."
+        : "Offline. Will sync to your account when online.",
+    );
     button.disabled = false;
   }
 }

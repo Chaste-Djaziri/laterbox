@@ -1,4 +1,3 @@
-import { isLocalMode, LOCAL_ORIGIN } from '../lib/local-library';
 import {
   cancelConnectionRequest,
   connectLaterBox,
@@ -13,6 +12,7 @@ import { getConnectedUserId } from "../lib/storage";
 import { browser } from "../platform/api";
 import { browserCapabilities } from "../platform";
 
+const pageCard = document.querySelector<HTMLElement>("#page-card");
 const domainElement = document.querySelector<HTMLElement>("#domain")!;
 const titleElement = document.querySelector<HTMLElement>("#title")!;
 const urlElement = document.querySelector<HTMLElement>("#url")!;
@@ -28,6 +28,7 @@ const cancelConnectButton = document.querySelector<HTMLButtonElement>("#cancel-c
 const saveButton = document.querySelector<HTMLButtonElement>("#save")!;
 const openPanelButton = document.querySelector<HTMLButtonElement>("#open-panel")!;
 const disconnectButton = document.querySelector<HTMLButtonElement>("#disconnect")!;
+const settingsPanel = document.querySelector<HTMLElement>("#settings-panel");
 const statusElement = document.querySelector<HTMLElement>("#status")!;
 
 let activeTab: chrome.tabs.Tab | undefined;
@@ -58,14 +59,12 @@ async function initialize(): Promise<void> {
   domainElement.textContent = domainFor(pageContext.url);
   highlightText = pageContext.selection;
   if (highlightText) {
-    highlightPanel.hidden = false;
     selectionElement.textContent = highlightText;
   }
   await updateConnectionState();
 
-
   browser.storage.onChanged.addListener((changes, areaName) => {
-    if (areaName === "local" && ["accessToken", "connectedUserId", "hasProPlan", "pendingConnection", "captureMode"].some(key => key in changes)) {
+    if (areaName === "local" && ["accessToken", "connectedUserId", "pendingConnection"].some(key => key in changes)) {
       void updateConnectionState();
     }
   });
@@ -114,19 +113,16 @@ async function updateConnectionState(): Promise<boolean> {
   const connected = token.startsWith("lb_ext_") && userId.length > 0;
   const pending = !connected && (await getPendingConnection()) !== null;
 
-  const label = document.getElementById("capture-mode-label");
-  if (label) {
-    label.textContent = connected
-      ? "Connected · Cloud sync active"
-      : "Guest · Saves locally on this device";
-  }
+  if (pageCard) pageCard.hidden = !connected;
+  if (highlightPanel) highlightPanel.hidden = !connected || !highlightText;
+  if (settingsPanel) settingsPanel.hidden = !connected;
 
   disconnectedPanel.hidden = connected || pending;
   pendingPanel.hidden = connected || !pending;
   connectedPanel.hidden = !connected;
   connectButton.hidden = connected || pending;
   disconnectButton.hidden = !connected;
-  openPanelButton.hidden = !browserCapabilities.supportsSidePanel;
+  openPanelButton.hidden = !connected || !browserCapabilities.supportsSidePanel;
 
   if (connected) {
     const flushed = await flushQueue();
@@ -139,7 +135,7 @@ async function updateConnectionState(): Promise<boolean> {
 
 async function connect(): Promise<void> {
   connectButton.disabled = true;
-  setStatus("Opening laterbox in browser...");
+  setStatus("Opening LaterBox sign-in...");
   try {
     await browser.storage.local.set({ captureMode: "account" });
     await connectLaterBox();
@@ -167,13 +163,21 @@ async function disconnect(): Promise<void> {
   try {
     await disconnectLaterBox();
     await updateConnectionState();
-    setStatus("Disconnected from laterbox.");
+    setStatus("Disconnected from LaterBox.");
   } finally {
     disconnectButton.disabled = false;
   }
 }
 
 async function saveCurrentPage(): Promise<void> {
+  const token = await getAccessToken();
+  const userId = await getConnectedUserId();
+  if (!token || !userId) {
+    setStatus("Please sign in to LaterBox to save.", "error");
+    await updateConnectionState();
+    return;
+  }
+
   const url = pageContext.url;
   if (browserCapabilities.isRestrictedUrl(url)) {
     setStatus("This page cannot be captured.", "error");
@@ -183,11 +187,18 @@ async function saveCurrentPage(): Promise<void> {
   saveButton.disabled = true;
   setStatus("Saving...");
   const result = await saveCapture(captureFromPage(pageContext));
-
   await showCaptureResult(result, saveButton);
 }
 
 async function saveHighlight(): Promise<void> {
+  const token = await getAccessToken();
+  const userId = await getConnectedUserId();
+  if (!token || !userId) {
+    setStatus("Please sign in to LaterBox to save.", "error");
+    await updateConnectionState();
+    return;
+  }
+
   if (!highlightText || browserCapabilities.isRestrictedUrl(pageContext.url)) {
     setStatus("No web highlight is available.", "error");
     return;
@@ -213,23 +224,20 @@ async function showCaptureResult(
   button: HTMLButtonElement,
 ): Promise<void> {
   if (result.status === "saved") {
-    setStatus(result.local ? "Saved locally. Open localhost:8080 to import." : "Saved to laterbox.", "success");
+    setStatus("Saved to LaterBox.", "success");
     window.setTimeout(() => window.close(), 700);
-  } else if (result.status === "proRequired") {
-    await updateConnectionState();
-    setStatus("Capture access was rejected. Update the capture backend and reconnect.", "error");
-    button.disabled = false;
   } else if (result.status === "needsAuth") {
     await updateConnectionState();
-    setStatus("Reconnect your LaterBox account. Pending captures stay assigned to their original account.", "error");
+    setStatus("Sign in to LaterBox to save.", "error");
     button.disabled = false;
   } else if (result.status === "error") {
-    setStatus("Could not save this content. Reload the page and try again.", "error"); button.disabled=false;
+    setStatus("Could not save this content. Reload the page and try again.", "error");
+    button.disabled = false;
   } else {
     setStatus(
       result.reason === "server"
-        ? "Capture service unavailable. Pending save will retry automatically."
-        : "Offline. Pending save will sync to your account when online.",
+        ? "Capture service unavailable. Will retry automatically."
+        : "Offline. Will sync to your account when online.",
     );
     button.disabled = false;
   }
@@ -248,23 +256,12 @@ function domainFor(value: string): string {
   }
 }
 
-const injectedToggle = document.querySelector<HTMLInputElement>('#injected-controls')!;
-void browser.storage.local.get('injectedControls').then(values=>{ injectedToggle.checked=values.injectedControls!==false; });
-injectedToggle.addEventListener('change',()=>{void browser.storage.local.set({injectedControls:injectedToggle.checked});});
-void browser.commands.getAll().then(commands=>{
-  document.querySelector<HTMLElement>('#shortcuts')!.textContent=commands.filter(command=>command.name==='save-current-page' || command.name==='save-selection').map(command=>`${command.name==='save-selection' ? 'Highlight' : 'Page'}: ${command.shortcut || 'Unassigned — choose a shortcut'}`).join(' · ');
-});
-document.querySelector('#configure-shortcuts')!.addEventListener('click',()=>{
-  const firefox=!!(globalThis as {browser?:unknown}).browser;
-  if(browserCapabilities.supportsSidePanel) void browser.tabs.create({url:firefox ? 'about:addons' : 'chrome://extensions/shortcuts'});
-  else setStatus('Configure extension keyboard shortcuts in your browser extension settings.');
-});
-function renderCaptureState(state:{status?:string;pending?:number}) {
-  if(state.status==='queued')setStatus(`Offline or service unavailable. ${state.pending || 0} pending saves will sync to your account automatically.`, 'error');
-  if(state.status==='proRequired')setStatus('Connect a LaterBox account to sync your saves.', 'error');
+const injectedToggle = document.querySelector<HTMLInputElement>('#injected-controls');
+if (injectedToggle) {
+  void browser.storage.local.get('injectedControls').then(values => {
+    injectedToggle.checked = values.injectedControls !== false;
+  });
+  injectedToggle.addEventListener('change', () => {
+    void browser.storage.local.set({ injectedControls: injectedToggle.checked });
+  });
 }
-void browser.storage.local.get(['captureState','connectionError']).then(values=>{if(values.captureState)renderCaptureState(values.captureState);if(values.connectionError)setStatus(values.connectionError,'error');});
-browser.storage.onChanged.addListener((changes,area)=>{
-  if(area==='local' && changes.captureState?.newValue)renderCaptureState(changes.captureState.newValue);
-  if(area==='local' && changes.connectionError?.newValue)setStatus(changes.connectionError.newValue,'error');
-});
