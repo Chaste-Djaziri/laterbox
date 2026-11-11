@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[macOS / Shared auth fields and brand logo]** Apply reusable rounded custom inputs to password, confirmation and code fields, and display the official LaterBox full logo in light and dark authentication screens.
+
 - **[macOS / Native window controls]** Restore the standard macOS close, minimize, and zoom traffic-light controls while keeping the window title hidden; remove the custom close button.
 
 - **[macOS / Custom authentication window]** Use a clean custom email field with focus styling and inline clear action, hide native titlebar controls, and add an in-app window close button.
