@@ -1,10 +1,10 @@
 // laterbox-ios/LaterBoxMac/LaterBoxMacApp.swift
 import SwiftUI
 import Security
+import AuthenticationServices
 
-private enum MacPalette {
+private enum MacColors {
     static let accent = Color(red: 230 / 255, green: 237 / 255, blue: 176 / 255)
-    static let background = Color(nsColor: .windowBackgroundColor)
 }
 
 @main
@@ -12,15 +12,15 @@ struct LaterBoxMacApp: App {
     var body: some Scene {
         WindowGroup {
             MacLoginView()
-                .frame(minWidth: 780, minHeight: 540)
+                .frame(minWidth: 430, minHeight: 480)
         }
-        .defaultSize(width: 940, height: 640)
+        .defaultSize(width: 550, height: 620)
         .windowResizability(.contentMinSize)
     }
 }
 
-private struct MacAuthSession: Decodable {
-    let access_token: String
+private struct MacAuthResponse: Decodable {
+    let access_token: String?
     let refresh_token: String?
 }
 
@@ -32,288 +32,453 @@ private struct MacAuthError: Decodable {
 
 @MainActor
 private final class MacAuthModel: ObservableObject {
-    enum Step { case email, password, code, authenticated }
+    enum Step { case email, password, signup, verify, authenticated }
     @Published var step: Step = .email
     @Published var email = ""
     @Published var password = ""
+    @Published var confirmPassword = ""
     @Published var code = ""
     @Published var busy = false
     @Published var error: String?
+    @Published var info: String?
     @Published var showPassword = false
 
     private let base = "https://ltjisrgldssqskcylcbj.supabase.co"
-    // This is the public Supabase publishable key, not a server-side secret.
     private let publicKey = "sb_publishable_Rc4e_ik2LE4SR0UrfX-OEQ_5Mu_lw9p"
+    private let callbackScheme = "laterbox-macos"
+    private let redirect = "laterbox-macos://auth-callback"
+    private var oauthSession: ASWebAuthenticationSession?
 
     var isValid: Bool {
+        let validEmail = email.trimmingCharacters(in: .whitespacesAndNewlines).contains("@")
         switch step {
-        case .email: return email.contains("@") && email.contains(".")
+        case .email: return validEmail
         case .password: return !password.isEmpty
-        case .code: return code.count == 8
+        case .signup: return validEmail && password.count >= 6 && password == confirmPassword
+        case .verify: return code.count == 8
         case .authenticated: return true
         }
     }
 
-    func proceed() {
-        guard !busy else { return }
+    func submit() {
+        guard isValid, !busy else { return }
         error = nil
+        info = nil
         switch step {
         case .email:
             email = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-            guard isValid else { return }
             step = .password
-        case .password:
-            Task { await signIn() }
-        case .code:
-            Task { await verifyCode() }
+        case .password: Task { await signIn() }
+        case .signup: Task { await signUp() }
+        case .verify: Task { await verify() }
         case .authenticated: break
         }
     }
 
-    func sendCode() { Task { await requestCode() } }
+    func showSignup() {
+        error = nil
+        info = nil
+        password = ""
+        confirmPassword = ""
+        step = .signup
+    }
 
-    private func post(_ path: String, data: [String: Any]) async throws -> Data {
+    func showSignIn() {
+        error = nil
+        info = nil
+        password = ""
+        confirmPassword = ""
+        step = .email
+    }
+
+    func back() {
+        error = nil
+        info = nil
+        if step == .verify { step = .signup }
+        else { step = .email }
+    }
+
+    func sendSignInCode() {
+        Task {
+            await perform {
+                _ = try await post("/auth/v1/otp", body: ["email": email, "create_user": false])
+                self.step = .verify
+                self.info = "Check your email for the verification code."
+            }
+        }
+    }
+
+    private func post(_ path: String, body: [String: Any]) async throws -> Data {
         guard let url = URL(string: base + path) else { throw URLError(.badURL) }
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue(publicKey, forHTTPHeaderField: "apikey")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.httpBody = try JSONSerialization.data(withJSONObject: data)
-        let (responseData, response) = try await URLSession.shared.data(for: request)
-        guard let http = response as? HTTPURLResponse else { throw URLError(.badServerResponse) }
-        guard (200...299).contains(http.statusCode) else {
-            let payload = try? JSONDecoder().decode(MacAuthError.self, from: responseData)
-            throw NSError(domain: "LaterBoxLogin", code: http.statusCode, userInfo: [
-                NSLocalizedDescriptionKey: payload?.msg ?? payload?.message ?? payload?.error_description ?? "Sign in failed. Please try again."
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let response = response as? HTTPURLResponse else { throw URLError(.badServerResponse) }
+        guard (200...299).contains(response.statusCode) else {
+            let payload = try? JSONDecoder().decode(MacAuthError.self, from: data)
+            throw NSError(domain: "LaterBoxAuth", code: response.statusCode, userInfo: [
+                NSLocalizedDescriptionKey: payload?.msg ?? payload?.message ?? payload?.error_description ?? "Authentication failed."
             ])
         }
-        return responseData
+        return data
     }
 
-    private func perform(_ work: () async throws -> Void) async {
+    private func perform(_ action: () async throws -> Void) async {
         guard !busy else { return }
         busy = true
         error = nil
         defer { busy = false }
-        do { try await work() }
+        do { try await action() }
         catch { self.error = error.localizedDescription }
     }
 
     private func signIn() async {
         await perform {
-            let result = try await post("/auth/v1/token?grant_type=password", data: [
+            let data = try await post("/auth/v1/token?grant_type=password", body: [
                 "email": email, "password": password
             ])
-            try storeSession(result)
+            try storeSession(data)
             password = ""
             step = .authenticated
         }
     }
 
-    private func requestCode() async {
+    private func signUp() async {
         await perform {
-            _ = try await post("/auth/v1/otp", data: ["email": email, "create_user": false])
-            password = ""
-            step = .code
+            let data = try await post("/auth/v1/signup", body: [
+                "email": email, "password": password
+            ])
+            let tokens = try JSONDecoder().decode(MacAuthResponse.self, from: data)
+            if tokens.access_token != nil {
+                try storeSession(data)
+                password = ""
+                confirmPassword = ""
+                step = .authenticated
+            } else {
+                code = ""
+                step = .verify
+                info = "Check your email for the verification code."
+            }
         }
     }
 
-    private func verifyCode() async {
+    private func verify() async {
         await perform {
-            let result = try await post("/auth/v1/verify", data: [
-                "email": email, "token": code, "type": "email"
-            ])
-            try storeSession(result)
+            do {
+                let data = try await post("/auth/v1/verify", body: [
+                    "email": email, "token": code, "type": "signup"
+                ])
+                try storeSession(data)
+            } catch {
+                // Existing email/password users may use email OTP instead of signup.
+                let data = try await post("/auth/v1/verify", body: [
+                    "email": email, "token": code, "type": "email"
+                ])
+                try storeSession(data)
+            }
+            password = ""
+            confirmPassword = ""
             code = ""
             step = .authenticated
         }
     }
 
+    func signIn(provider: String) {
+        guard !busy, ["google", "apple"].contains(provider) else { return }
+        error = nil
+        info = nil
+        guard var url = URLComponents(string: base + "/auth/v1/authorize") else { return }
+        url.queryItems = [
+            URLQueryItem(name: "provider", value: provider),
+            URLQueryItem(name: "redirect_to", value: redirect)
+        ]
+        guard let authorizationURL = url.url else { return }
+        busy = true
+        let session = ASWebAuthenticationSession(url: authorizationURL,
+                                                 callbackURLScheme: callbackScheme) { [weak self] callback, failure in
+            Task { @MainActor in
+                guard let self else { return }
+                self.busy = false
+                self.oauthSession = nil
+                if let failure {
+                    if (failure as NSError).code != ASWebAuthenticationSessionError.canceledLogin.rawValue {
+                        self.error = failure.localizedDescription
+                    }
+                    return
+                }
+                guard let callback else {
+                    self.error = "Sign in did not finish."
+                    return
+                }
+                do {
+                    try self.handleOAuthCallback(callback)
+                } catch {
+                    self.error = error.localizedDescription
+                }
+            }
+        }
+        session.presentationContextProvider = MacOAuthWindowProvider.shared
+        session.prefersEphemeralWebBrowserSession = false
+        oauthSession = session
+        if !session.start() {
+            busy = false
+            oauthSession = nil
+            error = "Could not open the sign-in window."
+        }
+    }
+
+    private func handleOAuthCallback(_ callback: URL) throws {
+        // Supabase browser OAuth returns session tokens in the redirect fragment.
+        // Never treat a callback without tokens as a successful login.
+        let fragment = URLComponents(string: "https://localhost/?" + (callback.fragment ?? ""))
+        let items = fragment?.queryItems ?? []
+        let values = Dictionary(items.map { ($0.name, $0.value ?? "") }, uniquingKeysWith: { first, _ in first })
+        if let message = values["error_description"] ?? values["error"] {
+            throw NSError(domain: "LaterBoxOAuth", code: 1, userInfo: [NSLocalizedDescriptionKey: message])
+        }
+        guard let token = values["access_token"], !token.isEmpty else {
+            throw NSError(domain: "LaterBoxOAuth", code: 2, userInfo: [
+                NSLocalizedDescriptionKey: "No session was returned. Check the macOS OAuth redirect URL in Supabase."
+            ])
+        }
+        try saveCredentials(access: token, refresh: values["refresh_token"])
+        step = .authenticated
+    }
+
     private func storeSession(_ data: Data) throws {
-        let session = try JSONDecoder().decode(MacAuthSession.self, from: data)
-        guard !session.access_token.isEmpty else { throw URLError(.userAuthenticationRequired) }
-        // Credentials are stored only in this app's Keychain and never in UserDefaults.
-        let credentials = try JSONEncoder().encode([
-            "access_token": session.access_token,
-            "refresh_token": session.refresh_token ?? ""
-        ])
-        let account = "laterbox-macos-session"
-        let query: [String: Any] = [kSecClass as String: kSecClassGenericPassword,
-                                    kSecAttrAccount as String: account]
-        SecItemDelete(query as CFDictionary)
-        let insert: [String: Any] = [kSecClass as String: kSecClassGenericPassword,
-                                     kSecAttrAccount as String: account,
-                                     kSecValueData as String: credentials]
+        let tokens = try JSONDecoder().decode(MacAuthResponse.self, from: data)
+        guard let access = tokens.access_token, !access.isEmpty else {
+            throw URLError(.userAuthenticationRequired)
+        }
+        try saveCredentials(access: access, refresh: tokens.refresh_token)
+    }
+
+    private func saveCredentials(access: String, refresh: String?) throws {
+        let value = try JSONEncoder().encode(["access_token": access, "refresh_token": refresh ?? ""])
+        let lookup: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrAccount as String: "laterbox-macos-session"
+        ]
+        SecItemDelete(lookup as CFDictionary)
+        var insert = lookup
+        insert[kSecValueData as String] = value
         let status = SecItemAdd(insert as CFDictionary, nil)
         guard status == errSecSuccess else {
             throw NSError(domain: NSOSStatusErrorDomain, code: Int(status),
-                          userInfo: [NSLocalizedDescriptionKey: "Could not securely save the session."])
+                          userInfo: [NSLocalizedDescriptionKey: "Unable to save your sign-in securely."])
         }
     }
 
     func signOut() {
-        let query: [String: Any] = [kSecClass as String: kSecClassGenericPassword,
-                                    kSecAttrAccount as String: "laterbox-macos-session"]
-        SecItemDelete(query as CFDictionary)
-        step = .email
+        let lookup: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrAccount as String: "laterbox-macos-session"
+        ]
+        SecItemDelete(lookup as CFDictionary)
         password = ""
+        confirmPassword = ""
         code = ""
+        showSignIn()
+    }
+}
+
+private final class MacOAuthWindowProvider: NSObject, ASWebAuthenticationPresentationContextProviding {
+    static let shared = MacOAuthWindowProvider()
+    func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor {
+        NSApp.keyWindow ?? NSApp.windows.first ?? ASPresentationAnchor()
     }
 }
 
 struct MacLoginView: View {
     @StateObject private var auth = MacAuthModel()
     @Environment(\.colorScheme) private var scheme
-    private var muted: Color { .secondary }
-    private var dark: Bool { scheme == .dark }
+
+    private var title: String {
+        switch auth.step {
+        case .email, .password: return "Sign in"
+        case .signup: return "Create account"
+        case .verify: return "Verify email"
+        case .authenticated: return "Signed in"
+        }
+    }
 
     var body: some View {
-        HStack(spacing: 0) {
-            VStack(alignment: .leading, spacing: 0) {
-                HStack(spacing: 10) {
+        VStack(spacing: 0) {
+            Spacer(minLength: 18)
+            VStack(spacing: 22) {
+                HStack(spacing: 9) {
                     Image(systemName: "tray.full.fill")
-                        .font(.system(size: 19, weight: .semibold))
+                        .font(.system(size: 20, weight: .medium))
                         .foregroundStyle(.black)
-                        .frame(width: 38, height: 38)
-                        .background(MacPalette.accent, in: RoundedRectangle(cornerRadius: 12))
+                        .frame(width: 39, height: 39)
+                        .background(MacColors.accent, in: RoundedRectangle(cornerRadius: 12))
                     Text("laterbox")
                         .font(.system(size: 23, weight: .bold, design: .rounded))
                         .tracking(-1)
                 }
-
-                Spacer(minLength: 45)
-
-                VStack(alignment: .leading, spacing: 10) {
-                    Text(auth.step == .authenticated ? "You're signed in." : auth.step == .code ? "Check your inbox." : "Welcome back.")
-                        .font(.system(size: 36, weight: .bold))
-                        .tracking(-1.4)
-                    Text(auth.step == .authenticated
-                         ? "Your Mac is connected. The desktop inbox is coming next."
-                         : auth.step == .code
-                         ? "Enter the 8-digit verification code sent to \(auth.email)."
-                         : "Everything worth keeping, in one calm place.")
-                        .font(.system(size: 14))
-                        .foregroundStyle(muted)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                .padding(.bottom, 32)
+                Text(title)
+                    .font(.system(size: 25, weight: .semibold))
+                    .tracking(-0.6)
 
                 if auth.step == .authenticated {
                     Button("Sign out", action: auth.signOut)
-                        .buttonStyle(.borderedProminent)
+                        .buttonStyle(.bordered)
                 } else {
-                    VStack(alignment: .leading, spacing: 16) {
-                        if auth.step == .email {
-                            fieldLabel("Email address")
-                            TextField("you@example.com", text: $auth.email)
+                    VStack(spacing: 12) {
+                        if auth.step == .email || auth.step == .signup {
+                            TextField("Email address", text: $auth.email)
                                 .textContentType(.emailAddress)
-                                .onSubmit(auth.proceed)
                                 .accessibilityIdentifier("mac.auth.email")
-                        } else if auth.step == .password {
-                            fieldLabel("Password")
+                                .onSubmit(auth.submit)
+                        } else {
+                            HStack {
+                                Text(auth.email)
+                                    .font(.system(size: 13))
+                                    .foregroundStyle(.secondary)
+                                Spacer()
+                                Button("Change", action: auth.showSignIn)
+                                    .font(.system(size: 12))
+                                    .buttonStyle(.plain)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+
+                        if auth.step == .password || auth.step == .signup {
                             HStack {
                                 Group {
                                     if auth.showPassword {
-                                        TextField("Your password", text: $auth.password)
+                                        TextField("Password", text: $auth.password)
                                     } else {
-                                        SecureField("Your password", text: $auth.password)
+                                        SecureField("Password", text: $auth.password)
                                     }
                                 }
-                                .onSubmit(auth.proceed)
+                                .onSubmit(auth.submit)
                                 Button {
                                     auth.showPassword.toggle()
                                 } label: {
                                     Image(systemName: auth.showPassword ? "eye.slash" : "eye")
+                                        .foregroundStyle(.secondary)
                                 }
                                 .buttonStyle(.plain)
                             }
-                            Button("Use an email code instead", action: auth.sendCode)
-                                .buttonStyle(.link)
-                                .font(.system(size: 12))
-                        } else {
-                            fieldLabel("Verification code")
+                        }
+
+                        if auth.step == .signup {
+                            SecureField("Confirm password", text: $auth.confirmPassword)
+                                .onSubmit(auth.submit)
+                        }
+
+                        if auth.step == .verify {
                             TextField("8-digit code", text: $auth.code)
-                                .onChange(of: auth.code) { _, v in
-                                    auth.code = String(v.filter(\.isNumber).prefix(8))
+                                .onChange(of: auth.code) { _, value in
+                                    auth.code = String(value.filter(\.isNumber).prefix(8))
                                 }
-                                .onSubmit(auth.proceed)
+                                .onSubmit(auth.submit)
                         }
 
                         if let error = auth.error {
-                            Text(error)
-                                .foregroundStyle(.red)
-                                .font(.system(size: 12))
-                                .fixedSize(horizontal: false, vertical: true)
+                            Text(error).foregroundStyle(.red).font(.system(size: 12))
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                        if let info = auth.info {
+                            Text(info).foregroundStyle(.secondary).font(.system(size: 12))
+                                .frame(maxWidth: .infinity, alignment: .leading)
                         }
 
-                        Button(action: auth.proceed) {
+                        Button(action: auth.submit) {
                             HStack(spacing: 8) {
                                 if auth.busy { ProgressView().controlSize(.small) }
-                                Text(auth.step == .email ? "Continue" : auth.step == .code ? "Verify code" : "Sign in")
+                                Text(auth.step == .email ? "Continue" :
+                                        auth.step == .signup ? "Create account" :
+                                        auth.step == .verify ? "Verify" : "Sign in")
                             }
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(.black)
                             .frame(maxWidth: .infinity)
-                            .frame(height: 34)
+                            .frame(height: 42)
+                            .background(MacColors.accent, in: RoundedRectangle(cornerRadius: 11))
                         }
                         .buttonStyle(.plain)
-                        .foregroundStyle(.black)
-                        .background(MacPalette.accent, in: RoundedRectangle(cornerRadius: 10))
-                        .disabled(!auth.isValid || auth.busy)
-                        .opacity(auth.isValid && !auth.busy ? 1 : 0.55)
+                        .disabled(auth.busy || !auth.isValid)
+                        .opacity(auth.busy || !auth.isValid ? 0.5 : 1)
 
-                        if auth.step != .email {
-                            Button("Back", action: { auth.step = .email; auth.error = nil })
-                                .buttonStyle(.link)
+                        if auth.step == .password {
+                            Button("Use email code", action: auth.sendSignInCode)
+                                .buttonStyle(.plain)
+                                .foregroundStyle(.secondary)
                                 .font(.system(size: 12))
+                        }
+
+                        if auth.step == .email || auth.step == .signup {
+                            HStack(spacing: 12) {
+                                Rectangle().fill(.quaternary).frame(height: 1)
+                                Text("or").font(.system(size: 12)).foregroundStyle(.secondary)
+                                Rectangle().fill(.quaternary).frame(height: 1)
+                            }
+                            .padding(.vertical, 3)
+
+                            providerButton("Continue with Google", symbol: "g.circle.fill", provider: "google")
+                            providerButton("Continue with Apple", symbol: "apple.logo", provider: "apple")
+                        }
+
+                        if auth.step == .email {
+                            HStack(spacing: 4) {
+                                Text("No account?")
+                                    .foregroundStyle(.secondary)
+                                Button("Sign up", action: auth.showSignup)
+                                    .fontWeight(.semibold)
+                                    .buttonStyle(.plain)
+                            }
+                            .font(.system(size: 12))
+                            .padding(.top, 6)
+                        } else if auth.step == .signup {
+                            HStack(spacing: 4) {
+                                Text("Already have an account?")
+                                    .foregroundStyle(.secondary)
+                                Button("Sign in", action: auth.showSignIn)
+                                    .fontWeight(.semibold)
+                                    .buttonStyle(.plain)
+                            }
+                            .font(.system(size: 12))
+                            .padding(.top, 6)
+                        } else if auth.step == .verify {
+                            Button("Back", action: auth.back)
+                                .font(.system(size: 12))
+                                .buttonStyle(.plain)
                         }
                     }
                     .textFieldStyle(.roundedBorder)
                     .controlSize(.large)
                 }
-
-                Spacer(minLength: 30)
-
-                HStack(spacing: 5) {
-                    Text("New to LaterBox?")
-                    Link("Create an account", destination: URL(string: "https://laterbox.dev")!)
-                }
-                .font(.system(size: 12))
-                .foregroundStyle(muted)
             }
-            .padding(52)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-
-            ZStack(alignment: .bottomLeading) {
-                (dark ? Color(red: 0.16, green: 0.18, blue: 0.15) : Color(red: 0.92, green: 0.94, blue: 0.86))
-                Circle()
-                    .fill(MacPalette.accent.opacity(0.6))
-                    .frame(width: 390, height: 390)
-                    .blur(radius: 70)
-                    .offset(x: 100, y: -80)
-                VStack(alignment: .leading, spacing: 16) {
-                    Image(systemName: "bookmark.fill")
-                        .font(.system(size: 40))
-                    Text("Save now.\nFind it when it matters.")
-                        .font(.system(size: 32, weight: .semibold))
-                        .tracking(-1)
-                    Text("Your links, ideas, articles and things to revisit — always within reach.")
-                        .font(.system(size: 14))
-                        .foregroundStyle(.secondary)
-                }
-                .padding(42)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .clipped()
+            .frame(maxWidth: 330)
+            Spacer(minLength: 18)
         }
-        .background(MacPalette.background)
+        .padding(.horizontal, 30)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color(nsColor: .windowBackgroundColor))
     }
 
-    private func fieldLabel(_ value: String) -> some View {
-        Text(value)
-            .font(.system(size: 12, weight: .semibold))
+    private func providerButton(_ title: String, symbol: String, provider: String) -> some View {
+        Button { auth.signIn(provider: provider) } label: {
+            HStack(spacing: 9) {
+                Image(systemName: symbol).font(.system(size: 16))
+                Text(title).font(.system(size: 13, weight: .medium))
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: 40)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 11))
+        .overlay(RoundedRectangle(cornerRadius: 11).strokeBorder(.primary.opacity(0.12)))
+        .disabled(auth.busy)
     }
 }
 
 #Preview {
-    MacLoginView()
-        .frame(width: 940, height: 640)
+    MacLoginView().frame(width: 550, height: 620)
 }
