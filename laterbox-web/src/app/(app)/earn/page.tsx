@@ -23,7 +23,7 @@ const whopConnectionErrors:Record<string,string>={
 
 function EarnSkeleton() {
   return (
-    <div className="mt-8 space-y-6 animate-pulse" aria-busy="true" aria-label="Loading your referral account">
+    <div className="w-full space-y-6 animate-pulse" aria-busy="true" aria-label="Loading your referral account">
       {/* Whop Connection Banner Skeleton */}
       <section className="rounded-3xl border border-[#d8e2ca] bg-[#eef4e2] p-7 sm:p-9 space-y-4">
         <div className="h-4 w-28 rounded-full bg-[#d8e2ca]" />
@@ -210,12 +210,12 @@ export default function EarnPage(){
     }catch(err){setError(err instanceof Error?err.message:'Connection failed.');setConnecting(false);}
   };
 
-  return <main className="mx-auto max-w-6xl px-5 py-6 sm:py-8 text-[#171711] sm:px-8 space-y-6">
+  return <main className="w-full px-3 sm:px-5 lg:px-6 py-4 sm:py-6 text-[#171711] space-y-6">
     {whopResult==='connected'&&<p role="status" className="rounded-xl border border-[#c5d7b1] bg-[#eff5dd] p-4 text-sm font-semibold text-[#39552e]">Whop connected successfully. Your personal referral link is ready below.</p>}
     {whopResult==='failed'&&<p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">{whopConnectionErrors[whopFailure]??'Whop could not be verified. Start a new connection.'}</p>}
     {error&&<p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">{error}</p>}
     {!data&&loading&&<EarnSkeleton />}
-    {data&&<div className="space-y-6">
+    {data&&<div className="w-full space-y-6">
       {!data.payoutConnected&&<section className="rounded-3xl border border-[#c6d5ad] bg-[#e6edb0] p-7 sm:p-9">
         <span className="text-xs font-black uppercase tracking-widest text-[#526741]">Step 1 · Required</span>
         <h2 className="mt-3 text-2xl font-black">Connect your Whop account to unlock referrals</h2>
@@ -237,15 +237,6 @@ export default function EarnPage(){
           </section>;
         })}
       </div>
-      <section className="rounded-3xl bg-[#e6edb0] p-7">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div><span className="text-xs font-black uppercase tracking-widest text-[#526741]">Your referral status</span>
-            <h2 className="mt-2 text-2xl font-black">{data.status==='suspended'?'Account under review':data.status==='not_launched'?'Your personal code is reserved':data.status==='eligible'?(data.payoutConnected?'Whop verified · Finish enrollment':'Connect Whop to start referring'):'Your referral program'}</h2>
-            <p className="mt-3 max-w-xl text-sm leading-6 text-[#536748]">{!data.programEnabled?'Affiliate commissions and trial offers are being prepared. You can connect Whop and receive your reserved referral code now, but no rewards are active yet.':data.status==='eligible'?'Connect and verify Whop, then confirm your age and accept the terms to activate referrals.':data.status==='active'?'You can earn without owning a paid plan. New referrals must complete two paid months after a trial before recurring commissions start.':'Please contact support if your referral access is suspended.'}</p>
-          </div>
-          <span className="rounded-xl border border-[#b8cb9c] bg-white/75 px-4 py-2 text-sm font-bold">{data.plan.toUpperCase()} account</span>
-        </div>
-      </section>
       {data.referralCode&&data.payoutConnected&&data.status!=='suspended'&&<section className="rounded-3xl border border-[#e1e7d7] bg-white p-6 sm:p-8">
         <div className="flex items-center gap-3"><Gift size={22} className="text-[#6b8951]"/><h2 className="text-xl font-black">Your referral link and code</h2></div>
         <p className="mt-2 text-sm text-[#7b8573]">Your unique code is unlocked by Whop verification. {data.status==='active'&&data.programEnabled?'Share either one and disclose your affiliate relationship.':'Your code is reserved; referral attribution and commissions will start only when your Earn enrollment and the referral program are active.'}</p>
