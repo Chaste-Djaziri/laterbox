@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[macOS / Dock app icon]** Configure LaterBoxMac with the existing official LaterBox app icon in native macOS icon sizes, ensuring the icon appears in the Dock and application bundle.
+
 - **[macOS / Matched iOS authentication themes]** Match macOS authentication to the iOS graphite-grain dark canvas and soft light palette, including themed input and social sign-in surfaces without changing the native window controls.
 
 - **[macOS / Shared auth fields and brand logo]** Apply reusable rounded custom inputs to password, confirmation and code fields, and display the official LaterBox full logo in light and dark authentication screens.
