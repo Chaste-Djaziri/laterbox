@@ -2,8 +2,8 @@
 import SwiftUI
 import UIKit
 
-/// Native Earn dashboard; all eligibility, status and money are loaded from
-/// LaterBox's authenticated server, never calculated or credited on-device.
+/// Native Earn dashboard; matches the simplified, uncluttered web layout.
+/// All eligibility, status, and earnings are loaded from LaterBox's authenticated server.
 struct EarnView: View {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.openURL) private var openURL
@@ -27,30 +27,36 @@ struct EarnView: View {
     var body: some View {
         NavigationStack {
             ScrollView(showsIndicators: false) {
-                VStack(alignment: .leading, spacing: 18) {
+                VStack(alignment: .leading, spacing: 16) {
                     header
                     if let errorMessage {
                         Label(errorMessage, systemImage: "exclamationmark.circle")
                             .font(.footnote)
                             .foregroundStyle(.red)
-                            .padding(15)
+                            .padding(14)
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(Color.red.opacity(0.07), in: RoundedRectangle(cornerRadius: 15))
+                            .background(Color.red.opacity(0.07), in: RoundedRectangle(cornerRadius: 14))
                     }
                     if !coordinator.isAuthenticated {
                         guestPanel
                     } else if let dashboard {
+                        if !dashboard.payoutConnected {
+                            whopConnectBanner
+                        }
                         summary(for: dashboard)
-                        eligibilityPanel(for: dashboard)
-                        if dashboard.referralCode != nil && dashboard.status == "active" && dashboard.payoutConnected { referralPanel(for: dashboard) }
-                        if dashboard.status == "eligible" { enrollmentPanel(for: dashboard) }
+                        if dashboard.referralCode != nil && dashboard.payoutConnected && dashboard.status != "suspended" {
+                            referralPanel(for: dashboard)
+                        }
+                        if dashboard.status == "eligible" {
+                            enrollmentPanel(for: dashboard)
+                        }
                         earningsPanel(for: dashboard)
                         payoutHistory(for: dashboard)
                         processPanel
                     } else {
                         HStack(spacing: 12) {
                             ProgressView()
-                            Text(isLoading ? "Checking membership and earnings…" : "Earn isn't available right now.")
+                            Text(isLoading ? "Checking referral status and balances…" : "Earn isn't available right now.")
                                 .foregroundStyle(secondary)
                                 .font(.subheadline)
                         }
@@ -60,7 +66,7 @@ struct EarnView: View {
                     }
                 }
                 .padding(.horizontal, 19)
-                .padding(.top, 22)
+                .padding(.top, 16)
                 .padding(.bottom, 44)
             }
             .background(InboxGrainBackground().ignoresSafeArea())
@@ -74,48 +80,57 @@ struct EarnView: View {
                 Button("Cancel", role: .cancel) { }
                 Button("Save") { Task { await saveCustomCode() } }
             } message: {
-                Text("4–32 lowercase letters, numbers, hyphens or underscores. Codes must be unique and can change once every 30 days.")
+                Text("8–32 lowercase characters: letters, numbers, underscores or hyphens. Availability is checked when saving. One change every 30 days.")
             }
         }
     }
 
     private var header: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 7) {
-                Image(systemName: "sparkles")
-                Text("LATERBOX EARN")
-                    .tracking(1)
-            }
-            .font(.system(size: 11, weight: .bold))
-            .foregroundStyle(Color(hex: "2B3E20"))
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .background(AppTheme.accent, in: Capsule())
-            HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: 9) {
-                    Text("Share more.\nEarn more.")
-                        .font(.system(size: 34, weight: .bold))
-                        .tracking(-1.4)
-                        .foregroundStyle(primary)
-                    Text("Invite new members to LaterBox. See your referrals, commissions and payouts all in one place.")
-                        .font(.system(size: 14))
-                        .foregroundStyle(secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .lineSpacing(3)
-                }
-                Spacer(minLength: 8)
-                Button { Task { await refresh() } } label: {
-                    Image(systemName: "arrow.clockwise")
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(primary)
-                        .frame(width: 43, height: 43)
-                        .background(surface, in: Circle())
-                        .overlay(Circle().strokeBorder(stroke, lineWidth: 1))
-                }
-                .accessibilityLabel("Refresh Earn")
-                .disabled(isLoading)
+        HStack {
+            Text("Earn")
+                .font(.system(size: 28, weight: .bold))
+                .foregroundStyle(primary)
+            Spacer()
+            if isLoading {
+                ProgressView()
+                    .controlSize(.small)
             }
         }
+        .padding(.bottom, 2)
+    }
+
+    private var whopConnectBanner: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("STEP 1 · REQUIRED")
+                .font(.system(size: 11, weight: .black))
+                .tracking(1)
+                .foregroundStyle(Color(hex: "526741"))
+            Text("Connect your Whop account to unlock referrals")
+                .font(.system(size: 20, weight: .bold))
+                .foregroundStyle(Color(hex: "171711"))
+            Text("Securely verify your Whop identity first. After connecting, your personal code and shareable referral link will appear here. A paid LaterBox plan is not required.")
+                .font(.system(size: 13))
+                .foregroundStyle(Color(hex: "536748"))
+                .fixedSize(horizontal: false, vertical: true)
+            Button {
+                if let url = URL(string: "\(LaterBoxAPIService.shared.webUrl)/earn") {
+                    openURL(url)
+                }
+            } label: {
+                Text("Connect Whop")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 22)
+                    .frame(height: 44)
+                    .background(Color(hex: "171711"), in: RoundedRectangle(cornerRadius: 12))
+            }
+            Text("Referrals and commissions only become active after accepting Earn terms and when the program launches.")
+                .font(.system(size: 11))
+                .foregroundStyle(Color(hex: "536748"))
+        }
+        .padding(20)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color(hex: "E6EDB0"), in: RoundedRectangle(cornerRadius: 20))
     }
 
     private var guestPanel: some View {
@@ -123,13 +138,13 @@ struct EarnView: View {
             Label("Sign in to get started", systemImage: "person.crop.circle")
                 .font(.headline)
                 .foregroundStyle(primary)
-            Text("Keep a paid Plus or Vault subscription active for two months to qualify for LaterBox Earn.")
+            Text("Sign in to LaterBox to view your referral account, track referrals, and connect Whop.")
                 .font(.subheadline)
                 .foregroundStyle(secondary)
             Button("Sign in") { coordinator.showingAuthSheet = true }
                 .font(.system(size: 15, weight: .bold))
                 .frame(maxWidth: .infinity)
-                .frame(height: 50)
+                .frame(height: 48)
                 .foregroundStyle(Color(hex: "171711"))
                 .background(AppTheme.accent, in: RoundedRectangle(cornerRadius: 14))
         }
@@ -138,208 +153,106 @@ struct EarnView: View {
 
     private func summary(for value: EarnDashboardDTO) -> some View {
         HStack(spacing: 10) {
-            balanceCard("Pending", cents: value.balances.pendingCents, icon: "clock")
-            balanceCard("Available", cents: value.balances.availableCents, icon: "wallet.pass")
-            balanceCard("Paid", cents: value.balances.paidCents, icon: "checkmark.seal")
+            balanceCard("Pending", cents: value.balances.pendingCents, icon: "clock", desc: "Awaiting hold")
+            balanceCard("Available", cents: value.balances.availableCents, icon: "wallet.pass", desc: "Eligible to transfer")
+            balanceCard("Paid", cents: value.balances.paidCents, icon: "checkmark.seal", desc: "Transferred")
         }
     }
 
-    private func balanceCard(_ label: String, cents: Int, icon: String) -> some View {
-        VStack(alignment: .leading, spacing: 9) {
-            Image(systemName: icon).font(.system(size: 17)).foregroundStyle(secondary)
+    private func balanceCard(_ label: String, cents: Int, icon: String, desc: String) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Text(label)
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(secondary)
+                Spacer()
+                Image(systemName: icon)
+                    .font(.system(size: 13))
+                    .foregroundStyle(secondary)
+            }
             Text(currency(cents))
-                .font(.system(size: 18, weight: .bold, design: .rounded))
-                .minimumScaleFactor(0.6)
+                .font(.system(size: 19, weight: .bold, design: .rounded))
+                .minimumScaleFactor(0.7)
                 .lineLimit(1)
                 .foregroundStyle(primary)
-            Text(label.uppercased())
-                .font(.system(size: 9, weight: .bold))
-                .tracking(0.5)
+            Text(desc)
+                .font(.system(size: 9))
                 .foregroundStyle(secondary)
+                .lineLimit(1)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(13)
-        .background(surface, in: RoundedRectangle(cornerRadius: 17))
-        .overlay(RoundedRectangle(cornerRadius: 17).strokeBorder(stroke, lineWidth: 1))
-    }
-
-    private func eligibilityPanel(for value: EarnDashboardDTO) -> some View {
-        let active = value.status == "active"
-        let statusText: String = {
-            switch value.status {
-            case "active": return "Community Referrer"
-            case "eligible": return "Activate your referral earnings"
-            case "not_launched": return "Your referral code is reserved"
-            case "suspended": return "Affiliate account on hold"
-            default: return "Your path to earning"
-            }
-        }()
-        return VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text("YOUR STATUS")
-                    .font(.system(size: 11, weight: .bold))
-                    .tracking(1)
-                    .foregroundStyle(Color(hex: "566B3E"))
-                Spacer()
-                Text(value.plan.capitalized)
-                    .font(.caption.weight(.bold))
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 7)
-                    .background(.white.opacity(0.7), in: Capsule())
-                    .foregroundStyle(Color(hex: "2C3A24"))
-            }
-            Text(statusText)
-                .font(.system(size: 23, weight: .bold))
-                .foregroundStyle(Color(hex: "171711"))
-            Text(statusDescription(value))
-                .font(.system(size: 13))
-                .foregroundStyle(Color(hex: "56654F"))
-                .fixedSize(horizontal: false, vertical: true)
-            if let progress = membershipTenureProgress(value) {
-                VStack(alignment: .leading, spacing: 7) {
-                    HStack {
-                        Text("PAID MEMBERSHIP TENURE")
-                        Spacer()
-                        Text(progress >= 1 ? "2 months complete" : "In progress")
-                    }
-                    .font(.system(size: 10, weight: .semibold))
-                    .foregroundStyle(Color(hex: "526C3C"))
-                    ProgressView(value: progress)
-                        .tint(Color(hex: "55743E"))
-                }
-                .padding(.top, 5)
-            }
-            if !active && value.plan != "free" {
-                Button {
-                    coordinator.showingPlansSheet = true
-                } label: {
-                    Label("Explore Plus and Vault", systemImage: "chevron.right")
-                        .font(.subheadline.weight(.bold))
-                        .foregroundStyle(Color(hex: "31502A"))
-                }
-            }
-            if active {
-                HStack(spacing: 7) {
-                    Image(systemName: "checkmark.circle.fill")
-                    Text("Active affiliate account")
-                }
-                .font(.caption.weight(.bold))
-                .foregroundStyle(Color(hex: "3C5731"))
-            }
-        }
-        .padding(20)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(hex: "E6EDB0"), in: RoundedRectangle(cornerRadius: 21))
-    }
-
-    private func membershipTenureProgress(_ value: EarnDashboardDTO) -> Double? {
-        guard value.plan != "free",
-              let start = value.memberSince,
-              let end = value.eligibleAt,
-              let startDate = ISO8601DateFormatter().date(from: start),
-              let endDate = ISO8601DateFormatter().date(from: end) else { return nil }
-        let duration = endDate.timeIntervalSince(startDate)
-        guard duration > 0 else { return nil }
-        return max(0, min(1, Date().timeIntervalSince(startDate) / duration))
-    }
-
-    private func statusDescription(_ value: EarnDashboardDTO) -> String {
-        switch value.status {
-        case "not_launched":
-            return "We are finalizing commission rates, payout verification, and the program terms. No new commissions can be earned yet."
-        case "eligible":
-            return "Connect and verify Whop first. Then confirm your age and accept the terms to activate referrals on Free or paid plans."
-        case "active":
-            return "Share your code. Eligible recurring payments earn commission after the referred user finishes a free trial and two paid months."
-        case "suspended":
-            return "Your referral program access is temporarily paused."
-        default:
-            if value.awaitingReceipts == true {
-                return "Your subscription is old enough. We still need to verify your completed paid billing cycles."
-            }
-            if let date = value.eligibleAt {
-                return "Keep your paid subscription active until \(dateLabel(date)) to complete the two-month requirement."
-            }
-            return "Everyone can refer, including Free accounts. Your referrals qualify after paid subscription verification."
-        }
+        .padding(12)
+        .background(surface, in: RoundedRectangle(cornerRadius: 16))
+        .overlay(RoundedRectangle(cornerRadius: 16).strokeBorder(stroke, lineWidth: 1))
     }
 
     private func referralPanel(for value: EarnDashboardDTO) -> some View {
-        VStack(alignment: .leading, spacing: 13) {
-            Label("Your referral link", systemImage: "link")
-                .font(.headline)
-                .foregroundStyle(primary)
-            Text("Share your unique code or link. Commissions start only after referred subscribers complete their trial and two paid months. Disclose that you may earn money.")
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(spacing: 8) {
+                Image(systemName: "gift")
+                    .font(.system(size: 18))
+                    .foregroundStyle(Color(hex: "6B8951"))
+                Text("Your referral link and code")
+                    .font(.headline)
+                    .foregroundStyle(primary)
+            }
+            Text(value.status == "active" && value.programEnabled
+                ? "Share either one and disclose your affiliate relationship."
+                : "Your unique code is unlocked by Whop verification. Your code is reserved; referral attribution and commissions will start only when your Earn enrollment and the referral program are active.")
                 .font(.subheadline)
                 .foregroundStyle(secondary)
-            Text(value.referralUrl ?? "Link unavailable")
-                .font(.system(size: 12, design: .monospaced))
-                .foregroundStyle(primary)
-                .textSelection(.enabled)
-                .lineLimit(3)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(12)
-                .background(stroke.opacity(0.25), in: RoundedRectangle(cornerRadius: 11))
-            Button {
-                guard let url = value.referralUrl else { return }
-                UIPasteboard.general.string = url + "\nDisclosure: I may receive a commission if you purchase LaterBox through this link."
-                didCopy = true
-            } label: {
-                Label(didCopy ? "Copied with disclosure" : "Copy referral link", systemImage: didCopy ? "checkmark" : "doc.on.doc")
-                    .font(.system(size: 15, weight: .bold))
-                    .foregroundStyle(Color(hex: "171711"))
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 48)
-                    .background(AppTheme.accent, in: RoundedRectangle(cornerRadius: 13))
-            }
-            HStack(spacing: 12) {
-                Text(value.referralCode ?? "")
-                    .font(.system(size: 12, design: .monospaced))
-                    .foregroundStyle(primary)
-                    .textSelection(.enabled)
-                Button("Copy code") {
-                    UIPasteboard.general.string = value.referralCode
-                    didCopy = true
-                }
-                Button("Customize") {
-                    codeToEdit = value.referralCode ?? ""
-                    editingCode = true
-                }
-                .disabled(updatingCode)
-            }
-            .font(.caption.weight(.semibold))
-            .foregroundStyle(secondary)
-            HStack {
-                Text("\(value.referrals) referred accounts")
-                Spacer()
-                if let bps = value.rateBps {
-                    Text("\(bps / 100)% commission")
-                }
-            }
-            .font(.caption.weight(.medium))
-            .foregroundStyle(secondary)
-            Divider()
-            HStack(spacing: 10) {
-                Image(systemName: value.payoutConnected ? "checkmark.seal.fill" : "creditcard")
-                    .foregroundStyle(secondary)
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(value.payoutConnected ? "Whop connected" : "Connect your Whop payout account")
-                        .font(.subheadline.weight(.semibold))
+
+            if let url = value.referralUrl {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(url)
+                        .font(.system(size: 12, design: .monospaced))
                         .foregroundStyle(primary)
-                    Text(value.payoutConnected ? "Verified for earnings transfers" : "Secure connection and verification happen on the LaterBox website.")
-                        .font(.caption)
-                        .foregroundStyle(secondary)
-                }
-                Spacer(minLength: 6)
-                if !value.payoutConnected {
-                    Button("Connect") {
-                        if let url = URL(string: "\(LaterBoxAPIService.shared.billingUrl)/earn") {
-                            openURL(url)
+                        .textSelection(.enabled)
+                        .lineLimit(2)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(12)
+                        .background(stroke.opacity(0.25), in: RoundedRectangle(cornerRadius: 11))
+                    Button {
+                        UIPasteboard.general.string = "\(url)\nI may earn a commission if you buy through my link."
+                        didCopy = true
+                        Task {
+                            try? await Task.sleep(nanoseconds: 2_500_000_000)
+                            didCopy = false
                         }
+                    } label: {
+                        Label(didCopy ? "Copied" : "Copy link", systemImage: didCopy ? "checkmark" : "doc.on.doc")
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundStyle(Color(hex: "171711"))
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 44)
+                            .background(AppTheme.accent, in: RoundedRectangle(cornerRadius: 12))
                     }
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(primary)
                 }
+            }
+
+            HStack(spacing: 12) {
+                if let code = value.referralCode {
+                    Text("Code: \(code)")
+                        .font(.system(size: 13, weight: .bold, design: .monospaced))
+                        .foregroundStyle(primary)
+                    Button("Copy code") {
+                        UIPasteboard.general.string = code
+                        didCopy = true
+                    }
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(Color(hex: "597442"))
+
+                    Button("Customize") {
+                        codeToEdit = code
+                        editingCode = true
+                    }
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(Color(hex: "597442"))
+                }
+                Spacer()
+                Text("\(value.referrals) referred")
+                    .font(.caption)
+                    .foregroundStyle(secondary)
             }
         }
         .earnPanel(surface: surface, stroke: stroke)
@@ -347,51 +260,51 @@ struct EarnView: View {
 
     private func enrollmentPanel(for value: EarnDashboardDTO) -> some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("Activate referral earnings")
+            Text("Connect Whop and activate Earn")
                 .font(.headline)
                 .foregroundStyle(primary)
-            Text("Connect a verified Whop account, confirm your age, and accept the terms before activating referrals. A paid LaterBox plan is not required.")
+            Text("Connect a verified Whop account first. You can join with a Free LaterBox plan; you must also be an adult and accept the terms.")
                 .font(.subheadline)
                 .foregroundStyle(secondary)
-            if !value.payoutConnected {
+
+            if value.payoutConnected {
+                HStack(spacing: 6) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(Color(hex: "48613D"))
+                    Text("Whop identity verified. Complete the final two checks to join Earn.")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(Color(hex: "48613D"))
+                }
+            } else {
                 Button("Connect Whop to continue") {
-                    if let url = URL(string: "\(LaterBoxAPIService.shared.billingUrl)/earn") { openURL(url) }
+                    if let url = URL(string: "\(LaterBoxAPIService.shared.webUrl)/earn") { openURL(url) }
                 }
                 .font(.subheadline.weight(.bold))
                 .foregroundStyle(Color(hex: "31502A"))
-            } else {
-                Label("Whop verified", systemImage: "checkmark.seal.fill")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.green)
             }
-            Toggle("I confirm that I am 18 or older", isOn: $confirmsAdult)
+
+            Toggle("I confirm I am at least 18 years old.", isOn: $confirmsAdult)
                 .font(.subheadline)
                 .tint(AppTheme.accent)
-            Toggle("I agree to the affiliate program terms", isOn: $acceptsTerms)
+            Toggle("I accept the affiliate program terms.", isOn: $acceptsTerms)
                 .font(.subheadline)
                 .tint(AppTheme.accent)
-            Button("Read the program terms") {
-                if let url = URL(string: "\(LaterBoxAPIService.shared.webUrl)/earn-terms") {
-                    openURL(url)
-                }
-            }
-            .font(.caption.weight(.semibold))
-            .foregroundStyle(primary)
+
             Button {
                 Task { await join() }
             } label: {
                 HStack(spacing: 8) {
                     if isJoining { ProgressView().tint(.white) }
-                    Text(isJoining ? "Activating…" : "Join LaterBox Earn")
+                    Text(isJoining ? "Joining…" : "Join Earn")
                 }
-                .font(.system(size: 15, weight: .bold))
+                .font(.system(size: 14, weight: .bold))
                 .frame(maxWidth: .infinity)
-                .frame(height: 50)
+                .frame(height: 46)
                 .foregroundStyle(.white)
-                .background(Color(hex: "171711"), in: RoundedRectangle(cornerRadius: 13))
+                .background(Color(hex: "171711"), in: RoundedRectangle(cornerRadius: 12))
             }
             .disabled(isJoining || !value.payoutConnected || !confirmsAdult || !acceptsTerms)
-            .opacity(isJoining || !value.payoutConnected || !confirmsAdult || !acceptsTerms ? 0.55 : 1)
+            .opacity(isJoining || !value.payoutConnected || !confirmsAdult || !acceptsTerms ? 0.45 : 1)
         }
         .earnPanel(surface: surface, stroke: stroke)
     }
@@ -409,7 +322,7 @@ struct EarnView: View {
             if value.commissions.isEmpty {
                 VStack(spacing: 9) {
                     Image(systemName: "gift")
-                        .font(.system(size: 26))
+                        .font(.system(size: 24))
                         .foregroundStyle(secondary)
                     Text("No earnings yet")
                         .font(.subheadline.weight(.semibold))
@@ -420,7 +333,7 @@ struct EarnView: View {
                         .multilineTextAlignment(.center)
                 }
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 24)
+                .padding(.vertical, 20)
             } else {
                 ForEach(value.commissions, id: \.id) { commission in
                     Divider()
@@ -485,24 +398,28 @@ struct EarnView: View {
     }
 
     private var processPanel: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("How Earn works").font(.headline).foregroundStyle(primary)
-            processRow("1", title: "Share", detail: "Everyone can share a unique referral code, even on Free.")
-            processRow("2", title: "Trial", detail: "New referred subscribers get a free trial when the promotion is active.")
-            processRow("3", title: "Qualify", detail: "Referred customers complete two paid months after the trial.")
-            processRow("4", title: "Release", detail: "After the hold and refund checks, funds become available.")
-            processRow("5", title: "Withdraw", detail: "Whop manages verified payouts and withdrawals.")
+        VStack(alignment: .leading, spacing: 14) {
+            Text("How it works").font(.headline).foregroundStyle(primary)
+            processRow("1", title: "Connect", detail: "Verify Whop, then share your unique referral link.")
+            processRow("2", title: "Trial", detail: "Your new subscriber receives a free month only on a verified trial offer.")
+            processRow("3", title: "Qualify", detail: "They must remain subscribed and complete two successful paid billing periods.")
+            processRow("4", title: "Earn", detail: "Eligible renewals accrue commission; Whop handles verified payouts.")
             Divider()
+            HStack {
+                Image(systemName: "shield.checkmark")
+                    .font(.caption)
+                    .foregroundStyle(secondary)
+                Text("Refunded transactions do not qualify. Terms and regional eligibility apply.")
+                    .font(.system(size: 11))
+                    .foregroundStyle(secondary)
+            }
             Button {
                 if let url = URL(string: "https://whop.com/") { openURL(url) }
             } label: {
-                Label("Open Whop for withdrawals", systemImage: "arrow.up.right.square")
-                    .font(.subheadline.weight(.semibold))
+                Label("Manage Whop withdrawals", systemImage: "arrow.up.right.square")
+                    .font(.caption.weight(.semibold))
                     .foregroundStyle(primary)
             }
-            Text("Whop handles bank details, identity checks and withdrawals. LaterBox never asks you for bank credentials.")
-                .font(.caption)
-                .foregroundStyle(secondary)
         }
         .earnPanel(surface: surface, stroke: stroke)
     }
@@ -512,9 +429,9 @@ struct EarnView: View {
             Text(number)
                 .font(.caption.weight(.bold))
                 .foregroundStyle(Color(hex: "171711"))
-                .frame(width: 29, height: 29)
+                .frame(width: 28, height: 28)
                 .background(AppTheme.accent, in: Circle())
-            VStack(alignment: .leading, spacing: 3) {
+            VStack(alignment: .leading, spacing: 2) {
                 Text(title).font(.subheadline.weight(.semibold)).foregroundStyle(primary)
                 Text(detail).font(.caption).foregroundStyle(secondary)
             }
@@ -585,9 +502,9 @@ private struct EarnPanelModifier: ViewModifier {
     func body(content: Content) -> some View {
         content
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(19)
-            .background(surface, in: RoundedRectangle(cornerRadius: 20))
-            .overlay(RoundedRectangle(cornerRadius: 20).strokeBorder(stroke, lineWidth: 1))
+            .padding(18)
+            .background(surface, in: RoundedRectangle(cornerRadius: 18))
+            .overlay(RoundedRectangle(cornerRadius: 18).strokeBorder(stroke, lineWidth: 1))
     }
 }
 private extension View {
