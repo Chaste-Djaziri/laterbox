@@ -215,7 +215,12 @@ struct MacInboxTableView: View {
                     .padding(.horizontal, 14)
                     .frame(maxWidth: .infinity)
                     .frame(height: 65)
-                    .background(active ? (dark ? Color.white.opacity(0.045) : Color(red: 250 / 255, green: 248 / 255, blue: 245 / 255)) : Color.clear)
+                    .background {
+                        Rectangle()
+                            .fill(active
+                                  ? (dark ? Color.white.opacity(0.045) : Color(red: 250 / 255, green: 248 / 255, blue: 245 / 255))
+                                  : Color.clear)
+                    }
                     .overlay(alignment: .bottom) {
                         if active {
                             Rectangle()
@@ -229,6 +234,7 @@ struct MacInboxTableView: View {
                 .accessibilityAddTraits(active ? [.isSelected] : [])
             }
         }
+        .clipShape(Rectangle())
         .overlay(alignment: .bottom) { border.frame(height: 1) }
     }
 
