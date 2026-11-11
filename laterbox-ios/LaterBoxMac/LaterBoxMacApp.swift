@@ -312,7 +312,7 @@ private struct MacWindowChrome: NSViewRepresentable {
         window.titlebarAppearsTransparent = true
         window.isMovableByWindowBackground = true
         for type in [NSWindow.ButtonType.closeButton, .miniaturizeButton, .zoomButton] {
-            window.standardWindowButton(type)?.isHidden = true
+            window.standardWindowButton(type)?.isHidden = false
         }
     }
 }
@@ -535,20 +535,6 @@ struct MacLoginView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(nsColor: .windowBackgroundColor))
 
-            Button {
-                NSApp.keyWindow?.close()
-            } label: {
-                Image(systemName: "xmark")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(.secondary)
-                    .frame(width: 32, height: 32)
-                    .background(Color.primary.opacity(0.055), in: RoundedRectangle(cornerRadius: 10))
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Close LaterBox")
-            .padding(.leading, 20)
-            .padding(.top, 20)
         }
         .background(MacWindowChrome().frame(width: 0, height: 0))
     }
