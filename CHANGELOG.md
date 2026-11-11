@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[Web / Maintenance overlay dev bypass]** Bypass the site-wide maintenance screen and polling in local development environments and on localhost/127.0.0.1 domains so local development and testing are never blocked by production maintenance schedules.
+
 - **[Web / Plans page scroll fix]** Fix storage plans page (`/plans`) not scrolling to view all plan tiers by removing root `overflow-hidden` and `min-h-screen` constraints on `StoragePricingPage`. Add proper overscroll containment and comfortable bottom padding in the app shell layout so all 8 plans, comparison details, and checkout actions can be scrolled smoothly on desktop and mobile.
 
 - **[Web / Admin infinite refresh fix]** Eliminate the recursive fetch dependency cycle in AdminContext where data updates re-instantiated callbacks, causing continuous API polling and UI flashing. Add initial-load guards and separate initial loading from background refresh indicators to ensure smooth, stable rendering across admin views.
