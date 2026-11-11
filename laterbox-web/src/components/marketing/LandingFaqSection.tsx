@@ -124,7 +124,7 @@ export function LandingFaqSection() {
   };
 
   return (
-    <section className="gsap-faq-section py-24 sm:py-32 lg:py-36 bg-[#faf8f5] border-b border-[#e4e0d5] relative overflow-hidden">
+    <section id="faq" className="gsap-faq-section py-24 sm:py-32 lg:py-36 bg-[#faf8f5] border-b border-[#e4e0d5] relative overflow-hidden scroll-mt-24">
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
         {/* Section Heading */}
         <h2 className="gsap-faq-header text-4xl sm:text-6xl font-black tracking-tight text-[#171711] text-center mb-16 sm:mb-20">

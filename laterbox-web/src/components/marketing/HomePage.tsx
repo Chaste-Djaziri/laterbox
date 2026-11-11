@@ -705,7 +705,9 @@ export default function LandingPage() {
       {/* ============================================================ */}
       {/* "Not another to-do list." Capability Section */}
       {/* ============================================================ */}
-      <NotAnotherTodoListSection />
+      <div id="features" className="scroll-mt-24">
+        <NotAnotherTodoListSection />
+      </div>
 
       {/* ============================================================ */}
       {/* "Some things don't need a deadline." Someday Vault Section */}
@@ -747,24 +749,24 @@ export default function LandingPage() {
       {/* ============================================================ */}
       <nav aria-label="Learn about LaterBox" className="mx-auto flex max-w-5xl flex-wrap justify-center gap-3.5 px-6 py-12">
         <Link
-          href="/features"
+          href="/#features"
           className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full bg-white border border-[#e4e0d5] text-[#171711] text-xs font-bold hover:border-[#171711] hover:bg-[#faf8f5] shadow-2xs transition-all"
         >
           <span>Explore LaterBox features</span>
           <ArrowRight className="w-3.5 h-3.5 text-[#6c6b63]" />
         </Link>
         <Link
-          href="/about"
+          href="/guide"
           className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full bg-white border border-[#e4e0d5] text-[#171711] text-xs font-bold hover:border-[#171711] hover:bg-[#faf8f5] shadow-2xs transition-all"
         >
-          <span>About LaterBox &amp; Philosophy</span>
+          <span>Getting started guide</span>
           <ArrowRight className="w-3.5 h-3.5 text-[#6c6b63]" />
         </Link>
         <Link
-          href="/browser-extension"
+          href="/download"
           className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full bg-white border border-[#e4e0d5] text-[#171711] text-xs font-bold hover:border-[#171711] hover:bg-[#faf8f5] shadow-2xs transition-all"
         >
-          <span>Save with Browser Extension</span>
+          <span>Get LaterBox apps &amp; downloads</span>
           <ArrowRight className="w-3.5 h-3.5 text-[#6c6b63]" />
         </Link>
       </nav>
