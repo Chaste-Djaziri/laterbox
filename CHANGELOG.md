@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[Marketing / Referral welcome personalized inviter name]** Resolve and display the referrer's display name dynamically on the public invite page (`/r/[code]`). Features personalized greeting copy ("Alex invited you to LaterBox"), dynamic action buttons, and inviter badges to maximize onboarding trust and conversions.
+
 - **[Marketing / Dynamic referral welcome page]** Create a public, dynamic referral welcome landing page at `/r/[code]` welcoming referred visitors to LaterBox. Displays the personalized invite code, highlights the 500 MB cloud vault and 30-day storage trial perks, features instant universal capture and calm email-style triage previews, and seamlessly preserves 30-day attribution cookies with a direct one-click onboarding flow.
 
 - **[Admin / Minimal feedback email table]** Simplify the admin feedback table into the clean, uncluttered email inbox row design used on the user dashboard. Remove excess select controls and multiple dropdowns, featuring sleek tabs with active indicators, sender column, bold subject with inline message snippet, subtle category/platform badges, date stamp, and hover quick actions with one-click row navigation to full details.
