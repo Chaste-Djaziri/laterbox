@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[Admin / Collapsed icon sidebar]** Redesign the Admin Control Center sidebar into the exact collapsed icon rail format of the user app dashboard: 84px width, cream container, brand logo, rounded 52px navigation items with active green indicators, live badge counts, quick return to user app, and floating side tooltips.
+
 - **[Web / Dashboard sidebar admin navigation]** Display an Admin navigation button in the dashboard sidebar rail for authenticated users with administrative privileges (owner, admin, support, analyst), routing to `/admin` in local environments and `https://admin.laterbox.dev` in production.
 
 - **[Web / Earn dashboard full-width layout]** Remove the redundant green referral status banner card and expand all Earn dashboard components to full width to seamlessly match the dashboard layout.
