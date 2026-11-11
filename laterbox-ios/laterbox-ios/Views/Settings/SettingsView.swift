@@ -17,6 +17,7 @@ public struct SettingsView: View {
     @ObservedObject private var lockManager = AppLockManager.shared
     @ObservedObject private var iconManager = AppIconManager.shared
     @ObservedObject private var modelManager = LaterAIModelManager.shared
+    @ObservedObject private var shakeManager = ShakeGestureManager.shared
     @StateObject private var storageManager = LocalStorageManager.shared
     @State private var notificationStatus: UNAuthorizationStatus = .notDetermined
     @State private var showingSignOutAlert = false
@@ -24,6 +25,7 @@ public struct SettingsView: View {
     @State private var signOutFailureMessage = ""
     @State private var showingExitGuestAlert = false
     @State private var showingAuthSheet = false
+    @State private var showingDiagnosticsSheet = false
     private let isTabRoot: Bool
 
     public init(isTabRoot: Bool = false) {
@@ -255,6 +257,48 @@ public struct SettingsView: View {
 
                         rowDivider
 
+                        Button {
+                            LBHaptic.light()
+                            showingDiagnosticsSheet = true
+                        } label: {
+                            groupedRow(
+                                icon: "wrench.and.screwdriver",
+                                title: "Diagnostics & Error Details",
+                                badge: coordinator.lastSyncErrorMessage != nil ? "Issue logged" : nil
+                            )
+                        }
+                        .buttonStyle(.plain)
+
+                        rowDivider
+
+                        // Shake to report toggle row
+                        HStack(spacing: 12) {
+                            Image(systemName: "iphone.radiowaves.left.and.right")
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundColor(SettingsAppearance.onAccent)
+                                .frame(width: 34, height: 34)
+                                .background(AppTheme.accent, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Shake to Report Issue")
+                                    .font(.system(size: 15, weight: .semibold))
+                                    .foregroundColor(SettingsAppearance.textPrimary(for: colorScheme))
+                                Text("Shake device anywhere to view diagnostics")
+                                    .font(.caption)
+                                    .foregroundColor(SettingsAppearance.textSecondary(for: colorScheme))
+                            }
+
+                            Spacer()
+
+                            Toggle("", isOn: $shakeManager.isShakeEnabled)
+                                .labelsHidden()
+                                .tint(AppTheme.accent)
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
+
+                        rowDivider
+
                         NavigationLink(destination: AboutSettingsView()) {
                             groupedRow(
                                 icon: "info.circle",
@@ -373,6 +417,9 @@ public struct SettingsView: View {
             NavigationStack {
                 AuthView()
             }
+        }
+        .sheet(isPresented: $showingDiagnosticsSheet) {
+            ErrorDiagnosticsSheet(activeScreen: "Settings")
         }
         .alert("Sign Out", isPresented: $showingSignOutAlert) {
             Button("Sign Out & Clear Device", role: .destructive) {
