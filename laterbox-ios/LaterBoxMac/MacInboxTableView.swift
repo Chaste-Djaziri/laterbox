@@ -238,44 +238,105 @@ struct MacInboxTableView: View {
         .overlay(alignment: .bottom) { border.frame(height: 1) }
     }
 
+    private var emptyTitle: String {
+        if !isConnected { return "Your saves are waiting for you" }
+        switch activeTab {
+        case .primary: return "All clear, for now"
+        case .articles: return "Your reading list starts here"
+        case .media: return "Nothing to watch or listen to yet"
+        case .updates: return "No notes or tasks yet"
+        }
+    }
+
+    private var emptyDescription: String {
+        if !isConnected {
+            return "Your Mac inbox is getting ready. Your saved links, notes and ideas are still available on Laterbox Web."
+        }
+        switch activeTab {
+        case .primary: return "A little breathing room! When you save something for later, it will show up here."
+        case .articles: return "Save articles and interesting reads to find them when you have a moment."
+        case .media: return "Keep videos, podcasts and music you want to revisit together."
+        case .updates: return "Quick thoughts and things to do will find their home here."
+        }
+    }
+
     private var emptyState: some View {
-        VStack(spacing: 14) {
-            Image(systemName: isConnected ? "tray" : "icloud.slash")
-                .font(.system(size: 26, weight: .light))
-                .foregroundStyle(.secondary)
-                .frame(width: 64, height: 64)
-                .background(dark ? Color.white.opacity(0.06) : Color(red: 247 / 255, green: 245 / 255, blue: 238 / 255),
-                            in: RoundedRectangle(cornerRadius: 19))
+        VStack(spacing: 0) {
+            ZStack {
+                Circle()
+                    .fill(accent.opacity(dark ? 0.075 : 0.20))
+                    .frame(width: 172, height: 172)
 
-            Text(!isConnected ? "Your inbox isn't connected yet" :
-                 activeTab == .primary ? "Your inbox is all clear" : "No \(activeTab.rawValue.lowercased()) yet")
-                .font(.system(size: 19, weight: .semibold))
+                Circle()
+                    .strokeBorder(accent.opacity(dark ? 0.20 : 0.5), lineWidth: 1)
+                    .frame(width: 142, height: 142)
 
-            Text(!isConnected
-                 ? "Your saved items will appear here once Laterbox macOS sync is connected."
-                 : "Items captured or scheduled for this category will appear here.")
-                .font(.system(size: 12))
-                .foregroundStyle(muted)
+                RoundedRectangle(cornerRadius: 19, style: .continuous)
+                    .fill(dark ? Color(red: 48 / 255, green: 51 / 255, blue: 51 / 255) : Color.white)
+                    .frame(width: 94, height: 84)
+                    .shadow(color: .black.opacity(dark ? 0.18 : 0.06), radius: 18, y: 9)
+
+                Image(systemName: isConnected ? activeTab.icon : "tray.full")
+                    .font(.system(size: 37, weight: .ultraLight))
+                    .foregroundStyle(dark ? accent : Color(red: 42 / 255, green: 49 / 255, blue: 33 / 255))
+
+                Image(systemName: isConnected ? "sparkle" : "arrow.triangle.2.circlepath")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(Color(red: 42 / 255, green: 49 / 255, blue: 33 / 255))
+                    .frame(width: 31, height: 31)
+                    .background(accent, in: Circle())
+                    .offset(x: 49, y: -39)
+            }
+            .accessibilityHidden(true)
+            .padding(.bottom, 25)
+
+            Text(emptyTitle)
+                .font(.system(size: 23, weight: .semibold))
+                .tracking(-0.6)
                 .multilineTextAlignment(.center)
-                .frame(maxWidth: 340)
+
+            Text(emptyDescription)
+                .font(.system(size: 13))
+                .foregroundStyle(muted)
+                .lineSpacing(4)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: 360)
+                .padding(.top, 9)
 
             if !isConnected {
-                Text("Dashboard preview · No items loaded")
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundStyle(muted)
-            } else {
-                Button(action: onQuickSave) {
-                    Label("Save item to inbox", systemImage: "plus")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(dark ? Color.black : .white)
-                        .padding(.horizontal, 16)
-                        .frame(height: 33)
-                        .background(dark ? accent : Color.black, in: RoundedRectangle(cornerRadius: 10))
+                Link(destination: URL(string: "https://laterbox.dev")!) {
+                    Label("Open Laterbox Web", systemImage: "arrow.up.right")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(dark ? Color.black : Color(red: 23 / 255, green: 23 / 255, blue: 17 / 255))
+                        .padding(.horizontal, 19)
+                        .frame(height: 40)
+                        .background(accent, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
                 }
                 .buttonStyle(.plain)
+                .help("Open Laterbox in your browser")
+                .padding(.top, 22)
+
+                Text("Mac sync is coming soon")
+                    .font(.system(size: 11))
+                    .foregroundStyle(muted.opacity(0.85))
+                    .padding(.top, 13)
+            } else {
+                Button(action: onQuickSave) {
+                    Label("Try Quick Save", systemImage: "plus")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(dark ? Color.black : Color(red: 23 / 255, green: 23 / 255, blue: 17 / 255))
+                        .padding(.horizontal, 19)
+                        .frame(height: 40)
+                        .background(accent, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                }
+                .buttonStyle(.plain)
+                .help("Quick Save preview; saving is not connected yet")
+                .padding(.top, 22)
             }
         }
-        .padding(24)
+        .padding(30)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .accessibilityElement(children: .contain)
     }
 
     private func inboxRow(_ item: MacInboxEntry) -> some View {
