@@ -9,6 +9,12 @@ import { createXControls } from './x-controls';
 import { createXProfileControls } from './x-profile';
 import { createLinkedInProfileControls } from './linkedin-profile';
 import { createGoogleSearchControls, type GoogleSearchResult } from './google-search-controls';
+import {
+  createYouTubeVideoControls,
+  createYouTubeProfileControls,
+  type YouTubeVideo,
+  type YouTubeProfile,
+} from './youtube-controls';
 import type { InstagramPost } from './social';
 import type { PageContext } from '../lib/page';
 import type { Capture, CaptureResult } from '../types/capture';
@@ -141,7 +147,8 @@ const createProfileControl=(profile:{root:Element;insertionPoint:HTMLElement;url
   const appearance=document.createElement('style');appearance.textContent='button{color:inherit;background:transparent;border:1px solid currentColor;border-radius:24px;min-height:36px;padding:6px 14px}button:hover{background:rgba(128,128,128,.12)}';local.append(appearance);
   if(site==='Instagram'){container.style.margin='0 0 0 10px';container.style.alignSelf='center';appearance.textContent+='button{color:var(--lb-profile-color,currentColor);border-color:var(--lb-profile-color,currentColor);border-radius:6px;min-height:32px;padding:5px 10px;white-space:nowrap}';}
   if(site==='X')appearance.textContent+=':host{box-sizing:border-box}button{box-sizing:border-box;height:100%;min-height:0;display:inline-flex;align-items:center;justify-content:center;white-space:nowrap}';
-  const button=document.createElement('button');button.type='button';button.dataset.saveLabel=profile.company ? 'Save company' : 'Save profile';button.title='Save this '+site+' '+(profile.company ? 'company' : 'profile')+' to LaterBox';button.setAttribute('aria-label','Save '+profile.name+' to LaterBox');decorate(button,button.dataset.saveLabel);local.append(button);
+  if(site==='YouTube'){container.style.margin='0 8px';container.style.alignSelf='center';appearance.textContent+='button{background:rgba(0,0,0,0.05);color:#0f0f0f;border:0;border-radius:9999px;min-height:36px;padding:0 16px;font:500 14px/1.2 Roboto,system-ui,sans-serif}.dark button{background:rgba(255,255,255,0.1);color:#f1f1f1}.dark button:hover{background:rgba(255,255,255,0.2)}';}
+  const button=document.createElement('button');button.type='button';button.dataset.saveLabel=site==='YouTube' ? 'Save channel' : (profile.company ? 'Save company' : 'Save profile');button.title='Save this '+site+' '+(site==='YouTube' ? 'channel' : (profile.company ? 'company' : 'profile'))+' to LaterBox';button.setAttribute('aria-label','Save '+profile.name+' to LaterBox');decorate(button,button.dataset.saveLabel);local.append(button);
   button.addEventListener('click',event=>{
     event.stopPropagation();if(!event.isTrusted || button.disabled)return;
     const current=resolve();if(!current){show('This profile changed. Try its updated save button.');return;}
@@ -186,7 +193,43 @@ const createGoogleControl=(result:GoogleSearchResult,resolve:()=>GoogleSearchRes
   return container;
 };
 const syncGoogleSearchControls=createGoogleSearchControls(document,createGoogleControl);
-function addSocialControls(){syncInstagramControls(enabled,location.href);syncLinkedInControls(enabled,location.href);syncLinkedInProfileControls(enabled,location.href);syncXControls(enabled,location.href);syncXProfileControls(enabled,location.href);syncInstagramProfileControls(enabled,location.href);syncGoogleSearchControls(enabled,location.href);}
+const createYouTubeVideoControl=(video:YouTubeVideo,resolve:()=>YouTubeVideo|undefined)=>{
+  const container=document.createElement('span');container.setAttribute('data-laterbox-control','');container.style.cssText='display:inline-flex;align-items:center;margin:0 4px;vertical-align:middle;flex-shrink:0';
+  const local=container.attachShadow({mode:'closed'});local.append(style.cloneNode(true));
+  const appearance=document.createElement('style');appearance.textContent=`
+    :host{all:initial;display:inline-flex;align-items:center;vertical-align:middle;direction:ltr;text-align:left}
+    button{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:36px;min-height:36px;padding:0 16px;border-radius:9999px;border:0;background:rgba(0,0,0,0.05);color:#0f0f0f;font:500 14px/1.2 Roboto,'YouTube Noto',system-ui,sans-serif;cursor:pointer;box-shadow:none;white-space:nowrap;transition:background .15s,opacity .15s}
+    button:hover{background:rgba(0,0,0,0.1)}
+    button:focus-visible{outline:2px solid #26734d;outline-offset:2px}
+    button svg{width:16px;height:16px;color:#26734d;flex-shrink:0}
+    .dark button{background:rgba(255,255,255,0.1);color:#f1f1f1}
+    .dark button:hover{background:rgba(255,255,255,0.2)}
+    .dark button svg{color:#7ee7a5}
+    button[data-state=saved]{background:#edf5ee!important;color:#25653c!important}
+    .dark button[data-state=saved]{background:#173823!important;color:#7ee7a5!important}
+    button.compact{height:28px;min-height:28px;padding:0 10px;font-size:12px}
+    button.compact svg{width:13px;height:13px}
+  `;
+  local.append(appearance);
+  const wrapper=document.createElement('span');
+  const isDark=Boolean(document.documentElement.hasAttribute('dark') || document.documentElement.getAttribute('dark')==='true' || document.body.classList.contains('dark-theme') || (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches));
+  if(isDark)wrapper.classList.add('dark');
+  local.append(wrapper);
+  const button=document.createElement('button');button.type='button';button.dataset.saveLabel=video.compact ? 'Save' : 'Save to LaterBox';
+  if(video.compact)button.classList.add('compact');
+  button.title='Save this video to LaterBox';button.setAttribute('aria-label',`Save ${video.title} to LaterBox`);decorate(button,button.dataset.saveLabel);wrapper.append(button);
+  container.addEventListener('click',event=>event.stopPropagation());
+  button.addEventListener('click',event=>{
+    event.stopPropagation();event.preventDefault();if(!event.isTrusted || button.disabled)return;
+    const current=resolve();if(!current){show('This video changed. Try its updated save button.');return;}
+    const pageContext:PageContext={url:current.url,canonicalUrl:current.url,title:current.title,author:current.author,siteName:'YouTube',previewImageUrl:current.thumbnailUrl,selection:''};
+    void submit(captureFromPage(pageContext,'page'),button);
+  });
+  return container;
+};
+const syncYouTubeVideoControls=createYouTubeVideoControls(document,createYouTubeVideoControl);
+const syncYouTubeProfileControls=createYouTubeProfileControls(document,(profile,resolve)=>createProfileControl(profile,resolve,'YouTube'));
+function addSocialControls(){syncInstagramControls(enabled,location.href);syncLinkedInControls(enabled,location.href);syncLinkedInProfileControls(enabled,location.href);syncXControls(enabled,location.href);syncXProfileControls(enabled,location.href);syncInstagramProfileControls(enabled,location.href);syncGoogleSearchControls(enabled,location.href);syncYouTubeVideoControls(enabled,location.href);syncYouTubeProfileControls(enabled,location.href);}
 const observer=new MutationObserver(()=>{
   if(scheduled || !enabled)return;scheduled=true;setTimeout(()=>{scheduled=false;addSocialControls();},500);
 });
