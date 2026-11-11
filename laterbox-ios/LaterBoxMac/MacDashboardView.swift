@@ -88,7 +88,6 @@ struct MacDashboardView: View {
             .buttonStyle(.plain)
             .help("LaterBox home")
             .accessibilityLabel("LaterBox home")
-            .padding(.top, 64)
 
             divider
                 .padding(.vertical, 13)
