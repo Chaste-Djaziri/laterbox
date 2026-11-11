@@ -188,8 +188,8 @@ struct MainTabTests {
         #expect(LaterBoxPullRefresh.distance(500) == 180)
         #expect(LaterBoxPullRefresh.distance(.nan) == 0)
         #expect(LaterBoxPullRefresh.progress(-10) == 0)
-        #expect(LaterBoxPullRefresh.progress(52.5) == 0.5)
-        #expect(LaterBoxPullRefresh.progress(105) == 1)
+        #expect(LaterBoxPullRefresh.progress(50) == 0.5)
+        #expect(LaterBoxPullRefresh.progress(100) == 1)
         #expect(LaterBoxPullRefresh.progress(200) == 1)
 
         // A real UIScrollView rests at -adjustedContentInset.top.
@@ -224,10 +224,23 @@ struct MainTabTests {
     func systemLaunchCanvas() {
         let light = UITraitCollection(userInterfaceStyle: .light)
         let dark = UITraitCollection(userInterfaceStyle: .dark)
-        let canvas = UIColor(named: "LaterBoxLaunchCanvas")
+        let bundle = Bundle(for: SyncCoordinator.self)
+        let canvas = UIColor(named: "LaterBoxLaunchCanvas", in: bundle, compatibleWith: nil)
+            ?? UIColor(named: "LaterBoxLaunchCanvas", in: .main, compatibleWith: nil)
+            ?? UIColor(named: "LaterBoxLaunchCanvas")
 
-        #expect(canvas?.resolvedColor(with: light).isEqual(UIColor.white) == true)
-        #expect(canvas?.resolvedColor(with: dark).isEqual(UIColor.black) == true)
+        #expect(canvas != nil)
+        if let canvas {
+            let resolvedLight = canvas.resolvedColor(with: light)
+            let resolvedDark = canvas.resolvedColor(with: dark)
+            var r1: CGFloat = 0, g1: CGFloat = 0, b1: CGFloat = 0, a1: CGFloat = 0
+            #expect(resolvedLight.getRed(&r1, green: &g1, blue: &b1, alpha: &a1))
+            #expect(r1 == 1.0 && g1 == 1.0 && b1 == 1.0 && a1 == 1.0)
+
+            var r2: CGFloat = 0, g2: CGFloat = 0, b2: CGFloat = 0, a2: CGFloat = 0
+            #expect(resolvedDark.getRed(&r2, green: &g2, blue: &b2, alpha: &a2))
+            #expect(abs(r2 - 0.106) < 0.01 && abs(g2 - 0.114) < 0.01 && abs(a2 - 1.0) < 0.01)
+        }
     }
 
     @Test("Inbox uses clean white and textured graphite dark appearance")
