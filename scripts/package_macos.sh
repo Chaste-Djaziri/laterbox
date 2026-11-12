@@ -59,8 +59,35 @@ hdiutil create -volname 'LaterBox' -srcfolder "$STAGE" -format UDZO -ov "$DMG"
 codesign --force --timestamp --sign "$IDENTITY" "$DMG"
 codesign --verify --verbose=2 "$DMG"
 
+# The notary service can return exit code 0 for a processed *Rejected*
+# submission. Inspect the result and fetch Apple's issue report before stapling.
+NOTARY_RESULT="$OUT/notarization-result.json"
+NOTARY_LOG="$OUT/notarization-log.json"
 xcrun notarytool submit "$DMG" --key "$ASC_KEY_PATH" --key-id "$ASC_KEY_ID" \
-  --issuer "$ASC_ISSUER_ID" --wait --timeout 30m
+  --issuer "$ASC_ISSUER_ID" --wait --timeout 30m --output-format json > "$NOTARY_RESULT"
+SUBMISSION_ID="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["id"])' "$NOTARY_RESULT")"
+SUBMISSION_STATUS="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["status"])' "$NOTARY_RESULT")"
+echo "Apple notarization submission: $SUBMISSION_ID; status: $SUBMISSION_STATUS"
+if [[ "$SUBMISSION_STATUS" != "Accepted" ]]; then
+  echo "::error::Apple rejected macOS notarization ($SUBMISSION_ID). See the issue report below."
+  if xcrun notarytool log "$SUBMISSION_ID" --key "$ASC_KEY_PATH" \
+      --key-id "$ASC_KEY_ID" --issuer "$ASC_ISSUER_ID" \
+      --output-format json > "$NOTARY_LOG"; then
+    python3 -c '
+import json, sys
+data = json.load(open(sys.argv[1]))
+print("Apple notarization status:", data.get("status", "unknown"))
+for issue in data.get("issues", []):
+    print(" - {severity}: {message} ({path})".format(
+        severity=issue.get("severity", "error"),
+        message=issue.get("message", "Notarization issue"),
+        path=issue.get("path", "unspecified")))
+' "$NOTARY_LOG"
+  else
+    echo "::warning::Could not retrieve Apple notarization log for $SUBMISSION_ID"
+  fi
+  exit 1
+fi
 xcrun stapler staple "$DMG"
 xcrun stapler validate "$DMG"
 spctl --assess --type open --context context:primary-signature --verbose "$DMG"

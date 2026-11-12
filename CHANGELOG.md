@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[macOS / Notarization diagnostics]** Fail closed on Apple notarization rejection, print Apple's issue descriptions, and retain diagnostics as a GitHub Actions artifact instead of attempting to staple a nonexistent ticket.
+
 - **[macOS / GitHub distribution]** Align the notarized macOS packaging workflow with the repository's existing APPLE_DEVELOPER_ID signing secrets; no duplicate certificate secrets required.
 
 - **[iOS / Welcome UI tests]** Wait for the Pro plans action to become interactable before tapping and assert its sheet content; avoid racing welcome-screen layout on CI simulators.

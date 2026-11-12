@@ -22,7 +22,7 @@ These secret names match the repository's existing Apple Developer ID and App St
 1. Push code to `main`. `Complete GitHub Release` detects macOS changes and invokes `Native macOS Distributable`; the latter can also run manually from Actions.
 2. Xcode 27 builds the `LaterBoxMac` scheme in Release mode. On PRs, it compiles without publishing a distributable.
 3. Production builds import the Developer ID certificate into a temporary keychain, build a universal binary with hardened runtime and timestamp, validate the signed app and prepare an installer with a drag-to-Applications shortcut.
-4. Apple's notary service must accept the DMG; the ticket is stapled and verified. Only then is it uploaded as a GitHub Actions artifact and included in the managed Release.
+4. Apple's notary service must accept the DMG; the ticket is stapled and verified **only after an explicit `Accepted` result**. For `Rejected` or other statuses, the workflow fetches Apple's notarization issues, prints them in the job log, and uploads the diagnostic JSON as a temporary artifact. Rejected installers are never published.
 5. The web downloads page checks the latest published GitHub Release for `LaterBox-macOS.dmg` and enables its Mac download link only when the signed asset exists.
 
 **Important:** GitHub Actions artifacts are for CI validation and have limited retention. The GitHub Release asset is the public download. Production download activation requires a successful macOS build and complete managed release.

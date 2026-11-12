@@ -52,6 +52,16 @@ jobs:
         if: github.event_name != 'pull_request'
         shell: bash
         run: bash scripts/package_macos.sh
+      - name: Upload Apple notarization diagnostics on failure
+        if: failure() && github.event_name != 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: laterbox-macos-notarization-diagnostics-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/macos-release/notarization-result.json
+            ${{ runner.temp }}/macos-release/notarization-log.json
+          if-no-files-found: ignore
+          retention-days: 14
       - name: Upload notarized installer and checksum
         if: github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4
