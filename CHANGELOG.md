@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[macOS / File picker sandbox permission]** Enable the user-selected file read-only sandbox entitlement for Laterbox's native Open Panel, preventing the runtime AppKit breakpoint when attaching files in Quick Save.
+
 - **[macOS / Quick Save usability]** Rework capture steps into their own aligned progress navigation, add named single-task and titled multi-task checklist capture with removable entries and draft export, and replace the freezing nested file importer with a nonblocking native NSOpenPanel.
 
 - **[macOS / Native Quick Save modal]** Replace the placeholder sheet with a polished, three-step Capture → Schedule → Details flow for links, notes, tasks, and file drafts. Support native input, scheduled presets, tags, file picker and clipboard draft export; clearly disclose that cloud saving awaits macOS sync integration.
