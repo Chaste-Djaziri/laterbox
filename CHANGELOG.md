@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[macOS / Inbox cloud sync footer]** Add a Web-inspired sync bar beneath the email table with truthful push/pull state, last successful synchronization, error visibility and a working Check Updates button.
+
 - **[macOS / Web-parity Inbox rows]** Restyle native Inbox as compact text-first email rows without a leading type icon, load OG previews/descriptions from synced item metadata, fade artwork in on the right, and float clearly bordered hover actions over image backgrounds.
 
 - **[macOS / Inbox row actions]** Use square-edged full-width email row hover/selection states, reveal contextual actions on the right, and connect star/archive/delete actions to Supabase with native confirmation and sync refresh.
