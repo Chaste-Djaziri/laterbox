@@ -17,11 +17,25 @@ struct MacCloudItem: Decodable, Identifiable {
     let created_at: String?
 }
 
+struct MacChecklistEntry: Codable, Identifiable, Hashable {
+    var id: String
+    var title: String
+    var done: Bool
+}
+
 private struct MacInboxMetadata: Decodable {
     let item_id: String
     let description: String?
     let preview_image_url: String?
     let content_type: String?
+    let structured_data: String?
+}
+
+struct MacCloudAttachment: Decodable, Identifiable {
+    let id: String
+    let original_file_name: String
+    let mime_type: String
+    let byte_size: Int64
 }
 
 struct MacCloudDraft {
@@ -198,6 +212,39 @@ final class MacCloudSyncStore: ObservableObject {
         await refresh()
     }
 
+    func keep(_ id: String) async throws {
+        _ = try await request("items?id=eq.\(id)", method: "PATCH",
+                              body: ["status": "saved", "updated_at": ISO8601DateFormatter().string(from: Date())])
+        lastPushed = Date()
+        await refresh()
+    }
+
+    func reschedule(_ id: String, date: Date?) async throws {
+        let timestamp = ISO8601DateFormatter().string(from: Date())
+        _ = try await request("items?id=eq.\(id)", method: "PATCH",
+                              body: ["return_at": date.map { ISO8601DateFormatter().string(from: $0) } as Any? ?? NSNull(),
+                                     "status": "deferred", "updated_at": timestamp])
+        lastPushed = Date()
+        await refresh()
+    }
+
+    func updateChecklist(_ id: String, entries: [MacChecklistEntry]) async throws {
+        let data = try await request("item_metadata?select=structured_data&item_id=eq.\(id)&limit=1")
+        let rows = (try? JSONSerialization.jsonObject(with: data)) as? [[String: Any]] ?? []
+        let old = rows.first?["structured_data"] as? String
+        var structured = old?.data(using: .utf8)
+            .flatMap { try? JSONSerialization.jsonObject(with: $0) as? [String: Any] } ?? [:]
+        structured["taskChecklist"] = entries.map {
+            ["id": $0.id, "title": $0.title, "done": $0.done] as [String: Any]
+        }
+        let encoded = String(data: try JSONSerialization.data(withJSONObject: structured), encoding: .utf8) ?? "{}"
+        _ = try await request("item_metadata?item_id=eq.\(id)", method: "PATCH",
+                              body: ["structured_data": encoded,
+                                     "updated_at": ISO8601DateFormatter().string(from: Date())])
+        lastPushed = Date()
+        await refresh()
+    }
+
     private func isoDate(_ value: String?) -> Date? {
         guard let value else { return nil }
         let formatter = ISO8601DateFormatter()
@@ -217,9 +264,20 @@ final class MacCloudSyncStore: ObservableObject {
             let data = try await request("items?select=id,title,url,text_content,type,status,favorite,return_at,created_at&user_id=eq.\(credentials.userID)&deleted_at=is.null&order=created_at.desc&limit=500")
             let rows = try JSONDecoder().decode([MacCloudItem].self, from: data)
             var metadataByItem: [String: MacInboxMetadata] = [:]
-            if let data = try? await request("item_metadata?select=item_id,description,preview_image_url,content_type&user_id=eq.\(credentials.userID)&limit=500"),
+            if let data = try? await request("item_metadata?select=item_id,description,preview_image_url,content_type,structured_data&user_id=eq.\(credentials.userID)&limit=500"),
                let metadata = try? JSONDecoder().decode([MacInboxMetadata].self, from: data) {
                 metadataByItem = Dictionary(metadata.map { ($0.item_id, $0) }, uniquingKeysWith: { first, _ in first })
+            }
+            // Collections provide the same context shown in Web item details.
+            var collectionsByItem: [String: [String]] = [:]
+            if let data = try? await request("collection_items?select=item_id,collections(name)&user_id=eq.\(credentials.userID)&limit=1500"),
+               let json = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] {
+                for row in json {
+                    guard let id = row["item_id"] as? String,
+                          let collection = row["collections"] as? [String: Any],
+                          let name = collection["name"] as? String else { continue }
+                    collectionsByItem[id, default: []].append(name)
+                }
             }
             let now = Date()
             items = rows.compactMap { row in
@@ -257,12 +315,21 @@ final class MacCloudSyncStore: ObservableObject {
                     return URL(string: "https://i.ytimg.com/vi/\(id)/hqdefault.jpg")
                 }
                 let image = metadata?.preview_image_url.flatMap(URL.init(string:)) ?? videoImage
+                let structured = metadata?.structured_data.flatMap { $0.data(using: .utf8) }
+                    .flatMap { try? JSONSerialization.jsonObject(with: $0) as? [String: Any] }
+                let tags = structured?["tags"] as? [String] ?? []
+                let entries: [MacChecklistEntry] = (structured?["taskChecklist"] as? [[String: Any]] ?? []).compactMap { row in
+                    guard let title = row["title"] as? String else { return nil }
+                    return MacChecklistEntry(id: row["id"] as? String ?? UUID().uuidString, title: title, done: row["done"] as? Bool ?? false)
+                }
                 return MacInboxEntry(
                     id: row.id, source: url?.host?.replacingOccurrences(of: "www.", with: "") ?? (type == "task" ? "Task" : type == "file" ? "File" : "Note"),
                     title: title, snippet: metadata?.description?.isEmpty == false ? metadata!.description! : (row.text_content ?? row.url ?? ""), url: url,
                     previewImageURL: image,
                     date: isoDate(row.created_at) ?? now, category: category,
-                    isStarred: row.favorite ?? false, isUnread: status == "inbox"
+                    isStarred: row.favorite ?? false, isUnread: status == "inbox",
+                    itemType: row.type ?? "link", returnDate: schedule, tags: tags,
+                    checklist: entries, collectionNames: collectionsByItem[row.id] ?? []
                 )
             }
             isConnected = true
@@ -272,6 +339,20 @@ final class MacCloudSyncStore: ObservableObject {
             // Keep last known rows during temporary outages.
             lastError = error.localizedDescription
         }
+    }
+
+    func attachments(for itemID: String) async throws -> [MacCloudAttachment] {
+        let data = try await request("attachments?select=id,original_file_name,mime_type,byte_size&item_id=eq.\(itemID)&order=created_at.asc")
+        return try JSONDecoder().decode([MacCloudAttachment].self, from: data)
+    }
+
+    func attachmentDownloadURL(_ id: String) async throws -> URL {
+        let result = try await attachmentAction(["action": "prepare-download", "attachmentId": id])
+        guard let raw = result["downloadUrl"] as? String,
+              let url = URL(string: raw), url.scheme?.lowercased() == "https" else {
+            throw MacCloudError.server(502, "Unable to open this attachment.")
+        }
+        return url
     }
 
     private func attachmentAction(_ body: [String: Any]) async throws -> [String: Any] {

@@ -58,6 +58,7 @@ struct MacDashboardView: View {
     let accountEmail: String
     @State private var selection: DashboardRoute = .inbox
     @State private var showingQuickSave = false
+    @State private var openedItemID: String?
     @StateObject private var cloud = MacCloudSyncStore()
     @State private var searchQuery = ""
     @State private var searchFocused = false
@@ -185,7 +186,7 @@ struct MacDashboardView: View {
 
     private func navigationItem(_ route: DashboardRoute) -> some View {
         let active = selection == route
-        return Button { selection = route } label: {
+        return Button { selection = route; openedItemID = nil } label: {
             Image(systemName: route.icon)
                 .font(.system(size: 23, weight: active ? .semibold : .regular))
                 .foregroundStyle(active ? DashboardStyle.ink : (scheme == .dark ? Color.white.opacity(0.64) : DashboardStyle.muted))
@@ -387,16 +388,40 @@ struct MacDashboardView: View {
 
     @ViewBuilder
     private var page: some View {
-        if selection == .inbox {
+        if selection == .inbox, let openedItemID {
+            if let item = cloud.items.first(where: { $0.id == openedItemID }) {
+                MacItemDetailView(
+                    item: item,
+                    onBack: { self.openedItemID = nil },
+                    onStar: { id, starred in try await cloud.setStarred(id, starred: starred) },
+                    onKeep: { id in try await cloud.keep(id) },
+                    onArchive: { id in try await cloud.archive(id) },
+                    onDelete: { id in try await cloud.delete(id) },
+                    onReschedule: { id, date in try await cloud.reschedule(id, date: date) },
+                    onChecklist: { id, entries in try await cloud.updateChecklist(id, entries: entries) },
+                    onAttachments: { id in try await cloud.attachments(for: id) },
+                    onAttachmentURL: { id in try await cloud.attachmentDownloadURL(id) }
+                )
+                .padding(.horizontal, 20)
+                .padding(.top, 12)
+                .padding(.bottom, 18)
+            } else {
+                VStack(spacing: 12) {
+                    Text("This item is no longer in your Inbox.")
+                    Button("Back to Inbox") { self.openedItemID = nil }
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+        } else if selection == .inbox {
             VStack(spacing: 12) {
                 MacInboxTableView(items: cloud.items, isConnected: cloud.isConnected,
                     isLoading: cloud.loading, syncError: cloud.lastError,
                     onRefresh: { await cloud.refresh() },
                     onStar: { id, value in try await cloud.setStarred(id, starred: value) },
                     onArchive: { id in try await cloud.archive(id) },
-                    onDelete: { id in try await cloud.delete(id) }) {
-                    showingQuickSave = true
-                }
+                    onDelete: { id in try await cloud.delete(id) },
+                onQuickSave: { showingQuickSave = true },
+                onOpenItem: { id in openedItemID = id })
                 MacCloudSyncStatusView(
                     isConnected: cloud.isConnected, isLoading: cloud.loading,
                     isSaving: cloud.saving, lastError: cloud.lastError,

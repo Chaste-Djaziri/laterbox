@@ -18,6 +18,11 @@ struct MacInboxEntry: Identifiable {
     let category: Category
     let isStarred: Bool
     let isUnread: Bool
+    var itemType: String = "link"
+    var returnDate: Date? = nil
+    var tags: [String] = []
+    var checklist: [MacChecklistEntry] = []
+    var collectionNames: [String] = []
 }
 
 struct MacInboxTableView: View {
@@ -30,6 +35,7 @@ struct MacInboxTableView: View {
     let onArchive: (String) async throws -> Void
     let onDelete: (String) async throws -> Void
     let onQuickSave: () -> Void
+    let onOpenItem: (String) -> Void
 
     private enum CategoryTab: String, CaseIterable, Identifiable {
         case primary = "Primary"
@@ -560,6 +566,9 @@ struct MacInboxTableView: View {
         .frame(height: 55)
         .frame(maxWidth: .infinity)
         .contentShape(Rectangle())
+        .onTapGesture { onOpenItem(item.id) }
+        .accessibilityAddTraits(.isButton)
+        .accessibilityLabel("View details for \(item.title)")
         .clipped()
         .onHover { hovering in
             if hovering { hoveredItemID = item.id }
