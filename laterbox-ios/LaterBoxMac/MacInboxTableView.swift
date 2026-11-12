@@ -263,7 +263,7 @@ struct MacInboxTableView: View {
 
     private var emptyDescription: String {
         if !isConnected {
-            return "Your Mac inbox is getting ready. Your saved links, notes and ideas are still available on Laterbox Web."
+            return "Unable to connect to your saved items right now. Retry sync, or create a new capture here."
         }
         switch activeTab {
         case .primary: return "A little breathing room! When you save something for later, it will show up here."
@@ -332,17 +332,16 @@ struct MacInboxTableView: View {
                 }
                 .buttonStyle(.plain)
                 .disabled(isLoading)
-                Link(destination: URL(string: "https://laterbox.dev")!) {
-                    Label("Open Laterbox Web", systemImage: "arrow.up.right")
+                Button(action: onQuickSave) {
+                    Label("Quick Save", systemImage: "plus")
                         .font(.system(size: 13, weight: .semibold))
                         .foregroundStyle(dark ? Color.black : Color(red: 23 / 255, green: 23 / 255, blue: 17 / 255))
                         .padding(.horizontal, 19)
                         .frame(height: 40)
-                        .background(accent, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                        .background(accent, in: RoundedRectangle(cornerRadius: 12))
                 }
                 .buttonStyle(.plain)
-                .help("Open Laterbox in your browser")
-                .padding(.top, 22)
+                .padding(.top, 16)
 
                 Text("Refresh to check for recently saved items.")
                     .font(.system(size: 11))
@@ -358,7 +357,7 @@ struct MacInboxTableView: View {
                         .background(accent, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
                 }
                 .buttonStyle(.plain)
-                .help("Quick Save preview; saving is not connected yet")
+                .help("Save a new item to Laterbox")
                 .padding(.top, 22)
             }
         }

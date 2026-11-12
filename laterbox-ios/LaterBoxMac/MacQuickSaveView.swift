@@ -71,8 +71,11 @@ struct MacQuickSaveView: View {
     @State private var fetchingPreview = false
     @State private var previewError: String?
     @State private var enrichmentTask: Task<Void, Never>?
+    @State private var previewGeneration = UUID()
     @State private var suggestedReason = ""
     @State private var didEditTitle = false
+    @State private var linkDescription = ""
+    @State private var didEditDescription = false
     @State private var didEditTags = false
     @State private var didEditSchedule = false
     @State private var cloudCollections: [MacCloudCollection] = []
@@ -163,12 +166,12 @@ struct MacQuickSaveView: View {
             Task { await fetchCollections() }
         }
         .onChange(of: content) { _, _ in
-            suggestDetails()
             if kind == .link { schedulePreview() }
+            suggestDetails()
         }
         .onChange(of: kind) { _, _ in
+            schedulePreview()
             suggestDetails()
-            if kind == .link { schedulePreview() }
         }
         .onChange(of: taskTitle) { _, _ in suggestDetails() }
         .onDisappear { enrichmentTask?.cancel() }
@@ -519,6 +522,23 @@ struct MacQuickSaveView: View {
                     .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(line))
             }
 
+            if kind == .link {
+                VStack(alignment: .leading, spacing: 7) {
+                    Text("Description")
+                        .font(.system(size: 12, weight: .medium))
+                    TextEditor(text: Binding(get: { linkDescription }, set: {
+                        linkDescription = $0
+                        didEditDescription = true
+                    }))
+                        .font(.system(size: 12))
+                        .scrollContentBackground(.hidden)
+                        .padding(9)
+                        .frame(height: 84)
+                        .background(panel, in: RoundedRectangle(cornerRadius: 12))
+                        .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(line))
+                }
+            }
+
             sectionLabel("TAGS")
             if !tags.isEmpty {
                 Text("Suggested from your capture · edit freely")
@@ -690,6 +710,7 @@ struct MacQuickSaveView: View {
         isSavingToCloud = true
         cloudSaveError = nil
         defer { isSavingToCloud = false }
+        if kind == .link { await enrichmentTask?.value }
         let checklist = kind == .task && taskMode == .checklist
             ? taskEntries.map(\.title).map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty }
             : []
@@ -703,7 +724,7 @@ struct MacQuickSaveView: View {
                                   checklist: checklist,
                                   collectionIDs: Array(selectedCollectionIDs),
                                   newCollections: collectionNames,
-                                  preview: linkPreview, files: attachments)
+                                  preview: linkPreview, linkDescription: linkDescription, files: attachments)
         do {
             try await onSave(draft)
             savedToCloud = true
@@ -727,6 +748,7 @@ struct MacQuickSaveView: View {
             kind == .task && !title.isEmpty ? "Description: \(title)" : nil,
             kind == .task || content.isEmpty ? nil : "Content: \(content)",
             attachments.isEmpty ? nil : "Files: \(attachments.map(\.lastPathComponent).joined(separator: ", "))",
+            kind == .link && !linkDescription.isEmpty ? "Description: \(linkDescription)" : nil,
             "Schedule: \(schedule)",
             selectedCollections.isEmpty ? nil : "Collections: \(selectedCollections.joined(separator: ", "))",
             tags.isEmpty ? nil : "Tags: \(tags.map { "#" + $0 }.joined(separator: " "))"
@@ -827,15 +849,16 @@ struct MacQuickSaveView: View {
     private func suggestDetails() {
         let value = kind == .task ? taskTitle : (linkPreview?.title ?? "") + " " +
             (linkPreview?.description ?? "") + " " + (kind == .link ? "" : content)
-        let source = kind == .link && linkPreview == nil ? (URL(string: content)?.host ?? "") : value
-        let suggestion = MacCaptureSuggestions.returnSuggestion(for: source, kind: kind.rawValue)
+        let source = kind == .link && linkPreview == nil ? "" : value
+        let suggestion = MacCaptureSuggestions.returnSuggestion(for: source, kind: kind.rawValue, contentType: linkPreview?.contentType)
         if !didEditSchedule, let matching = ReturnPreset.allCases.first(where: { $0.rawValue == suggestion.preset }) {
             preset = matching
         }
         suggestedReason = suggestion.reason
         if !didEditTags {
-            tags = MacCaptureSuggestions.tags(for: value, kind: kind.rawValue)
+            tags = MacCaptureSuggestions.tags(for: value, kind: kind.rawValue, preview: linkPreview)
         }
+        if !didEditDescription && kind == .link { linkDescription = linkPreview?.description ?? "" }
         if !didEditTitle {
             if kind == .link {
                 title = linkPreview?.title ?? URL(string: content)?.host ?? ""
@@ -849,24 +872,28 @@ struct MacQuickSaveView: View {
 
     private func schedulePreview() {
         enrichmentTask?.cancel()
+        let generation = UUID()
+        previewGeneration = generation
         linkPreview = nil
         previewError = nil
         fetchingPreview = false
-        guard kind == .link, let url = URL(string: content.trimmingCharacters(in: .whitespacesAndNewlines)),
-              url.scheme?.lowercased() == "https", url.host != nil else { return }
+        guard kind == .link,
+              let url = MacCaptureSuggestions.normalizedURL(content) else { return }
         enrichmentTask = Task {
-            try? await Task.sleep(for: .milliseconds(500))
-            guard !Task.isCancelled else { return }
+            try? await Task.sleep(for: .milliseconds(450))
+            guard !Task.isCancelled, previewGeneration == generation else { return }
             fetchingPreview = true
-            defer { fetchingPreview = false }
             do {
                 let preview = try await MacCaptureSuggestions.fetchLink(url)
-                guard !Task.isCancelled, content.trimmingCharacters(in: .whitespacesAndNewlines) == url.absoluteString else { return }
+                guard !Task.isCancelled, previewGeneration == generation,
+                      MacCaptureSuggestions.normalizedURL(content) == url else { return }
                 linkPreview = preview
+                fetchingPreview = false
                 suggestDetails()
             } catch {
-                guard !Task.isCancelled else { return }
-                previewError = "Preview unavailable for this site. You can still save the link."
+                guard !Task.isCancelled, previewGeneration == generation else { return }
+                fetchingPreview = false
+                previewError = "Could not retrieve page details. Edit the title, description and tags manually."
             }
         }
     }
@@ -876,30 +903,60 @@ struct MacQuickSaveView: View {
             if fetchingPreview {
                 HStack(spacing: 8) {
                     ProgressView().controlSize(.small)
-                    Text("Looking up page details…")
+                    Text("Finding page title, description and tags…")
                 }
-                .font(.system(size: 12)).foregroundStyle(muted)
+                .font(.system(size: 12))
+                .foregroundStyle(muted)
             } else if let preview = linkPreview {
-                HStack(alignment: .top, spacing: 11) {
-                    Image(systemName: "globe")
-                        .font(.system(size: 19))
-                        .foregroundStyle(CaptureStyle.ink)
-                        .frame(width: 40, height: 40)
-                        .background(CaptureStyle.lime, in: RoundedRectangle(cornerRadius: 11))
-                    VStack(alignment: .leading, spacing: 5) {
-                        Text(preview.title).font(.system(size: 13, weight: .semibold))
-                        Text(preview.domain).font(.system(size: 11)).foregroundStyle(muted)
+                HStack(alignment: .top, spacing: 13) {
+                    Group {
+                        if let imageURL = preview.imageURL {
+                            AsyncImage(url: imageURL) { result in
+                                switch result {
+                                case .success(let image):
+                                    image.resizable().scaledToFill()
+                                case .failure, .empty:
+                                    Image(systemName: preview.contentType == "video" ? "play.rectangle" : "globe")
+                                        .resizable().scaledToFit().padding(17)
+                                @unknown default:
+                                    Image(systemName: "globe")
+                                }
+                            }
+                        } else {
+                            Image(systemName: preview.contentType == "video" ? "play.rectangle" : "globe")
+                                .resizable().scaledToFit().padding(17)
+                        }
+                    }
+                    .frame(width: 112, height: 82)
+                    .background(CaptureStyle.lime.opacity(0.18))
+                    .clipShape(RoundedRectangle(cornerRadius: 11))
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack(spacing: 6) {
+                            Text(preview.siteName).font(.system(size: 11, weight: .semibold))
+                            Text("· \(preview.contentType.capitalized)").font(.system(size: 10))
+                        }
+                        .foregroundStyle(muted)
+                        Text(preview.title)
+                            .font(.system(size: 13, weight: .semibold))
+                            .lineLimit(2)
+                        if let author = preview.author {
+                            Text(author).font(.system(size: 11)).foregroundStyle(muted).lineLimit(1)
+                        }
                         if !preview.description.isEmpty {
-                            Text(preview.description).font(.system(size: 11))
-                                .foregroundStyle(muted).lineLimit(3)
+                            Text(preview.description)
+                                .font(.system(size: 11))
+                                .foregroundStyle(muted)
+                                .lineLimit(3)
                         }
                     }
                     Spacer(minLength: 0)
                 }
-                .padding(13).background(panel, in: RoundedRectangle(cornerRadius: 13))
+                .padding(13)
+                .background(panel, in: RoundedRectangle(cornerRadius: 13))
             } else if let previewError {
                 Label(previewError, systemImage: "info.circle")
-                    .font(.system(size: 11)).foregroundStyle(muted)
+                    .font(.system(size: 11))
+                    .foregroundStyle(muted)
             }
         }
     }

@@ -29,6 +29,7 @@ struct MacCloudDraft {
     let collectionIDs: [String]
     let newCollections: [String]
     let preview: MacLinkPreview?
+    let linkDescription: String
     let files: [URL]
 }
 
@@ -342,6 +343,10 @@ final class MacCloudSyncStore: ObservableObject {
         }
         var structured: [String: Any] = ["source": "macOS", "os": "macOS"]
         if !draft.tags.isEmpty { structured["tags"] = draft.tags }
+        if let preview = draft.preview {
+            structured["siteName"] = preview.siteName
+            if let author = preview.author { structured["author"] = author }
+        }
         if !draft.checklist.isEmpty {
             structured["taskChecklist"] = draft.checklist.map {
                 ["id": UUID().uuidString, "title": $0, "done": false] as [String: Any]
@@ -353,8 +358,10 @@ final class MacCloudSyncStore: ObservableObject {
             "title": draft.title,
             "domain": url.flatMap { URL(string: $0)?.host } as Any? ?? NSNull(),
             "site_name": url.flatMap { URL(string: $0)?.host } as Any? ?? NSNull(),
-            "description": draft.preview?.description as Any? ?? NSNull(),
-            "content_type": url == nil ? (itemType == "task" ? "note" : itemType) : "link",
+            "description": draft.linkDescription.isEmpty ? (draft.preview?.description as Any? ?? NSNull()) : draft.linkDescription,
+            "content_type": url == nil ? (itemType == "task" ? "note" : itemType) : (draft.preview?.contentType ?? "link"),
+            "preview_image_url": draft.preview?.imageURL?.absoluteString as Any? ?? NSNull(),
+            "favicon_url": url.flatMap { URL(string: $0)?.host }.map { "https://www.google.com/s2/favicons?domain=\($0)&sz=128" } as Any? ?? NSNull(),
             "classification_source": "macOS",
             "structured_data": String(data: try JSONSerialization.data(withJSONObject: structured), encoding: .utf8) ?? "{}",
             "status": draft.preview == nil ? "pending" : "enriched",
