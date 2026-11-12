@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[macOS / Item Details navigation]** Make the entire Back to Inbox capsule clickable, not only its text and icon.
+
 - **[macOS / Native item details]** Open Inbox rows into a Web-inspired native details page with back navigation, item actions, return scheduling, synced metadata, visual previews, tasks and collection context.
 
 - **[macOS / Cloud Sync icon]** Keep the cloud icon black on its lime-green badge in both light and dark mode.
