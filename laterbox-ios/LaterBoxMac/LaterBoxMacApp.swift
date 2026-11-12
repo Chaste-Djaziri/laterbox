@@ -42,7 +42,7 @@ final class LaterBoxMacDelegate: NSObject, NSApplicationDelegate {
             let result = GetEventParameter(event, UInt32(kEventParamDirectObject),
                                            UInt32(typeEventHotKeyID), nil,
                                            MemoryLayout<EventHotKeyID>.size, nil, &identifier)
-            guard result == noErr, identifier.id == 1 else { return eventNotHandledErr }
+            guard result == noErr, identifier.id == 1 else { return OSStatus(eventNotHandledErr) }
             DispatchQueue.main.async {
                 (NSApp.delegate as? LaterBoxMacDelegate)?.showQuickCapture()
             }
