@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[macOS / Native item details]** Open Inbox rows into a Web-inspired native details page with back navigation, item actions, return scheduling, synced metadata, visual previews, tasks and collection context.
+
 - **[macOS / Cloud Sync icon]** Keep the cloud icon black on its lime-green badge in both light and dark mode.
 
 - **[macOS / Inbox cloud sync footer]** Add a Web-inspired sync bar beneath the email table with truthful push/pull state, last successful synchronization, error visibility and a working Check Updates button.
