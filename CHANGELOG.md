@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[macOS / Today dashboard]** Add the Web-style last-24-hours Today view with recent Inbox arrivals, scheduled returns, arrival counts, native email categories/actions, item details navigation, and cloud sync footer. Respect persisted Inbox-entry timestamps and refresh the rolling window.
+
 - **[macOS / Item Details navigation]** Make the entire Back to Inbox capsule clickable, not only its text and icon.
 
 - **[macOS / Native item details]** Open Inbox rows into a Web-inspired native details page with back navigation, item actions, return scheduling, synced metadata, visual previews, tasks and collection context.
