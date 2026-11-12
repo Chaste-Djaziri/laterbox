@@ -105,6 +105,7 @@ struct MacItemDetailView: View {
             control(item.isStarred ? "star.fill" : "star", label: item.isStarred ? "Unstar" : "Star") {
                 update { try await onStar(item.id, !item.isStarred) }
             }
+            if item.lifecycleStatus != "saved" {
             Button {
                 update {
                     try await onKeep(item.id)
@@ -119,6 +120,7 @@ struct MacItemDetailView: View {
             }
             .buttonStyle(.plain)
             .disabled(busy)
+            }
             if item.lifecycleStatus == "archived", let onRestore {
                 control("arrow.uturn.backward", label: "Restore to Inbox") {
                     update {
