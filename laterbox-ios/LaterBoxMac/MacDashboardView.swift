@@ -63,6 +63,7 @@ struct MacDashboardView: View {
     @State private var collectionsPopupOpen = false
     @State private var todayClock = Date()
     @StateObject private var cloud = MacCloudSyncStore()
+    @AppStorage("laterbox.mac.automaticRefresh") private var automaticRefresh = true
     @State private var searchQuery = ""
     @State private var searchFocused = false
     @FocusState private var searchInputFocused: Bool
@@ -95,12 +96,12 @@ struct MacDashboardView: View {
                 try? await Task.sleep(for: .seconds(60))
                 guard !Task.isCancelled else { break }
                 todayClock = Date()
-                await cloud.refresh()
+                if automaticRefresh { await cloud.refresh() }
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
             todayClock = Date()
-            Task { await cloud.refresh() }
+            if automaticRefresh { Task { await cloud.refresh() } }
         }
         .sheet(isPresented: $showingQuickSave) {
             MacQuickSaveView(onSave: { draft in
@@ -536,6 +537,13 @@ struct MacDashboardView: View {
             MacEarnView(cloud: cloud)
         } else if selection == .help {
             MacHelpView(cloud: cloud, accountEmail: accountEmail)
+        } else if selection == .settings {
+            MacSettingsView(
+                cloud: cloud,
+                accountEmail: accountEmail,
+                onSignOut: signOut,
+                onHelp: { selection = .help }
+            )
         } else if selection == .today {
             MacTodayView(cloud: cloud, now: todayClock,
                 onQuickSave: { showingQuickSave = true },

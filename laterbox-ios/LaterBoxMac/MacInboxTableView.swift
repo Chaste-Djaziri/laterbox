@@ -78,6 +78,7 @@ struct MacInboxTableView: View {
     @State private var pendingPermanentDelete: MacInboxEntry?
     @State private var actionError: String?
     @Environment(\.colorScheme) private var scheme
+    @AppStorage("laterbox.mac.showLinkPreviews") private var showLinkPreviews = true
 
     private var dark: Bool { scheme == .dark }
     private var surface: Color {
@@ -519,7 +520,7 @@ struct MacInboxTableView: View {
                         ? (dark ? Color.white.opacity(0.075) : Color(red: 250 / 255, green: 248 / 255, blue: 245 / 255))
                         : surface)
 
-            if let image = item.previewImageURL {
+            if showLinkPreviews, let image = item.previewImageURL {
                 rowArtwork(image, source: item.url, hovered: isHovered)
             }
 

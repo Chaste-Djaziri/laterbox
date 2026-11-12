@@ -63,9 +63,20 @@ private struct MacAuthCanvas: View {
 
 @main
 struct LaterBoxMacApp: App {
+    @AppStorage("laterbox.mac.appearance") private var appearance = "system"
+
+    private var selectedColorScheme: ColorScheme? {
+        switch appearance {
+        case "light": return .light
+        case "dark": return .dark
+        default: return nil
+        }
+    }
+
     var body: some Scene {
         WindowGroup {
             MacLoginView()
+                .preferredColorScheme(selectedColorScheme)
                 .frame(minWidth: 430, minHeight: 480)
         }
         .windowStyle(.hiddenTitleBar)
