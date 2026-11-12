@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[macOS / Reliable native URL enrichment]** Resolve YouTube and other media via oEmbed with on-device/web enrichment fallbacks, populate editable title/description/tags and contextual schedule, display image previews, persist metadata with cloud captures, and remove Web redirects from Mac inbox guidance.
+
 - **[macOS / Cloud save and sync]** Connect Quick Save to authenticated Supabase item, metadata and collection writes, upload selected files to the existing R2 attachment service, load real saved items into the Inbox, and refresh automatically and after saves with visible error states.
 
 - **[macOS / Smart Quick Save]** Enrich pasted public URLs with page titles and descriptions, suggest contextual titles/tags and return schedules from capture text, and add signed-in collection selection and new collection draft input to Quick Save Details.
