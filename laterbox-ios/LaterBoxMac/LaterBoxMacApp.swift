@@ -65,10 +65,27 @@ final class LaterBoxMacDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    // Use the display under the pointer, which is generally where the user
+    // is working (including a different monitor's full-screen Space).
+    private func positionCapture(_ panel: NSPanel) {
+        let pointer = NSEvent.mouseLocation
+        let screen = NSScreen.screens.first { $0.frame.contains(pointer) }
+            ?? NSScreen.main ?? NSScreen.screens.first
+        guard let screen else { return }
+        let area = screen.visibleFrame
+        panel.setFrameOrigin(NSPoint(
+            x: area.midX - panel.frame.width / 2,
+            y: area.midY - panel.frame.height / 2
+        ))
+    }
+
     func showQuickCapture() {
         if let capturePanel, capturePanel.isVisible {
-            NSApp.activate(ignoringOtherApps: true)
-            capturePanel.makeKeyAndOrderFront(nil)
+            positionCapture(capturePanel)
+            // Do not activate the regular LaterBox app: macOS may otherwise
+            // switch away from the full-screen app to LaterBox's desktop.
+            capturePanel.orderFrontRegardless()
+            capturePanel.makeKey()
             return
         }
         // A new view on each invocation clears the previous completed draft.
@@ -78,22 +95,27 @@ final class LaterBoxMacDelegate: NSObject, NSApplicationDelegate {
         }, onClose: { [weak self] in
             self?.capturePanel?.close()
         })
+        // Non-activating panels can take keyboard focus without foregrounding
+        // LaterBox's main window or changing the active full-screen Space.
         let panel = NSPanel(contentRect: NSRect(x: 0, y: 0, width: 570, height: 595),
-                            styleMask: [.titled, .closable, .fullSizeContentView],
+                            styleMask: [.titled, .closable, .nonactivatingPanel, .fullSizeContentView],
                             backing: .buffered, defer: false)
         panel.title = "LaterBox Quick Capture"
         panel.titleVisibility = .hidden
         panel.titlebarAppearsTransparent = true
         panel.isFloatingPanel = true
-        panel.level = .floating
-        panel.collectionBehavior = [.moveToActiveSpace, .fullScreenAuxiliary]
+        panel.hidesOnDeactivate = false
+        panel.level = .statusBar
+        // .moveToActiveSpace cannot reliably enter another app's full-screen
+        // Space. All-Spaces + fullscreen auxiliary explicitly permits overlays.
+        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .ignoresCycle]
         panel.isReleasedWhenClosed = false
         panel.contentView = NSHostingView(rootView: capture
             .preferredColorScheme(MacAppearanceSettings.shared.colorScheme))
-        panel.center()
+        positionCapture(panel)
         capturePanel = panel
-        NSApp.activate(ignoringOtherApps: true)
-        panel.makeKeyAndOrderFront(nil)
+        panel.orderFrontRegardless()
+        panel.makeKey()
     }
 }
 

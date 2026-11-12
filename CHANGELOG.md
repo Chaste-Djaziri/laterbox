@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[macOS / Full-screen Quick Capture]** Make the global floating capture panel non-activating, visible across Spaces and full-screen applications, and position it on the active display without switching to the LaterBox desktop.
+
 - **[macOS / Global Quick Capture hotkey repair]** Route Command–Option–N directly to the active app capture controller instead of relying on an NSApp delegate cast; remove the overlapping SwiftUI menu shortcut registration, and provide a menu-bar Quick Capture fallback.
 
 - **[Release / macOS distribution]** Add Developer ID-signed, Apple-notarized macOS DMG packaging and checksum verification to automated GitHub Releases; move Android to paused and show macOS on the web downloads page.
