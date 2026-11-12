@@ -77,7 +77,7 @@
 		9CD0ABE6B11066E3BE4E19C1 /* LaterBoxShare.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = LaterBoxShare.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		9F81B1954BAF7A76CDFE5F0E /* ShareViewController.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
 		A11110000000000000000003 /* ChatCaptureComposer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ChatCaptureComposer.swift; sourceTree = "<group>"; };
-		ABCD00000000000000000001 /* LaterBoxMac.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LaterBoxMac.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		ABCD00000000000000000001 /* Laterbox.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Laterbox.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		DAC0F63DC56B313D3701E636 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
 		LBW000100000000000000001 /* LaterBoxWidgets.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LaterBoxWidgets.swift; sourceTree = "<group>"; };
 		LBW000200000000000000001 /* LaterBoxWidgets.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = LaterBoxWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -204,7 +204,7 @@
 			isa = PBXGroup;
 			children = (
 				5194A4F83072E2E100DE79B5 /* laterbox-ios.app */,
-				ABCD00000000000000000001 /* LaterBoxMac.app */,
+				ABCD00000000000000000001 /* Laterbox.app */,
 				5194A5073072E2E100DE79B5 /* laterbox-iosTests.xctest */,
 				5194A5113072E2E100DE79B5 /* laterbox-iosUITests.xctest */,
 				9CD0ABE6B11066E3BE4E19C1 /* LaterBoxShare.appex */,
@@ -335,7 +335,7 @@
 			);
 			name = LaterBoxMac;
 			productName = LaterBoxMac;
-			productReference = ABCD00000000000000000001 /* LaterBoxMac.app */;
+			productReference = ABCD00000000000000000001 /* Laterbox.app */;
 			productType = "com.apple.product-type.application";
 		};
 		F9296E9CF9CDFD9079666B59 /* LaterBoxShare */ = {
