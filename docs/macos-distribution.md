@@ -8,14 +8,14 @@ The release workflow builds a **universal (Apple Silicon + Intel)** app for macO
 
 Set these repository secrets in **Settings → Secrets and variables → Actions**:
 
-- `MACOS_DEVELOPER_ID_CERTIFICATE_BASE64`: Base64 of the exported Developer ID Application **.p12** certificate (including its private key). Use the Developer ID certificate, **not** the iOS Apple Distribution certificate.
-- `MACOS_DEVELOPER_ID_CERTIFICATE_PASSWORD`: Password used to export that .p12.
+- `APPLE_DEVELOPER_ID_CERTIFICATE_BASE64`: Base64 of the exported Developer ID Application **.p12** certificate (including its private key). Use the Developer ID certificate, **not** the iOS Apple Distribution certificate.
+- `APPLE_DEVELOPER_ID_CERTIFICATE_PASSWORD`: Password used to export that .p12.
 - `APPLE_TEAM_ID`: Apple Developer Team ID.
 - `APP_STORE_CONNECT_API_KEY_BASE64`: Base64 of the App Store Connect API private `.p8` key.
 - `APP_STORE_CONNECT_KEY_ID`: API key identifier.
 - `APP_STORE_CONNECT_ISSUER_ID`: API issuer UUID.
 
-The repository's existing iOS App Store Connect secrets may be reused if they have the correct permissions. Credentials stay in GitHub Secrets and are never embedded in the installer or source tree. The pipeline fails closed if any required secret is missing or signing/notarization fails.
+These secret names match the repository's existing Apple Developer ID and App Store Connect entries. The runner imports the Developer ID private key only for the build; a local Developer ID identity is not required when GitHub Secrets contain the correct .p12. The stored certificate must be valid and include its private key. The existing iOS App Store Connect secrets may be reused if they have the correct permissions. Credentials stay in GitHub Secrets and are never embedded in the installer or source tree. The pipeline fails closed if any required secret is missing or signing/notarization fails.
 
 ## Release path
 

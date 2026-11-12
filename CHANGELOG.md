@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[macOS / GitHub distribution]** Align the notarized macOS packaging workflow with the repository's existing APPLE_DEVELOPER_ID signing secrets; no duplicate certificate secrets required.
+
 - **[iOS / Welcome UI tests]** Wait for the Pro plans action to become interactable before tapping and assert its sheet content; avoid racing welcome-screen layout on CI simulators.
 
 - **[Web / Android distribution pause]** Fix the APK/AAB download route guard so paused Android binaries reliably return HTTP 410 and CI tests pass.
