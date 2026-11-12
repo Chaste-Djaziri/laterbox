@@ -154,6 +154,15 @@ struct MacQuickSaveView: View {
                 .padding(28)
                 .frame(maxWidth: .infinity, alignment: .topLeading)
             }
+            if let cloudSaveError {
+                Label(cloudSaveError, systemImage: "exclamationmark.triangle")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(.red)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 28)
+                    .padding(.vertical, 8)
+                    .accessibilityIdentifier("mac.quicksave.saveError")
+            }
             bottomBar
         }
         .frame(width: 570, height: 595)
@@ -652,6 +661,27 @@ struct MacQuickSaveView: View {
                 .disabled(isSavingToCloud || savedToCloud)
                 .help("Save and sync this item")
             } else {
+                if step == 0 {
+                    Button {
+                        Task { await saveToCloud(direct: true) }
+                    } label: {
+                        HStack(spacing: 8) {
+                            if isSavingToCloud { ProgressView().controlSize(.small) }
+                            Text(isSavingToCloud ? "Saving…" : "Save now")
+                            Image(systemName: "tray.and.arrow.down")
+                        }
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(.primary)
+                        .padding(.horizontal, 17)
+                        .frame(height: 40)
+                        .background(panel, in: RoundedRectangle(cornerRadius: 11))
+                        .overlay(RoundedRectangle(cornerRadius: 11).strokeBorder(line))
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(!validCapture || isSavingToCloud || savedToCloud)
+                    .help("Save directly to Inbox without scheduling or extra details")
+                    .accessibilityIdentifier("mac.quicksave.saveNow")
+                }
                 Button {
                     if step == 0 && !validCapture {
                         errorMessage = kind == .link ? "Enter a valid http or https URL." :
@@ -673,6 +703,8 @@ struct MacQuickSaveView: View {
                 }
                 .buttonStyle(.plain)
                 .keyboardShortcut(.defaultAction)
+                .disabled(isSavingToCloud || savedToCloud)
+                .accessibilityIdentifier("mac.quicksave.continue")
             }
         }
         .padding(.horizontal, 28)
@@ -701,7 +733,7 @@ struct MacQuickSaveView: View {
         }
     }
 
-    private func saveToCloud() async {
+    private func saveToCloud(direct: Bool = false) async {
         guard !isSavingToCloud, !savedToCloud else { return }
         guard validCapture else {
             cloudSaveError = "Complete the required fields before saving."
@@ -719,11 +751,11 @@ struct MacQuickSaveView: View {
         let savedContent = kind == .task ? (title.isEmpty ? taskTitle : title) : content
         let draft = MacCloudDraft(id: draftID, kind: kind.rawValue,
                                   title: savedTitle, content: savedContent,
-                                  tags: tags, returnDate: scheduledReturn,
-                                  isSomeday: preset == .someday,
+                                  tags: direct ? [] : tags, returnDate: direct ? Date() : scheduledReturn,
+                                  isSomeday: direct ? false : preset == .someday,
                                   checklist: checklist,
-                                  collectionIDs: Array(selectedCollectionIDs),
-                                  newCollections: collectionNames,
+                                  collectionIDs: direct ? [] : Array(selectedCollectionIDs),
+                                  newCollections: direct ? [] : collectionNames,
                                   preview: linkPreview, linkDescription: linkDescription, files: attachments)
         do {
             try await onSave(draft)
