@@ -77,6 +77,18 @@ struct LaterBoxMacApp: App {
         WindowGroup {
             MacLoginView()
                 .preferredColorScheme(selectedColorScheme)
+                .onChange(of: appearance, initial: true) { _, next in
+                    // Keep AppKit window chrome, menus and SwiftUI controls
+                    // aligned with the in-app theme picker immediately.
+                    switch next {
+                    case "light":
+                        NSApp.appearance = NSAppearance(named: .aqua)
+                    case "dark":
+                        NSApp.appearance = NSAppearance(named: .darkAqua)
+                    default:
+                        NSApp.appearance = nil
+                    }
+                }
                 .frame(minWidth: 430, minHeight: 480)
         }
         .windowStyle(.hiddenTitleBar)

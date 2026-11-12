@@ -26,207 +26,418 @@ struct MacSettingsView: View {
     private var secondary: Color { dark ? Color.white.opacity(0.62) : Color.black.opacity(0.55) }
     private var stroke: Color { dark ? Color.white.opacity(0.10) : Color.black.opacity(0.09) }
 
+    private enum Section: String, CaseIterable, Identifiable {
+        case account = "Account & security"
+        case appearance = "Appearance"
+        case privacy = "Privacy"
+        case sync = "Cloud sync"
+        case data = "Data management"
+        case shortcuts = "Shortcuts"
+        case about = "About & updates"
+        var id: String { rawValue }
+        var symbol: String {
+            switch self {
+            case .account: "person.crop.circle"
+            case .appearance: "paintpalette"
+            case .privacy: "hand.raised"
+            case .sync: "icloud"
+            case .data: "externaldrive"
+            case .shortcuts: "keyboard"
+            case .about: "info.circle"
+            }
+        }
+        var subtitle: String {
+            switch self {
+            case .account: "Your identity, linked sign-ins, and subscription"
+            case .appearance: "System, Light, and Dark modes"
+            case .privacy: "Preview artwork and data protections"
+            case .sync: "Connection health and refresh preferences"
+            case .data: "Export a readable copy of your library"
+            case .shortcuts: "Keyboard commands on this Mac"
+            case .about: "Version, updates, and legal information"
+            }
+        }
+    }
+
+    @State private var selectedSection: Section?
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 17) {
-                HStack {
+                HStack(spacing: 12) {
+                    if selectedSection != nil {
+                        Button {
+                            withAnimation(.easeInOut(duration: 0.18)) { selectedSection = nil }
+                        } label: {
+                            Image(systemName: "chevron.left")
+                                .font(.system(size: 14, weight: .semibold))
+                                .frame(width: 36, height: 36)
+                                .background(surface, in: Circle())
+                        }
+                        .buttonStyle(.plain)
+                        .help("Back to Settings")
+                        .accessibilityIdentifier("mac.settings.back")
+                    }
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("Settings")
-                            .font(.system(size: 27, weight: .bold, design: .rounded))
-                        Text("Make Laterbox work your way on this Mac.")
+                        Text(selectedSection?.rawValue ?? "Settings")
+                            .font(.system(size: 26, weight: .bold, design: .rounded))
+                        Text(selectedSection?.subtitle ?? "Make LaterBox work your way on this Mac.")
                             .font(.system(size: 12)).foregroundStyle(secondary)
                     }
                     Spacer()
-                    HStack(spacing: 7) {
-                        Circle().fill(cloud.lastError == nil && cloud.isConnected ? Color.green : Color.orange)
-                            .frame(width: 7, height: 7)
-                        Text(cloud.loading ? "Syncing" : (cloud.isConnected ? "Cloud connected" : "Offline"))
-                            .font(.system(size: 11, weight: .medium))
-                            .foregroundStyle(secondary)
+                    if cloud.loading { ProgressView().controlSize(.small) }
+                    else {
+                        Circle()
+                            .fill(cloud.lastError == nil && cloud.isConnected ? Color.green : Color.orange)
+                            .frame(width: 8, height: 8)
+                            .help(cloud.isConnected ? "Cloud connected" : "Offline")
                     }
                 }
                 .padding(.vertical, 5)
 
-                accountCard
-                groupHeading("ACCOUNT & SUBSCRIPTION")
-                settingsCard {
-                    linkRow("Account & security", icon: "person.crop.circle",
-                            detail: "Manage your sign-in, password and linked identities",
-                            link: "https://laterbox.dev/settings/account")
-                    itemDivider
-                    linkRow("Plans & billing", icon: "crown",
-                            detail: "Current subscription, payments and storage options",
-                            link: "https://laterbox.dev/settings/billing")
+                if let section = selectedSection {
+                    sectionDetail(section)
+                } else {
+                    settingsOverview
                 }
-
-                groupHeading("PREFERENCES & PRIVACY")
-                settingsCard {
-                    HStack(spacing: 12) {
-                        settingIcon("paintpalette")
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text("Appearance").font(.system(size: 13, weight: .semibold))
-                            Text("Choose the app's color theme on this Mac")
-                                .font(.system(size: 11)).foregroundStyle(secondary)
-                        }
-                        Spacer()
-                        Picker("Appearance", selection: $appearance) {
-                            Text("System").tag("system")
-                            Text("Light").tag("light")
-                            Text("Dark").tag("dark")
-                        }
-                        .labelsHidden()
-                        .frame(width: 115)
-                        .accessibilityLabel("Appearance")
-                    }
-                    .padding(15)
-                    itemDivider
-                    toggleRow("Show link preview images", icon: "photo",
-                              detail: "Display website images beside saved items", value: $showPreviews)
-                    itemDivider
-                    linkRow("Privacy & data", icon: "hand.raised",
-                            detail: "Read our privacy policy and data handling",
-                            link: "https://laterbox.dev/privacy")
-                    itemDivider
-                    Button {
-                        open("x-apple.systempreferences:com.apple.preference.notifications")
-                    } label: {
-                        rowContent("Notification permissions", icon: "bell",
-                                   detail: "Manage this Mac's alerts in System Settings")
-                    }
-                    .buttonStyle(.plain)
-                }
-
-                groupHeading("CLOUD SYNC & DATA")
-                settingsCard {
-                    toggleRow("Automatic cloud refresh", icon: "arrow.triangle.2.circlepath.icloud",
-                              detail: "Refresh your cloud items when this Mac is active", value: $automaticRefresh)
-                    itemDivider
-                    HStack(spacing: 12) {
-                        settingIcon("icloud")
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text("Cloud sync").font(.system(size: 13, weight: .semibold))
-                            Text(syncDescription)
-                                .font(.system(size: 11))
-                                .foregroundStyle(secondary)
-                        }
-                        Spacer()
-                        Button {
-                            Task { await cloud.refresh() }
-                        } label: {
-                            if cloud.loading {
-                                ProgressView().controlSize(.small)
-                            } else {
-                                Label("Sync now", systemImage: "arrow.clockwise")
-                                    .font(.system(size: 11, weight: .semibold))
-                            }
-                        }
-                        .buttonStyle(.bordered)
-                        .disabled(cloud.loading)
-                    }
-                    .padding(15)
-                    itemDivider
-                    HStack(spacing: 12) {
-                        settingIcon("square.and.arrow.up")
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text("Export cloud items").font(.system(size: 13, weight: .semibold))
-                            Text("Save a readable JSON copy of loaded items and collections")
-                                .font(.system(size: 11)).foregroundStyle(secondary)
-                        }
-                        Spacer()
-                        Button("Export…") { exportLibrary() }
-                            .buttonStyle(.bordered)
-                            .disabled(exporting || !cloud.isConnected)
-                    }
-                    .padding(15)
-                }
-                if let exportSuccess {
-                    Label(exportSuccess, systemImage: "checkmark.circle.fill")
-                        .font(.system(size: 11))
-                        .foregroundStyle(.green)
-                }
-                if let exportError {
-                    Label(exportError, systemImage: "exclamationmark.triangle")
-                        .font(.system(size: 11))
-                        .foregroundStyle(.red)
-                }
-                MacCloudSyncStatusView(
-                    isConnected: cloud.isConnected,
-                    isLoading: cloud.loading,
-                    isSaving: cloud.saving,
-                    lastError: cloud.lastError,
-                    lastSynced: cloud.lastSynced,
-                    lastPushed: cloud.lastPushed,
-                    onCheckUpdates: { await cloud.refresh() }
-                )
-
-                groupHeading("KEYBOARD SHORTCUTS")
-                settingsCard {
-                    shortcutRow("Quick save", keys: "⌘ N", icon: "plus")
-                    itemDivider
-                    shortcutRow("Go to search", keys: "⌘ K", icon: "magnifyingglass")
-                }
-
-                groupHeading("SYSTEM & ABOUT")
-                settingsCard {
-                    HStack(spacing: 12) {
-                        settingIcon("info.circle")
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text("Laterbox for macOS").font(.system(size: 13, weight: .semibold))
-                            Text("Version \(version) · macOS \(ProcessInfo.processInfo.operatingSystemVersion.majorVersion)")
-                                .font(.system(size: 11)).foregroundStyle(secondary)
-                        }
-                        Spacer()
-                        Button("Check updates") {
-                            open("https://laterbox.dev/download")
-                        }
-                        .buttonStyle(.bordered)
-                    }
-                    .padding(15)
-                    itemDivider
-                    Button(action: onHelp) {
-                        rowContent("Help & FAQ", icon: "questionmark.circle",
-                                   detail: "Answers, bug reports and support tickets")
-                    }
-                    .buttonStyle(.plain)
-                    itemDivider
-                    linkRow("Terms of Service", icon: "doc.text",
-                            detail: "Read the Laterbox service terms",
-                            link: "https://laterbox.dev/terms")
-                }
-
-                Button(role: .destructive) {
-                    showSignOutConfirmation = true
-                } label: {
-                    HStack(spacing: 12) {
-                        settingIcon("rectangle.portrait.and.arrow.right")
-                        Text("Sign out of this Mac")
-                            .font(.system(size: 13, weight: .semibold))
-                        Spacer()
-                        Image(systemName: "chevron.right").font(.system(size: 10))
-                    }
-                    .padding(17)
-                    .frame(maxWidth: .infinity)
-                    .background(surface, in: RoundedRectangle(cornerRadius: 18))
-                    .overlay(RoundedRectangle(cornerRadius: 18).strokeBorder(stroke))
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-
-                Text("Appearance and preview preferences apply only to this Mac. Cloud data remains tied to your signed-in Laterbox account.")
-                    .font(.system(size: 11))
-                    .foregroundStyle(secondary)
-                    .padding(.bottom, 10)
             }
-            .frame(maxWidth: 840)
+            .frame(maxWidth: 820)
             .frame(maxWidth: .infinity)
             .padding(23)
         }
-        .confirmationDialog("Sign out of Laterbox?", isPresented: $showSignOutConfirmation) {
+        .confirmationDialog("Sign out of LaterBox?", isPresented: $showSignOutConfirmation) {
             Button("Sign out", role: .destructive, action: onSignOut)
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("This signs you out on this Mac. Items stored in your cloud account are not deleted.")
+            Text("This signs you out on this Mac. Cloud items and account data are not deleted.")
         }
+    }
+
+    private var settingsOverview: some View {
+        VStack(alignment: .leading, spacing: 17) {
+            Button {
+                openSection(.account)
+            } label: { accountCard }
+                .buttonStyle(.plain)
+            groupHeading("ACCOUNT")
+            settingsCard {
+                sectionRow(.account)
+                itemDivider
+                Button {
+                    open("https://laterbox.dev/settings/billing")
+                } label: {
+                    rowContent("Plans & billing", icon: "crown",
+                               detail: "Subscription, invoices, and storage options")
+                }
+                .buttonStyle(.plain)
+            }
+            groupHeading("PREFERENCES & PRIVACY")
+            settingsCard {
+                sectionRow(.appearance)
+                itemDivider
+                sectionRow(.privacy)
+            }
+            groupHeading("CLOUD & LIBRARY")
+            settingsCard {
+                sectionRow(.sync)
+                itemDivider
+                sectionRow(.data)
+            }
+            groupHeading("SYSTEM & ABOUT")
+            settingsCard {
+                sectionRow(.shortcuts)
+                itemDivider
+                sectionRow(.about)
+                itemDivider
+                Button(action: onHelp) {
+                    rowContent("Help & FAQ", icon: "questionmark.circle",
+                               detail: "Answers, reports, and your support requests")
+                }
+                .buttonStyle(.plain)
+            }
+            signOutButton
+        }
+    }
+
+    private func openSection(_ section: Section) {
+        withAnimation(.easeInOut(duration: 0.18)) { selectedSection = section }
+    }
+
+    private func sectionRow(_ section: Section) -> some View {
+        Button { openSection(section) } label: {
+            rowContent(section.rawValue, icon: section.symbol, detail: section.subtitle)
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("mac.settings." + section.rawValue.lowercased().replacingOccurrences(of: " ", with: "-"))
+    }
+
+    @ViewBuilder
+    private func sectionDetail(_ section: Section) -> some View {
+        switch section {
+        case .account: accountSettings
+        case .appearance: appearanceSettings
+        case .privacy: privacySettings
+        case .sync: syncSettings
+        case .data: dataSettings
+        case .shortcuts: shortcutsSettings
+        case .about: aboutSettings
+        }
+    }
+
+    private var accountSettings: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            accountCard
+            groupHeading("ACCOUNT DETAILS")
+            settingsCard {
+                valueRow("Signed-in email", value: accountEmail)
+                itemDivider
+                valueRow("Account status", value: cloud.isConnected ? "Cloud connected" : "Connection unavailable")
+            }
+            groupHeading("MANAGE YOUR ACCOUNT")
+            settingsCard {
+                linkRow("Sign-in methods & security", icon: "person.badge.key",
+                        detail: "Password, linked identities and account details",
+                        link: "https://laterbox.dev/settings/account")
+                itemDivider
+                linkRow("Plans & billing", icon: "crown",
+                        detail: "Manage your current plan and subscriptions",
+                        link: "https://laterbox.dev/settings/billing")
+                itemDivider
+                linkRow("Delete account", icon: "person.crop.circle.badge.xmark",
+                        detail: "Review permanent deletion options on Web",
+                        link: "https://laterbox.dev/settings/account")
+            }
+            Text("Sensitive account and billing changes are completed securely in your browser. This Mac uses your existing signed-in session for synchronization.")
+                .font(.system(size: 12)).foregroundStyle(secondary)
+            signOutButton
+        }
+    }
+
+    private var appearanceSettings: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            settingsCard {
+                VStack(alignment: .leading, spacing: 14) {
+                    Text("Choose your appearance").font(.system(size: 16, weight: .bold))
+                    Text("Applies immediately to the entire Mac app, including popups and sign-in.")
+                        .font(.system(size: 12)).foregroundStyle(secondary)
+                    HStack(spacing: 12) {
+                        appearanceOption("System", value: "system", symbol: "macwindow",
+                                         caption: "Match macOS")
+                        appearanceOption("Light", value: "light", symbol: "sun.max",
+                                         caption: "Bright interface")
+                        appearanceOption("Dark", value: "dark", symbol: "moon.stars",
+                                         caption: "Graphite interface")
+                    }
+                }
+                .padding(19)
+            }
+            groupHeading("PREVIEW DISPLAY")
+            settingsCard {
+                toggleRow("Show website preview images", icon: "photo",
+                          detail: "Show OG artwork in saved-item lists", value: $showPreviews)
+            }
+        }
+    }
+
+    private func appearanceOption(_ title: String, value: String, symbol: String, caption: String) -> some View {
+        let selected = appearance == value
+        return Button {
+            appearance = value
+        } label: {
+            VStack(spacing: 11) {
+                Image(systemName: symbol)
+                    .font(.system(size: 27, weight: .light))
+                    .frame(height: 43)
+                Text(title).font(.system(size: 14, weight: .bold))
+                Text(caption)
+                    .font(.system(size: 11))
+                    .foregroundStyle(selected ? Color.black.opacity(0.68) : secondary)
+                    .multilineTextAlignment(.center)
+            }
+            .foregroundStyle(selected ? Color.black : (dark ? Color.white : Color.black))
+            .frame(maxWidth: .infinity)
+            .frame(height: 139)
+            .background(selected ? lime : Color.primary.opacity(0.045),
+                        in: RoundedRectangle(cornerRadius: 15))
+            .overlay(RoundedRectangle(cornerRadius: 15).strokeBorder(selected ? lime : stroke, lineWidth: selected ? 2 : 1))
+            .contentShape(RoundedRectangle(cornerRadius: 15))
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(selected ? [.isSelected] : [])
+        .accessibilityIdentifier("mac.settings.appearance." + value)
+    }
+
+    private var privacySettings: some View {
+        VStack(alignment: .leading, spacing: 15) {
+            groupHeading("PREVIEW PRIVACY")
+            settingsCard {
+                toggleRow("Load link preview images", icon: "photo",
+                          detail: "Allow website preview images to appear in tables", value: $showPreviews)
+            }
+            Text("Disabling preview images hides website artwork in the item table. It does not delete stored previews or stop all metadata enrichment.")
+                .font(.system(size: 12)).foregroundStyle(secondary)
+            groupHeading("DATA & SECURITY")
+            settingsCard {
+                linkRow("Privacy policy", icon: "hand.raised",
+                        detail: "How LaterBox protects your account and content",
+                        link: "https://laterbox.dev/privacy")
+                itemDivider
+                linkRow("Account security", icon: "lock.shield",
+                        detail: "Manage credentials and connected sign-in providers",
+                        link: "https://laterbox.dev/settings/account")
+                itemDivider
+                Button {
+                    open("x-apple.systempreferences:com.apple.preference.notifications")
+                } label: {
+                    rowContent("macOS notification permissions", icon: "bell",
+                               detail: "Manage LaterBox's notification access in System Settings")
+                }
+                .buttonStyle(.plain)
+            }
+        }
+    }
+
+    private var syncSettings: some View {
+        VStack(alignment: .leading, spacing: 15) {
+            groupHeading("SYNCHRONIZATION")
+            settingsCard {
+                toggleRow("Automatic cloud refresh", icon: "arrow.triangle.2.circlepath.icloud",
+                          detail: "Check for changes periodically and when the Mac app becomes active", value: $automaticRefresh)
+                itemDivider
+                HStack(spacing: 12) {
+                    settingIcon("icloud")
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Cloud sync").font(.system(size: 13, weight: .semibold))
+                        Text(syncDescription).font(.system(size: 11)).foregroundStyle(secondary)
+                    }
+                    Spacer()
+                    Button {
+                        Task { await cloud.refresh() }
+                    } label: {
+                        if cloud.loading { ProgressView().controlSize(.small) }
+                        else { Label("Sync now", systemImage: "arrow.clockwise") }
+                    }
+                    .buttonStyle(.bordered)
+                    .disabled(cloud.loading)
+                }
+                .padding(15)
+            }
+            MacCloudSyncStatusView(
+                isConnected: cloud.isConnected,
+                isLoading: cloud.loading,
+                isSaving: cloud.saving,
+                lastError: cloud.lastError,
+                lastSynced: cloud.lastSynced,
+                lastPushed: cloud.lastPushed,
+                onCheckUpdates: { await cloud.refresh() }
+            )
+            Text("Cloud data is synchronized using your signed-in account. Manual sync always remains available.")
+                .font(.system(size: 12)).foregroundStyle(secondary)
+        }
+    }
+
+    private var dataSettings: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            groupHeading("EXPORT")
+            settingsCard {
+                HStack(spacing: 12) {
+                    settingIcon("square.and.arrow.up")
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Export loaded cloud items").font(.system(size: 13, weight: .semibold))
+                        Text("Create a readable JSON copy of currently loaded items, tags and collections")
+                            .font(.system(size: 11)).foregroundStyle(secondary)
+                    }
+                    Spacer()
+                    Button("Export…") { exportLibrary() }
+                        .buttonStyle(.bordered)
+                        .disabled(exporting || !cloud.isConnected)
+                }
+                .padding(15)
+            }
+            if let exportSuccess {
+                Label(exportSuccess, systemImage: "checkmark.circle.fill")
+                    .font(.system(size: 12)).foregroundStyle(.green)
+            }
+            if let exportError {
+                Label(exportError, systemImage: "exclamationmark.triangle")
+                    .font(.system(size: 12)).foregroundStyle(.red)
+            }
+            groupHeading("LIBRARY MANAGEMENT")
+            settingsCard {
+                valueRow("Active items", value: "\(cloud.allItems.count)")
+                itemDivider
+                valueRow("Recently deleted items", value: "\(cloud.deletedItems.count)")
+                itemDivider
+                valueRow("Collections", value: "\(cloud.collections.count)")
+                itemDivider
+                linkRow("Manage cloud storage", icon: "externaldrive",
+                        detail: "Quota, usage, and subscription capacity",
+                        link: "https://laterbox.dev/settings/sync")
+            }
+            Text("Exports are not encrypted or directly restorable. Choose a private storage location. This action does not delete or modify your cloud library.")
+                .font(.system(size: 12)).foregroundStyle(secondary)
+        }
+    }
+
+    private var shortcutsSettings: some View {
+        VStack(alignment: .leading, spacing: 15) {
+            settingsCard {
+                shortcutRow("Quick save", keys: "⌘ N", icon: "plus")
+                itemDivider
+                shortcutRow("Focus search", keys: "⌘ K", icon: "magnifyingglass")
+            }
+        }
+    }
+
+    private var aboutSettings: some View {
+        VStack(alignment: .leading, spacing: 15) {
+            settingsCard {
+                HStack(spacing: 12) {
+                    settingIcon("info.circle")
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("LaterBox for macOS").font(.system(size: 14, weight: .bold))
+                        Text("Version \(version) · macOS \(ProcessInfo.processInfo.operatingSystemVersion.majorVersion)")
+                            .font(.system(size: 11)).foregroundStyle(secondary)
+                    }
+                    Spacer()
+                    Button("Check for updates") { open("https://laterbox.dev/download") }
+                        .buttonStyle(.bordered)
+                }
+                .padding(15)
+                itemDivider
+                linkRow("Terms of service", icon: "doc.text",
+                        detail: "LaterBox terms and conditions",
+                        link: "https://laterbox.dev/terms")
+                itemDivider
+                linkRow("Privacy policy", icon: "hand.raised",
+                        detail: "How data is handled and secured",
+                        link: "https://laterbox.dev/privacy")
+            }
+        }
+    }
+
+    private func valueRow(_ name: String, value: String) -> some View {
+        HStack(spacing: 12) {
+            Text(name).font(.system(size: 13, weight: .medium))
+            Spacer()
+            Text(value).font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(secondary)
+                .lineLimit(2)
+                .multilineTextAlignment(.trailing)
+        }
+        .padding(17)
+    }
+
+    private var signOutButton: some View {
+        Button(role: .destructive) {
+            showSignOutConfirmation = true
+        } label: {
+            rowContent("Sign out of this Mac", icon: "rectangle.portrait.and.arrow.right",
+                       detail: "Disconnect this device without deleting cloud items")
+                .background(surface, in: RoundedRectangle(cornerRadius: 18))
+                .overlay(RoundedRectangle(cornerRadius: 18).strokeBorder(stroke))
+        }
+        .buttonStyle(.plain)
     }
 
     private var version: String {
