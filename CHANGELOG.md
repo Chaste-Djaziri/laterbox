@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[macOS / Quick Save]** Add an immediate Save now action alongside Continue on the capture step, preserving the full scheduling/details workflow and showing cloud-save errors without hiding the draft.
+
 - **[macOS / Native Settings]** Replace the placeholder Settings page with iOS-style account, appearance, privacy, cloud-sync, data-export, system and support cards; wire genuine per-device preferences, cloud refresh, JSON export, and confirmed sign-out.
 
 - **[macOS / Help & FAQ]** Add native searchable FAQ, support report form, and tracked support requests with live status; extend the Web support API and database platform validation to accept `macos` reports.
