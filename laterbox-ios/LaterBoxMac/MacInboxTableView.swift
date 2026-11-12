@@ -37,6 +37,7 @@ struct MacInboxTableView: View {
     let onArchive: (String) async throws -> Void
     let onDelete: (String) async throws -> Void
     var onRestore: ((String) async throws -> Void)? = nil
+    var onPermanentlyDelete: ((String) async throws -> Void)? = nil
     let onQuickSave: () -> Void
     let onOpenItem: (String) -> Void
     var contextTitle: String = "Inbox"
@@ -74,6 +75,7 @@ struct MacInboxTableView: View {
     @State private var hoveredItemID: String?
     @State private var busyIDs: Set<String> = []
     @State private var pendingDelete: MacInboxEntry?
+    @State private var pendingPermanentDelete: MacInboxEntry?
     @State private var actionError: String?
     @Environment(\.colorScheme) private var scheme
 
@@ -153,6 +155,20 @@ struct MacInboxTableView: View {
             Button("Cancel", role: .cancel) { pendingDelete = nil }
         } message: {
             Text("The item will be removed from your Inbox.")
+        }
+        .confirmationDialog("Permanently delete this item?", isPresented: Binding(
+            get: { pendingPermanentDelete != nil },
+            set: { if !$0 { pendingPermanentDelete = nil } }
+        )) {
+            if let item = pendingPermanentDelete, let onPermanentlyDelete {
+                Button("Delete Forever", role: .destructive) {
+                    pendingPermanentDelete = nil
+                    performAction(item.id) { try await onPermanentlyDelete(item.id) }
+                }
+            }
+            Button("Cancel", role: .cancel) { pendingPermanentDelete = nil }
+        } message: {
+            Text("This cannot be undone. Cloud attachments will also be permanently removed.")
         }
         .alert("Couldn't update item", isPresented: Binding(
             get: { actionError != nil },
@@ -310,6 +326,7 @@ struct MacInboxTableView: View {
         if contextTitle == "Someday" { return "Nothing saved for someday" }
         if contextTitle == "Starred" { return "No starred items yet" }
         if contextTitle == "Archived" { return "Archive is empty" }
+        if contextTitle == "Recently Deleted" { return "Recently Deleted is empty" }
         switch activeTab {
         case .primary: return "All clear, for now"
         case .articles: return "Your reading list starts here"
@@ -327,6 +344,7 @@ struct MacInboxTableView: View {
         if contextTitle == "Someday" { return "Items without a return date will stay here until you choose when to revisit them." }
         if contextTitle == "Starred" { return "Star any item to find it here, including items you have kept or archived." }
         if contextTitle == "Archived" { return "Items you archive will be available here until you restore or delete them." }
+        if contextTitle == "Recently Deleted" { return "Deleted items will appear here until you restore or permanently remove them." }
         switch activeTab {
         case .primary: return "A little breathing room! When you save something for later, it will show up here."
         case .articles: return "Save articles and interesting reads to find them when you have a moment."
@@ -509,6 +527,7 @@ struct MacInboxTableView: View {
                 .labelsHidden()
                 .help("Select \(item.title)")
 
+                if contextTitle != "Recently Deleted" {
                 Button {
                     performAction(item.id) { try await onStar(item.id, !item.isStarred) }
                 } label: {
@@ -521,6 +540,8 @@ struct MacInboxTableView: View {
                 .buttonStyle(.plain)
                 .disabled(isBusy)
                 .help(item.isStarred ? "Remove star" : "Star item")
+
+                }
 
                 Text(item.source)
                     .font(.system(size: 12, weight: .bold))
@@ -545,17 +566,30 @@ struct MacInboxTableView: View {
 
                 if isHovered || isSelected {
                     HStack(spacing: 2) {
-                        if item.lifecycleStatus == "archived", let onRestore {
-                            rowAction("arrow.uturn.backward", help: "Restore to Inbox", disabled: isBusy) {
-                                performAction(item.id) { try await onRestore(item.id) }
+                        if contextTitle == "Recently Deleted" {
+                            if let onRestore {
+                                rowAction("arrow.uturn.backward", help: "Restore to Inbox", disabled: isBusy) {
+                                    performAction(item.id) { try await onRestore(item.id) }
+                                }
                             }
-                        } else if item.lifecycleStatus != "archived" {
-                            rowAction("archivebox", help: "Archive", disabled: isBusy) {
-                                performAction(item.id) { try await onArchive(item.id) }
+                            if onPermanentlyDelete != nil {
+                                rowAction("trash", help: "Delete Forever", disabled: isBusy) {
+                                    pendingPermanentDelete = item
+                                }
                             }
-                        }
-                        rowAction("trash", help: "Move to Recently Deleted", disabled: isBusy) {
-                            pendingDelete = item
+                        } else {
+                            if item.lifecycleStatus == "archived", let onRestore {
+                                rowAction("arrow.uturn.backward", help: "Restore to Inbox", disabled: isBusy) {
+                                    performAction(item.id) { try await onRestore(item.id) }
+                                }
+                            } else if item.lifecycleStatus != "archived" {
+                                rowAction("archivebox", help: "Archive", disabled: isBusy) {
+                                    performAction(item.id) { try await onArchive(item.id) }
+                                }
+                            }
+                            rowAction("trash", help: "Move to Recently Deleted", disabled: isBusy) {
+                                pendingDelete = item
+                            }
                         }
                         if let url = item.url {
                             rowAction("arrow.up.right.square", help: "Open original link", disabled: isBusy) {

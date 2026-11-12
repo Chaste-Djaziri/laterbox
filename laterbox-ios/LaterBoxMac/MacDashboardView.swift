@@ -392,8 +392,8 @@ struct MacDashboardView: View {
 
     @ViewBuilder
     private var page: some View {
-        if (selection == .inbox || selection == .today || selection == .upcoming || selection == .someday || selection == .starred || selection == .archived), let openedItemID {
-            if let item = cloud.allItems.first(where: { $0.id == openedItemID }) {
+        if (selection == .inbox || selection == .today || selection == .upcoming || selection == .someday || selection == .starred || selection == .archived || selection == .trash), let openedItemID {
+            if let item = (selection == .trash ? cloud.deletedItems : cloud.allItems).first(where: { $0.id == openedItemID }) {
                 MacItemDetailView(
                     item: item,
                     backDestination: selection.rawValue,
@@ -403,6 +403,7 @@ struct MacDashboardView: View {
                     onArchive: { id in try await cloud.archive(id) },
                     onRestore: { id in try await cloud.restoreToInbox(id) },
                     onDelete: { id in try await cloud.delete(id) },
+                    onPermanentlyDelete: { id in try await cloud.permanentlyDelete(id) },
                     onReschedule: { id, date in try await cloud.reschedule(id, date: date) },
                     onChecklist: { id, entries in try await cloud.updateChecklist(id, entries: entries) },
                     onAttachments: { id in try await cloud.attachments(for: id) },
@@ -436,6 +437,10 @@ struct MacDashboardView: View {
                 onOpenItem: { id in openedItemID = id })
         } else if selection == .archived {
             MacArchivedView(cloud: cloud,
+                onQuickSave: { showingQuickSave = true },
+                onOpenItem: { id in openedItemID = id })
+        } else if selection == .trash {
+            MacRecentlyDeletedView(cloud: cloud,
                 onQuickSave: { showingQuickSave = true },
                 onOpenItem: { id in openedItemID = id })
         } else if selection == .inbox {

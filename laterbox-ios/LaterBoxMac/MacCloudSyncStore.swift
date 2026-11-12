@@ -16,6 +16,7 @@ struct MacCloudItem: Decodable, Identifiable {
     let return_at: String?
     let created_at: String?
     let inbox_entered_at: String?
+    let deleted_at: String?
 }
 
 struct MacChecklistEntry: Codable, Identifiable, Hashable {
@@ -76,6 +77,7 @@ final class MacCloudSyncStore: ObservableObject {
     @Published private(set) var items: [MacInboxEntry] = []
     @Published private(set) var activeItems: [MacInboxEntry] = []
     @Published private(set) var allItems: [MacInboxEntry] = []
+    @Published private(set) var deletedItems: [MacInboxEntry] = []
     @Published private(set) var loading = false
     @Published private(set) var saving = false
     @Published private(set) var lastError: String?
@@ -218,11 +220,11 @@ final class MacCloudSyncStore: ObservableObject {
     func restoreToInbox(_ id: String) async throws {
         let timestamp = ISO8601DateFormatter().string(from: Date())
         _ = try await request("items?id=eq.\(id)", method: "PATCH",
-                              body: ["status": "inbox", "return_at": NSNull(),
+                              body: ["status": "inbox", "return_at": NSNull(), "deleted_at": NSNull(),
                                      "inbox_entered_at": timestamp, "seen": false,
                                      "updated_at": timestamp])
         // Match Web's Inbox transition: restore a task group's unchecked state.
-        if let existing = allItems.first(where: { $0.id == id }),
+        if let existing = (allItems + deletedItems).first(where: { $0.id == id }),
            existing.itemType == "task", !existing.checklist.isEmpty {
             let data = try await request("item_metadata?select=structured_data&item_id=eq.\(id)&limit=1")
             let records = (try? JSONSerialization.jsonObject(with: data)) as? [[String: Any]] ?? []
@@ -239,6 +241,27 @@ final class MacCloudSyncStore: ObservableObject {
         }
         lastPushed = Date()
         await refresh()
+    }
+
+    /// Uses the same cloud cleanup endpoint as Web hard deletion. Never remove
+    /// a deleted row locally unless the server confirms the irreversible action.
+    func permanentlyDelete(_ id: String) async throws {
+        guard deletedItems.contains(where: { $0.id == id }) else {
+            throw MacCloudError.server(409, "This item is not in Recently Deleted.")
+        }
+        let result = try await attachmentAction(["action": "delete-item", "itemId": id])
+        guard result["deleted"] as? Bool == true else {
+            throw MacCloudError.server(502, "Cloud cleanup was not confirmed. Please retry.")
+        }
+        lastPushed = Date()
+        deletedItems.removeAll { $0.id == id }
+        await refresh()
+    }
+
+    func emptyTrash() async throws {
+        for id in deletedItems.map(\.id) {
+            try await permanentlyDelete(id)
+        }
     }
 
     func keep(_ id: String) async throws {
@@ -290,7 +313,7 @@ final class MacCloudSyncStore: ObservableObject {
             let credentials = try readAuth()
             // RLS is still enforced. User ID filters scope the request and
             // avoid accidental cross-account UI display.
-            let data = try await request("items?select=id,title,url,text_content,type,status,favorite,return_at,created_at,inbox_entered_at&user_id=eq.\(credentials.userID)&deleted_at=is.null&order=created_at.desc&limit=500")
+            let data = try await request("items?select=id,title,url,text_content,type,status,favorite,return_at,created_at,inbox_entered_at,deleted_at&user_id=eq.\(credentials.userID)&order=created_at.desc&limit=500")
             let rows = try JSONDecoder().decode([MacCloudItem].self, from: data)
             var metadataByItem: [String: MacInboxMetadata] = [:]
             if let data = try? await request("item_metadata?select=item_id,description,preview_image_url,content_type,structured_data&user_id=eq.\(credentials.userID)&limit=500"),
@@ -312,7 +335,7 @@ final class MacCloudSyncStore: ObservableObject {
             allItems = rows.compactMap { row in
                 let schedule = isoDate(row.return_at)
                 let status = row.status ?? ""
-                guard ["inbox", "deferred", "saved", "archived"].contains(status) else { return nil }
+                guard row.deleted_at != nil || ["inbox", "deferred", "saved", "archived"].contains(status) else { return nil }
                 let url = row.url.flatMap { URL(string: $0) }
                 let metadata = metadataByItem[row.id]
                 let type = (metadata?.content_type ?? row.type)?.lowercased() ?? ""
@@ -360,9 +383,11 @@ final class MacCloudSyncStore: ObservableObject {
                     itemType: row.type ?? "link", returnDate: schedule, tags: tags,
                     checklist: entries, collectionNames: collectionsByItem[row.id] ?? [],
                     inboxArrival: status == "inbox" ? isoDate(row.inbox_entered_at) ?? isoDate(row.created_at) : schedule,
-                    lifecycleStatus: status
+                    lifecycleStatus: row.deleted_at != nil ? "deleted" : status
                 )
             }
+            deletedItems = allItems.filter { $0.lifecycleStatus == "deleted" }
+            allItems.removeAll { $0.lifecycleStatus == "deleted" }
             activeItems = allItems.filter { entry in
                 entry.lifecycleStatus == "inbox" || entry.lifecycleStatus == "deferred"
             }

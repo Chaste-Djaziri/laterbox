@@ -13,6 +13,7 @@ struct MacItemDetailView: View {
     let onArchive: (String) async throws -> Void
     var onRestore: ((String) async throws -> Void)? = nil
     let onDelete: (String) async throws -> Void
+    var onPermanentlyDelete: ((String) async throws -> Void)? = nil
     let onReschedule: (String, Date?) async throws -> Void
     let onChecklist: (String, [MacChecklistEntry]) async throws -> Void
     let onAttachments: (String) async throws -> [MacCloudAttachment]
@@ -22,6 +23,7 @@ struct MacItemDetailView: View {
     @State private var busy = false
     @State private var errorMessage: String?
     @State private var confirmingDelete = false
+    @State private var confirmingPermanentDelete = false
     @State private var scheduling = false
     @State private var selectedDate = Date().addingTimeInterval(86400)
     @State private var checklistState: [MacChecklistEntry] = []
@@ -44,7 +46,7 @@ struct MacItemDetailView: View {
                     mainCard
                     if showingInlinePreview { inlinePreview }
                     if !attachments.isEmpty { attachmentsCard }
-                    if !item.checklist.isEmpty { tasksCard }
+                    if !item.checklist.isEmpty && item.lifecycleStatus != "deleted" { tasksCard }
                     if !item.tags.isEmpty || !item.collectionNames.isEmpty { organizationCard }
                     sourceFooter
                 }
@@ -63,6 +65,19 @@ struct MacItemDetailView: View {
                     onBack()
                 }
             }
+        }
+        .confirmationDialog("Permanently delete this item?", isPresented: $confirmingPermanentDelete) {
+            if let onPermanentlyDelete {
+                Button("Delete Forever", role: .destructive) {
+                    update {
+                        try await onPermanentlyDelete(item.id)
+                        onBack()
+                    }
+                }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This action cannot be undone, and cloud attachments will be removed.")
         }
         .sheet(isPresented: $scheduling) { schedulingSheet }
         .alert("Could not update item", isPresented: Binding(
@@ -84,9 +99,10 @@ struct MacItemDetailView: View {
                     .contentShape(Capsule())
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("Back to Inbox")
+            .accessibilityLabel("Back to \(backDestination)")
             Spacer()
-            control("star", label: "Star") {
+            if item.lifecycleStatus != "deleted" {
+            control(item.isStarred ? "star.fill" : "star", label: item.isStarred ? "Unstar" : "Star") {
                 update { try await onStar(item.id, !item.isStarred) }
             }
             Button {
@@ -132,6 +148,20 @@ struct MacItemDetailView: View {
                 }
             }
             control("trash", label: "Delete") { confirmingDelete = true }
+            }
+            if item.lifecycleStatus == "deleted" {
+                if let onRestore {
+                    control("arrow.uturn.backward", label: "Restore to Inbox") {
+                        update {
+                            try await onRestore(item.id)
+                            onBack()
+                        }
+                    }
+                }
+                if onPermanentlyDelete != nil {
+                    control("trash", label: "Delete Forever") { confirmingPermanentDelete = true }
+                }
+            }
         }
         .padding(.horizontal, 20)
         .frame(height: 56)
@@ -151,7 +181,7 @@ struct MacItemDetailView: View {
         HStack(spacing: 11) {
             Image(systemName: "clock")
             VStack(alignment: .leading, spacing: 4) {
-                Text(item.lifecycleStatus == "archived" ? "Archived" : item.lifecycleStatus == "saved" ? "Kept in Library" : item.lifecycleStatus == "deferred" ? (item.returnDate == nil ? "Someday" : "Scheduled") : "In Inbox").font(.system(size: 12, weight: .semibold))
+                Text(item.lifecycleStatus == "deleted" ? "Recently Deleted" : item.lifecycleStatus == "archived" ? "Archived" : item.lifecycleStatus == "saved" ? "Kept in Library" : item.lifecycleStatus == "deferred" ? (item.returnDate == nil ? "Someday" : "Scheduled") : "In Inbox").font(.system(size: 12, weight: .semibold))
                 if let date = item.returnDate {
                     Text((date > Date() ? "Returns " : "Returned ") + date.formatted(date: .abbreviated, time: .shortened))
                         .font(.system(size: 11)).foregroundStyle(muted)
@@ -160,11 +190,13 @@ struct MacItemDetailView: View {
                 }
             }
             Spacer()
+            if item.lifecycleStatus != "deleted" {
             Button("Reschedule") {
                 selectedDate = item.returnDate ?? Date().addingTimeInterval(86400)
                 scheduling = true
             }
             .buttonStyle(.plain)
+            }
         }
         .padding(15)
         .background(surface, in: RoundedRectangle(cornerRadius: 14))
