@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[macOS / Smart Quick Save]** Enrich pasted public URLs with page titles and descriptions, suggest contextual titles/tags and return schedules from capture text, and add signed-in collection selection and new collection draft input to Quick Save Details.
+
 - **[macOS / File picker sandbox permission]** Enable the user-selected file read-only sandbox entitlement for Laterbox's native Open Panel, preventing the runtime AppKit breakpoint when attaching files in Quick Save.
 
 - **[macOS / Quick Save usability]** Rework capture steps into their own aligned progress navigation, add named single-task and titled multi-task checklist capture with removable entries and draft export, and replace the freezing nested file importer with a nonblocking native NSOpenPanel.
