@@ -10,6 +10,7 @@ struct MacSettingsView: View {
     let accountEmail: String
     let onSignOut: () -> Void
     let onHelp: () -> Void
+    let onPlans: () -> Void
 
     @ObservedObject private var theme = MacAppearanceSettings.shared
     @AppStorage("laterbox.mac.showLinkPreviews") private var showPreviews = true
@@ -123,11 +124,9 @@ struct MacSettingsView: View {
             settingsCard {
                 sectionRow(.account)
                 itemDivider
-                Button {
-                    open("https://laterbox.dev/settings/billing")
-                } label: {
+                Button(action: onPlans) {
                     rowContent("Plans & billing", icon: "crown",
-                               detail: "Subscription, invoices, and storage options")
+                               detail: "Compare storage plans and manage your subscription")
                 }
                 .buttonStyle(.plain)
             }
@@ -199,9 +198,11 @@ struct MacSettingsView: View {
                         detail: "Password, linked identities and account details",
                         link: "https://laterbox.dev/settings/account")
                 itemDivider
-                linkRow("Plans & billing", icon: "crown",
-                        detail: "Manage your current plan and subscriptions",
-                        link: "https://laterbox.dev/settings/billing")
+                Button(action: onPlans) {
+                    rowContent("Plans & billing", icon: "crown",
+                               detail: "View storage plans and current subscription")
+                }
+                .buttonStyle(.plain)
                 itemDivider
                 linkRow("Delete account", icon: "person.crop.circle.badge.xmark",
                         detail: "Review permanent deletion options on Web",

@@ -550,6 +550,8 @@ struct MacDashboardView: View {
             .padding(.horizontal, 20)
             .padding(.top, 12)
             .padding(.bottom, 18)
+        } else if selection == .plans {
+            MacPlansView(cloud: cloud)
         } else if selection == .earn {
             MacEarnView(cloud: cloud)
         } else if selection == .help {
@@ -559,7 +561,8 @@ struct MacDashboardView: View {
                 cloud: cloud,
                 accountEmail: accountEmail,
                 onSignOut: signOut,
-                onHelp: { selection = .help }
+                onHelp: { selection = .help },
+                onPlans: { selection = .plans }
             )
         } else if selection == .today {
             MacTodayView(cloud: cloud, now: todayClock,
