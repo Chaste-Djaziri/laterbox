@@ -1,7 +1,7 @@
 export const supportCategories = ['problem', 'help', 'feedback', 'other'] as const;
 export type SupportRequest = {
   email: string; category: typeof supportCategories[number]; subject: string;
-  message: string; platform: 'ios' | 'android' | 'web'; appVersion: string;
+  message: string; platform: 'ios' | 'android' | 'web' | 'macos'; appVersion: string;
 };
 
 export function parseSupportRequest(value: unknown): SupportRequest | null {
@@ -16,6 +16,6 @@ export function parseSupportRequest(value: unknown): SupportRequest | null {
   if (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ||
       subject.length < 3 || subject.length > 160 || message.length < 10 || message.length > 5000 ||
       !supportCategories.includes(data.category as SupportRequest['category']) ||
-      !['ios', 'android', 'web'].includes(data.platform as string) || appVersion.length > 100) return null;
+      !['ios', 'android', 'web', 'macos'].includes(data.platform as string) || appVersion.length > 100) return null;
   return { email, subject, message, appVersion, category: data.category as SupportRequest['category'], platform: data.platform as SupportRequest['platform'] };
 }

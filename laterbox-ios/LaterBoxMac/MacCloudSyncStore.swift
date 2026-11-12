@@ -241,6 +241,36 @@ final class MacCloudSyncStore: ObservableObject {
         throw MacCloudError.unauthorized
     }
 
+    /// Same support route used by Web. The authenticated session binds tickets
+    /// to the current account and server-side rate limits remain authoritative.
+    func supportAPI(method: String = "GET", body: [String: Any]? = nil) async throws -> Data {
+        guard method == "GET" || method == "POST" else { throw URLError(.unsupportedURL) }
+        for attempt in 0...1 {
+            let credentials = try readAuth()
+            var request = URLRequest(url: URL(string: "https://laterbox.dev/api/support")!)
+            request.httpMethod = method
+            request.timeoutInterval = 25
+            request.cachePolicy = .reloadIgnoringLocalCacheData
+            request.setValue("Bearer \(credentials.access)", forHTTPHeaderField: "Authorization")
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.setValue("no-store", forHTTPHeaderField: "Cache-Control")
+            if let body { request.httpBody = try JSONSerialization.data(withJSONObject: body) }
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard let http = response as? HTTPURLResponse else { throw URLError(.badServerResponse) }
+            if http.statusCode == 401 && attempt == 0 {
+                if (try? readAuth().access) == credentials.access { try await renewAuth() }
+                continue
+            }
+            guard (200..<300).contains(http.statusCode) else {
+                let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+                throw MacCloudError.server(http.statusCode,
+                    json?["error"] as? String ?? "Support is temporarily unavailable.")
+            }
+            return data
+        }
+        throw MacCloudError.unauthorized
+    }
+
     func setStarred(_ id: String, starred: Bool) async throws {
         _ = try await request("items?id=eq.\(id)", method: "PATCH",
                               body: ["favorite": starred, "updated_at": ISO8601DateFormatter().string(from: Date())])
