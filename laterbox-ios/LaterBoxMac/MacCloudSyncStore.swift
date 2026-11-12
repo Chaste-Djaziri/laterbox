@@ -75,6 +75,7 @@ enum MacCloudError: LocalizedError {
 final class MacCloudSyncStore: ObservableObject {
     @Published private(set) var items: [MacInboxEntry] = []
     @Published private(set) var activeItems: [MacInboxEntry] = []
+    @Published private(set) var allItems: [MacInboxEntry] = []
     @Published private(set) var loading = false
     @Published private(set) var saving = false
     @Published private(set) var lastError: String?
@@ -282,10 +283,10 @@ final class MacCloudSyncStore: ObservableObject {
                 }
             }
             let now = Date()
-            activeItems = rows.compactMap { row in
+            allItems = rows.compactMap { row in
                 let schedule = isoDate(row.return_at)
                 let status = row.status ?? ""
-                guard status == "inbox" || status == "deferred" else { return nil }
+                guard ["inbox", "deferred", "saved", "archived"].contains(status) else { return nil }
                 let url = row.url.flatMap { URL(string: $0) }
                 let metadata = metadataByItem[row.id]
                 let type = (metadata?.content_type ?? row.type)?.lowercased() ?? ""
@@ -332,8 +333,12 @@ final class MacCloudSyncStore: ObservableObject {
                     isStarred: row.favorite ?? false, isUnread: status == "inbox",
                     itemType: row.type ?? "link", returnDate: schedule, tags: tags,
                     checklist: entries, collectionNames: collectionsByItem[row.id] ?? [],
-                    inboxArrival: status == "inbox" ? isoDate(row.inbox_entered_at) ?? isoDate(row.created_at) : schedule
+                    inboxArrival: status == "inbox" ? isoDate(row.inbox_entered_at) ?? isoDate(row.created_at) : schedule,
+                    lifecycleStatus: status
                 )
+            }
+            activeItems = allItems.filter { entry in
+                entry.lifecycleStatus == "inbox" || entry.lifecycleStatus == "deferred"
             }
             items = activeItems.filter { entry in
                 entry.isUnread || entry.returnDate.map { $0 <= now } == true

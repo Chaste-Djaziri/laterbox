@@ -102,10 +102,12 @@ struct MacItemDetailView: View {
             }
             .buttonStyle(.plain)
             .disabled(busy)
-            control("archivebox", label: "Archive") {
-                update {
-                    try await onArchive(item.id)
-                    onBack()
+            if item.lifecycleStatus != "archived" {
+                control("archivebox", label: "Archive") {
+                    update {
+                        try await onArchive(item.id)
+                        onBack()
+                    }
                 }
             }
             control("calendar", label: "Reschedule") {
@@ -141,9 +143,9 @@ struct MacItemDetailView: View {
         HStack(spacing: 11) {
             Image(systemName: "clock")
             VStack(alignment: .leading, spacing: 4) {
-                Text("In Inbox").font(.system(size: 12, weight: .semibold))
+                Text(item.lifecycleStatus == "archived" ? "Archived" : item.lifecycleStatus == "saved" ? "Kept in Library" : item.lifecycleStatus == "deferred" ? (item.returnDate == nil ? "Someday" : "Scheduled") : "In Inbox").font(.system(size: 12, weight: .semibold))
                 if let date = item.returnDate {
-                    Text("Returned \(date.formatted(date: .abbreviated, time: .shortened))")
+                    Text((date > Date() ? "Returns " : "Returned ") + date.formatted(date: .abbreviated, time: .shortened))
                         .font(.system(size: 11)).foregroundStyle(muted)
                 } else {
                     Text("Ready whenever you are").font(.system(size: 11)).foregroundStyle(muted)

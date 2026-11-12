@@ -24,6 +24,7 @@ struct MacInboxEntry: Identifiable {
     var checklist: [MacChecklistEntry] = []
     var collectionNames: [String] = []
     var inboxArrival: Date? = nil
+    var lifecycleStatus: String = "inbox"
 }
 
 struct MacInboxTableView: View {
@@ -306,6 +307,7 @@ struct MacInboxTableView: View {
         if contextTitle == "Today" { return "Nothing new in the last 24 hours" }
         if contextTitle == "Upcoming" { return "Nothing scheduled ahead" }
         if contextTitle == "Someday" { return "Nothing saved for someday" }
+        if contextTitle == "Starred" { return "No starred items yet" }
         switch activeTab {
         case .primary: return "All clear, for now"
         case .articles: return "Your reading list starts here"
@@ -321,6 +323,7 @@ struct MacInboxTableView: View {
         if contextTitle == "Today" { return "Items entering your Inbox, including scheduled returns, will appear here for 24 hours." }
         if contextTitle == "Upcoming" { return "Items scheduled for tomorrow and beyond will appear here. Save something and choose a future return time." }
         if contextTitle == "Someday" { return "Items without a return date will stay here until you choose when to revisit them." }
+        if contextTitle == "Starred" { return "Star any item to find it here, including items you have kept or archived." }
         switch activeTab {
         case .primary: return "A little breathing room! When you save something for later, it will show up here."
         case .articles: return "Save articles and interesting reads to find them when you have a moment."
@@ -539,8 +542,10 @@ struct MacInboxTableView: View {
 
                 if isHovered || isSelected {
                     HStack(spacing: 2) {
-                        rowAction("archivebox", help: "Archive", disabled: isBusy) {
-                            performAction(item.id) { try await onArchive(item.id) }
+                        if item.lifecycleStatus != "archived" {
+                            rowAction("archivebox", help: "Archive", disabled: isBusy) {
+                                performAction(item.id) { try await onArchive(item.id) }
+                            }
                         }
                         rowAction("trash", help: "Move to Recently Deleted", disabled: isBusy) {
                             pendingDelete = item

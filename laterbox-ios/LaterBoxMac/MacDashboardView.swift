@@ -392,8 +392,8 @@ struct MacDashboardView: View {
 
     @ViewBuilder
     private var page: some View {
-        if (selection == .inbox || selection == .today || selection == .upcoming || selection == .someday), let openedItemID {
-            if let item = cloud.activeItems.first(where: { $0.id == openedItemID }) {
+        if (selection == .inbox || selection == .today || selection == .upcoming || selection == .someday || selection == .starred), let openedItemID {
+            if let item = cloud.allItems.first(where: { $0.id == openedItemID }) {
                 MacItemDetailView(
                     item: item,
                     backDestination: selection.rawValue,
@@ -427,6 +427,10 @@ struct MacDashboardView: View {
                 onOpenItem: { id in openedItemID = id })
         } else if selection == .someday {
             MacSomedayView(cloud: cloud,
+                onQuickSave: { showingQuickSave = true },
+                onOpenItem: { id in openedItemID = id })
+        } else if selection == .starred {
+            MacStarredView(cloud: cloud,
                 onQuickSave: { showingQuickSave = true },
                 onOpenItem: { id in openedItemID = id })
         } else if selection == .inbox {
