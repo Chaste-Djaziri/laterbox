@@ -11,6 +11,11 @@ private enum CaptureStyle {
 
 struct MacQuickSaveView: View {
     let onSave: (MacCloudDraft) async throws -> Void
+    var onClose: (() -> Void)? = nil
+
+    private func closeCapture() {
+        if let onClose { onClose() } else { dismiss() }
+    }
     private enum CaptureKind: String, CaseIterable, Identifiable {
         case link = "Link"
         case note = "Note"
@@ -197,7 +202,7 @@ struct MacQuickSaveView: View {
                     .foregroundStyle(muted)
             }
             Spacer()
-            Button { dismiss() } label: {
+            Button { closeCapture() } label: {
                 Image(systemName: "xmark")
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(muted)
@@ -624,7 +629,7 @@ struct MacQuickSaveView: View {
                 }
                 .buttonStyle(.plain)
             } else {
-                Button("Cancel") { dismiss() }
+                Button("Cancel") { closeCapture() }
                     .font(.system(size: 13))
                     .buttonStyle(.plain)
             }
@@ -760,7 +765,7 @@ struct MacQuickSaveView: View {
         do {
             try await onSave(draft)
             savedToCloud = true
-            dismiss()
+            closeCapture()
         } catch {
             cloudSaveError = error.localizedDescription
         }

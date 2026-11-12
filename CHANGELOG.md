@@ -1,5 +1,9 @@
 # Free extension and local library
 
+- **[macOS / Global Quick Capture]** Register Command–Option–N as a system-wide Quick Capture shortcut, show a floating capture panel over other apps, keep the process alive after closing its window, and request macOS Open at Login for background availability.
+
+- **[macOS / Sidebar cloud storage]** Replace the unavailable storage placeholder with a Web-matched usage ring, native quota popover, plan-aware billing usage, 80/95/100% warnings, refresh, and Plans navigation.
+
 - **[macOS / Plans & billing]** Add a native storage pricing page with Free, Plus, scalable Vault tiers, monthly/yearly live Whop prices, real subscription/storage usage status, secure Web checkout and authenticated subscription management.
 
 - **[macOS / Persistent appearance]** Centralize System, Light and Dark mode in a persisted preferences controller, remove conflicting per-view/window overrides, and restore the chosen mode on launch and relaunch.

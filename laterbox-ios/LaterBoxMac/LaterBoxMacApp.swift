@@ -4,6 +4,98 @@ import Security
 import AuthenticationServices
 import AppKit
 
+import Carbon
+import ServiceManagement
+
+// A system-wide Carbon hotkey works without Accessibility or Input Monitoring.
+// Closing the main window leaves LaterBox running, so this hotkey stays active.
+@MainActor
+final class LaterBoxMacDelegate: NSObject, NSApplicationDelegate {
+    private var hotKey: EventHotKeyRef?
+    private var hotKeyHandler: EventHandlerRef?
+    private var capturePanel: NSPanel?
+    private let captureCloud = MacCloudSyncStore()
+
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        installCaptureHotkey()
+        // User requested background capture across logins. macOS controls the
+        // approval in Login Items; failure must not block normal app launch.
+        if SMAppService.mainApp.status == .notRegistered {
+            do { try SMAppService.mainApp.register() }
+            catch { NSLog("LaterBox: Enable Open at Login in System Settings: %@", error.localizedDescription) }
+        }
+    }
+
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
+
+    func applicationWillTerminate(_ notification: Notification) {
+        if let hotKey { UnregisterEventHotKey(hotKey) }
+        if let hotKeyHandler { RemoveEventHandler(hotKeyHandler) }
+    }
+
+    private func installCaptureHotkey() {
+        var eventType = EventTypeSpec(eventClass: OSType(kEventClassKeyboard),
+                                      eventKind: UInt32(kEventHotKeyPressed))
+        let handler: EventHandlerUPP = { _, event, _ in
+            guard let event else { return noErr }
+            var identifier = EventHotKeyID()
+            let result = GetEventParameter(event, UInt32(kEventParamDirectObject),
+                                           UInt32(typeEventHotKeyID), nil,
+                                           MemoryLayout<EventHotKeyID>.size, nil, &identifier)
+            guard result == noErr, identifier.id == 1 else { return eventNotHandledErr }
+            DispatchQueue.main.async {
+                (NSApp.delegate as? LaterBoxMacDelegate)?.showQuickCapture()
+            }
+            return noErr
+        }
+        let installStatus = InstallEventHandler(GetApplicationEventTarget(), handler,
+                                                1, &eventType, nil, &hotKeyHandler)
+        guard installStatus == noErr else {
+            NSLog("LaterBox: Could not install capture hotkey handler (%d)", installStatus)
+            return
+        }
+        let id = EventHotKeyID(signature: OSType(0x4C425843), id: 1)
+        let status = RegisterEventHotKey(UInt32(kVK_ANSI_N),
+                                        UInt32(cmdKey | optionKey), id,
+                                        GetApplicationEventTarget(), 0, &hotKey)
+        if status != noErr {
+            NSLog("LaterBox: Command-Option-N is unavailable (%d)", status)
+        }
+    }
+
+    func showQuickCapture() {
+        if let capturePanel, capturePanel.isVisible {
+            NSApp.activate(ignoringOtherApps: true)
+            capturePanel.makeKeyAndOrderFront(nil)
+            return
+        }
+        // A new view on each invocation clears the previous completed draft.
+        let capture = MacQuickSaveView(onSave: { [weak self] draft in
+            guard let self else { throw MacCloudError.notSignedIn }
+            try await self.captureCloud.save(draft)
+        }, onClose: { [weak self] in
+            self?.capturePanel?.close()
+        })
+        let panel = NSPanel(contentRect: NSRect(x: 0, y: 0, width: 570, height: 595),
+                            styleMask: [.titled, .closable, .fullSizeContentView],
+                            backing: .buffered, defer: false)
+        panel.title = "LaterBox Quick Capture"
+        panel.titleVisibility = .hidden
+        panel.titlebarAppearsTransparent = true
+        panel.isFloatingPanel = true
+        panel.level = .floating
+        panel.collectionBehavior = [.moveToActiveSpace, .fullScreenAuxiliary]
+        panel.isReleasedWhenClosed = false
+        panel.contentView = NSHostingView(rootView: capture
+            .preferredColorScheme(MacAppearanceSettings.shared.colorScheme))
+        panel.center()
+        capturePanel = panel
+        NSApp.activate(ignoringOtherApps: true)
+        panel.makeKeyAndOrderFront(nil)
+    }
+}
+
+
 private enum MacColors {
     static let accent = Color(red: 230 / 255, green: 237 / 255, blue: 176 / 255)
 }
@@ -128,6 +220,7 @@ final class MacAppearanceSettings: ObservableObject {
 
 @main
 struct LaterBoxMacApp: App {
+    @NSApplicationDelegateAdaptor(LaterBoxMacDelegate.self) private var appDelegate
     @StateObject private var theme = MacAppearanceSettings.shared
 
     var body: some Scene {
@@ -143,6 +236,12 @@ struct LaterBoxMacApp: App {
         .windowStyle(.hiddenTitleBar)
         .defaultSize(width: 550, height: 620)
         .windowResizability(.contentMinSize)
+        .commands {
+            CommandGroup(after: .newItem) {
+                Button("Quick Capture") { appDelegate.showQuickCapture() }
+                    .keyboardShortcut("n", modifiers: [.command, .option])
+            }
+        }
     }
 }
 
