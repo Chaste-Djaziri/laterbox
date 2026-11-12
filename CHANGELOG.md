@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[macOS / Inbox row actions]** Use square-edged full-width email row hover/selection states, reveal contextual actions on the right, and connect star/archive/delete actions to Supabase with native confirmation and sync refresh.
+
 - **[macOS / Reliable native URL enrichment]** Resolve YouTube and other media via oEmbed with on-device/web enrichment fallbacks, populate editable title/description/tags and contextual schedule, display image previews, persist metadata with cloud captures, and remove Web redirects from Mac inbox guidance.
 
 - **[macOS / Cloud save and sync]** Connect Quick Save to authenticated Supabase item, metadata and collection writes, upload selected files to the existing R2 attachment service, load real saved items into the Inbox, and refresh automatically and after saves with visible error states.
