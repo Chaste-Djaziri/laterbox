@@ -59,6 +59,8 @@ struct MacDashboardView: View {
     @State private var selection: DashboardRoute = .inbox
     @State private var showingQuickSave = false
     @State private var openedItemID: String?
+    @State private var selectedCollectionID: String?
+    @State private var collectionsPopupOpen = false
     @State private var todayClock = Date()
     @StateObject private var cloud = MacCloudSyncStore()
     @State private var searchQuery = ""
@@ -218,6 +220,8 @@ struct MacDashboardView: View {
             return cloud.allItems.filter { $0.lifecycleStatus == "archived" }.count
         case .trash:
             return cloud.deletedItems.count
+        case .collections:
+            return cloud.collections.count
         default:
             return nil
         }
@@ -226,7 +230,10 @@ struct MacDashboardView: View {
     private func navigationItem(_ route: DashboardRoute) -> some View {
         let active = selection == route
         let count = itemCount(for: route)
-        return Button { selection = route; openedItemID = nil } label: {
+        return Button {
+            if route == .collections { collectionsPopupOpen.toggle() }
+            else { selection = route; openedItemID = nil; collectionsPopupOpen = false }
+        } label: {
             Image(systemName: route.icon)
                 .font(.system(size: 23, weight: active ? .semibold : .regular))
                 .foregroundStyle(active ? DashboardStyle.ink : (scheme == .dark ? Color.white.opacity(0.64) : DashboardStyle.muted))
@@ -255,6 +262,43 @@ struct MacDashboardView: View {
         .help(count.map { "\(route.rawValue) · \($0) items" } ?? route.rawValue)
         .accessibilityLabel(count.map { "\(route.rawValue), \($0) items" } ?? route.rawValue)
         .accessibilityAddTraits(active ? [.isSelected] : [])
+        .popover(isPresented: Binding(
+            get: { route == .collections && collectionsPopupOpen },
+            set: { if !$0 { collectionsPopupOpen = false } }
+        ), arrowEdge: .trailing) {
+            VStack(spacing: 10) {
+                MacCollectionsView(
+                    cloud: cloud,
+                    selectedCollectionID: $selectedCollectionID,
+                    onOpenItem: { id in
+                        selection = .collections
+                        openedItemID = id
+                        collectionsPopupOpen = false
+                    },
+                    compact: true,
+                    onChoose: {
+                        selection = .collections
+                        openedItemID = nil
+                        collectionsPopupOpen = false
+                    }
+                )
+                Button {
+                    selection = .collections
+                    openedItemID = nil
+                    collectionsPopupOpen = false
+                } label: {
+                    Label("View all Collections", systemImage: "arrow.right")
+                        .font(.system(size: 12, weight: .semibold))
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 34)
+                }
+                .buttonStyle(.plain)
+                .background(DashboardStyle.lime, in: RoundedRectangle(cornerRadius: 11))
+                .foregroundStyle(DashboardStyle.ink)
+            }
+            .padding(10)
+            .frame(width: 330, height: 440)
+        }
     }
 
     private var searchMatches: [DashboardRoute] {
@@ -445,7 +489,7 @@ struct MacDashboardView: View {
 
     @ViewBuilder
     private var page: some View {
-        if (selection == .inbox || selection == .today || selection == .upcoming || selection == .someday || selection == .starred || selection == .archived || selection == .trash || selection == .kept), let openedItemID {
+        if (selection == .inbox || selection == .today || selection == .upcoming || selection == .someday || selection == .starred || selection == .archived || selection == .trash || selection == .kept || selection == .collections), let openedItemID {
             if let item = (selection == .trash ? cloud.deletedItems : cloud.allItems).first(where: { $0.id == openedItemID }) {
                 MacItemDetailView(
                     item: item,
@@ -460,7 +504,11 @@ struct MacDashboardView: View {
                     onReschedule: { id, date in try await cloud.reschedule(id, date: date) },
                     onChecklist: { id, entries in try await cloud.updateChecklist(id, entries: entries) },
                     onAttachments: { id in try await cloud.attachments(for: id) },
-                    onAttachmentURL: { id in try await cloud.attachmentDownloadURL(id) }
+                    onAttachmentURL: { id in try await cloud.attachmentDownloadURL(id) },
+                    collections: cloud.collections,
+                    onCollectionToggle: { collectionID, itemID, included in
+                        try await cloud.setCollectionMembership(collectionID, itemID: itemID, included: included)
+                    }
                 )
                 .padding(.horizontal, 20)
                 .padding(.top, 12)
@@ -472,6 +520,16 @@ struct MacDashboardView: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
+        } else if selection == .collections {
+            MacCollectionsView(
+                cloud: cloud,
+                selectedCollectionID: $selectedCollectionID,
+                onOpenItem: { id in openedItemID = id },
+                compact: false
+            )
+            .padding(.horizontal, 20)
+            .padding(.top, 12)
+            .padding(.bottom, 18)
         } else if selection == .today {
             MacTodayView(cloud: cloud, now: todayClock,
                 onQuickSave: { showingQuickSave = true },

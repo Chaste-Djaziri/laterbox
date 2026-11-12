@@ -33,6 +33,17 @@ private struct MacInboxMetadata: Decodable {
     let structured_data: String?
 }
 
+struct MacCollection: Decodable, Identifiable, Hashable {
+    let id: String
+    var name: String
+    var created_at: String?
+}
+
+struct MacCollectionMembership: Decodable {
+    let collection_id: String
+    let item_id: String
+}
+
 struct MacCloudAttachment: Decodable, Identifiable {
     let id: String
     let original_file_name: String
@@ -78,6 +89,8 @@ final class MacCloudSyncStore: ObservableObject {
     @Published private(set) var activeItems: [MacInboxEntry] = []
     @Published private(set) var allItems: [MacInboxEntry] = []
     @Published private(set) var deletedItems: [MacInboxEntry] = []
+    @Published private(set) var collections: [MacCollection] = []
+    @Published private(set) var collectionMemberships: [MacCollectionMembership] = []
     @Published private(set) var loading = false
     @Published private(set) var saving = false
     @Published private(set) var lastError: String?
@@ -322,15 +335,19 @@ final class MacCloudSyncStore: ObservableObject {
                let metadata = try? JSONDecoder().decode([MacInboxMetadata].self, from: data) {
                 metadataByItem = Dictionary(metadata.map { ($0.item_id, $0) }, uniquingKeysWith: { first, _ in first })
             }
-            // Collections provide the same context shown in Web item details.
+            // Fetch collection names and membership separately: this also
+            // exposes empty collections, which an item-only join would miss.
+            let collectionData = try await request("collections?select=id,name,created_at&user_id=eq.\(credentials.userID)&order=created_at.asc&limit=500")
+            let membershipData = try await request("collection_items?select=collection_id,item_id&user_id=eq.\(credentials.userID)&limit=5000")
+            let incomingCollections = try JSONDecoder().decode([MacCollection].self, from: collectionData)
+            let incomingMemberships = try JSONDecoder().decode([MacCollectionMembership].self, from: membershipData)
+            collections = incomingCollections
+            collectionMemberships = incomingMemberships
+            let names = Dictionary(uniqueKeysWithValues: incomingCollections.map { ($0.id, $0.name) })
             var collectionsByItem: [String: [String]] = [:]
-            if let data = try? await request("collection_items?select=item_id,collections(name)&user_id=eq.\(credentials.userID)&limit=1500"),
-               let json = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] {
-                for row in json {
-                    guard let id = row["item_id"] as? String,
-                          let collection = row["collections"] as? [String: Any],
-                          let name = collection["name"] as? String else { continue }
-                    collectionsByItem[id, default: []].append(name)
+            for membership in incomingMemberships {
+                if let name = names[membership.collection_id] {
+                    collectionsByItem[membership.item_id, default: []].append(name)
                 }
             }
             let now = Date()
@@ -466,6 +483,69 @@ final class MacCloudSyncStore: ObservableObject {
         update(&allItems)
         update(&activeItems)
         update(&items)
+    }
+
+    func collectionItems(_ collectionID: String) -> [MacInboxEntry] {
+        let ids = Set(collectionMemberships.filter { $0.collection_id == collectionID }.map(\.item_id))
+        return allItems.filter { ids.contains($0.id) }.sorted { $0.date > $1.date }
+    }
+
+    func collectionCount(_ collectionID: String) -> Int {
+        collectionItems(collectionID).count
+    }
+
+    func createCollection(_ name: String) async throws {
+        let name = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !name.isEmpty else { throw MacCloudError.server(400, "Enter a collection name.") }
+        guard !collections.contains(where: { $0.name.caseInsensitiveCompare(name) == .orderedSame }) else {
+            throw MacCloudError.server(409, "A collection with that name already exists.")
+        }
+        let owner = try readAuth().userID
+        let now = ISO8601DateFormatter().string(from: Date())
+        _ = try await request("collections", method: "POST", body: [
+            "id": UUID().uuidString, "user_id": owner, "name": name,
+            "created_at": now, "updated_at": now
+        ])
+        lastPushed = Date()
+        await refresh()
+    }
+
+    func renameCollection(_ id: String, name: String) async throws {
+        let name = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !name.isEmpty else { throw MacCloudError.server(400, "Enter a collection name.") }
+        guard !collections.contains(where: { $0.id != id && $0.name.caseInsensitiveCompare(name) == .orderedSame }) else {
+            throw MacCloudError.server(409, "A collection with that name already exists.")
+        }
+        _ = try await request("collections?id=eq.\(id)", method: "PATCH", body: [
+            "name": name, "updated_at": ISO8601DateFormatter().string(from: Date())
+        ])
+        lastPushed = Date()
+        await refresh()
+    }
+
+    func deleteCollection(_ id: String) async throws {
+        // Memberships are explicitly removed first; saved items remain intact.
+        _ = try await request("collection_items?collection_id=eq.\(id)", method: "DELETE")
+        _ = try await request("collections?id=eq.\(id)", method: "DELETE")
+        lastPushed = Date()
+        await refresh()
+    }
+
+    func setCollectionMembership(_ collectionID: String, itemID: String, included: Bool) async throws {
+        if included {
+            let owner = try readAuth().userID
+            _ = try await request("collection_items?on_conflict=collection_id,item_id",
+                method: "POST", body: [
+                    "collection_id": collectionID, "item_id": itemID,
+                    "user_id": owner,
+                    "created_at": ISO8601DateFormatter().string(from: Date())
+                ])
+        } else {
+            _ = try await request("collection_items?collection_id=eq.\(collectionID)&item_id=eq.\(itemID)",
+                                  method: "DELETE")
+        }
+        lastPushed = Date()
+        await refresh()
     }
 
     func attachments(for itemID: String) async throws -> [MacCloudAttachment] {

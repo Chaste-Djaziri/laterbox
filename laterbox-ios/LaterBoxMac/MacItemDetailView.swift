@@ -18,6 +18,8 @@ struct MacItemDetailView: View {
     let onChecklist: (String, [MacChecklistEntry]) async throws -> Void
     let onAttachments: (String) async throws -> [MacCloudAttachment]
     let onAttachmentURL: (String) async throws -> URL
+    let collections: [MacCollection]
+    let onCollectionToggle: (String, String, Bool) async throws -> Void
 
     @Environment(\.colorScheme) private var scheme
     @State private var busy = false
@@ -139,6 +141,34 @@ struct MacItemDetailView: View {
             control("calendar", label: "Reschedule") {
                 selectedDate = item.returnDate ?? Date().addingTimeInterval(86400)
                 scheduling = true
+            }
+            if item.lifecycleStatus != "deleted" {
+                Menu {
+                    if collections.isEmpty {
+                        Text("No collections yet — create one in Collections")
+                    } else {
+                        ForEach(collections) { collection in
+                            let included = item.collectionNames.contains(collection.name)
+                            Button {
+                                update {
+                                    try await onCollectionToggle(collection.id, item.id, !included)
+                                }
+                            } label: {
+                                Label(collection.name,
+                                      systemImage: included ? "checkmark.circle.fill" : "circle")
+                            }
+                        }
+                    }
+                } label: {
+                    Image(systemName: "folder.badge.plus")
+                        .font(.system(size: 15))
+                        .frame(width: 32, height: 32)
+                        .contentShape(Rectangle())
+                }
+                .menuStyle(.borderlessButton)
+                .menuIndicator(.hidden)
+                .disabled(busy)
+                .help("Add or remove from collections")
             }
             control("doc.on.doc", label: "Copy") {
                 NSPasteboard.general.clearContents()
