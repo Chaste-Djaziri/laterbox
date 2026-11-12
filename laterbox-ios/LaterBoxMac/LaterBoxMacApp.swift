@@ -84,33 +84,59 @@ private struct MacAuthCanvas: View {
     }
 }
 
-@main
-struct LaterBoxMacApp: App {
-    @AppStorage("laterbox.mac.appearance") private var appearance = "system"
-
-    private var selectedColorScheme: ColorScheme? {
-        switch appearance {
-        case "light": return .light
-        case "dark": return .dark
-        default: return nil
+/// Single source of truth for the Mac appearance preference. Store a real
+/// value in the app's standard defaults domain and publish changes immediately.
+@MainActor
+final class MacAppearanceSettings: ObservableObject {
+    static let shared = MacAppearanceSettings()
+    static let key = "laterbox.mac.appearance"
+    @Published var mode: String {
+        didSet {
+            guard mode != oldValue else { return }
+            let normalized = Self.normalized(mode)
+            if normalized != mode { mode = normalized; return }
+            UserDefaults.standard.set(mode, forKey: Self.key)
+            // Commit before an immediate quit/relaunch, including during debugging.
+            UserDefaults.standard.synchronize()
         }
     }
+
+    private init() {
+        mode = Self.normalized(UserDefaults.standard.string(forKey: Self.key) ?? "system")
+    }
+
+    private static func normalized(_ candidate: String) -> String {
+        ["system", "light", "dark"].contains(candidate) ? candidate : "system"
+    }
+
+    var colorScheme: ColorScheme? {
+        switch mode {
+        case "light": .light
+        case "dark": .dark
+        default: nil
+        }
+    }
+
+    var appKitAppearance: NSAppearance? {
+        switch mode {
+        case "light": NSAppearance(named: .aqua)
+        case "dark": NSAppearance(named: .darkAqua)
+        default: nil
+        }
+    }
+}
+
+@main
+struct LaterBoxMacApp: App {
+    @StateObject private var theme = MacAppearanceSettings.shared
 
     var body: some Scene {
         WindowGroup {
             MacLoginView()
-                .preferredColorScheme(selectedColorScheme)
-                .onChange(of: appearance, initial: true) { _, next in
-                    // Keep AppKit window chrome, menus and SwiftUI controls
-                    // aligned with the in-app theme picker immediately.
-                    switch next {
-                    case "light":
-                        NSApp.appearance = NSAppearance(named: .aqua)
-                    case "dark":
-                        NSApp.appearance = NSAppearance(named: .darkAqua)
-                    default:
-                        NSApp.appearance = nil
-                    }
+                .preferredColorScheme(theme.colorScheme)
+                .background(MacThemeWindowBridge(appearance: theme.mode).frame(width: 0, height: 0))
+                .onChange(of: theme.mode, initial: true) { _, _ in
+                    NSApp.appearance = theme.appKitAppearance
                 }
                 .frame(minWidth: 430, minHeight: 480)
         }

@@ -64,15 +64,11 @@ struct MacDashboardView: View {
     @State private var todayClock = Date()
     @StateObject private var cloud = MacCloudSyncStore()
     @AppStorage("laterbox.mac.automaticRefresh") private var automaticRefresh = true
-    @AppStorage("laterbox.mac.appearance") private var appearance = "system"
+    @ObservedObject private var theme = MacAppearanceSettings.shared
     @State private var searchQuery = ""
     @State private var searchFocused = false
     @FocusState private var searchInputFocused: Bool
     @Environment(\.colorScheme) private var scheme
-
-    private var manualScheme: ColorScheme? {
-        appearance == "light" ? .light : (appearance == "dark" ? .dark : nil)
-    }
 
     private var mainBackground: Color {
         scheme == .dark ? Color(red: 27 / 255, green: 29 / 255, blue: 32 / 255) : DashboardStyle.cream
@@ -88,8 +84,6 @@ struct MacDashboardView: View {
             }
         }
         .background(mainBackground)
-        .preferredColorScheme(manualScheme)
-        .background(MacThemeWindowBridge(appearance: appearance).frame(width: 0, height: 0))
         .onChange(of: searchInputFocused) { _, focused in searchFocused = focused }
         .background {
             Button("") { searchInputFocused = true }
@@ -354,7 +348,7 @@ struct MacDashboardView: View {
 
                 Button {
                     withAnimation(.easeInOut(duration: 0.2)) {
-                        appearance = scheme == .dark ? "light" : "dark"
+                        theme.mode = scheme == .dark ? "light" : "dark"
                     }
                 } label: {
                     Image(systemName: scheme == .dark ? "sun.max" : "moon")

@@ -11,7 +11,7 @@ struct MacSettingsView: View {
     let onSignOut: () -> Void
     let onHelp: () -> Void
 
-    @AppStorage("laterbox.mac.appearance") private var appearance = "system"
+    @ObservedObject private var theme = MacAppearanceSettings.shared
     @AppStorage("laterbox.mac.showLinkPreviews") private var showPreviews = true
     @AppStorage("laterbox.mac.automaticRefresh") private var automaticRefresh = true
     @Environment(\.colorScheme) private var scheme
@@ -240,9 +240,9 @@ struct MacSettingsView: View {
     }
 
     private func appearanceOption(_ title: String, value: String, symbol: String, caption: String) -> some View {
-        let selected = appearance == value
+        let selected = theme.mode == value
         return Button {
-            appearance = value
+            theme.mode = value
         } label: {
             VStack(spacing: 11) {
                 Image(systemName: symbol)
