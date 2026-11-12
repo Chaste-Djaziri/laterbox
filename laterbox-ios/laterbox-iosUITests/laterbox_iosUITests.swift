@@ -50,8 +50,19 @@ final class laterbox_iosUITests: XCTestCase {
         app.launch()
         XCTAssertTrue(app.buttons["Continue without account"].waitForExistence(timeout: 15))
         let plans = app.buttons["welcome.plans"]
-        XCTAssertTrue(plans.isHittable)
+        XCTAssertTrue(plans.waitForExistence(timeout: 10),
+                      "The welcome screen must offer access to plans without registration")
+        // On a fresh simulator the welcome screen can still be laying out
+        // after the first guest button appears. Wait for the actual tap target.
+        let tappable = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "hittable == true"),
+            object: plans
+        )
+        XCTAssertEqual(XCTWaiter.wait(for: [tappable], timeout: 12), .completed,
+                       "The welcome screen's Pro plans action must be tappable")
         plans.tap()
+        XCTAssertTrue(app.staticTexts["LaterBox Plans"].waitForExistence(timeout: 10),
+                      "Opening plans must present the plans sheet")
         XCTAssertTrue(app.buttons["Restore Purchases"].waitForExistence(timeout: 10))
         XCTAssertFalse(app.textFields["Email"].exists)
     }

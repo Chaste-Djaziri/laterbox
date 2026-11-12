@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[iOS / Welcome UI tests]** Wait for the Pro plans action to become interactable before tapping and assert its sheet content; avoid racing welcome-screen layout on CI simulators.
+
 - **[Web / Android distribution pause]** Fix the APK/AAB download route guard so paused Android binaries reliably return HTTP 410 and CI tests pass.
 
 - **[macOS / Shortcuts settings]** Document the system-wide Command–Option–N Quick Capture shortcut in Settings → Shortcuts with full-screen and background usage guidance.
