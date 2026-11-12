@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[Web / Earn legal terms]** Replace the retired paid-plan affiliate rules with current Free-plan eligibility, Whop identity checks, customizable codes, conditional trials, two paid billing periods and three-month qualification, recurring commission rates, holds, disclosures, and controlled payout launch requirements.
+
 - **[macOS / Earn]** Add a native referral dashboard using authenticated LaterBox Earn APIs with live balances, referral progress, commissions, payouts, shareable code, code customization, enrollment, and browser-based Whop verification.
 
 - **[macOS / Collections table and duplicate repair]** Display selected collection items using the standard email table and cloud footer; exclude soft-deleted collections and memberships, deduplicate names in the UI, and protect active collection names in Supabase after merging duplicate memberships.
