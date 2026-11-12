@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[macOS / Manual appearance switching]** Apply saved Light/Dark/System preferences explicitly to the dashboard, SwiftUI environment, and AppKit window; add an immediate header theme toggle and reflect the active theme in Appearance settings.
+
 - **[macOS / Settings subpages]** Add iOS-style native Settings navigation with dedicated Account, Appearance, Privacy, Sync, Data Management, Shortcuts, and About pages; apply system/light/dark selection immediately across SwiftUI and AppKit windows.
 
 - **[macOS / Quick Save]** Add an immediate Save now action alongside Continue on the capture step, preserving the full scheduling/details workflow and showing cloud-save errors without hiding the draft.
