@@ -382,6 +382,15 @@ struct MacSettingsView: View {
 
     private var shortcutsSettings: some View {
         VStack(alignment: .leading, spacing: 15) {
+            groupHeading("GLOBAL SHORTCUT")
+            settingsCard {
+                shortcutRow("Open Quick Capture", keys: "⌘ ⌥ N", icon: "square.and.pencil")
+            }
+            Text("Open Quick Capture over other apps, including full-screen windows. LaterBox must be running in the background; quitting the app disables the shortcut until you launch it again.")
+                .font(.system(size: 12))
+                .foregroundStyle(secondary)
+                .padding(.horizontal, 12)
+            groupHeading("IN-APP SHORTCUTS")
             settingsCard {
                 shortcutRow("Quick save", keys: "⌘ N", icon: "plus")
                 itemDivider

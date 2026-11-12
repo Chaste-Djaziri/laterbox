@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[macOS / Shortcuts settings]** Document the system-wide Command–Option–N Quick Capture shortcut in Settings → Shortcuts with full-screen and background usage guidance.
+
 - **[macOS / Full-screen Quick Capture]** Make the global floating capture panel non-activating, visible across Spaces and full-screen applications, and position it on the active display without switching to the LaterBox desktop.
 
 - **[macOS / Global Quick Capture hotkey repair]** Route Command–Option–N directly to the active app capture controller instead of relying on an NSApp delegate cast; remove the overlapping SwiftUI menu shortcut registration, and provide a menu-bar Quick Capture fallback.
