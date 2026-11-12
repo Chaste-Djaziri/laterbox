@@ -76,10 +76,13 @@ struct MacItemDetailView: View {
             Button(action: onBack) {
                 Label("Back to Inbox", systemImage: "arrow.left")
                     .font(.system(size: 12, weight: .semibold))
+                    .padding(.horizontal, 13)
+                    .frame(height: 36)
+                    .background(surface, in: Capsule())
+                    .contentShape(Capsule())
             }
             .buttonStyle(.plain)
-            .padding(10)
-            .background(surface, in: Capsule())
+            .accessibilityLabel("Back to Inbox")
             Spacer()
             control("star", label: "Star") {
                 update { try await onStar(item.id, !item.isStarred) }
