@@ -147,7 +147,8 @@ final class MacCloudSyncStore: ObservableObject {
             req.setValue("Bearer \(credentials.access)", forHTTPHeaderField: "Authorization")
             req.setValue("application/json", forHTTPHeaderField: "Content-Type")
             if method != "GET" {
-                req.setValue("resolution=merge-duplicates," + (preferRepresentation ? "return=representation" : "return=minimal"), forHTTPHeaderField: "Prefer")
+                let resolution = method == "POST" ? "resolution=merge-duplicates," : ""
+                req.setValue(resolution + (preferRepresentation ? "return=representation" : "return=minimal"), forHTTPHeaderField: "Prefer")
             }
             if let body { req.httpBody = try JSONSerialization.data(withJSONObject: body) }
             let (data, response) = try await URLSession.shared.data(for: req)
@@ -165,6 +166,25 @@ final class MacCloudSyncStore: ObservableObject {
             return data
         }
         throw MacCloudError.unauthorized
+    }
+
+    func setStarred(_ id: String, starred: Bool) async throws {
+        _ = try await request("items?id=eq.\(id)", method: "PATCH",
+                              body: ["favorite": starred, "updated_at": ISO8601DateFormatter().string(from: Date())])
+        await refresh()
+    }
+
+    func archive(_ id: String) async throws {
+        _ = try await request("items?id=eq.\(id)", method: "PATCH",
+                              body: ["status": "archived", "updated_at": ISO8601DateFormatter().string(from: Date())])
+        await refresh()
+    }
+
+    func delete(_ id: String) async throws {
+        let now = ISO8601DateFormatter().string(from: Date())
+        _ = try await request("items?id=eq.\(id)", method: "PATCH",
+                              body: ["deleted_at": now, "updated_at": now])
+        await refresh()
     }
 
     private func isoDate(_ value: String?) -> Date? {
@@ -203,7 +223,7 @@ final class MacCloudSyncStore: ObservableObject {
                 let title = row.title?.isEmpty == false ? row.title! : (url?.host ?? "Untitled item")
                 return MacInboxEntry(
                     id: row.id, source: url?.host?.replacingOccurrences(of: "www.", with: "") ?? (type == "task" ? "Task" : type == "file" ? "File" : "Note"),
-                    title: title, snippet: row.text_content ?? row.url ?? "",
+                    title: title, snippet: row.text_content ?? row.url ?? "", url: url,
                     date: isoDate(row.created_at) ?? now, category: category,
                     isStarred: row.favorite ?? false, isUnread: status == "inbox"
                 )

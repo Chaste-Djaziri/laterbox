@@ -390,7 +390,10 @@ struct MacDashboardView: View {
         if selection == .inbox {
             MacInboxTableView(items: cloud.items, isConnected: cloud.isConnected,
                 isLoading: cloud.loading, syncError: cloud.lastError,
-                onRefresh: { await cloud.refresh() }) {
+                onRefresh: { await cloud.refresh() },
+                onStar: { id, value in try await cloud.setStarred(id, starred: value) },
+                onArchive: { id in try await cloud.archive(id) },
+                onDelete: { id in try await cloud.delete(id) }) {
                 showingQuickSave = true
             }
             .padding(.horizontal, 20)

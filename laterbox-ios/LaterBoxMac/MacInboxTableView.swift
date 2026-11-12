@@ -12,6 +12,7 @@ struct MacInboxEntry: Identifiable {
     let source: String
     let title: String
     let snippet: String
+    let url: URL?
     let date: Date
     let category: Category
     let isStarred: Bool
@@ -24,6 +25,9 @@ struct MacInboxTableView: View {
     let isLoading: Bool
     let syncError: String?
     let onRefresh: () async -> Void
+    let onStar: (String, Bool) async throws -> Void
+    let onArchive: (String) async throws -> Void
+    let onDelete: (String) async throws -> Void
     let onQuickSave: () -> Void
 
     private enum CategoryTab: String, CaseIterable, Identifiable {
@@ -54,6 +58,10 @@ struct MacInboxTableView: View {
     @State private var activeTab: CategoryTab = .primary
     @State private var newestFirst = true
     @State private var selectedIDs: Set<String> = []
+    @State private var hoveredItemID: String?
+    @State private var busyIDs: Set<String> = []
+    @State private var pendingDelete: MacInboxEntry?
+    @State private var actionError: String?
     @Environment(\.colorScheme) private var scheme
 
     private var dark: Bool { scheme == .dark }
@@ -110,6 +118,28 @@ struct MacInboxTableView: View {
                 .allowsHitTesting(false)
         }
         .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .confirmationDialog("Move item to Recently Deleted?", isPresented: Binding(
+            get: { pendingDelete != nil },
+            set: { if !$0 { pendingDelete = nil } }
+        )) {
+            if let item = pendingDelete {
+                Button("Move to Recently Deleted", role: .destructive) {
+                    pendingDelete = nil
+                    performAction(item.id) { try await onDelete(item.id) }
+                }
+            }
+            Button("Cancel", role: .cancel) { pendingDelete = nil }
+        } message: {
+            Text("The item will be removed from your Inbox.")
+        }
+        .alert("Couldn't update item", isPresented: Binding(
+            get: { actionError != nil },
+            set: { if !$0 { actionError = nil } }
+        )) {
+            Button("OK") { actionError = nil }
+        } message: {
+            Text(actionError ?? "Please try again.")
+        }
     }
 
     private var toolbar: some View {
@@ -366,8 +396,38 @@ struct MacInboxTableView: View {
         .accessibilityElement(children: .contain)
     }
 
+    private func performAction(_ id: String, operation: @escaping () async throws -> Void) {
+        guard !busyIDs.contains(id) else { return }
+        busyIDs.insert(id)
+        Task {
+            defer { busyIDs.remove(id) }
+            do {
+                try await operation()
+            } catch {
+                actionError = error.localizedDescription
+            }
+        }
+    }
+
+    private func rowAction(_ symbol: String, help: String, disabled: Bool = false,
+                           action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: symbol)
+                .font(.system(size: 13, weight: .medium))
+                .frame(width: 28, height: 30)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(disabled)
+        .help(help)
+        .accessibilityLabel(help)
+    }
+
     private func inboxRow(_ item: MacInboxEntry) -> some View {
-        HStack(spacing: 13) {
+        let isHovered = hoveredItemID == item.id
+        let isSelected = selectedIDs.contains(item.id)
+        let isBusy = busyIDs.contains(item.id)
+        return HStack(spacing: 13) {
             Toggle("Select item", isOn: Binding(
                 get: { selectedIDs.contains(item.id) },
                 set: { checked in
@@ -379,10 +439,18 @@ struct MacInboxTableView: View {
             .labelsHidden()
             .help("Select \(item.title)")
 
-            Image(systemName: item.isStarred ? "star.fill" : "star")
-                .font(.system(size: 14))
-                .foregroundStyle(item.isStarred ? Color.orange : muted)
-                .frame(width: 22)
+            Button {
+                performAction(item.id) { try await onStar(item.id, !item.isStarred) }
+            } label: {
+                Image(systemName: item.isStarred ? "star.fill" : "star")
+                    .font(.system(size: 14))
+                    .foregroundStyle(item.isStarred ? Color.orange : muted)
+                    .frame(width: 22, height: 30)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .disabled(isBusy)
+            .help(item.isStarred ? "Remove star" : "Star item")
 
             Image(systemName: item.category == .media ? "play.rectangle" :
                     item.category == .update ? "note.text" : "link")
@@ -408,14 +476,44 @@ struct MacInboxTableView: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
 
-            Text(item.date, style: .date)
-                .font(.system(size: 11, weight: .medium))
-                .foregroundStyle(muted)
-                .frame(width: 85, alignment: .trailing)
-                .lineLimit(1)
+            if isHovered || isSelected {
+                HStack(spacing: 1) {
+                    if let url = item.url {
+                        rowAction("arrow.up.right.square", help: "Open original link", disabled: isBusy) {
+                            NSWorkspace.shared.open(url)
+                        }
+                    }
+                    rowAction("archivebox", help: "Archive", disabled: isBusy) {
+                        performAction(item.id) { try await onArchive(item.id) }
+                    }
+                    rowAction("trash", help: "Move to Recently Deleted", disabled: isBusy) {
+                        pendingDelete = item
+                    }
+                }
+                .frame(minWidth: 93, alignment: .trailing)
+                .transition(.opacity)
+            } else {
+                Text(item.date, style: .date)
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(muted)
+                    .frame(width: 93, alignment: .trailing)
+                    .lineLimit(1)
+            }
         }
         .padding(.horizontal, 16)
         .frame(height: 59)
-        .background(selectedIDs.contains(item.id) ? accent.opacity(dark ? 0.12 : 0.3) : Color.clear)
+        .frame(maxWidth: .infinity)
+        .contentShape(Rectangle())
+        .background {
+            Rectangle()
+                .fill(isSelected ? accent.opacity(dark ? 0.16 : 0.36)
+                       : isHovered ? (dark ? Color.white.opacity(0.085) : Color.black.opacity(0.045))
+                       : Color.clear)
+        }
+        .onHover { hovering in
+            if hovering { hoveredItemID = item.id }
+            else if hoveredItemID == item.id { hoveredItemID = nil }
+        }
+        .animation(.easeOut(duration: 0.12), value: isHovered)
     }
 }
