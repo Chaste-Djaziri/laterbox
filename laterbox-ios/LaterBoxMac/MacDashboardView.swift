@@ -388,13 +388,21 @@ struct MacDashboardView: View {
     @ViewBuilder
     private var page: some View {
         if selection == .inbox {
-            MacInboxTableView(items: cloud.items, isConnected: cloud.isConnected,
-                isLoading: cloud.loading, syncError: cloud.lastError,
-                onRefresh: { await cloud.refresh() },
-                onStar: { id, value in try await cloud.setStarred(id, starred: value) },
-                onArchive: { id in try await cloud.archive(id) },
-                onDelete: { id in try await cloud.delete(id) }) {
-                showingQuickSave = true
+            VStack(spacing: 12) {
+                MacInboxTableView(items: cloud.items, isConnected: cloud.isConnected,
+                    isLoading: cloud.loading, syncError: cloud.lastError,
+                    onRefresh: { await cloud.refresh() },
+                    onStar: { id, value in try await cloud.setStarred(id, starred: value) },
+                    onArchive: { id in try await cloud.archive(id) },
+                    onDelete: { id in try await cloud.delete(id) }) {
+                    showingQuickSave = true
+                }
+                MacCloudSyncStatusView(
+                    isConnected: cloud.isConnected, isLoading: cloud.loading,
+                    isSaving: cloud.saving, lastError: cloud.lastError,
+                    lastSynced: cloud.lastSynced, lastPushed: cloud.lastPushed,
+                    onCheckUpdates: { await cloud.refresh() }
+                )
             }
             .padding(.horizontal, 20)
             .padding(.top, 12)

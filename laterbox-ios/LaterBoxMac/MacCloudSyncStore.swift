@@ -63,6 +63,7 @@ final class MacCloudSyncStore: ObservableObject {
     @Published private(set) var saving = false
     @Published private(set) var lastError: String?
     @Published private(set) var lastSynced: Date?
+    @Published private(set) var lastPushed: Date?
     @Published private(set) var isConnected = false
     private var refreshInFlight = false
     private var authRenewal: Task<Void, Error>?
@@ -178,12 +179,14 @@ final class MacCloudSyncStore: ObservableObject {
     func setStarred(_ id: String, starred: Bool) async throws {
         _ = try await request("items?id=eq.\(id)", method: "PATCH",
                               body: ["favorite": starred, "updated_at": ISO8601DateFormatter().string(from: Date())])
+        lastPushed = Date()
         await refresh()
     }
 
     func archive(_ id: String) async throws {
         _ = try await request("items?id=eq.\(id)", method: "PATCH",
                               body: ["status": "archived", "updated_at": ISO8601DateFormatter().string(from: Date())])
+        lastPushed = Date()
         await refresh()
     }
 
@@ -191,6 +194,7 @@ final class MacCloudSyncStore: ObservableObject {
         let now = ISO8601DateFormatter().string(from: Date())
         _ = try await request("items?id=eq.\(id)", method: "PATCH",
                               body: ["deleted_at": now, "updated_at": now])
+        lastPushed = Date()
         await refresh()
     }
 
@@ -445,6 +449,7 @@ final class MacCloudSyncStore: ObservableObject {
                                              "created_at": timestamp, "updated_at": timestamp]
             _ = try await request("collection_items?on_conflict=collection_id,item_id", method: "POST", body: [membership])
         }
+        lastPushed = Date()
         await refresh()
     }
 }
