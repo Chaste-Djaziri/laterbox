@@ -11,6 +11,7 @@ struct MacItemDetailView: View {
     let onStar: (String, Bool) async throws -> Void
     let onKeep: (String) async throws -> Void
     let onArchive: (String) async throws -> Void
+    var onRestore: ((String) async throws -> Void)? = nil
     let onDelete: (String) async throws -> Void
     let onReschedule: (String, Date?) async throws -> Void
     let onChecklist: (String, [MacChecklistEntry]) async throws -> Void
@@ -102,7 +103,14 @@ struct MacItemDetailView: View {
             }
             .buttonStyle(.plain)
             .disabled(busy)
-            if item.lifecycleStatus != "archived" {
+            if item.lifecycleStatus == "archived", let onRestore {
+                control("arrow.uturn.backward", label: "Restore to Inbox") {
+                    update {
+                        try await onRestore(item.id)
+                        onBack()
+                    }
+                }
+            } else if item.lifecycleStatus != "archived" {
                 control("archivebox", label: "Archive") {
                     update {
                         try await onArchive(item.id)

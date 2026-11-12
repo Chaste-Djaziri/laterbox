@@ -215,6 +215,32 @@ final class MacCloudSyncStore: ObservableObject {
         await refresh()
     }
 
+    func restoreToInbox(_ id: String) async throws {
+        let timestamp = ISO8601DateFormatter().string(from: Date())
+        _ = try await request("items?id=eq.\(id)", method: "PATCH",
+                              body: ["status": "inbox", "return_at": NSNull(),
+                                     "inbox_entered_at": timestamp, "seen": false,
+                                     "updated_at": timestamp])
+        // Match Web's Inbox transition: restore a task group's unchecked state.
+        if let existing = allItems.first(where: { $0.id == id }),
+           existing.itemType == "task", !existing.checklist.isEmpty {
+            let data = try await request("item_metadata?select=structured_data&item_id=eq.\(id)&limit=1")
+            let records = (try? JSONSerialization.jsonObject(with: data)) as? [[String: Any]] ?? []
+            let raw = records.first?["structured_data"] as? String
+            var structured = raw?.data(using: .utf8)
+                .flatMap { try? JSONSerialization.jsonObject(with: $0) as? [String: Any] } ?? [:]
+            structured["taskChecklist"] = existing.checklist.map {
+                ["id": $0.id, "title": $0.title, "done": false] as [String: Any]
+            }
+            structured["seen"] = false
+            let encoded = String(data: try JSONSerialization.data(withJSONObject: structured), encoding: .utf8) ?? "{}"
+            _ = try await request("item_metadata?item_id=eq.\(id)", method: "PATCH",
+                                  body: ["structured_data": encoded, "updated_at": timestamp])
+        }
+        lastPushed = Date()
+        await refresh()
+    }
+
     func keep(_ id: String) async throws {
         _ = try await request("items?id=eq.\(id)", method: "PATCH",
                               body: ["status": "saved", "updated_at": ISO8601DateFormatter().string(from: Date())])
