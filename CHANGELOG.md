@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[macOS / Web-parity Inbox rows]** Restyle native Inbox as compact text-first email rows without a leading type icon, load OG previews/descriptions from synced item metadata, fade artwork in on the right, and float clearly bordered hover actions over image backgrounds.
+
 - **[macOS / Inbox row actions]** Use square-edged full-width email row hover/selection states, reveal contextual actions on the right, and connect star/archive/delete actions to Supabase with native confirmation and sync refresh.
 
 - **[macOS / Reliable native URL enrichment]** Resolve YouTube and other media via oEmbed with on-device/web enrichment fallbacks, populate editable title/description/tags and contextual schedule, display image previews, persist metadata with cloud captures, and remove Web redirects from Mac inbox guidance.
