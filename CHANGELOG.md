@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[macOS / Plans & billing]** Add a native storage pricing page with Free, Plus, scalable Vault tiers, monthly/yearly live Whop prices, real subscription/storage usage status, secure Web checkout and authenticated subscription management.
+
 - **[macOS / Persistent appearance]** Centralize System, Light and Dark mode in a persisted preferences controller, remove conflicting per-view/window overrides, and restore the chosen mode on launch and relaunch.
 
 - **[macOS / Manual appearance switching]** Apply saved Light/Dark/System preferences explicitly to the dashboard, SwiftUI environment, and AppKit window; add an immediate header theme toggle and reflect the active theme in Appearance settings.
