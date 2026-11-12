@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[macOS / Someday dashboard]** Match the Web Someday schedule view with active deferred items having no return date, newest first, native email-table controls, detail navigation, and Cloud Sync status.
+
 - **[macOS / Upcoming dashboard]** Add a native Upcoming page matching Web scheduling: active deferred items returning from tomorrow onward in the user's local timezone, sorted by return time, with the email table, item details, and cloud-sync footer.
 
 - **[macOS / Today dashboard]** Add the Web-style last-24-hours Today view with recent Inbox arrivals, scheduled returns, arrival counts, native email categories/actions, item details navigation, and cloud sync footer. Respect persisted Inbox-entry timestamps and refresh the rolling window.
