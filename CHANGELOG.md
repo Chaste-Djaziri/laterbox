@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[Release / macOS distribution]** Add Developer ID-signed, Apple-notarized macOS DMG packaging and checksum verification to automated GitHub Releases; move Android to paused and show macOS on the web downloads page.
+
 - **[macOS / Global Quick Capture]** Register Command–Option–N as a system-wide Quick Capture shortcut, show a floating capture panel over other apps, keep the process alive after closing its window, and request macOS Open at Login for background availability.
 
 - **[macOS / Sidebar cloud storage]** Replace the unavailable storage placeholder with a Web-matched usage ring, native quota popover, plan-aware billing usage, 80/95/100% warnings, refresh, and Plans navigation.

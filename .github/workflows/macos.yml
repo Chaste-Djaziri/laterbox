@@ -1,0 +1,64 @@
+# .github/workflows/macos.yml
+name: Native macOS Distributable
+on:
+  workflow_call:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'laterbox-ios/LaterBoxMac/**'
+      - 'laterbox-ios/laterbox-ios.xcodeproj/**'
+      - '.github/workflows/macos.yml'
+      - 'scripts/package_macos.sh'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: macos-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  package:
+    name: Build, sign and notarize macOS installer
+    runs-on: xcode-27
+    timeout-minutes: 80
+    env:
+      TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      CERTIFICATE_BASE64: ${{ secrets.MACOS_DEVELOPER_ID_CERTIFICATE_BASE64 }}
+      CERTIFICATE_PASSWORD: ${{ secrets.MACOS_DEVELOPER_ID_CERTIFICATE_PASSWORD }}
+      ASC_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_API_KEY_BASE64 }}
+      ASC_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+      ASC_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select supported Xcode and SDK
+        shell: bash
+        run: |
+          set -euo pipefail
+          xcodebuild -version
+          xcodebuild -showsdks | grep -q macosx
+          xcodebuild -list -project laterbox-ios/laterbox-ios.xcodeproj
+      - name: Build macOS app and verify unsigned PR build
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: |
+          set -euo pipefail
+          xcodebuild -project laterbox-ios/laterbox-ios.xcodeproj -scheme LaterBoxMac \
+            -configuration Release -destination 'generic/platform=macOS' \
+            -derivedDataPath "$RUNNER_TEMP/LaterBoxMacBuild" CODE_SIGNING_ALLOWED=NO build
+          test -d "$RUNNER_TEMP/LaterBoxMacBuild/Build/Products/Release/Laterbox.app"
+      - name: Sign, notarize and package release DMG
+        if: github.event_name != 'pull_request'
+        shell: bash
+        run: bash scripts/package_macos.sh
+      - name: Upload notarized installer and checksum
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: laterbox-macos-dmg-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/macos-release/LaterBox-macOS.dmg
+            ${{ runner.temp }}/macos-release/LaterBox-macOS.dmg.sha256
+          if-no-files-found: error
+          retention-days: 30

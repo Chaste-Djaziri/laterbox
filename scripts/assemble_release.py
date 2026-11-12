@@ -11,8 +11,7 @@ from pathlib import Path
 
 
 ASSETS = {
-    "laterbox.apk": ("laterbox.apk",),
-    "laterbox-android-release.aab": ("laterbox-android-release.aab",),
+    "LaterBox-macOS.dmg": ("LaterBox-macOS.dmg",),
     "LaterBox.ipa": ("*.ipa",),
     "laterbox-web.tar.gz": ("laterbox-web-*.tar.gz",),
     "laterbox-chrome-extension.zip": ("laterbox-chrome-extension.zip",),
@@ -81,6 +80,10 @@ def assemble(current: Path, previous: Path, output: Path, commit: str, changelog
             "size": destination.stat().st_size,
         }
 
+    # Do not carry forward paused Android binaries from older releases.
+    # A notarized macOS installer must be present before a release is published.
+    checksum = output / "LaterBox-macOS.dmg.sha256"
+    checksum.write_text(f'{manifest["assets"]["LaterBox-macOS.dmg"]["sha256"]}  LaterBox-macOS.dmg\\n')
     shutil.copyfile(changelog, output / "LaterBox-CHANGELOG.md")
     (output / "release-manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
     notes = current_changelog_entries(changelog, previous)

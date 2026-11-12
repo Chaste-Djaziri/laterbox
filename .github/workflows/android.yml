@@ -1,9 +1,7 @@
 name: Native Android Build & Release
+# Android delivery is paused; retain this workflow for future reactivation.
+# No automatic event will build or publish Android during the pause.
 on:
-  workflow_call:
-  pull_request:
-    branches: [main]
-    paths: ['laterbox-android/**', '.github/workflows/android.yml']
   workflow_dispatch:
 
 permissions:
@@ -15,6 +13,7 @@ concurrency:
 
 jobs:
   build:
+    if: false # Paused intentionally even when dispatched manually
     name: Build & Test Native Android App
     runs-on: ubuntu-24.04
     timeout-minutes: 30

@@ -21,7 +21,7 @@ jobs:
       previous_tag: ${{ steps.plan.outputs.previous_tag }}
       tag: ${{ steps.plan.outputs.tag }}
       version: ${{ steps.plan.outputs.version }}
-      build_android: ${{ steps.plan.outputs.build_android }}
+      build_macos: ${{ steps.plan.outputs.build_macos }}
       build_ios: ${{ steps.plan.outputs.build_ios }}
       build_web: ${{ steps.plan.outputs.build_web }}
       build_extensions: ${{ steps.plan.outputs.build_extensions }}
@@ -62,15 +62,15 @@ jobs:
               echo "$output_name=false" >> "$GITHUB_OUTPUT"
             fi
           }
-          should_build build_android laterbox.apk,laterbox-android-release.aab laterbox-android .github/workflows/android.yml .github/workflows/complete-release.yml scripts/assemble_release.py
+          should_build build_macos LaterBox-macOS.dmg laterbox-ios/LaterBoxMac laterbox-ios/laterbox-ios.xcodeproj .github/workflows/macos.yml scripts/package_macos.sh .github/workflows/complete-release.yml scripts/assemble_release.py
           should_build build_ios LaterBox.ipa laterbox-ios .github/workflows/ios.yml .github/workflows/complete-release.yml scripts/assemble_release.py
           should_build build_web laterbox-web.tar.gz laterbox-web laterbox-extension supabase .github/workflows/release.yml .github/workflows/complete-release.yml scripts/assemble_release.py
           should_build build_extensions laterbox-chrome-extension.zip,laterbox-firefox-extension.zip,laterbox-safari-extension.zip laterbox-extension .github/workflows/extensions.yml .github/workflows/complete-release.yml scripts/assemble_release.py
 
-  android:
+  macos:
     needs: plan
-    if: needs.plan.outputs.build_android == 'true'
-    uses: ./.github/workflows/android.yml
+    if: needs.plan.outputs.build_macos == 'true'
+    uses: ./.github/workflows/macos.yml
     secrets: inherit
 
   ios:
@@ -92,10 +92,10 @@ jobs:
     secrets: inherit
 
   publish:
-    needs: [plan, android, ios, web, extensions]
+    needs: [plan, macos, ios, web, extensions]
     if: >-
       always() && needs.plan.result == 'success' &&
-      (needs.android.result == 'success' || needs.android.result == 'skipped') &&
+      (needs.macos.result == 'success' || needs.macos.result == 'skipped') &&
       (needs.ios.result == 'success' || needs.ios.result == 'skipped') &&
       (needs.web.result == 'success' || needs.web.result == 'skipped') &&
       (needs.extensions.result == 'success' || needs.extensions.result == 'skipped')
@@ -103,15 +103,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v6
-        if: needs.plan.outputs.build_android == 'true'
+        if: needs.plan.outputs.build_macos == 'true'
         with:
-          name: laterbox-android-release-apk-${{ github.run_id }}
-          path: ${{ runner.temp }}/current/android-apk
-      - uses: actions/download-artifact@v6
-        if: needs.plan.outputs.build_android == 'true'
-        with:
-          name: laterbox-android-aab-${{ github.run_id }}
-          path: ${{ runner.temp }}/current/android-aab
+          name: laterbox-macos-dmg-${{ github.run_id }}
+          path: ${{ runner.temp }}/current/macos
       - uses: actions/download-artifact@v6
         if: needs.plan.outputs.build_ios == 'true'
         with:
