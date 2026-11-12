@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[macOS / Recently Deleted]** Add native Recently Deleted listing, restore-to-Inbox, permanent deletion through the existing attachment-storage cleanup service, confirmed Empty Trash, details navigation, and cloud sync status.
+
 - **[macOS / Archived dashboard]** Add a Web-style Archived page for archived cloud items, with restore-to-Inbox, standard row controls, native item detail navigation and the Cloud Sync footer.
 
 - **[macOS / Starred dashboard]** Add a Web-style Starred page including favorites across Inbox, scheduled, kept, and archived items, with native table controls, item details navigation, and cloud sync footer.
