@@ -13,6 +13,7 @@ struct MacInboxEntry: Identifiable {
     let title: String
     let snippet: String
     let url: URL?
+    let previewImageURL: URL?
     let date: Date
     let category: Category
     let isStarred: Bool
@@ -423,97 +424,147 @@ struct MacInboxTableView: View {
         .accessibilityLabel(help)
     }
 
+    // Image occupies the right edge only. The gradient mask fades the image
+    // toward the message copy, as in the Web email table.
+    private func rowArtwork(_ url: URL, hovered: Bool) -> some View {
+        AsyncImage(url: url) { phase in
+            if case let .success(image) = phase {
+                image
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: 340, height: 55, alignment: .trailing)
+                    .clipped()
+                    .opacity(hovered ? 0.82 : 0.66)
+                    .mask {
+                        LinearGradient(stops: [
+                            .init(color: .clear, location: 0),
+                            .init(color: .black.opacity(0.3), location: 0.30),
+                            .init(color: .black.opacity(0.85), location: 0.61),
+                            .init(color: .black, location: 1)
+                        ], startPoint: .leading, endPoint: .trailing)
+                    }
+            }
+        }
+        .frame(width: 340, height: 55, alignment: .trailing)
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+    }
+
     private func inboxRow(_ item: MacInboxEntry) -> some View {
         let isHovered = hoveredItemID == item.id
         let isSelected = selectedIDs.contains(item.id)
         let isBusy = busyIDs.contains(item.id)
-        return HStack(spacing: 13) {
-            Toggle("Select item", isOn: Binding(
-                get: { selectedIDs.contains(item.id) },
-                set: { checked in
-                    if checked { selectedIDs.insert(item.id) }
-                    else { selectedIDs.remove(item.id) }
-                }
-            ))
-            .toggleStyle(.checkbox)
-            .labelsHidden()
-            .help("Select \(item.title)")
+        return ZStack(alignment: .trailing) {
+            Rectangle()
+                .fill(isSelected
+                      ? accent.opacity(dark ? 0.15 : 0.32)
+                      : isHovered
+                        ? (dark ? Color.white.opacity(0.075) : Color(red: 250 / 255, green: 248 / 255, blue: 245 / 255))
+                        : surface)
 
-            Button {
-                performAction(item.id) { try await onStar(item.id, !item.isStarred) }
-            } label: {
-                Image(systemName: item.isStarred ? "star.fill" : "star")
-                    .font(.system(size: 14))
-                    .foregroundStyle(item.isStarred ? Color.orange : muted)
-                    .frame(width: 22, height: 30)
-                    .contentShape(Rectangle())
+            if let image = item.previewImageURL {
+                rowArtwork(image, hovered: isHovered)
             }
-            .buttonStyle(.plain)
-            .disabled(isBusy)
-            .help(item.isStarred ? "Remove star" : "Star item")
 
-            Image(systemName: item.category == .media ? "play.rectangle" :
-                    item.category == .update ? "note.text" : "link")
-                .font(.system(size: 16))
-                .foregroundStyle(.secondary)
-                .frame(width: 32, height: 32)
-                .background(dark ? Color.white.opacity(0.06) : Color.black.opacity(0.04),
-                            in: RoundedRectangle(cornerRadius: 10))
+            HStack(spacing: 12) {
+                Toggle("Select item", isOn: Binding(
+                    get: { selectedIDs.contains(item.id) },
+                    set: { checked in
+                        if checked { selectedIDs.insert(item.id) }
+                        else { selectedIDs.remove(item.id) }
+                    }
+                ))
+                .toggleStyle(.checkbox)
+                .labelsHidden()
+                .help("Select \(item.title)")
 
-            Text(item.source)
-                .font(.system(size: 12, weight: item.isUnread ? .semibold : .regular))
-                .frame(width: 118, alignment: .leading)
+                Button {
+                    performAction(item.id) { try await onStar(item.id, !item.isStarred) }
+                } label: {
+                    Image(systemName: item.isStarred ? "star.fill" : "star")
+                        .font(.system(size: 15))
+                        .foregroundStyle(item.isStarred ? Color.orange : muted)
+                        .frame(width: 19, height: 29)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .disabled(isBusy)
+                .help(item.isStarred ? "Remove star" : "Star item")
+
+                Text(item.source)
+                    .font(.system(size: 12, weight: .bold))
+                    .lineLimit(1)
+                    .frame(width: 154, alignment: .leading)
+
+                HStack(spacing: 6) {
+                    Text(item.title)
+                        .font(.system(size: 12, weight: .bold))
+                        .lineLimit(1)
+                        .layoutPriority(1)
+                    Text("—")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(muted)
+                    Text(item.snippet)
+                        .font(.system(size: 12))
+                        .foregroundStyle(muted)
+                        .lineLimit(1)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .lineLimit(1)
 
-            HStack(spacing: 6) {
-                Text(item.title)
-                    .font(.system(size: 12, weight: item.isUnread ? .semibold : .medium))
-                    .lineLimit(1)
-                Text("— \(item.snippet)")
-                    .font(.system(size: 12))
-                    .foregroundStyle(muted)
-                    .lineLimit(1)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-
-            if isHovered || isSelected {
-                HStack(spacing: 1) {
-                    if let url = item.url {
-                        rowAction("arrow.up.right.square", help: "Open original link", disabled: isBusy) {
-                            NSWorkspace.shared.open(url)
+                if isHovered || isSelected {
+                    HStack(spacing: 2) {
+                        rowAction("archivebox", help: "Archive", disabled: isBusy) {
+                            performAction(item.id) { try await onArchive(item.id) }
+                        }
+                        rowAction("trash", help: "Move to Recently Deleted", disabled: isBusy) {
+                            pendingDelete = item
+                        }
+                        if let url = item.url {
+                            rowAction("arrow.up.right.square", help: "Open original link", disabled: isBusy) {
+                                NSWorkspace.shared.open(url)
+                            }
                         }
                     }
-                    rowAction("archivebox", help: "Archive", disabled: isBusy) {
-                        performAction(item.id) { try await onArchive(item.id) }
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 3)
+                    .background {
+                        RoundedRectangle(cornerRadius: 9)
+                            .fill(dark ? Color(red: 43 / 255, green: 45 / 255, blue: 48 / 255).opacity(0.97)
+                                  : Color.white.opacity(0.97))
                     }
-                    rowAction("trash", help: "Move to Recently Deleted", disabled: isBusy) {
-                        pendingDelete = item
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 9)
+                            .strokeBorder(dark ? Color.white.opacity(0.18) : Color.black.opacity(0.13), lineWidth: 1)
                     }
+                    .shadow(color: .black.opacity(dark ? 0.20 : 0.10), radius: 6, y: 2)
+                    .fixedSize(horizontal: true, vertical: false)
+                    .transition(.opacity)
+                } else {
+                    Text(item.date, style: .date)
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(dark ? Color.white.opacity(0.8) : Color.black.opacity(0.65))
+                        .lineLimit(1)
+                        .frame(width: 94, alignment: .trailing)
+                        .padding(.horizontal, 7)
+                        .padding(.vertical, 5)
+                        .background {
+                            RoundedRectangle(cornerRadius: 7)
+                                .fill(dark ? Color.black.opacity(0.65) : Color.white.opacity(item.previewImageURL == nil ? 0 : 0.78))
+                        }
                 }
-                .frame(minWidth: 93, alignment: .trailing)
-                .transition(.opacity)
-            } else {
-                Text(item.date, style: .date)
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundStyle(muted)
-                    .frame(width: 93, alignment: .trailing)
-                    .lineLimit(1)
             }
+            .padding(.horizontal, 15)
+            .frame(height: 55)
         }
-        .padding(.horizontal, 16)
-        .frame(height: 59)
+        .frame(height: 55)
         .frame(maxWidth: .infinity)
         .contentShape(Rectangle())
-        .background {
-            Rectangle()
-                .fill(isSelected ? accent.opacity(dark ? 0.16 : 0.36)
-                       : isHovered ? (dark ? Color.white.opacity(0.085) : Color.black.opacity(0.045))
-                       : Color.clear)
-        }
+        .clipped()
         .onHover { hovering in
             if hovering { hoveredItemID = item.id }
             else if hoveredItemID == item.id { hoveredItemID = nil }
         }
-        .animation(.easeOut(duration: 0.12), value: isHovered)
+        .animation(.easeOut(duration: 0.13), value: isHovered)
     }
 }

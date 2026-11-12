@@ -17,6 +17,13 @@ struct MacCloudItem: Decodable, Identifiable {
     let created_at: String?
 }
 
+private struct MacInboxMetadata: Decodable {
+    let item_id: String
+    let description: String?
+    let preview_image_url: String?
+    let content_type: String?
+}
+
 struct MacCloudDraft {
     let id: String
     let kind: String
@@ -205,13 +212,19 @@ final class MacCloudSyncStore: ObservableObject {
             // avoid accidental cross-account UI display.
             let data = try await request("items?select=id,title,url,text_content,type,status,favorite,return_at,created_at&user_id=eq.\(credentials.userID)&deleted_at=is.null&order=created_at.desc&limit=500")
             let rows = try JSONDecoder().decode([MacCloudItem].self, from: data)
+            var metadataByItem: [String: MacInboxMetadata] = [:]
+            if let data = try? await request("item_metadata?select=item_id,description,preview_image_url,content_type&user_id=eq.\(credentials.userID)&limit=500"),
+               let metadata = try? JSONDecoder().decode([MacInboxMetadata].self, from: data) {
+                metadataByItem = Dictionary(metadata.map { ($0.item_id, $0) }, uniquingKeysWith: { first, _ in first })
+            }
             let now = Date()
             items = rows.compactMap { row in
                 let schedule = isoDate(row.return_at)
                 let status = row.status ?? ""
                 guard status == "inbox" || (status == "deferred" && schedule.map { $0 <= now } == true) else { return nil }
                 let url = row.url.flatMap { URL(string: $0) }
-                let type = row.type?.lowercased() ?? ""
+                let metadata = metadataByItem[row.id]
+                let type = (metadata?.content_type ?? row.type)?.lowercased() ?? ""
                 let category: MacInboxEntry.Category
                 if type == "video" || url?.host?.contains("youtube") == true || url?.host?.contains("spotify") == true {
                     category = .media
@@ -221,9 +234,29 @@ final class MacCloudSyncStore: ObservableObject {
                     category = .article
                 }
                 let title = row.title?.isEmpty == false ? row.title! : (url?.host ?? "Untitled item")
+                let youtubeID: String? = {
+                    guard let url, let host = url.host?.lowercased() else { return nil }
+                    if host == "youtu.be" { return url.pathComponents.dropFirst().first }
+                    if host == "youtube.com" || host.hasSuffix(".youtube.com") {
+                        if url.path == "/watch" {
+                            return URLComponents(url: url, resolvingAgainstBaseURL: false)?
+                                .queryItems?.first(where: { $0.name == "v" })?.value
+                        }
+                        if url.path.hasPrefix("/shorts/") {
+                            return url.pathComponents.dropFirst(2).first
+                        }
+                    }
+                    return nil
+                }()
+                let videoImage = youtubeID.flatMap { id -> URL? in
+                    guard id.range(of: "^[A-Za-z0-9_-]{11}$", options: .regularExpression) != nil else { return nil }
+                    return URL(string: "https://i.ytimg.com/vi/\(id)/hqdefault.jpg")
+                }
+                let image = metadata?.preview_image_url.flatMap(URL.init(string:)) ?? videoImage
                 return MacInboxEntry(
                     id: row.id, source: url?.host?.replacingOccurrences(of: "www.", with: "") ?? (type == "task" ? "Task" : type == "file" ? "File" : "Note"),
-                    title: title, snippet: row.text_content ?? row.url ?? "", url: url,
+                    title: title, snippet: metadata?.description?.isEmpty == false ? metadata!.description! : (row.text_content ?? row.url ?? ""), url: url,
+                    previewImageURL: image,
                     date: isoDate(row.created_at) ?? now, category: category,
                     isStarred: row.favorite ?? false, isUnread: status == "inbox"
                 )
