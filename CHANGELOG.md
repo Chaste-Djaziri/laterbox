@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[macOS / Earn]** Add a native referral dashboard using authenticated LaterBox Earn APIs with live balances, referral progress, commissions, payouts, shareable code, code customization, enrollment, and browser-based Whop verification.
+
 - **[macOS / Collections table and duplicate repair]** Display selected collection items using the standard email table and cloud footer; exclude soft-deleted collections and memberships, deduplicate names in the UI, and protect active collection names in Supabase after merging duplicate memberships.
 
 - **[macOS / Collections]** Add synced native Collections page and folder-icon sidebar popup with per-collection item counts, collection browsing, creation, rename, deletion, and item membership controls.
