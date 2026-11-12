@@ -36,7 +36,7 @@ export async function GET(
   }
 
   // Android public distribution is paused. Never redirect to old release APKs.
-  if (/\\.(apk|aab)$/i.test(filename)) {
+  if (/\.(apk|aab)$/i.test(filename)) {
     return new NextResponse('Android is coming soon.', { status: 410 });
   }
 
