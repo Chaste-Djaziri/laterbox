@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[macOS / Apple notarization status 7000]** Print Apple’s team-level rejection summary and handle null issue lists; documented the Apple Developer Support action required to enable notarization for the signing team.
+
 - **[macOS / Notarization diagnostics]** Fail closed on Apple notarization rejection, print Apple's issue descriptions, and retain diagnostics as a GitHub Actions artifact instead of attempting to staple a nonexistent ticket.
 
 - **[macOS / GitHub distribution]** Align the notarized macOS packaging workflow with the repository's existing APPLE_DEVELOPER_ID signing secrets; no duplicate certificate secrets required.

@@ -77,7 +77,12 @@ if [[ "$SUBMISSION_STATUS" != "Accepted" ]]; then
 import json, sys
 data = json.load(open(sys.argv[1]))
 print("Apple notarization status:", data.get("status", "unknown"))
-for issue in data.get("issues", []):
+print("Status code:", data.get("statusCode", "unknown"))
+print("Status summary:", data.get("statusSummary") or "Not provided")
+issues = data.get("issues") or []
+if not issues:
+    print("No file-level issues were provided by Apple.")
+for issue in issues:
     print(" - {severity}: {message} ({path})".format(
         severity=issue.get("severity", "error"),
         message=issue.get("message", "Notarization issue"),

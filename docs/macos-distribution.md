@@ -30,3 +30,7 @@ These secret names match the repository's existing Apple Developer ID and App St
 ## Paused Android
 
 Android CI is retained for future development but both automated triggers and the build job are disabled. `Complete GitHub Release` no longer invokes it or carries Android APK/AAB files into new managed releases. The public Android download endpoint returns HTTP 410, and the download page labels Android Coming soon. Re-enabling Android requires explicitly restoring workflow triggers and release assets.
+
+## Apple notarization team provisioning
+
+If Apple returns `statusCode: 7000` and `statusSummary: Team is not yet configured for notarization`, the Developer Program team has not been enabled for notarization. The app can sign successfully and still be rejected. Contact [Apple Developer Support](https://developer.apple.com/contact/) under **Development and Technical → Other Development or Technical Questions** and provide the notarization submission ID. Do not weaken signing verification, bypass notarization, or keep retrying unchanged installers. Apple's log can include `issues: null` in this condition; the CI diagnostic parser handles this and prints the team-level summary.
