@@ -6,6 +6,7 @@ import AVKit
 
 struct MacItemDetailView: View {
     let item: MacInboxEntry
+    let backDestination: String
     let onBack: () -> Void
     let onStar: (String, Bool) async throws -> Void
     let onKeep: (String) async throws -> Void
@@ -74,7 +75,7 @@ struct MacItemDetailView: View {
     private var header: some View {
         HStack(spacing: 12) {
             Button(action: onBack) {
-                Label("Back to Inbox", systemImage: "arrow.left")
+                Label("Back to \(backDestination)", systemImage: "arrow.left")
                     .font(.system(size: 12, weight: .semibold))
                     .padding(.horizontal, 13)
                     .frame(height: 36)

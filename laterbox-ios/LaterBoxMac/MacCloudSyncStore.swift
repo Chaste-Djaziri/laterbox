@@ -15,6 +15,7 @@ struct MacCloudItem: Decodable, Identifiable {
     let favorite: Bool?
     let return_at: String?
     let created_at: String?
+    let inbox_entered_at: String?
 }
 
 struct MacChecklistEntry: Codable, Identifiable, Hashable {
@@ -73,6 +74,7 @@ enum MacCloudError: LocalizedError {
 @MainActor
 final class MacCloudSyncStore: ObservableObject {
     @Published private(set) var items: [MacInboxEntry] = []
+    @Published private(set) var activeItems: [MacInboxEntry] = []
     @Published private(set) var loading = false
     @Published private(set) var saving = false
     @Published private(set) var lastError: String?
@@ -261,7 +263,7 @@ final class MacCloudSyncStore: ObservableObject {
             let credentials = try readAuth()
             // RLS is still enforced. User ID filters scope the request and
             // avoid accidental cross-account UI display.
-            let data = try await request("items?select=id,title,url,text_content,type,status,favorite,return_at,created_at&user_id=eq.\(credentials.userID)&deleted_at=is.null&order=created_at.desc&limit=500")
+            let data = try await request("items?select=id,title,url,text_content,type,status,favorite,return_at,created_at,inbox_entered_at&user_id=eq.\(credentials.userID)&deleted_at=is.null&order=created_at.desc&limit=500")
             let rows = try JSONDecoder().decode([MacCloudItem].self, from: data)
             var metadataByItem: [String: MacInboxMetadata] = [:]
             if let data = try? await request("item_metadata?select=item_id,description,preview_image_url,content_type,structured_data&user_id=eq.\(credentials.userID)&limit=500"),
@@ -280,10 +282,10 @@ final class MacCloudSyncStore: ObservableObject {
                 }
             }
             let now = Date()
-            items = rows.compactMap { row in
+            activeItems = rows.compactMap { row in
                 let schedule = isoDate(row.return_at)
                 let status = row.status ?? ""
-                guard status == "inbox" || (status == "deferred" && schedule.map { $0 <= now } == true) else { return nil }
+                guard status == "inbox" || status == "deferred" else { return nil }
                 let url = row.url.flatMap { URL(string: $0) }
                 let metadata = metadataByItem[row.id]
                 let type = (metadata?.content_type ?? row.type)?.lowercased() ?? ""
@@ -329,8 +331,12 @@ final class MacCloudSyncStore: ObservableObject {
                     date: isoDate(row.created_at) ?? now, category: category,
                     isStarred: row.favorite ?? false, isUnread: status == "inbox",
                     itemType: row.type ?? "link", returnDate: schedule, tags: tags,
-                    checklist: entries, collectionNames: collectionsByItem[row.id] ?? []
+                    checklist: entries, collectionNames: collectionsByItem[row.id] ?? [],
+                    inboxArrival: status == "inbox" ? isoDate(row.inbox_entered_at) ?? isoDate(row.created_at) : schedule
                 )
+            }
+            items = activeItems.filter { entry in
+                entry.isUnread || entry.returnDate.map { $0 <= now } == true
             }
             isConnected = true
             lastError = nil

@@ -23,6 +23,7 @@ struct MacInboxEntry: Identifiable {
     var tags: [String] = []
     var checklist: [MacChecklistEntry] = []
     var collectionNames: [String] = []
+    var inboxArrival: Date? = nil
 }
 
 struct MacInboxTableView: View {
@@ -36,6 +37,8 @@ struct MacInboxTableView: View {
     let onDelete: (String) async throws -> Void
     let onQuickSave: () -> Void
     let onOpenItem: (String) -> Void
+    var contextTitle: String = "Inbox"
+    var sortByInboxArrival: Bool = false
 
     private enum CategoryTab: String, CaseIterable, Identifiable {
         case primary = "Primary"
@@ -93,7 +96,11 @@ struct MacInboxTableView: View {
             case .updates: item.category == .update
             }
         }
-        return filtered.sorted { newestFirst ? $0.date > $1.date : $0.date < $1.date }
+        return filtered.sorted {
+            let lhs = sortByInboxArrival ? ($0.inboxArrival ?? $0.date) : $0.date
+            let rhs = sortByInboxArrival ? ($1.inboxArrival ?? $1.date) : $1.date
+            return newestFirst ? lhs > rhs : lhs < rhs
+        }
     }
 
     var body: some View {
@@ -290,6 +297,7 @@ struct MacInboxTableView: View {
 
     private var emptyTitle: String {
         if !isConnected { return "Your saves are waiting for you" }
+        if contextTitle == "Today" { return "Nothing new in the last 24 hours" }
         switch activeTab {
         case .primary: return "All clear, for now"
         case .articles: return "Your reading list starts here"
@@ -302,6 +310,7 @@ struct MacInboxTableView: View {
         if !isConnected {
             return "Unable to connect to your saved items right now. Retry sync, or create a new capture here."
         }
+        if contextTitle == "Today" { return "Items entering your Inbox, including scheduled returns, will appear here for 24 hours." }
         switch activeTab {
         case .primary: return "A little breathing room! When you save something for later, it will show up here."
         case .articles: return "Save articles and interesting reads to find them when you have a moment."
@@ -547,7 +556,7 @@ struct MacInboxTableView: View {
                     .fixedSize(horizontal: true, vertical: false)
                     .transition(.opacity)
                 } else {
-                    Text(item.date, style: .date)
+                    Text(sortByInboxArrival ? (item.inboxArrival ?? item.date) : item.date, style: .date)
                         .font(.system(size: 11, weight: .medium))
                         .foregroundStyle(dark ? Color.white.opacity(0.8) : Color.black.opacity(0.65))
                         .lineLimit(1)

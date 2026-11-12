@@ -59,6 +59,7 @@ struct MacDashboardView: View {
     @State private var selection: DashboardRoute = .inbox
     @State private var showingQuickSave = false
     @State private var openedItemID: String?
+    @State private var todayClock = Date()
     @StateObject private var cloud = MacCloudSyncStore()
     @State private var searchQuery = ""
     @State private var searchFocused = false
@@ -86,14 +87,17 @@ struct MacDashboardView: View {
                 .hidden()
         }
         .task {
+            todayClock = Date()
             await cloud.refresh()
             while !Task.isCancelled {
                 try? await Task.sleep(for: .seconds(60))
                 guard !Task.isCancelled else { break }
+                todayClock = Date()
                 await cloud.refresh()
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            todayClock = Date()
             Task { await cloud.refresh() }
         }
         .sheet(isPresented: $showingQuickSave) {
@@ -388,10 +392,11 @@ struct MacDashboardView: View {
 
     @ViewBuilder
     private var page: some View {
-        if selection == .inbox, let openedItemID {
-            if let item = cloud.items.first(where: { $0.id == openedItemID }) {
+        if (selection == .inbox || selection == .today), let openedItemID {
+            if let item = cloud.activeItems.first(where: { $0.id == openedItemID }) {
                 MacItemDetailView(
                     item: item,
+                    backDestination: selection.rawValue,
                     onBack: { self.openedItemID = nil },
                     onStar: { id, starred in try await cloud.setStarred(id, starred: starred) },
                     onKeep: { id in try await cloud.keep(id) },
@@ -407,11 +412,15 @@ struct MacDashboardView: View {
                 .padding(.bottom, 18)
             } else {
                 VStack(spacing: 12) {
-                    Text("This item is no longer in your Inbox.")
-                    Button("Back to Inbox") { self.openedItemID = nil }
+                    Text("This item is no longer available in this view.")
+                    Button("Back to \(selection.rawValue)") { self.openedItemID = nil }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
+        } else if selection == .today {
+            MacTodayView(cloud: cloud, now: todayClock,
+                onQuickSave: { showingQuickSave = true },
+                onOpenItem: { id in openedItemID = id })
         } else if selection == .inbox {
             VStack(spacing: 12) {
                 MacInboxTableView(items: cloud.items, isConnected: cloud.isConnected,
