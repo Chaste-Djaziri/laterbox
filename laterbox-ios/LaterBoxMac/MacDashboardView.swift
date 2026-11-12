@@ -188,19 +188,72 @@ struct MacDashboardView: View {
             .frame(width: 36, height: 1)
     }
 
+    /// Match each native page's filter rather than counting all captured items.
+    private func itemCount(for route: DashboardRoute) -> Int? {
+        switch route {
+        case .inbox:
+            return cloud.items.count
+        case .today:
+            let cutoff = todayClock.addingTimeInterval(-24 * 60 * 60)
+            return cloud.activeItems.filter { item in
+                let due = item.isUnread || (item.returnDate.map { $0 <= todayClock } ?? false)
+                guard due, let arrival = item.inboxArrival else { return false }
+                return arrival >= cutoff && arrival <= todayClock
+            }.count
+        case .upcoming:
+            let tomorrow = Calendar.current.date(
+                byAdding: .day, value: 1,
+                to: Calendar.current.startOfDay(for: todayClock)
+            ) ?? todayClock.addingTimeInterval(86400)
+            return cloud.activeItems.filter { item in
+                !item.isUnread && (item.returnDate.map { $0 >= tomorrow } ?? false)
+            }.count
+        case .someday:
+            return cloud.activeItems.filter { !$0.isUnread && $0.returnDate == nil }.count
+        case .starred:
+            return cloud.allItems.filter(\.isStarred).count
+        case .kept:
+            return cloud.allItems.filter { $0.lifecycleStatus == "saved" }.count
+        case .archived:
+            return cloud.allItems.filter { $0.lifecycleStatus == "archived" }.count
+        case .trash:
+            return cloud.deletedItems.count
+        default:
+            return nil
+        }
+    }
+
     private func navigationItem(_ route: DashboardRoute) -> some View {
         let active = selection == route
+        let count = itemCount(for: route)
         return Button { selection = route; openedItemID = nil } label: {
             Image(systemName: route.icon)
                 .font(.system(size: 23, weight: active ? .semibold : .regular))
                 .foregroundStyle(active ? DashboardStyle.ink : (scheme == .dark ? Color.white.opacity(0.64) : DashboardStyle.muted))
                 .frame(width: 52, height: 52)
                 .background(active ? DashboardStyle.lime : Color.clear, in: RoundedRectangle(cornerRadius: 16))
+                .overlay(alignment: .topTrailing) {
+                    if let count, count > 0 {
+                        Text(count > 99 ? "99+" : String(count))
+                            .font(.system(size: 9, weight: .heavy, design: .rounded))
+                            .monospacedDigit()
+                            .foregroundStyle(active ? Color.white : DashboardStyle.ink)
+                            .padding(.horizontal, count > 9 ? 5 : 4)
+                            .frame(minWidth: 17, minHeight: 17)
+                            .background(active ? DashboardStyle.ink : DashboardStyle.lime, in: Capsule())
+                            .overlay {
+                                Capsule().strokeBorder(mainBackground, lineWidth: 1.5)
+                            }
+                            .offset(x: 7, y: -5)
+                            .accessibilityHidden(true)
+                            .allowsHitTesting(false)
+                    }
+                }
                 .contentShape(RoundedRectangle(cornerRadius: 16))
         }
         .buttonStyle(.plain)
-        .help(route.rawValue)
-        .accessibilityLabel(route.rawValue)
+        .help(count.map { "\(route.rawValue) · \($0) items" } ?? route.rawValue)
+        .accessibilityLabel(count.map { "\(route.rawValue), \($0) items" } ?? route.rawValue)
         .accessibilityAddTraits(active ? [.isSelected] : [])
     }
 
