@@ -64,7 +64,7 @@ struct MacCloudSyncStatusView: View {
         HStack(spacing: 12) {
             Image(systemName: hasError ? "icloud.slash" : "icloud")
                 .font(.system(size: 16, weight: .medium))
-                .foregroundStyle(ink)
+                .foregroundStyle(Color.black)
                 .frame(width: 36, height: 36)
                 .background(accent, in: Circle())
                 .accessibilityHidden(true)
