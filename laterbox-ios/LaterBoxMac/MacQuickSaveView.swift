@@ -41,6 +41,7 @@ struct MacQuickSaveView: View {
         case tomorrow = "Tomorrow"
         case weekend = "This weekend"
         case someday = "Someday"
+        case nextWeek = "Next week"
         case custom = "Pick a date"
 
         var id: String { rawValue }
@@ -51,6 +52,7 @@ struct MacQuickSaveView: View {
             case .tomorrow: "sunrise"
             case .weekend: "calendar"
             case .someday: "moon.stars"
+            case .nextWeek: "calendar.badge.clock"
             case .custom: "calendar.badge.clock"
             }
         }
@@ -64,6 +66,20 @@ struct MacQuickSaveView: View {
     @State private var kind: CaptureKind = .link
     @State private var content = ""
     @State private var title = ""
+    @State private var linkPreview: MacLinkPreview?
+    @State private var fetchingPreview = false
+    @State private var previewError: String?
+    @State private var enrichmentTask: Task<Void, Never>?
+    @State private var suggestedReason = ""
+    @State private var didEditTitle = false
+    @State private var didEditTags = false
+    @State private var didEditSchedule = false
+    @State private var cloudCollections: [MacCloudCollection] = []
+    @State private var selectedCollectionIDs: Set<String> = []
+    @State private var newCollectionName = ""
+    @State private var collectionNames: [String] = []
+    @State private var collectionLoadError: String?
+    @State private var isLoadingCollections = false
     @State private var preset: ReturnPreset = .now
     @State private var customDate = Date().addingTimeInterval(3600)
     @State private var tags: [String] = []
@@ -135,7 +151,21 @@ struct MacQuickSaveView: View {
         .frame(width: 570, height: 595)
         .background(surface)
         .preferredColorScheme(scheme)
-        .onAppear { focusedInput = true }
+        .onAppear {
+            focusedInput = true
+            suggestDetails()
+            Task { await fetchCollections() }
+        }
+        .onChange(of: content) { _, _ in
+            suggestDetails()
+            if kind == .link { schedulePreview() }
+        }
+        .onChange(of: kind) { _, _ in
+            suggestDetails()
+            if kind == .link { schedulePreview() }
+        }
+        .onChange(of: taskTitle) { _, _ in suggestDetails() }
+        .onDisappear { enrichmentTask?.cancel() }
     }
 
     private var topBar: some View {
@@ -293,11 +323,12 @@ struct MacQuickSaveView: View {
             }
 
             if kind == .link {
-                Label("Paste a website or article URL.", systemImage: "info.circle")
+                Label("Paste a website or article URL. Preview loads automatically.", systemImage: "info.circle")
                     .font(.system(size: 11))
                     .foregroundStyle(muted)
             }
 
+            if kind == .link { linkPreviewCard }
             if let errorMessage {
                 Text(errorMessage)
                     .font(.system(size: 12))
@@ -428,7 +459,10 @@ struct MacQuickSaveView: View {
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 3), spacing: 10) {
                 ForEach(ReturnPreset.allCases) { option in
                     let selected = preset == option
-                    Button { preset = option } label: {
+                    Button {
+                        preset = option
+                        didEditSchedule = true
+                    } label: {
                         VStack(spacing: 8) {
                             Image(systemName: option.symbol)
                                 .font(.system(size: 18))
@@ -448,6 +482,11 @@ struct MacQuickSaveView: View {
                 }
             }
 
+            if !suggestedReason.isEmpty {
+                Label(suggestedReason, systemImage: "sparkles")
+                    .font(.system(size: 11))
+                    .foregroundStyle(muted)
+            }
             if preset == .custom {
                 DatePicker("Return date", selection: $customDate, in: Date()..., displayedComponents: [.date, .hourAndMinute])
                     .datePickerStyle(.compact)
@@ -464,7 +503,7 @@ struct MacQuickSaveView: View {
             VStack(alignment: .leading, spacing: 7) {
                 Text(kind == .task ? "Description (optional)" : "Title (optional)")
                     .font(.system(size: 12, weight: .medium))
-                TextField(kind == .task ? "Add a short description…" : "Give this a name…", text: $title)
+                TextField(kind == .task ? "Add a short description…" : "Give this a name…", text: Binding(get: { title }, set: { title = $0; didEditTitle = true }))
                     .textFieldStyle(.plain)
                     .font(.system(size: 14))
                     .padding(.horizontal, 14)
@@ -474,6 +513,11 @@ struct MacQuickSaveView: View {
             }
 
             sectionLabel("TAGS")
+            if !tags.isEmpty {
+                Text("Suggested from your capture · edit freely")
+                    .font(.system(size: 11))
+                    .foregroundStyle(muted)
+            }
             HStack(spacing: 9) {
                 TextField("Add a tag…", text: $newTag)
                     .textFieldStyle(.plain)
@@ -495,9 +539,11 @@ struct MacQuickSaveView: View {
             if !tags.isEmpty {
                 FlowTagList(tags: tags) { tag in
                     tags.removeAll { $0 == tag }
+                    didEditTags = true
                 }
             }
 
+            collectionPicker
             VStack(alignment: .leading, spacing: 8) {
                 Label("Ready to keep", systemImage: "checkmark.circle")
                     .font(.system(size: 13, weight: .semibold))
@@ -528,6 +574,7 @@ struct MacQuickSaveView: View {
             .trimmingCharacters(in: CharacterSet(charactersIn: "#"))
         guard !value.isEmpty, !tags.contains(where: { $0.caseInsensitiveCompare(value) == .orderedSame }) else { return }
         tags.append(value)
+        didEditTags = true
         newTag = ""
     }
 
@@ -609,11 +656,180 @@ struct MacQuickSaveView: View {
             kind == .task || content.isEmpty ? nil : "Content: \(content)",
             attachments.isEmpty ? nil : "Files: \(attachments.map(\.lastPathComponent).joined(separator: ", "))",
             "Schedule: \(schedule)",
+            selectedCollections.isEmpty ? nil : "Collections: \(selectedCollections.joined(separator: ", "))",
             tags.isEmpty ? nil : "Tags: \(tags.map { "#" + $0 }.joined(separator: " "))"
         ].compactMap { $0 }.joined(separator: "\n")
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(draft, forType: .string)
         copied = true
+    }
+
+
+    private var selectedCollections: [String] {
+        cloudCollections.filter { selectedCollectionIDs.contains($0.id) }.map(\.name) + collectionNames
+    }
+
+    private var collectionPicker: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                sectionLabel("COLLECTIONS")
+                Spacer()
+                if isLoadingCollections { ProgressView().controlSize(.small) }
+            }
+            if let collectionLoadError {
+                Text(collectionLoadError).font(.system(size: 11)).foregroundStyle(muted)
+            }
+            if !cloudCollections.isEmpty {
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 142), spacing: 8)], spacing: 8) {
+                    ForEach(cloudCollections) { collection in
+                        let selected = selectedCollectionIDs.contains(collection.id)
+                        Button {
+                            if selected { selectedCollectionIDs.remove(collection.id) }
+                            else { selectedCollectionIDs.insert(collection.id) }
+                        } label: {
+                            HStack(spacing: 7) {
+                                Image(systemName: selected ? "checkmark.circle.fill" : "folder")
+                                Text(collection.name).lineLimit(1)
+                                Spacer(minLength: 0)
+                            }
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundStyle(selected ? CaptureStyle.ink : .primary)
+                            .padding(.horizontal, 11)
+                            .frame(height: 36)
+                            .background(selected ? CaptureStyle.lime : panel, in: RoundedRectangle(cornerRadius: 10))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+            ForEach(collectionNames, id: \.self) { name in
+                HStack {
+                    Label(name, systemImage: "folder.badge.plus")
+                    Spacer()
+                    Button { collectionNames.removeAll { $0 == name } } label: {
+                        Image(systemName: "xmark.circle.fill")
+                    }
+                    .buttonStyle(.plain)
+                }
+                .font(.system(size: 12))
+                .padding(9)
+                .background(panel, in: RoundedRectangle(cornerRadius: 10))
+            }
+            HStack {
+                Image(systemName: "folder.badge.plus").foregroundStyle(muted)
+                TextField("New collection name…", text: $newCollectionName)
+                    .textFieldStyle(.plain).font(.system(size: 12))
+                    .onSubmit(addCollection)
+                Button(action: addCollection) { Image(systemName: "plus.circle.fill") }
+                    .buttonStyle(.plain)
+                    .disabled(newCollectionName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            }
+            .padding(.horizontal, 12)
+            .frame(height: 43)
+            .background(panel, in: RoundedRectangle(cornerRadius: 11))
+            Text("Selections are included in the draft. New collections will be created when Mac cloud saving is connected.")
+                .font(.system(size: 10)).foregroundStyle(muted)
+        }
+    }
+
+    private func addCollection() {
+        let name = newCollectionName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !name.isEmpty,
+              !collectionNames.contains(where: { $0.caseInsensitiveCompare(name) == .orderedSame }),
+              !cloudCollections.contains(where: { $0.name.caseInsensitiveCompare(name) == .orderedSame }) else { return }
+        collectionNames.append(name)
+        newCollectionName = ""
+    }
+
+    private func fetchCollections() async {
+        isLoadingCollections = true
+        defer { isLoadingCollections = false }
+        do {
+            cloudCollections = try await MacCollectionLookup.fetch()
+            collectionLoadError = nil
+        } catch {
+            collectionLoadError = "Existing collections are unavailable. You can still add names to your draft."
+        }
+    }
+
+    private func suggestDetails() {
+        let value = kind == .task ? taskTitle : (linkPreview?.title ?? "") + " " +
+            (linkPreview?.description ?? "") + " " + (kind == .link ? "" : content)
+        let source = kind == .link && linkPreview == nil ? (URL(string: content)?.host ?? "") : value
+        let suggestion = MacCaptureSuggestions.returnSuggestion(for: source, kind: kind.rawValue)
+        if !didEditSchedule, let matching = ReturnPreset.allCases.first(where: { $0.rawValue == suggestion.preset }) {
+            preset = matching
+        }
+        suggestedReason = suggestion.reason
+        if !didEditTags {
+            tags = MacCaptureSuggestions.tags(for: value, kind: kind.rawValue)
+        }
+        if !didEditTitle {
+            if kind == .link {
+                title = linkPreview?.title ?? URL(string: content)?.host ?? ""
+            } else if kind == .note {
+                title = String(content.split(separator: "\n", maxSplits: 1).first ?? "").prefix(90).trimmingCharacters(in: .whitespacesAndNewlines)
+            } else if kind == .file {
+                title = attachments.first?.deletingPathExtension().lastPathComponent ?? ""
+            }
+        }
+    }
+
+    private func schedulePreview() {
+        enrichmentTask?.cancel()
+        linkPreview = nil
+        previewError = nil
+        fetchingPreview = false
+        guard kind == .link, let url = URL(string: content.trimmingCharacters(in: .whitespacesAndNewlines)),
+              url.scheme?.lowercased() == "https", url.host != nil else { return }
+        enrichmentTask = Task {
+            try? await Task.sleep(for: .milliseconds(500))
+            guard !Task.isCancelled else { return }
+            fetchingPreview = true
+            defer { fetchingPreview = false }
+            do {
+                let preview = try await MacCaptureSuggestions.fetchLink(url)
+                guard !Task.isCancelled, content.trimmingCharacters(in: .whitespacesAndNewlines) == url.absoluteString else { return }
+                linkPreview = preview
+                suggestDetails()
+            } catch {
+                guard !Task.isCancelled else { return }
+                previewError = "Preview unavailable for this site. You can still save the link."
+            }
+        }
+    }
+
+    private var linkPreviewCard: some View {
+        Group {
+            if fetchingPreview {
+                HStack(spacing: 8) {
+                    ProgressView().controlSize(.small)
+                    Text("Looking up page details…")
+                }
+                .font(.system(size: 12)).foregroundStyle(muted)
+            } else if let preview = linkPreview {
+                HStack(alignment: .top, spacing: 11) {
+                    Image(systemName: "globe")
+                        .font(.system(size: 19))
+                        .foregroundStyle(CaptureStyle.ink)
+                        .frame(width: 40, height: 40)
+                        .background(CaptureStyle.lime, in: RoundedRectangle(cornerRadius: 11))
+                    VStack(alignment: .leading, spacing: 5) {
+                        Text(preview.title).font(.system(size: 13, weight: .semibold))
+                        Text(preview.domain).font(.system(size: 11)).foregroundStyle(muted)
+                        if !preview.description.isEmpty {
+                            Text(preview.description).font(.system(size: 11))
+                                .foregroundStyle(muted).lineLimit(3)
+                        }
+                    }
+                    Spacer(minLength: 0)
+                }
+                .padding(13).background(panel, in: RoundedRectangle(cornerRadius: 13))
+            } else if let previewError {
+                Label(previewError, systemImage: "info.circle")
+                    .font(.system(size: 11)).foregroundStyle(muted)
+            }
+        }
     }
 
     private func sectionLabel(_ text: String) -> some View {
