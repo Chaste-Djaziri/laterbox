@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[macOS / Native Settings]** Replace the placeholder Settings page with iOS-style account, appearance, privacy, cloud-sync, data-export, system and support cards; wire genuine per-device preferences, cloud refresh, JSON export, and confirmed sign-out.
+
 - **[macOS / Help & FAQ]** Add native searchable FAQ, support report form, and tracked support requests with live status; extend the Web support API and database platform validation to accept `macos` reports.
 
 - **[Web / Earn legal terms]** Replace the retired paid-plan affiliate rules with current Free-plan eligibility, Whop identity checks, customizable codes, conditional trials, two paid billing periods and three-month qualification, recurring commission rates, holds, disclosures, and controlled payout launch requirements.
