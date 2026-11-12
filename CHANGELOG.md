@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[macOS / Starred dashboard]** Add a Web-style Starred page including favorites across Inbox, scheduled, kept, and archived items, with native table controls, item details navigation, and cloud sync footer.
+
 - **[macOS / Someday dashboard]** Match the Web Someday schedule view with active deferred items having no return date, newest first, native email-table controls, detail navigation, and Cloud Sync status.
 
 - **[macOS / Upcoming dashboard]** Add a native Upcoming page matching Web scheduling: active deferred items returning from tomorrow onward in the user's local timezone, sorted by return time, with the email table, item details, and cloud-sync footer.
