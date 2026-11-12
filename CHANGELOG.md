@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[macOS / Help & FAQ]** Add native searchable FAQ, support report form, and tracked support requests with live status; extend the Web support API and database platform validation to accept `macos` reports.
+
 - **[Web / Earn legal terms]** Replace the retired paid-plan affiliate rules with current Free-plan eligibility, Whop identity checks, customizable codes, conditional trials, two paid billing periods and three-month qualification, recurring commission rates, holds, disclosures, and controlled payout launch requirements.
 
 - **[macOS / Earn]** Add a native referral dashboard using authenticated LaterBox Earn APIs with live balances, referral progress, commissions, payouts, shareable code, code customization, enrollment, and browser-based Whop verification.
