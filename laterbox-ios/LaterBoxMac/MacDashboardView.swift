@@ -532,6 +532,8 @@ struct MacDashboardView: View {
             .padding(.horizontal, 20)
             .padding(.top, 12)
             .padding(.bottom, 18)
+        } else if selection == .earn {
+            MacEarnView(cloud: cloud)
         } else if selection == .today {
             MacTodayView(cloud: cloud, now: todayClock,
                 onQuickSave: { showingQuickSave = true },

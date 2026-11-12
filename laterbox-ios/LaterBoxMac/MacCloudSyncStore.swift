@@ -210,6 +210,37 @@ final class MacCloudSyncStore: ObservableObject {
         throw MacCloudError.unauthorized
     }
 
+    /// Earn must use the same authenticated server endpoints as Web. All
+    /// money, referral status and payout eligibility are computed server-side.
+    func earnAPI(_ path: String = "", method: String = "GET", body: [String: Any]? = nil) async throws -> Data {
+        guard ["", "/code"].contains(path) else { throw URLError(.badURL) }
+        for attempt in 0...1 {
+            let credentials = try readAuth()
+            guard let url = URL(string: "https://laterbox.dev/api/earn" + path) else { throw URLError(.badURL) }
+            var request = URLRequest(url: url)
+            request.httpMethod = method
+            request.timeoutInterval = 25
+            request.cachePolicy = .reloadIgnoringLocalCacheData
+            request.setValue("Bearer \(credentials.access)", forHTTPHeaderField: "Authorization")
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.setValue("no-store", forHTTPHeaderField: "Cache-Control")
+            if let body { request.httpBody = try JSONSerialization.data(withJSONObject: body) }
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard let http = response as? HTTPURLResponse else { throw URLError(.badServerResponse) }
+            if http.statusCode == 401 && attempt == 0 {
+                if (try? readAuth().access) == credentials.access { try await renewAuth() }
+                continue
+            }
+            guard (200..<300).contains(http.statusCode) else {
+                let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+                let message = json?["error"] as? String ?? "Earn is temporarily unavailable."
+                throw MacCloudError.server(http.statusCode, message)
+            }
+            return data
+        }
+        throw MacCloudError.unauthorized
+    }
+
     func setStarred(_ id: String, starred: Bool) async throws {
         _ = try await request("items?id=eq.\(id)", method: "PATCH",
                               body: ["favorite": starred, "updated_at": ISO8601DateFormatter().string(from: Date())])
