@@ -25,7 +25,7 @@ export default function DownloadPage() {
     const controller = new AbortController();
     fetch('https://api.github.com/repos/Chaste-Djaziri/laterbox/releases/latest',
       { signal: controller.signal, headers: { Accept: 'application/vnd.github+json' } })
-      .then(response => response.ok ? response.json() : Promise.reject(new Error('Release unavailable')))
+      .then(response => response.ok ? response.json() as Promise<{ assets?: Array<{ name: string; browser_download_url: string }> }> : Promise.reject(new Error('Release unavailable')))
       .then((release: { assets?: Array<{ name: string; browser_download_url: string }> }) => {
         const dmg = release.assets?.find(asset => asset.name === 'LaterBox-macOS.dmg');
         if (dmg?.browser_download_url?.startsWith('https://github.com/Chaste-Djaziri/laterbox/releases/')) {
