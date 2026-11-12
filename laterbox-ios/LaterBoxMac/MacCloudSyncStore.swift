@@ -87,6 +87,8 @@ final class MacCloudSyncStore: ObservableObject {
     private var refreshInFlight = false
     private var authRenewal: Task<Void, Error>?
     private var attachmentIDs: [String: String] = [:]
+    private var attemptedPreviewURLs = Set<String>()
+    private var recoveredPreviewURLs: [String: URL] = [:]
 
     private let endpoint = URL(string: "https://ltjisrgldssqskcylcbj.supabase.co/rest/v1/")!
     private let authEndpoint = URL(string: "https://ltjisrgldssqskcylcbj.supabase.co/auth/v1/token?grant_type=refresh_token")!
@@ -366,7 +368,12 @@ final class MacCloudSyncStore: ObservableObject {
                     guard id.range(of: "^[A-Za-z0-9_-]{11}$", options: .regularExpression) != nil else { return nil }
                     return URL(string: "https://i.ytimg.com/vi/\(id)/hqdefault.jpg")
                 }
-                let image = metadata?.preview_image_url.flatMap(URL.init(string:)) ?? videoImage
+                let storedImage = metadata?.preview_image_url.flatMap { raw -> URL? in
+                    guard let image = URL(string: raw, relativeTo: url)?.absoluteURL,
+                          ["http", "https"].contains(image.scheme?.lowercased() ?? "") else { return nil }
+                    return image
+                }
+                let image = storedImage ?? videoImage ?? url.flatMap { recoveredPreviewURLs[$0.absoluteString] }
                 let structured = metadata?.structured_data.flatMap { $0.data(using: .utf8) }
                     .flatMap { try? JSONSerialization.jsonObject(with: $0) as? [String: Any] }
                 let tags = structured?["tags"] as? [String] ?? []
@@ -397,10 +404,68 @@ final class MacCloudSyncStore: ObservableObject {
             isConnected = true
             lastError = nil
             lastSynced = Date()
+            schedulePreviewRecovery()
         } catch {
             // Keep last known rows during temporary outages.
             lastError = error.localizedDescription
         }
+    }
+
+    /// Fills missing previews in the background without delaying cloud sync.
+    /// Each source URL is fetched only once during an app session.
+    private func schedulePreviewRecovery() {
+        let sources = allItems.compactMap { item -> URL? in
+            guard item.previewImageURL == nil, let url = item.url,
+                  ["http", "https"].contains(url.scheme?.lowercased() ?? ""),
+                  !attemptedPreviewURLs.contains(url.absoluteString) else { return nil }
+            return url
+        }
+        let unique = Dictionary(sources.map { ($0.absoluteString, $0) }, uniquingKeysWith: { a, _ in a })
+        guard !unique.isEmpty else { return }
+        for source in unique.keys { attemptedPreviewURLs.insert(source) }
+
+        let urls = Array(unique.values)
+        Task { [weak self] in
+            await withTaskGroup(of: (String, URL?).self) { group in
+                var remaining = urls.makeIterator()
+                for _ in 0..<min(4, urls.count) {
+                    if let url = remaining.next() {
+                        group.addTask {
+                            (url.absoluteString, await MacCaptureSuggestions.recoverImage(for: url))
+                        }
+                    }
+                }
+                while let (source, image) = await group.next() {
+                    guard let self, !Task.isCancelled else {
+                        group.cancelAll()
+                        break
+                    }
+                    if let image {
+                        self.recoveredPreviewURLs[source] = image
+                        self.applyRecoveredImage(image, source: source)
+                    }
+                    if let next = remaining.next() {
+                        group.addTask {
+                            (next.absoluteString, await MacCaptureSuggestions.recoverImage(for: next))
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func applyRecoveredImage(_ image: URL, source: String) {
+        func update(_ entries: inout [MacInboxEntry]) {
+            for index in entries.indices {
+                if entries[index].url?.absoluteString == source,
+                   entries[index].previewImageURL == nil {
+                    entries[index].previewImageURL = image
+                }
+            }
+        }
+        update(&allItems)
+        update(&activeItems)
+        update(&items)
     }
 
     func attachments(for itemID: String) async throws -> [MacCloudAttachment] {

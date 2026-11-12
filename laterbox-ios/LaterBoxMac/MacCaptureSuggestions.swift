@@ -129,6 +129,33 @@ enum MacCaptureSuggestions {
         throw URLError(.cannotParseResponse)
     }
 
+    /// Recover a preview image for a saved link without requiring a usable
+    /// page title. Existing captures may have text metadata but no OG image.
+    static func recoverImage(for url: URL) async -> URL? {
+        guard allowedPublicURL(url) else { return nil }
+
+        async let enrichment = fetchWebEnrichment(url)
+        async let embed = fetchOEmbed(url)
+        let web = try? await enrichment
+        let media = try? await embed
+        if let image = web?.imageURL ?? media?.imageURL,
+           ["https", "http"].contains(image.scheme?.lowercased() ?? "") {
+            return image
+        }
+
+        // Native extraction is helpful for sites not covered by the API.
+        if let html = try? await fetchHTML(url) {
+            for key in ["og:image:secure_url", "og:image", "twitter:image", "twitter:image:src"] {
+                if let raw = meta(html, key),
+                   let image = URL(string: raw, relativeTo: url)?.absoluteURL,
+                   ["https", "http"].contains(image.scheme?.lowercased() ?? "") {
+                    return image
+                }
+            }
+        }
+        return youtubeThumbnail(url)
+    }
+
     private struct Remote: Sendable {
         var title: String?
         var description: String?

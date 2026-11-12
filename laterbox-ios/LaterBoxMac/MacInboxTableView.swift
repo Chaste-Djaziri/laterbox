@@ -13,7 +13,7 @@ struct MacInboxEntry: Identifiable {
     let title: String
     let snippet: String
     let url: URL?
-    let previewImageURL: URL?
+    var previewImageURL: URL?
     let date: Date
     let category: Category
     let isStarred: Bool
@@ -477,26 +477,30 @@ struct MacInboxTableView: View {
 
     // Image occupies the right edge only. The gradient mask fades the image
     // toward the message copy, as in the Web email table.
-    private func rowArtwork(_ url: URL, hovered: Bool) -> some View {
+    private func rowArtwork(_ url: URL, source: URL?, hovered: Bool) -> some View {
         AsyncImage(url: url) { phase in
-            if case let .success(image) = phase {
-                image
-                    .resizable()
-                    .scaledToFill()
-                    .frame(width: 340, height: 55, alignment: .trailing)
-                    .clipped()
-                    .opacity(hovered ? 0.82 : 0.66)
-                    .mask {
-                        LinearGradient(stops: [
-                            .init(color: .clear, location: 0),
-                            .init(color: .black.opacity(0.3), location: 0.30),
-                            .init(color: .black.opacity(0.85), location: 0.61),
-                            .init(color: .black, location: 1)
-                        ], startPoint: .leading, endPoint: .trailing)
-                    }
+            switch phase {
+            case .success(let image):
+                image.resizable().scaledToFill()
+            case .failure:
+                if let source {
+                    MacFailedPreviewArtwork(source: source, failedURL: url)
+                }
+            default:
+                EmptyView()
             }
         }
         .frame(width: 340, height: 55, alignment: .trailing)
+        .clipped()
+        .opacity(hovered ? 0.82 : 0.66)
+        .mask {
+            LinearGradient(stops: [
+                .init(color: .clear, location: 0),
+                .init(color: .black.opacity(0.3), location: 0.30),
+                .init(color: .black.opacity(0.85), location: 0.61),
+                .init(color: .black, location: 1)
+            ], startPoint: .leading, endPoint: .trailing)
+        }
         .allowsHitTesting(false)
         .accessibilityHidden(true)
     }
@@ -514,7 +518,7 @@ struct MacInboxTableView: View {
                         : surface)
 
             if let image = item.previewImageURL {
-                rowArtwork(image, hovered: isHovered)
+                rowArtwork(image, source: item.url, hovered: isHovered)
             }
 
             HStack(spacing: 12) {
@@ -642,5 +646,32 @@ struct MacInboxTableView: View {
             else if hoveredItemID == item.id { hoveredItemID = nil }
         }
         .animation(.easeOut(duration: 0.13), value: isHovered)
+    }
+}
+
+
+/// A stored image can expire or forbid direct loading. Try the canonical
+/// link again without causing a second endless retry of the same failed URL.
+private struct MacFailedPreviewArtwork: View {
+    let source: URL
+    let failedURL: URL
+    @State private var recovered: URL?
+
+    var body: some View {
+        Group {
+            if let recovered {
+                AsyncImage(url: recovered) { phase in
+                    if case let .success(image) = phase {
+                        image.resizable().scaledToFill()
+                    }
+                }
+            }
+        }
+        .task(id: source) {
+            if let replacement = await MacCaptureSuggestions.recoverImage(for: source),
+               replacement != failedURL {
+                recovered = replacement
+            }
+        }
     }
 }
