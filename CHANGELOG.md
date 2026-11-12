@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[macOS / Global Quick Capture hotkey repair]** Route Command–Option–N directly to the active app capture controller instead of relying on an NSApp delegate cast; remove the overlapping SwiftUI menu shortcut registration, and provide a menu-bar Quick Capture fallback.
+
 - **[Release / macOS distribution]** Add Developer ID-signed, Apple-notarized macOS DMG packaging and checksum verification to automated GitHub Releases; move Android to paused and show macOS on the web downloads page.
 
 - **[macOS / Global Quick Capture]** Register Command–Option–N as a system-wide Quick Capture shortcut, show a floating capture panel over other apps, keep the process alive after closing its window, and request macOS Open at Login for background availability.

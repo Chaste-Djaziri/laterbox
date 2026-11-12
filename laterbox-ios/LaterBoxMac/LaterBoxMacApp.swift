@@ -11,12 +11,14 @@ import ServiceManagement
 // Closing the main window leaves LaterBox running, so this hotkey stays active.
 @MainActor
 final class LaterBoxMacDelegate: NSObject, NSApplicationDelegate {
+    static weak var active: LaterBoxMacDelegate?
     private var hotKey: EventHotKeyRef?
     private var hotKeyHandler: EventHandlerRef?
     private var capturePanel: NSPanel?
     private let captureCloud = MacCloudSyncStore()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        Self.active = self
         installCaptureHotkey()
         // User requested background capture across logins. macOS controls the
         // approval in Login Items; failure must not block normal app launch.
@@ -44,7 +46,7 @@ final class LaterBoxMacDelegate: NSObject, NSApplicationDelegate {
                                            MemoryLayout<EventHotKeyID>.size, nil, &identifier)
             guard result == noErr, identifier.id == 1 else { return OSStatus(eventNotHandledErr) }
             DispatchQueue.main.async {
-                (NSApp.delegate as? LaterBoxMacDelegate)?.showQuickCapture()
+                LaterBoxMacDelegate.active?.showQuickCapture()
             }
             return noErr
         }
@@ -239,8 +241,12 @@ struct LaterBoxMacApp: App {
         .commands {
             CommandGroup(after: .newItem) {
                 Button("Quick Capture") { appDelegate.showQuickCapture() }
-                    .keyboardShortcut("n", modifiers: [.command, .option])
             }
+        }
+        MenuBarExtra("LaterBox", systemImage: "tray.full") {
+            Button("Quick Capture (⌘⌥N)") { appDelegate.showQuickCapture() }
+            Divider()
+            Text("Keep LaterBox running for the global shortcut.")
         }
     }
 }
