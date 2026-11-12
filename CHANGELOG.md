@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[macOS / Sidebar item counts]** Display compact item-count badges on Inbox, Today, Upcoming, Someday, Starred, Kept, Archived and Recently Deleted navigation icons. Counts use matching page filters and update with cloud sync and time changes.
+
 - **[macOS / Kept dashboard]** Add Web-parity Kept view for saved library items with native email table, archive and star controls, item details navigation, and cloud sync footer.
 
 - **[macOS / Recently Deleted]** Add native Recently Deleted listing, restore-to-Inbox, permanent deletion through the existing attachment-storage cleanup service, confirmed Empty Trash, details navigation, and cloud sync status.
