@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[macOS / Upcoming dashboard]** Add a native Upcoming page matching Web scheduling: active deferred items returning from tomorrow onward in the user's local timezone, sorted by return time, with the email table, item details, and cloud-sync footer.
+
 - **[macOS / Today dashboard]** Add the Web-style last-24-hours Today view with recent Inbox arrivals, scheduled returns, arrival counts, native email categories/actions, item details navigation, and cloud sync footer. Respect persisted Inbox-entry timestamps and refresh the rolling window.
 
 - **[macOS / Item Details navigation]** Make the entire Back to Inbox capsule clickable, not only its text and icon.
