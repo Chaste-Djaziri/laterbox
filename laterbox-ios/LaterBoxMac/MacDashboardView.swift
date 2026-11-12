@@ -58,6 +58,7 @@ struct MacDashboardView: View {
     let accountEmail: String
     @State private var selection: DashboardRoute = .inbox
     @State private var showingQuickSave = false
+    @StateObject private var cloud = MacCloudSyncStore()
     @State private var searchQuery = ""
     @State private var searchFocused = false
     @FocusState private var searchInputFocused: Bool
@@ -83,8 +84,21 @@ struct MacDashboardView: View {
                 .keyboardShortcut("k", modifiers: [.command])
                 .hidden()
         }
+        .task {
+            await cloud.refresh()
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(60))
+                guard !Task.isCancelled else { break }
+                await cloud.refresh()
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            Task { await cloud.refresh() }
+        }
         .sheet(isPresented: $showingQuickSave) {
-            MacQuickSaveView()
+            MacQuickSaveView(onSave: { draft in
+                try await cloud.save(draft)
+            })
         }
     }
 
@@ -142,16 +156,22 @@ struct MacDashboardView: View {
                 .font(.system(size: 22))
                 .foregroundStyle(DashboardStyle.muted)
                 .frame(width: 52, height: 42)
-                .help("Cloud storage usage will appear after sync integration")
+                .help("Cloud storage quota display is not available in the Mac app yet")
                 .accessibilityLabel("Cloud storage usage unavailable")
 
-            Image(systemName: "arrow.triangle.2.circlepath.icloud")
-                .font(.system(size: 22))
-                .foregroundStyle(DashboardStyle.muted)
-                .frame(width: 52, height: 42)
-                .help("Cloud synchronization is not yet connected on macOS")
-                .accessibilityLabel("Cloud synchronization unavailable")
-                .padding(.bottom, 7)
+            Button {
+                Task { await cloud.refresh() }
+            } label: {
+                Image(systemName: cloud.lastError != nil ? "icloud.slash" : (cloud.loading ? "arrow.triangle.2.circlepath.icloud" : "icloud"))
+                    .font(.system(size: 22))
+                    .foregroundStyle(cloud.lastError != nil ? Color.orange : (cloud.isConnected ? DashboardStyle.lime : DashboardStyle.muted))
+                    .frame(width: 52, height: 42)
+            }
+            .buttonStyle(.plain)
+            .disabled(cloud.loading)
+            .help(cloud.lastError != nil ? "Sync failed · Click to retry" : cloud.isConnected ? "Synced · Click to refresh" : "Connect to cloud")
+            .accessibilityLabel(cloud.isConnected ? "Cloud sync · Refresh" : "Cloud sync · Retry")
+            .padding(.bottom, 7)
         }
         .frame(width: 84)
         .background(Color.clear)
@@ -348,7 +368,7 @@ struct MacDashboardView: View {
                     }
                 }
                 Divider()
-                Text("Saved-item search will be available after cloud sync is connected.")
+                Text("Saved-item search is not yet available in the Mac app.")
                     .font(.system(size: 11))
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -368,7 +388,9 @@ struct MacDashboardView: View {
     @ViewBuilder
     private var page: some View {
         if selection == .inbox {
-            MacInboxTableView(items: [], isConnected: false) {
+            MacInboxTableView(items: cloud.items, isConnected: cloud.isConnected,
+                isLoading: cloud.loading, syncError: cloud.lastError,
+                onRefresh: { await cloud.refresh() }) {
                 showingQuickSave = true
             }
             .padding(.horizontal, 20)

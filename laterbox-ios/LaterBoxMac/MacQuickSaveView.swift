@@ -10,6 +10,7 @@ private enum CaptureStyle {
 }
 
 struct MacQuickSaveView: View {
+    let onSave: (MacCloudDraft) async throws -> Void
     private enum CaptureKind: String, CaseIterable, Identifiable {
         case link = "Link"
         case note = "Note"
@@ -98,6 +99,10 @@ struct MacQuickSaveView: View {
     @State private var taskEntries: [TaskEntry] = [TaskEntry(), TaskEntry()]
     @State private var isChoosingFiles = false
     @State private var copied = false
+    @State private var isSavingToCloud = false
+    @State private var cloudSaveError: String?
+    @State private var savedToCloud = false
+    @State private var draftID = UUID().uuidString
     @State private var errorMessage: String?
 
     private var dark: Bool { scheme == .dark }
@@ -151,6 +156,7 @@ struct MacQuickSaveView: View {
         .frame(width: 570, height: 595)
         .background(surface)
         .preferredColorScheme(scheme)
+        .interactiveDismissDisabled(isSavingToCloud)
         .onAppear {
             focusedInput = true
             suggestDetails()
@@ -188,6 +194,7 @@ struct MacQuickSaveView: View {
             }
             .buttonStyle(.plain)
             .keyboardShortcut(.cancelAction)
+            .disabled(isSavingToCloud)
         }
         .padding(.horizontal, 28)
         .padding(.top, 23)
@@ -551,7 +558,7 @@ struct MacQuickSaveView: View {
                     .font(.system(size: 12))
                     .foregroundStyle(muted)
                     .lineLimit(3)
-                Label("Mac cloud saving is not connected yet. Copy your draft and save it on Laterbox Web.", systemImage: "info.circle")
+                Label("Save to Laterbox to sync this capture across your devices.", systemImage: "info.circle")
                     .font(.system(size: 11))
                     .foregroundStyle(muted)
                     .fixedSize(horizontal: false, vertical: true)
@@ -607,10 +614,23 @@ struct MacQuickSaveView: View {
                         .background(CaptureStyle.lime, in: RoundedRectangle(cornerRadius: 11))
                 }
                 .buttonStyle(.plain)
-                Link(destination: URL(string: "https://laterbox.dev/inbox")!) {
-                    Label("Open Web", systemImage: "arrow.up.right")
-                        .font(.system(size: 13))
+                Button {
+                    Task { await saveToCloud() }
+                } label: {
+                    HStack(spacing: 8) {
+                        if isSavingToCloud { ProgressView().controlSize(.small) }
+                        Text(savedToCloud ? "Saved!" : (isSavingToCloud ? "Saving…" : "Save to Laterbox"))
+                        Image(systemName: savedToCloud ? "checkmark" : "arrow.up.circle")
+                    }
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(CaptureStyle.ink)
+                    .padding(.horizontal, 16)
+                    .frame(height: 40)
+                    .background(CaptureStyle.lime, in: RoundedRectangle(cornerRadius: 11))
                 }
+                .buttonStyle(.plain)
+                .disabled(isSavingToCloud || savedToCloud)
+                .help("Save and sync this item")
             } else {
                 Button {
                     if step == 0 && !validCapture {
@@ -639,6 +659,58 @@ struct MacQuickSaveView: View {
         .padding(.vertical, 18)
         .background(surface)
         .overlay(alignment: .top) { line.frame(height: 1) }
+    }
+
+    private var scheduledReturn: Date? {
+        let calendar = Calendar.current
+        let now = Date()
+        switch preset {
+        case .now: return now
+        case .laterToday: return now.addingTimeInterval(3 * 3600)
+        case .tomorrow:
+            return calendar.date(bySettingHour: 9, minute: 0, second: 0,
+                                 of: calendar.date(byAdding: .day, value: 1, to: now)!) ?? now.addingTimeInterval(86400)
+        case .weekend:
+            let weekday = calendar.component(.weekday, from: now)
+            let daysUntilSaturday = (7 - weekday + 7) % 7
+            let saturday = calendar.date(byAdding: .day, value: daysUntilSaturday == 0 ? 7 : daysUntilSaturday, to: now)!
+            return calendar.date(bySettingHour: 10, minute: 0, second: 0, of: saturday)
+        case .nextWeek: return calendar.date(byAdding: .day, value: 7, to: now)
+        case .someday: return nil
+        case .custom: return customDate
+        }
+    }
+
+    private func saveToCloud() async {
+        guard !isSavingToCloud, !savedToCloud else { return }
+        guard validCapture else {
+            cloudSaveError = "Complete the required fields before saving."
+            return
+        }
+        isSavingToCloud = true
+        cloudSaveError = nil
+        defer { isSavingToCloud = false }
+        let checklist = kind == .task && taskMode == .checklist
+            ? taskEntries.map(\.title).map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty }
+            : []
+        let fallbackTitle = kind == .file ? (attachments.first?.deletingPathExtension().lastPathComponent ?? "Attachment") : (linkPreview?.title ?? String(content.prefix(75)))
+        let savedTitle = kind == .task ? taskTitle : (title.isEmpty ? fallbackTitle : title)
+        let savedContent = kind == .task ? (title.isEmpty ? taskTitle : title) : content
+        let draft = MacCloudDraft(id: draftID, kind: kind.rawValue,
+                                  title: savedTitle, content: savedContent,
+                                  tags: tags, returnDate: scheduledReturn,
+                                  isSomeday: preset == .someday,
+                                  checklist: checklist,
+                                  collectionIDs: Array(selectedCollectionIDs),
+                                  newCollections: collectionNames,
+                                  preview: linkPreview, files: attachments)
+        do {
+            try await onSave(draft)
+            savedToCloud = true
+            dismiss()
+        } catch {
+            cloudSaveError = error.localizedDescription
+        }
     }
 
     private func copyDraft() {
@@ -727,7 +799,7 @@ struct MacQuickSaveView: View {
             .padding(.horizontal, 12)
             .frame(height: 43)
             .background(panel, in: RoundedRectangle(cornerRadius: 11))
-            Text("Selections are included in the draft. New collections will be created when Mac cloud saving is connected.")
+            Text("Collections will be linked to your item when you save.")
                 .font(.system(size: 10)).foregroundStyle(muted)
         }
     }

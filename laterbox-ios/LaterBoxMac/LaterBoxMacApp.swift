@@ -617,7 +617,6 @@ struct MacLoginView: View {
     @StateObject private var auth = MacAuthModel()
     @Environment(\.colorScheme) private var scheme
     @Environment(\.dismissWindow) private var dismissWindow
-    @Environment(\.scenePhase) private var scenePhase
 
     private var title: String {
         switch auth.step {
@@ -777,9 +776,6 @@ struct MacLoginView: View {
             }
         }
         .task { await auth.restoreSession() }
-        .onChange(of: scenePhase) { _, phase in
-            if phase == .active { Task { await auth.refreshSessionIfNeeded() } }
-        }
         .onChange(of: auth.step) { _, step in
             guard let window = NSApp.keyWindow else { return }
             let size = step == .authenticated ? NSSize(width: 1160, height: 800) : NSSize(width: 550, height: 620)

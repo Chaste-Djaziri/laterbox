@@ -21,6 +21,9 @@ struct MacInboxEntry: Identifiable {
 struct MacInboxTableView: View {
     let items: [MacInboxEntry]
     let isConnected: Bool
+    let isLoading: Bool
+    let syncError: String?
+    let onRefresh: () async -> Void
     let onQuickSave: () -> Void
 
     private enum CategoryTab: String, CaseIterable, Identifiable {
@@ -82,7 +85,10 @@ struct MacInboxTableView: View {
         VStack(spacing: 0) {
             toolbar
             categories
-            if visibleItems.isEmpty {
+            if visibleItems.isEmpty && isLoading && !isConnected {
+                ProgressView("Syncing your inbox…")
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if visibleItems.isEmpty {
                 emptyState
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
@@ -137,9 +143,16 @@ struct MacInboxTableView: View {
             .frame(width: 15)
             .help("Selection options")
 
-            toolbarIcon("arrow.clockwise", label: "Refresh") // Requires connected sync.
-                .disabled(true)
-                .help("Refresh is available after macOS sync is connected")
+            Button {
+                Task { await onRefresh() }
+            } label: {
+                Image(systemName: "arrow.clockwise")
+                    .font(.system(size: 14, weight: .medium))
+                    .frame(width: 27, height: 29)
+            }
+            .buttonStyle(.plain)
+            .disabled(isLoading)
+            .help("Sync inbox now")
 
             toolbarIcon("archivebox", label: "Archive")
                 .disabled(selectedIDs.isEmpty)
@@ -304,6 +317,21 @@ struct MacInboxTableView: View {
                 .padding(.top, 9)
 
             if !isConnected {
+                if let syncError {
+                    Text(syncError)
+                        .font(.system(size: 11))
+                        .foregroundStyle(.orange)
+                        .multilineTextAlignment(.center)
+                        .lineLimit(3)
+                }
+                Button {
+                    Task { await onRefresh() }
+                } label: {
+                    Label(isLoading ? "Connecting…" : "Retry sync", systemImage: "arrow.clockwise")
+                        .font(.system(size: 12, weight: .semibold))
+                }
+                .buttonStyle(.plain)
+                .disabled(isLoading)
                 Link(destination: URL(string: "https://laterbox.dev")!) {
                     Label("Open Laterbox Web", systemImage: "arrow.up.right")
                         .font(.system(size: 13, weight: .semibold))
@@ -316,7 +344,7 @@ struct MacInboxTableView: View {
                 .help("Open Laterbox in your browser")
                 .padding(.top, 22)
 
-                Text("Mac sync is coming soon")
+                Text("Refresh to check for recently saved items.")
                     .font(.system(size: 11))
                     .foregroundStyle(muted.opacity(0.85))
                     .padding(.top, 13)
