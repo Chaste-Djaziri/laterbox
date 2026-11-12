@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[macOS / Archived dashboard]** Add a Web-style Archived page for archived cloud items, with restore-to-Inbox, standard row controls, native item detail navigation and the Cloud Sync footer.
+
 - **[macOS / Starred dashboard]** Add a Web-style Starred page including favorites across Inbox, scheduled, kept, and archived items, with native table controls, item details navigation, and cloud sync footer.
 
 - **[macOS / Someday dashboard]** Match the Web Someday schedule view with active deferred items having no return date, newest first, native email-table controls, detail navigation, and Cloud Sync status.
