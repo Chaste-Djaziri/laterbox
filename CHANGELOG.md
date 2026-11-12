@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[macOS / Persistent appearance]** Centralize System, Light and Dark mode in a persisted preferences controller, remove conflicting per-view/window overrides, and restore the chosen mode on launch and relaunch.
+
 - **[macOS / Manual appearance switching]** Apply saved Light/Dark/System preferences explicitly to the dashboard, SwiftUI environment, and AppKit window; add an immediate header theme toggle and reflect the active theme in Appearance settings.
 
 - **[macOS / Settings subpages]** Add iOS-style native Settings navigation with dedicated Account, Appearance, Privacy, Sync, Data Management, Shortcuts, and About pages; apply system/light/dark selection immediately across SwiftUI and AppKit windows.
