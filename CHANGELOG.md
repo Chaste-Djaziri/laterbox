@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[macOS / Settings subpages]** Add iOS-style native Settings navigation with dedicated Account, Appearance, Privacy, Sync, Data Management, Shortcuts, and About pages; apply system/light/dark selection immediately across SwiftUI and AppKit windows.
+
 - **[macOS / Quick Save]** Add an immediate Save now action alongside Continue on the capture step, preserving the full scheduling/details workflow and showing cloud-save errors without hiding the draft.
 
 - **[macOS / Native Settings]** Replace the placeholder Settings page with iOS-style account, appearance, privacy, cloud-sync, data-export, system and support cards; wire genuine per-device preferences, cloud refresh, JSON export, and confirmed sign-out.
