@@ -39,6 +39,7 @@ struct MacInboxTableView: View {
     let onOpenItem: (String) -> Void
     var contextTitle: String = "Inbox"
     var sortByInboxArrival: Bool = false
+    var sortByReturnDate: Bool = false
 
     private enum CategoryTab: String, CaseIterable, Identifiable {
         case primary = "Primary"
@@ -97,6 +98,11 @@ struct MacInboxTableView: View {
             }
         }
         return filtered.sorted {
+            if sortByReturnDate {
+                let left = $0.returnDate ?? .distantFuture
+                let right = $1.returnDate ?? .distantFuture
+                return newestFirst ? left < right : left > right
+            }
             let lhs = sortByInboxArrival ? ($0.inboxArrival ?? $0.date) : $0.date
             let rhs = sortByInboxArrival ? ($1.inboxArrival ?? $1.date) : $1.date
             return newestFirst ? lhs > rhs : lhs < rhs
@@ -298,6 +304,7 @@ struct MacInboxTableView: View {
     private var emptyTitle: String {
         if !isConnected { return "Your saves are waiting for you" }
         if contextTitle == "Today" { return "Nothing new in the last 24 hours" }
+        if contextTitle == "Upcoming" { return "Nothing scheduled ahead" }
         switch activeTab {
         case .primary: return "All clear, for now"
         case .articles: return "Your reading list starts here"
@@ -311,6 +318,7 @@ struct MacInboxTableView: View {
             return "Unable to connect to your saved items right now. Retry sync, or create a new capture here."
         }
         if contextTitle == "Today" { return "Items entering your Inbox, including scheduled returns, will appear here for 24 hours." }
+        if contextTitle == "Upcoming" { return "Items scheduled for tomorrow and beyond will appear here. Save something and choose a future return time." }
         switch activeTab {
         case .primary: return "A little breathing room! When you save something for later, it will show up here."
         case .articles: return "Save articles and interesting reads to find them when you have a moment."
@@ -556,7 +564,7 @@ struct MacInboxTableView: View {
                     .fixedSize(horizontal: true, vertical: false)
                     .transition(.opacity)
                 } else {
-                    Text(sortByInboxArrival ? (item.inboxArrival ?? item.date) : item.date, style: .date)
+                    Text(sortByReturnDate ? (item.returnDate ?? item.date) : sortByInboxArrival ? (item.inboxArrival ?? item.date) : item.date, style: .date)
                         .font(.system(size: 11, weight: .medium))
                         .foregroundStyle(dark ? Color.white.opacity(0.8) : Color.black.opacity(0.65))
                         .lineLimit(1)
