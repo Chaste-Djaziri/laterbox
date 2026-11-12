@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[macOS / Collections table and duplicate repair]** Display selected collection items using the standard email table and cloud footer; exclude soft-deleted collections and memberships, deduplicate names in the UI, and protect active collection names in Supabase after merging duplicate memberships.
+
 - **[macOS / Collections]** Add synced native Collections page and folder-icon sidebar popup with per-collection item counts, collection browsing, creation, rename, deletion, and item membership controls.
 
 - **[macOS / Link preview recovery]** Recover missing OG images for cloud-synced links using the Web enrichment endpoint, oEmbed and HTML metadata fallbacks; cache results and update native item tables without blocking sync.
