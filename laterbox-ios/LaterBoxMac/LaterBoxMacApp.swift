@@ -8,6 +8,29 @@ private enum MacColors {
     static let accent = Color(red: 230 / 255, green: 237 / 255, blue: 176 / 255)
 }
 
+// Apply the saved appearance to the actual macOS NSWindow, including window
+// chrome and native popup controls. Re-applies whenever the setting changes.
+struct MacThemeWindowBridge: NSViewRepresentable {
+    let appearance: String
+
+    func makeNSView(context: Context) -> NSView {
+        NSView(frame: .zero)
+    }
+
+    func updateNSView(_ view: NSView, context: Context) {
+        // A view may enter the window after the first update. The asynchronous
+        // dispatch also avoids changing window appearance during SwiftUI layout.
+        DispatchQueue.main.async { [weak view] in
+            guard let window = view?.window else { return }
+            switch appearance {
+            case "light": window.appearance = NSAppearance(named: .aqua)
+            case "dark": window.appearance = NSAppearance(named: .darkAqua)
+            default: window.appearance = nil
+            }
+        }
+    }
+}
+
 // Matches the deterministic graphite texture used by InboxGrainBackground on iOS.
 private struct MacAuthCanvas: View {
     @Environment(\.colorScheme) private var scheme
