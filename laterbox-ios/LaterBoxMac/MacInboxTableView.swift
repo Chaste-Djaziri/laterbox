@@ -327,6 +327,7 @@ struct MacInboxTableView: View {
         if contextTitle == "Starred" { return "No starred items yet" }
         if contextTitle == "Archived" { return "Archive is empty" }
         if contextTitle == "Kept" { return "Nothing kept yet" }
+        if contextTitle == "Collection" { return "No items in this collection" }
         if contextTitle == "Recently Deleted" { return "Recently Deleted is empty" }
         switch activeTab {
         case .primary: return "All clear, for now"
@@ -346,6 +347,7 @@ struct MacInboxTableView: View {
         if contextTitle == "Starred" { return "Star any item to find it here, including items you have kept or archived." }
         if contextTitle == "Archived" { return "Items you archive will be available here until you restore or delete them." }
         if contextTitle == "Kept" { return "Keep items you want to revisit and they will appear here in your library." }
+        if contextTitle == "Collection" { return "Add items to this folder from Item Details, or capture something new." }
         if contextTitle == "Recently Deleted" { return "Deleted items will appear here until you restore or permanently remove them." }
         switch activeTab {
         case .primary: return "A little breathing room! When you save something for later, it will show up here."

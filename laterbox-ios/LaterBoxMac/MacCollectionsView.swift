@@ -5,6 +5,7 @@ struct MacCollectionsView: View {
     @ObservedObject var cloud: MacCloudSyncStore
     @Binding var selectedCollectionID: String?
     let onOpenItem: (String) -> Void
+    let onQuickSave: () -> Void
     let compact: Bool
     var onChoose: (() -> Void)? = nil
 
@@ -21,28 +22,30 @@ struct MacCollectionsView: View {
     private var muted: Color { scheme == .dark ? .white.opacity(0.55) : .black.opacity(0.55) }
 
     var body: some View {
-        VStack(spacing: 12) {
-            topBar
-            if cloud.collections.isEmpty {
-                emptyState
-            } else {
-                ScrollView {
-                    LazyVStack(spacing: 6) {
-                        ForEach(cloud.collections) { collection in
-                            collectionRow(collection)
-                        }
-                    }
-                    .padding(2)
+        Group {
+            if compact {
+                VStack(spacing: 12) {
+                    topBar
+                    collectionList
                 }
-                .frame(maxHeight: compact ? 300 : 220)
-            }
-            if !compact {
-                selectedItems
+                .padding(12)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(surface, in: RoundedRectangle(cornerRadius: 17))
+            } else {
+                HStack(spacing: 13) {
+                    VStack(spacing: 12) {
+                        topBar
+                        collectionList
+                    }
+                    .padding(14)
+                    .frame(width: 260)
+                    .frame(maxHeight: .infinity)
+                    .background(surface, in: RoundedRectangle(cornerRadius: 17))
+
+                    selectedItems
+                }
             }
         }
-        .padding(compact ? 12 : 17)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(surface, in: RoundedRectangle(cornerRadius: 17))
         .sheet(isPresented: $showingEditor) { editor }
         .confirmationDialog("Delete this collection?", isPresented: Binding(
             get: { toDelete != nil },
@@ -67,6 +70,23 @@ struct MacCollectionsView: View {
             Button("OK") { errorMessage = nil }
         } message: {
             Text(errorMessage ?? "Please try again.")
+        }
+    }
+
+    @ViewBuilder
+    private var collectionList: some View {
+        if cloud.collections.isEmpty {
+            emptyState
+        } else {
+            ScrollView {
+                LazyVStack(spacing: 6) {
+                    ForEach(cloud.collections) { collection in
+                        collectionRow(collection)
+                    }
+                }
+                .padding(2)
+            }
+            .frame(maxHeight: .infinity)
         }
     }
 
@@ -159,57 +179,69 @@ struct MacCollectionsView: View {
     private var selectedItems: some View {
         if let id = selectedCollectionID,
            let collection = cloud.collections.first(where: { $0.id == id }) {
-            let entries = cloud.collectionItems(id)
-            VStack(alignment: .leading, spacing: 10) {
-                HStack {
-                    Text(collection.name).font(.system(size: 15, weight: .bold))
+            VStack(spacing: 12) {
+                HStack(spacing: 10) {
+                    Image(systemName: "folder.fill")
+                        .font(.system(size: 16))
+                        .foregroundStyle(muted)
+                    Text(collection.name)
+                        .font(.system(size: 16, weight: .bold))
+                        .lineLimit(1)
                     Spacer()
-                    Text("\(entries.count) items")
-                        .font(.system(size: 11)).foregroundStyle(muted)
-                }
-                if entries.isEmpty {
-                    Text("No items in this collection. Add them from Item Details.")
-                        .font(.system(size: 12)).foregroundStyle(muted)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else {
-                    ScrollView {
-                        LazyVStack(spacing: 0) {
-                            ForEach(entries) { entry in
-                                HStack {
-                                    Button { onOpenItem(entry.id) } label: {
-                                        VStack(alignment: .leading, spacing: 4) {
-                                            Text(entry.title).font(.system(size: 12, weight: .semibold))
-                                            Text(entry.source).font(.system(size: 11)).foregroundStyle(muted)
-                                        }
-                                        .frame(maxWidth: .infinity, alignment: .leading)
-                                        .padding(.vertical, 9)
-                                        .contentShape(Rectangle())
-                                    }
-                                    .buttonStyle(.plain)
-                                    Button {
-                                        run { try await cloud.setCollectionMembership(id, itemID: entry.id, included: false) }
-                                    } label: {
-                                        Image(systemName: "minus.circle")
-                                            .frame(width: 32, height: 32)
-                                    }
-                                    .buttonStyle(.plain)
-                                    .help("Remove item from collection")
-                                    .disabled(busy)
-                                }
-                                Divider()
-                            }
-                        }
+                    Text("\(cloud.collectionCount(id)) items")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(muted)
+                    Button {
+                        Task { await cloud.refresh() }
+                    } label: {
+                        Image(systemName: "arrow.clockwise")
+                            .frame(width: 32, height: 32)
+                            .contentShape(Rectangle())
                     }
+                    .buttonStyle(.plain)
+                    .disabled(cloud.loading)
+                    .help("Refresh collection")
                 }
+                .padding(.horizontal, 9)
+
+                MacInboxTableView(
+                    items: cloud.collectionItems(id),
+                    isConnected: cloud.isConnected,
+                    isLoading: cloud.loading,
+                    syncError: cloud.lastError,
+                    onRefresh: { await cloud.refresh() },
+                    onStar: { itemID, starred in try await cloud.setStarred(itemID, starred: starred) },
+                    onArchive: { itemID in try await cloud.archive(itemID) },
+                    onDelete: { itemID in try await cloud.delete(itemID) },
+                    onRestore: { itemID in try await cloud.restoreToInbox(itemID) },
+                    onQuickSave: onQuickSave,
+                    onOpenItem: onOpenItem,
+                    contextTitle: "Collection"
+                )
+
+                MacCloudSyncStatusView(
+                    isConnected: cloud.isConnected,
+                    isLoading: cloud.loading,
+                    isSaving: cloud.saving,
+                    lastError: cloud.lastError,
+                    lastSynced: cloud.lastSynced,
+                    lastPushed: cloud.lastPushed,
+                    onCheckUpdates: { await cloud.refresh() }
+                )
             }
-            .padding(14)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(Color.primary.opacity(0.035), in: RoundedRectangle(cornerRadius: 12))
         } else {
-            Text("Select a collection to browse its items.")
-                .font(.system(size: 13))
-                .foregroundStyle(muted)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            VStack(spacing: 10) {
+                Image(systemName: "folder")
+                    .font(.system(size: 36, weight: .ultraLight))
+                Text("Choose a collection")
+                    .font(.system(size: 15, weight: .semibold))
+                Text("Its saved items will appear in the normal inbox-style table.")
+                    .font(.system(size: 12))
+                    .foregroundStyle(muted)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(surface, in: RoundedRectangle(cornerRadius: 17))
         }
     }
 

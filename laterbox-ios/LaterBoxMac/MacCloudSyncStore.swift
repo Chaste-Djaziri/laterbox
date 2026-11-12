@@ -337,15 +337,40 @@ final class MacCloudSyncStore: ObservableObject {
             }
             // Fetch collection names and membership separately: this also
             // exposes empty collections, which an item-only join would miss.
-            let collectionData = try await request("collections?select=id,name,created_at&user_id=eq.\(credentials.userID)&order=created_at.asc&limit=500")
-            let membershipData = try await request("collection_items?select=collection_id,item_id&user_id=eq.\(credentials.userID)&limit=5000")
+            let collectionData = try await request("collections?select=id,name,created_at&user_id=eq.\(credentials.userID)&deleted_at=is.null&order=created_at.asc&limit=500")
+            let membershipData = try await request("collection_items?select=collection_id,item_id&user_id=eq.\(credentials.userID)&deleted_at=is.null&limit=5000")
             let incomingCollections = try JSONDecoder().decode([MacCollection].self, from: collectionData)
             let incomingMemberships = try JSONDecoder().decode([MacCollectionMembership].self, from: membershipData)
-            collections = incomingCollections
-            collectionMemberships = incomingMemberships
-            let names = Dictionary(uniqueKeysWithValues: incomingCollections.map { ($0.id, $0.name) })
-            var collectionsByItem: [String: [String]] = [:]
+            // Defensive client reconciliation for older synced accounts. The
+            // database also enforces active-name uniqueness after migration.
+            var uniqueCollections: [MacCollection] = []
+            var firstIDByName: [String: String] = [:]
+            var canonicalIDByID: [String: String] = [:]
+            for collection in incomingCollections {
+                let key = collection.name.trimmingCharacters(in: .whitespacesAndNewlines)
+                    .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
+                if let existing = firstIDByName[key] {
+                    canonicalIDByID[collection.id] = existing
+                } else {
+                    firstIDByName[key] = collection.id
+                    canonicalIDByID[collection.id] = collection.id
+                    uniqueCollections.append(collection)
+                }
+            }
+            var uniqueMemberships: [MacCollectionMembership] = []
+            var seenMemberships = Set<String>()
             for membership in incomingMemberships {
+                guard let canonical = canonicalIDByID[membership.collection_id] else { continue }
+                let key = "\(canonical):\(membership.item_id)"
+                if seenMemberships.insert(key).inserted {
+                    uniqueMemberships.append(MacCollectionMembership(collection_id: canonical, item_id: membership.item_id))
+                }
+            }
+            collections = uniqueCollections
+            collectionMemberships = uniqueMemberships
+            let names = Dictionary(uniqueKeysWithValues: uniqueCollections.map { ($0.id, $0.name) })
+            var collectionsByItem: [String: [String]] = [:]
+            for membership in uniqueMemberships {
                 if let name = names[membership.collection_id] {
                     collectionsByItem[membership.item_id, default: []].append(name)
                 }

@@ -275,6 +275,7 @@ struct MacDashboardView: View {
                         openedItemID = id
                         collectionsPopupOpen = false
                     },
+                    onQuickSave: { showingQuickSave = true },
                     compact: true,
                     onChoose: {
                         selection = .collections
@@ -525,6 +526,7 @@ struct MacDashboardView: View {
                 cloud: cloud,
                 selectedCollectionID: $selectedCollectionID,
                 onOpenItem: { id in openedItemID = id },
+                onQuickSave: { showingQuickSave = true },
                 compact: false
             )
             .padding(.horizontal, 20)
