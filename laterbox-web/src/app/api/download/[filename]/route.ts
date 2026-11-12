@@ -35,23 +35,9 @@ export async function GET(
     return new NextResponse('Filename parameter is required', { status: 400 });
   }
 
-  if (filename.toLowerCase() === 'laterbox.apk') {
-    try {
-      const releaseResponse = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/releases/latest`, {
-        headers: { 'Accept': 'application/vnd.github+json', 'User-Agent': 'LaterBox-Direct-Downloader/1.0' },
-        cache: 'no-store',
-      });
-      if (!releaseResponse.ok) throw new Error(`GitHub release lookup returned ${releaseResponse.status}`);
-      const release = await releaseResponse.json() as {
-        assets?: Array<{ name: string; browser_download_url: string }>;
-      };
-      const apk = release.assets?.find((asset) => asset.name === 'laterbox.apk');
-      if (!apk) return new NextResponse('Android download is temporarily unavailable.', { status: 404 });
-      return NextResponse.redirect(apk.browser_download_url, { status: 302 });
-    } catch (error) {
-      console.error('Android release lookup failed:', error);
-      return new NextResponse('Android download is temporarily unavailable.', { status: 503 });
-    }
+  // Android public distribution is paused. Never redirect to old release APKs.
+  if (/\\.(apk|aab)$/i.test(filename)) {
+    return new NextResponse('Android is coming soon.', { status: 410 });
   }
 
   // Token extraction from all possible runtime environments: Cloudflare context, process.env, headers, query param
@@ -113,22 +99,12 @@ export async function GET(
     }
 
     const lowerFilename = filename.toLowerCase();
-    const isApk = lowerFilename.endsWith('.apk');
     const isChromeExt = lowerFilename.includes('chrome');
     const isFirefoxExt = lowerFilename.includes('firefox');
     const isSafariExt = lowerFilename.includes('safari');
 
     let candidates = [filename];
-    if (isApk) {
-      candidates = [
-        filename,
-        'laterbox.apk',
-        'LaterBox.apk',
-        'laterbox-android.apk',
-        'laterbox-android-release.apk',
-        'app-release.apk',
-      ];
-    } else if (isChromeExt) {
+    if (isChromeExt) {
       candidates = [
         filename,
         'laterbox-chrome-extension.zip',
