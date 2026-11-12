@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[macOS / Kept dashboard]** Add Web-parity Kept view for saved library items with native email table, archive and star controls, item details navigation, and cloud sync footer.
+
 - **[macOS / Recently Deleted]** Add native Recently Deleted listing, restore-to-Inbox, permanent deletion through the existing attachment-storage cleanup service, confirmed Empty Trash, details navigation, and cloud sync status.
 
 - **[macOS / Archived dashboard]** Add a Web-style Archived page for archived cloud items, with restore-to-Inbox, standard row controls, native item detail navigation and the Cloud Sync footer.
