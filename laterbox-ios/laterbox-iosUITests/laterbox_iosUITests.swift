@@ -215,10 +215,12 @@ final class laterbox_iosUITests: XCTestCase {
         let subscriptions = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Subscription")).firstMatch
         XCTAssertTrue(subscriptions.waitForExistence(timeout: 10))
         subscriptions.tap()
-        let upgrade = app.buttons["Upgrade to LaterBox Pro"]
-        XCTAssertTrue(upgrade.waitForExistence(timeout: 5))
-        upgrade.tap()
-        XCTAssertTrue(app.staticTexts["LaterBox Plans"].waitForExistence(timeout: 10))
+        let viewPlans = app.buttons["subscription.viewPlans"]
+        XCTAssertTrue(viewPlans.waitForExistence(timeout: 8),
+                      "Subscription settings should expose plan details")
+        viewPlans.tap()
+        XCTAssertTrue(app.staticTexts["LaterBox Plans"].waitForExistence(timeout: 10),
+                      "Tapping View plan details must present the plans sheet")
         let restore = app.buttons.matching(identifier: "Restore Purchases").firstMatch
         XCTAssertTrue(restore.waitForExistence(timeout: 10))
         restore.tap()

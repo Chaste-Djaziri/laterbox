@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[iOS / Subscription plans]** Present plan details directly from the subscription settings view, so the sheet opens reliably inside navigation; update the guest UI walkthrough to verify the current View plan details control.
+
 - **[macOS / App Store bundle identity]** Align the native Mac target with the existing iOS App Store Connect bundle ID `pro.micorp.laterbox` for a shared platform listing, and validate that the distribution profile is specifically for macOS rather than iOS.
 
 - **[macOS / App Store Connect]** Replace Developer ID notarization/DMG GitHub distribution with a separate Mac App Store Connect archive upload workflow; use existing Apple Distribution and Mac profile secrets, and mark the macOS download as App Store coming soon until approved.
