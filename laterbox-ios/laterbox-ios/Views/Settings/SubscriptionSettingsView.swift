@@ -8,7 +8,6 @@ public struct SubscriptionSettingsView: View {
     @Environment(\.openURL) private var openURL
     @ObservedObject private var coordinator = SyncCoordinator.shared
     @ObservedObject private var storeKit = StoreKitManager.shared
-    @State private var showingPlanDetails = false
 
     public init() {}
 
@@ -97,9 +96,8 @@ public struct SubscriptionSettingsView: View {
                             .font(.subheadline)
                             .foregroundStyle(SettingsAppearance.textSecondary(for: colorScheme))
 
-                        Button {
-                            LBHaptic.light()
-                            showingPlanDetails = true
+                        NavigationLink {
+                            PlansView(isEmbeddedInNavigation: true)
                         } label: {
                             Label("View plan details", systemImage: "square.stack")
                                 .font(.subheadline.weight(.semibold))
@@ -192,9 +190,6 @@ public struct SubscriptionSettingsView: View {
         .task {
             await storeKit.updatePurchasedProducts()
             await coordinator.refreshEntitlement()
-        }
-        .sheet(isPresented: $showingPlanDetails) {
-            PlansView()
         }
         .navigationTitle("Subscription & Plans")
         .navigationBarTitleDisplayMode(.inline)

@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[iOS / Subscription navigation]** Replace the repeatedly failing nested Plans modal with direct navigation from Subscription settings, while preserving the Plans content, restore purchases, and back/Done controls; the focused UI walkthrough passes locally.
+
 - **[macOS / App Store upload error 90255]** Build with distributable file permissions and package a normalized, readable staging copy of the signed application; audit every bundled resource and reverify code signatures before submitting the Mac installer.
 
 - **[macOS / CI package signing]** Grant `productbuild` installer-key access in the CI keychain and fail with actionable diagnostics instead of hanging on an invisible signing authorization prompt.

@@ -15,9 +15,11 @@ public struct PlansView: View {
     @ObservedObject private var storeKit = StoreKitManager.shared
 
     public let isLiquidGlass: Bool
+    public let isEmbeddedInNavigation: Bool
 
-    public init(isLiquidGlass: Bool = false) {
+    public init(isLiquidGlass: Bool = false, isEmbeddedInNavigation: Bool = false) {
         self.isLiquidGlass = isLiquidGlass
+        self.isEmbeddedInNavigation = isEmbeddedInNavigation
     }
 
     private var currentPlan: String {
@@ -32,7 +34,16 @@ public struct PlansView: View {
     }
 
     public var body: some View {
-        NavigationStack {
+        Group {
+            if isEmbeddedInNavigation {
+                plansContent
+            } else {
+                NavigationStack { plansContent }
+            }
+        }
+    }
+
+    private var plansContent: some View {
             ZStack {
                 InboxGrainBackground().ignoresSafeArea()
                 ScrollView(showsIndicators: false) {
@@ -143,7 +154,6 @@ public struct PlansView: View {
             .task {
                 await coordinator.refreshEntitlement()
             }
-        }
     }
 
     private func tierCard(title: String, storage: String, details: String, icon: String, selected: Bool) -> some View {
