@@ -55,12 +55,16 @@ from pathlib import Path
 
 profile = plistlib.loads(Path(sys.argv[1]).read_bytes())
 team = sys.argv[2]
-bundle = "pro.micorp.laterbox.macos"
+bundle = "pro.micorp.laterbox"
 entitlements = profile.get("Entitlements", {})
 if team not in profile.get("TeamIdentifier", []):
     raise SystemExit("::error::macOS provisioning profile belongs to a different Apple team")
-if entitlements.get("com.apple.application-identifier", entitlements.get("application-identifier")) != team + "." + bundle:
-    raise SystemExit("::error::macOS provisioning profile does not match " + bundle)
+profile_app_id = entitlements.get("com.apple.application-identifier") or entitlements.get("application-identifier")
+if profile_app_id != team + "." + bundle:
+    raise SystemExit("::error::macOS profile app ID mismatch (expected " + bundle + "; stored profile: " + str(profile_app_id).removeprefix(team + ".") + ")")
+platforms = profile.get("Platform") or []
+if not any(platform in ("OSX", "macOS") for platform in platforms):
+    raise SystemExit("::error::Expected a Mac App Store provisioning profile for " + bundle + "; an iOS profile cannot sign the native macOS app (profile platform: " + ", ".join(platforms) + ")")
 if entitlements.get("com.apple.security.get-task-allow", entitlements.get("get-task-allow")):
     raise SystemExit("::error::Development provisioning profile cannot be used for App Store Connect")
 if profile.get("ProvisionedDevices") or profile.get("ProvisionsAllDevices"):
@@ -102,7 +106,7 @@ xcodebuild -project laterbox-ios/laterbox-ios.xcodeproj -scheme LaterBoxMac \
 APP="$ARCHIVE/Products/Applications/Laterbox.app"
 test -d "$APP"
 codesign --verify --deep --strict --verbose=2 "$APP"
-test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP/Contents/Info.plist")" = 'pro.micorp.laterbox.macos'
+test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP/Contents/Info.plist")" = 'pro.micorp.laterbox'
 codesign -dv --verbose=4 "$APP" 2>&1 | grep -F "TeamIdentifier=$TEAM_ID"
 
 echo "Uploading macOS archive to App Store Connect (not publishing to the Mac App Store)"

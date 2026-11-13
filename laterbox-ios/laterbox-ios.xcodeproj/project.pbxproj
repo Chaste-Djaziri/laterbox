@@ -928,7 +928,7 @@
 				INFOPLIST_KEY_CFBundleName = Laterbox;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				PRODUCT_BUNDLE_IDENTIFIER = pro.micorp.laterbox.macos;
+				PRODUCT_BUNDLE_IDENTIFIER = pro.micorp.laterbox;
 				PRODUCT_NAME = Laterbox;
 				SDKROOT = macosx;
 				SUPPORTED_PLATFORMS = macosx;
@@ -956,7 +956,7 @@
 				INFOPLIST_KEY_CFBundleName = Laterbox;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				PRODUCT_BUNDLE_IDENTIFIER = pro.micorp.laterbox.macos;
+				PRODUCT_BUNDLE_IDENTIFIER = pro.micorp.laterbox;
 				PRODUCT_NAME = Laterbox;
 				SDKROOT = macosx;
 				SUPPORTED_PLATFORMS = macosx;

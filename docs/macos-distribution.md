@@ -11,12 +11,12 @@ These secret names correspond to the existing repository secrets:
 - `APPLE_TEAM_ID`: Apple Developer Team ID.
 - `APPLE_CERTIFICATE_BASE64` and `APPLE_CERTIFICATE_PASSWORD`: Apple Distribution .p12 and export password.
 - `APPLE_INSTALLER_CERTIFICATE_BASE64` and `APPLE_INSTALLER_CERTIFICATE_PASSWORD`: Mac App Store installer distribution .p12 and password.
-- `APPLE_MAC_PROVISIONING_PROFILE_BASE64`: **Mac App Store Connect** provisioning profile for `pro.micorp.laterbox.macos`. A Developer ID, development, or device-restricted profile is not suitable.
+- `APPLE_MAC_PROVISIONING_PROFILE_BASE64`: **Mac App Store Connect** provisioning profile for `pro.micorp.laterbox`. A Developer ID, development, or device-restricted profile is not suitable.
 - `APP_STORE_CONNECT_API_KEY_BASE64`, `APP_STORE_CONNECT_KEY_ID`, `APP_STORE_CONNECT_ISSUER_ID`: App Store Connect key for archive upload.
 
-The script checks the profile bundle identifier, team, expiration date, and distribution requirements before upload. If the saved profile is not a Mac App Store Connect profile, create one in the [Apple Developer portal](https://developer.apple.com/account/resources/profiles/list) for `pro.micorp.laterbox.macos` and update `APPLE_MAC_PROVISIONING_PROFILE_BASE64`.
+The script checks the profile bundle identifier, macOS platform, team, expiration date, and distribution requirements before upload. Apple requires a separate **Mac App Store Connect provisioning profile** even though macOS and iOS share the same bundle ID; an iOS App Store provisioning profile cannot sign the native macOS target. If the saved profile is not a Mac App Store Connect profile, create one in the [Apple Developer portal](https://developer.apple.com/account/resources/profiles/list) for `pro.micorp.laterbox` and update `APPLE_MAC_PROVISIONING_PROFILE_BASE64`.
 
-**Important:** An existing macOS app record with bundle ID `pro.micorp.laterbox.macos` must exist in [App Store Connect](https://appstoreconnect.apple.com/). An upload cannot create the listing automatically. App Store Connect and Apple can also impose capability, metadata, agreements, or processing requirements that are not satisfied merely by signing correctly.
+**Important:** An existing macOS app record with bundle ID `pro.micorp.laterbox` must exist in [App Store Connect](https://appstoreconnect.apple.com/). For the existing iOS app record, add macOS as another platform in App Store Connect before uploading. A separate Mac app record is not required when using the same bundle ID. App Store Connect and Apple can also impose capability, metadata, agreements, or processing requirements that are not satisfied merely by signing correctly.
 
 ## CI workflow
 
@@ -29,7 +29,7 @@ The script checks the profile bundle identifier, team, expiration date, and dist
 
 ## Troubleshooting
 
-If Xcode reports a provisioning mismatch, confirm that `APPLE_MAC_PROVISIONING_PROFILE_BASE64` contains a **Mac App Store Connect** distribution profile for `pro.micorp.laterbox.macos`, associated with the same Apple Distribution certificate imported by CI. If upload fails with a missing app record, create the corresponding macOS app record in App Store Connect. An Apple notarization status 7000 applies to Developer ID distribution and is not part of this upload pipeline.
+If Xcode reports a provisioning mismatch, confirm that `APPLE_MAC_PROVISIONING_PROFILE_BASE64` contains a **Mac App Store Connect** distribution profile for `pro.micorp.laterbox`, associated with the same Apple Distribution certificate imported by CI. If upload fails with a missing app record, create the corresponding macOS app record in App Store Connect. An Apple notarization status 7000 applies to Developer ID distribution and is not part of this upload pipeline.
 
 ## Re-enabling direct Mac downloads
 
