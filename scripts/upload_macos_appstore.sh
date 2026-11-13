@@ -103,7 +103,7 @@ codesign -dv --verbose=4 "$APP" 2>&1 | grep -F "TeamIdentifier=$TEAM_ID"
 # Xcode's exportArchive can incorrectly compare the installer certificate to
 # the app's provisioning profile. macOS App Store submissions are signed PKGs;
 # package the already Apple Distribution-signed app using the *installer* identity.
-INSTALLER_ID="$(security find-identity -v "$KEYCHAIN" | sed -n 's/.*"\\(3rd Party Mac Developer Installer:[^"]*\\)".*/\\1/p' | head -n 1)"
+INSTALLER_ID="$(security find-identity -v "$KEYCHAIN" | awk -F '"' '/3rd Party Mac Developer Installer:/{print $2; exit}')"
 if [[ -z "$INSTALLER_ID" ]]; then
   echo "::error::Mac Installer Distribution identity is missing from the signing keychain"
   exit 1

@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[macOS / App Store signing]** Fix installer identity extraction from the imported keychain by replacing an over-escaped `sed` expression with a quoted-field `awk` match; Apple’s installer certificate was already present.
+
 - **[macOS / App Store Connect delivery]** Package the successfully archived Apple Distribution-signed Mac app with its separate Mac Installer Distribution signing identity, verify the `.pkg`, and upload directly to App Store Connect without the problematic Xcode exportArchive signing comparison.
 
 - **[iOS / Subscription plans]** Present plan details directly from the subscription settings view, so the sheet opens reliably inside navigation; update the guest UI walkthrough to verify the current View plan details control.
