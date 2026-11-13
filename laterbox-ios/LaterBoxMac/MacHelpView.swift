@@ -38,7 +38,7 @@ private let macHelpAnswers: [MacHelpAnswer] = [
     .init(id: 6, question: "How do I sync items with Web and iPhone?",
           answer: "Sign in to the same LaterBox account on each platform. The Mac app synchronizes your cloud data using Supabase; use the cloud icon or Check Updates to request another refresh. Some functions require connectivity."),
     .init(id: 7, question: "What happens when I reach my cloud storage limit?",
-          answer: "Your plan determines the available cloud attachment capacity. If your quota is full, new uploads may be paused until you free space or upgrade. Your existing saved content is not automatically removed."),
+          answer: "Your plan determines the available cloud attachment capacity. If your quota is full, new uploads may be paused until you free unused space. Your existing saved content is not automatically removed."),
     .init(id: 8, question: "Can Free users participate in Earn?",
           answer: "Eligible adults on Free or paid plans can participate when the Earn program is enabled. Whop identity verification and acceptance of the Earn Terms are required. Commissions depend on qualifying paid subscription renewals, not link clicks."),
     .init(id: 9, question: "Where can I change my referral code or see earnings?",

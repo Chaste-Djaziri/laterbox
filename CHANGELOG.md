@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[macOS / App Review subscription compliance]** Align Mac cloud storage with the approved iOS web-managed-account approach: remove in-app checkout and external purchase actions, Whop prices, and paid-plan comparisons; show only existing account storage and usage, and remove upgrade prompts from storage messaging. Intended for review under free cloud-storage companion app guidance (3.1.3(f)); Apple determines final eligibility.
+
 - **[iOS / Subscription navigation]** Replace the repeatedly failing nested Plans modal with direct navigation from Subscription settings, while preserving the Plans content, restore purchases, and back/Done controls; the focused UI walkthrough passes locally.
 
 - **[macOS / App Store upload error 90255]** Build with distributable file permissions and package a normalized, readable staging copy of the signed application; audit every bundled resource and reverify code signatures before submitting the Mac installer.

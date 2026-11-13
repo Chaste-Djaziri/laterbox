@@ -63,9 +63,9 @@ private struct SidebarQuota: Decodable {
     }
     var details: String {
         guard let percent else { return "We could not retrieve your current cloud storage usage." }
-        if percent >= 100 { return "Your limit has been reached. Upgrade or remove stored files." }
-        if percent >= 95 { return "Less than 5% remains. Upgrade or clear unused files soon." }
-        if percent >= 80 { return "Over 80% used. Consider freeing space or upgrading." }
+        if percent >= 100 { return "Your limit has been reached. Remove unused files to free space." }
+        if percent >= 95 { return "Less than 5% remains. Clear unused files to free space." }
+        if percent >= 80 { return "Over 80% used. Consider freeing unused space." }
         return "Your cloud storage is within its plan limit."
     }
     var plan: String {
@@ -145,7 +145,7 @@ private struct SidebarQuotaPopover: View {
                 Button(action: refresh) { Label("Refresh", systemImage: "arrow.clockwise") }
                     .disabled(model.loading)
                 Button(action: openPlans) {
-                    Label(model.level > 0 ? "Get more space" : "View plans",
+                    Label("Storage details",
                           systemImage: "arrow.up.right")
                 }
                 .buttonStyle(.borderedProminent)
@@ -172,7 +172,7 @@ private enum DashboardRoute: String, CaseIterable, Identifiable {
     case apps = "Apps"
     case help = "Help & FAQ"
     case settings = "Settings"
-    case plans = "Plans"
+    case plans = "Storage"
 
     var id: String { rawValue }
 

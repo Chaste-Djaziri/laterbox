@@ -125,8 +125,8 @@ struct MacSettingsView: View {
                 sectionRow(.account)
                 itemDivider
                 Button(action: onPlans) {
-                    rowContent("Plans & billing", icon: "crown",
-                               detail: "Compare storage plans and manage your subscription")
+                    rowContent("Cloud storage", icon: "crown",
+                               detail: "Current account storage and usage")
                 }
                 .buttonStyle(.plain)
             }
@@ -199,8 +199,8 @@ struct MacSettingsView: View {
                         link: "https://laterbox.dev/settings/account")
                 itemDivider
                 Button(action: onPlans) {
-                    rowContent("Plans & billing", icon: "crown",
-                               detail: "View storage plans and current subscription")
+                    rowContent("Cloud storage", icon: "crown",
+                               detail: "Current account storage and usage")
                 }
                 .buttonStyle(.plain)
                 itemDivider
@@ -208,7 +208,7 @@ struct MacSettingsView: View {
                         detail: "Review permanent deletion options on Web",
                         link: "https://laterbox.dev/settings/account")
             }
-            Text("Sensitive account and billing changes are completed securely in your browser. This Mac uses your existing signed-in session for synchronization.")
+            Text("Your existing account settings and cloud storage are reflected on this Mac.")
                 .font(.system(size: 12)).foregroundStyle(secondary)
             signOutButton
         }
