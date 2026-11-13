@@ -1,7 +1,6 @@
 // laterbox-web/src/app/(marketing)/download/page.tsx
 'use client';
 
-import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { AppStoreButton } from '@/components/download/AppStoreButton';
 import {
@@ -19,22 +18,6 @@ const CHROME_STORE_URL =
   'https://chromewebstore.google.com/detail/laterbox-save-for-later/egiodciikkepjielhbnihmmchkbpeikp';
 
 export default function DownloadPage() {
-  const [macDmgUrl, setMacDmgUrl] = useState<string | null>(null);
-  useEffect(() => {
-    // Only advertise a direct installer after the notarized GitHub Release asset exists.
-    const controller = new AbortController();
-    fetch('https://api.github.com/repos/Chaste-Djaziri/laterbox/releases/latest',
-      { signal: controller.signal, headers: { Accept: 'application/vnd.github+json' } })
-      .then(response => response.ok ? response.json() as Promise<{ assets?: Array<{ name: string; browser_download_url: string }> }> : Promise.reject(new Error('Release unavailable')))
-      .then((release: { assets?: Array<{ name: string; browser_download_url: string }> }) => {
-        const dmg = release.assets?.find(asset => asset.name === 'LaterBox-macOS.dmg');
-        if (dmg?.browser_download_url?.startsWith('https://github.com/Chaste-Djaziri/laterbox/releases/')) {
-          setMacDmgUrl(dmg.browser_download_url);
-        }
-      })
-      .catch(() => {});
-    return () => controller.abort();
-  }, []);
 
   return (
     <div className="w-full flex-1 bg-[#fbfaf6]">
@@ -111,7 +94,7 @@ export default function DownloadPage() {
             </div>
           </div>
 
-          {/* macOS releases are distributed only after Developer ID signing and Apple notarization. */}
+          {/* macOS is uploaded to App Store Connect; no direct DMG distribution. */}
           <div className="rounded-2xl bg-white border border-[#e4e0d5] p-6 flex flex-col justify-between space-y-6 shadow-2xs hover:border-[#181b14]/30 transition-all">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -124,18 +107,11 @@ export default function DownloadPage() {
                 </div>
               </div>
               <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-[#f4f7eb] border border-[#cbd79c] text-[#2c3324]">
-                {macDmgUrl ? 'Mac download' : 'Preparing release'}
+                Mac App Store
               </span>
             </div>
             <div className="flex items-center justify-between pt-2 gap-3">
-              {macDmgUrl ? (
-                <a href={macDmgUrl} className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#181b14] hover:bg-[#30392a] text-white text-xs font-bold transition-all shadow-2xs">
-                  <Download className="w-3.5 h-3.5 text-[#e6edb0]" />
-                  Download for Mac
-                </a>
-              ) : (
-                <span className="text-xs font-semibold text-[#606458]">Signed installer coming soon</span>
-              )}
+              <span className="text-xs font-semibold text-[#606458]">App Store release coming soon</span>
               <span className="text-[11px] text-[#8e9587]">macOS 14+</span>
             </div>
           </div>

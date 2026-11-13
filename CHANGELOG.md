@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[macOS / App Store Connect]** Replace Developer ID notarization/DMG GitHub distribution with a separate Mac App Store Connect archive upload workflow; use existing Apple Distribution and Mac profile secrets, and mark the macOS download as App Store coming soon until approved.
+
 - **[macOS / Apple notarization status 7000]** Print Apple’s team-level rejection summary and handle null issue lists; documented the Apple Developer Support action required to enable notarization for the signing team.
 
 - **[macOS / Notarization diagnostics]** Fail closed on Apple notarization rejection, print Apple's issue descriptions, and retain diagnostics as a GitHub Actions artifact instead of attempting to staple a nonexistent ticket.

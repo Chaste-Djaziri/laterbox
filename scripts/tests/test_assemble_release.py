@@ -17,7 +17,7 @@ class AssembleReleaseTests(unittest.TestCase):
         self.current.mkdir()
         self.previous.mkdir()
         self.changelog = self.root / "CHANGELOG.md"
-        self.changelog.write_text("# Changes\n\n- New Android download\n")
+        self.changelog.write_text("# Changes\n\n- Web and browser releases\n")
 
     def add_all_current(self):
         for name in ASSETS:
@@ -31,6 +31,8 @@ class AssembleReleaseTests(unittest.TestCase):
         self.assertEqual(set(manifest["assets"]), set(ASSETS))
         self.assertEqual({item["source_commit"] for item in manifest["assets"].values()}, {"first"})
         self.assertTrue((self.output / "LaterBox-CHANGELOG.md").is_file())
+        self.assertNotIn("LaterBox-macOS.dmg", manifest["assets"])
+        self.assertFalse((self.output / "LaterBox-macOS.dmg").exists())
 
     def test_changed_platform_replaces_only_its_artifact(self):
         self.add_all_current()
@@ -38,14 +40,14 @@ class AssembleReleaseTests(unittest.TestCase):
         prior = self.previous / "assets"
         self.current = self.root / "next"
         self.current.mkdir()
-        (self.current / "laterbox.apk").write_bytes(b"updated apk")
+        (self.current / "laterbox-chrome-extension.zip").write_bytes(b"updated chrome extension")
         assemble(self.current, prior, self.output, "second", self.changelog)
         manifest = json.loads((self.output / "release-manifest.json").read_text())
-        self.assertEqual(manifest["assets"]["laterbox.apk"]["source_commit"], "second")
+        self.assertEqual(manifest["assets"]["laterbox-chrome-extension.zip"]["source_commit"], "second")
         self.assertEqual(manifest["assets"]["LaterBox.ipa"]["source_commit"], "first")
 
     def test_missing_baseline_asset_fails(self):
-        (self.previous / "laterbox.apk").write_bytes(b"legacy build")
+        (self.previous / "LaterBox-macOS.dmg").write_bytes(b"legacy mac build")
         with self.assertRaisesRegex(RuntimeError, "Missing required release asset"):
             assemble(self.current, self.previous, self.output, "first", self.changelog)
 

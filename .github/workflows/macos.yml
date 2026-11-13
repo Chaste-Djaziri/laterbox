@@ -1,32 +1,42 @@
 # .github/workflows/macos.yml
-name: Native macOS Distributable
+name: Native macOS App Store Connect
 on:
-  workflow_call:
+  push:
+    branches: [main]
+    paths:
+      - 'laterbox-ios/LaterBoxMac/**'
+      - 'laterbox-ios/laterbox-ios.xcodeproj/**'
+      - '.github/workflows/macos.yml'
+      - 'scripts/upload_macos_appstore.sh'
+      - 'laterbox-ios/version.json'
   pull_request:
     branches: [main]
     paths:
       - 'laterbox-ios/LaterBoxMac/**'
       - 'laterbox-ios/laterbox-ios.xcodeproj/**'
       - '.github/workflows/macos.yml'
-      - 'scripts/package_macos.sh'
+      - 'scripts/upload_macos_appstore.sh'
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: macos-${{ github.ref }}
+  group: macos-appstore-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
-  package:
-    name: Build, sign and notarize macOS installer
+  upload:
+    name: Build and upload macOS to App Store Connect
     runs-on: xcode-27
     timeout-minutes: 80
     env:
       TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-      CERTIFICATE_BASE64: ${{ secrets.APPLE_DEVELOPER_ID_CERTIFICATE_BASE64 }}
-      CERTIFICATE_PASSWORD: ${{ secrets.APPLE_DEVELOPER_ID_CERTIFICATE_PASSWORD }}
+      CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
+      CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+      INSTALLER_CERTIFICATE_BASE64: ${{ secrets.APPLE_INSTALLER_CERTIFICATE_BASE64 }}
+      INSTALLER_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_INSTALLER_CERTIFICATE_PASSWORD }}
+      MAC_PROFILE_BASE64: ${{ secrets.APPLE_MAC_PROVISIONING_PROFILE_BASE64 }}
       ASC_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_API_KEY_BASE64 }}
       ASC_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
       ASC_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
@@ -39,7 +49,7 @@ jobs:
           xcodebuild -version
           xcodebuild -showsdks | grep -q macosx
           xcodebuild -list -project laterbox-ios/laterbox-ios.xcodeproj
-      - name: Build macOS app and verify unsigned PR build
+      - name: Validate macOS Release build for pull requests
         if: github.event_name == 'pull_request'
         shell: bash
         run: |
@@ -48,27 +58,17 @@ jobs:
             -configuration Release -destination 'generic/platform=macOS' \
             -derivedDataPath "$RUNNER_TEMP/LaterBoxMacBuild" CODE_SIGNING_ALLOWED=NO build
           test -d "$RUNNER_TEMP/LaterBoxMacBuild/Build/Products/Release/Laterbox.app"
-      - name: Sign, notarize and package release DMG
+      - name: Upload signed macOS app to App Store Connect
         if: github.event_name != 'pull_request'
         shell: bash
-        run: bash scripts/package_macos.sh
-      - name: Upload Apple notarization diagnostics on failure
+        run: bash scripts/upload_macos_appstore.sh
+      - name: Upload archive diagnostics on failure
         if: failure() && github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4
         with:
-          name: laterbox-macos-notarization-diagnostics-${{ github.run_id }}
+          name: laterbox-macos-appstore-diagnostics-${{ github.run_id }}
           path: |
-            ${{ runner.temp }}/macos-release/notarization-result.json
-            ${{ runner.temp }}/macos-release/notarization-log.json
+            ${{ runner.temp }}/MacAppStoreExport/*.log
+            ${{ runner.temp }}/MacAppStoreExport/DistributionSummary.plist
           if-no-files-found: ignore
           retention-days: 14
-      - name: Upload notarized installer and checksum
-        if: github.event_name != 'pull_request'
-        uses: actions/upload-artifact@v4
-        with:
-          name: laterbox-macos-dmg-${{ github.run_id }}
-          path: |
-            ${{ runner.temp }}/macos-release/LaterBox-macOS.dmg
-            ${{ runner.temp }}/macos-release/LaterBox-macOS.dmg.sha256
-          if-no-files-found: error
-          retention-days: 30

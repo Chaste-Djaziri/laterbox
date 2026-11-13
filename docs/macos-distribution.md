@@ -1,36 +1,40 @@
 # docs/macos-distribution.md
 
-# LaterBox macOS direct distribution
+# LaterBox macOS — App Store Connect distribution
 
-The release workflow builds a **universal (Apple Silicon + Intel)** app for macOS 14+, signs it with a **Developer ID Application** certificate, notarizes the DMG with Apple, staples the ticket, verifies Gatekeeper and publishes `LaterBox-macOS.dmg` plus a SHA-256 checksum in the managed GitHub Release.
+The macOS build is uploaded to **App Store Connect** for processing, TestFlight, and eventual Mac App Store review. It is not notarized and no DMG is published as a GitHub Release asset. Uploading a build **does not automatically publish it** on the Mac App Store.
 
-## Configure GitHub Actions secrets
+## Required GitHub Actions secrets
 
-Set these repository secrets in **Settings → Secrets and variables → Actions**:
+These secret names correspond to the existing repository secrets:
 
-- `APPLE_DEVELOPER_ID_CERTIFICATE_BASE64`: Base64 of the exported Developer ID Application **.p12** certificate (including its private key). Use the Developer ID certificate, **not** the iOS Apple Distribution certificate.
-- `APPLE_DEVELOPER_ID_CERTIFICATE_PASSWORD`: Password used to export that .p12.
 - `APPLE_TEAM_ID`: Apple Developer Team ID.
-- `APP_STORE_CONNECT_API_KEY_BASE64`: Base64 of the App Store Connect API private `.p8` key.
-- `APP_STORE_CONNECT_KEY_ID`: API key identifier.
-- `APP_STORE_CONNECT_ISSUER_ID`: API issuer UUID.
+- `APPLE_CERTIFICATE_BASE64` and `APPLE_CERTIFICATE_PASSWORD`: Apple Distribution .p12 and export password.
+- `APPLE_INSTALLER_CERTIFICATE_BASE64` and `APPLE_INSTALLER_CERTIFICATE_PASSWORD`: Mac App Store installer distribution .p12 and password.
+- `APPLE_MAC_PROVISIONING_PROFILE_BASE64`: **Mac App Store Connect** provisioning profile for `pro.micorp.laterbox.macos`. A Developer ID, development, or device-restricted profile is not suitable.
+- `APP_STORE_CONNECT_API_KEY_BASE64`, `APP_STORE_CONNECT_KEY_ID`, `APP_STORE_CONNECT_ISSUER_ID`: App Store Connect key for archive upload.
 
-These secret names match the repository's existing Apple Developer ID and App Store Connect entries. The runner imports the Developer ID private key only for the build; a local Developer ID identity is not required when GitHub Secrets contain the correct .p12. The stored certificate must be valid and include its private key. The existing iOS App Store Connect secrets may be reused if they have the correct permissions. Credentials stay in GitHub Secrets and are never embedded in the installer or source tree. The pipeline fails closed if any required secret is missing or signing/notarization fails.
+The script checks the profile bundle identifier, team, expiration date, and distribution requirements before upload. If the saved profile is not a Mac App Store Connect profile, create one in the [Apple Developer portal](https://developer.apple.com/account/resources/profiles/list) for `pro.micorp.laterbox.macos` and update `APPLE_MAC_PROVISIONING_PROFILE_BASE64`.
 
-## Release path
+**Important:** An existing macOS app record with bundle ID `pro.micorp.laterbox.macos` must exist in [App Store Connect](https://appstoreconnect.apple.com/). An upload cannot create the listing automatically. App Store Connect and Apple can also impose capability, metadata, agreements, or processing requirements that are not satisfied merely by signing correctly.
 
-1. Push code to `main`. `Complete GitHub Release` detects macOS changes and invokes `Native macOS Distributable`; the latter can also run manually from Actions.
-2. Xcode 27 builds the `LaterBoxMac` scheme in Release mode. On PRs, it compiles without publishing a distributable.
-3. Production builds import the Developer ID certificate into a temporary keychain, build a universal binary with hardened runtime and timestamp, validate the signed app and prepare an installer with a drag-to-Applications shortcut.
-4. Apple's notary service must accept the DMG; the ticket is stapled and verified **only after an explicit `Accepted` result**. For `Rejected` or other statuses, the workflow fetches Apple's notarization issues, prints them in the job log, and uploads the diagnostic JSON as a temporary artifact. Rejected installers are never published.
-5. The web downloads page checks the latest published GitHub Release for `LaterBox-macOS.dmg` and enables its Mac download link only when the signed asset exists.
+## CI workflow
 
-**Important:** GitHub Actions artifacts are for CI validation and have limited retention. The GitHub Release asset is the public download. Production download activation requires a successful macOS build and complete managed release.
+- `.github/workflows/macos.yml` runs independently on macOS-related pushes to main and via manual dispatch. Pull requests only compile an unsigned macOS build.
+- `scripts/upload_macos_appstore.sh` imports the Apple Distribution and installer certificates, validates and installs the Mac App Store profile, archives the universal Mac app with sandbox entitlements, and uploads through `xcodebuild -exportArchive` using the App Store Connect API key.
+- A successful upload means Apple accepted the transfer, **not** that build processing or App Review succeeded.
+- There is **no Developer ID notarization, stapling, DMG artifact, or macOS binary in GitHub Releases** while App Store distribution is selected.
+- The managed GitHub Release workflow for the web, extensions, and iOS remains independent of Mac App Store uploads.
+- The download page displays **Mac App Store coming soon** until a verified macOS App Store listing URL is available. Do not link the iOS listing as a Mac download without verifying compatibility.
+
+## Troubleshooting
+
+If Xcode reports a provisioning mismatch, confirm that `APPLE_MAC_PROVISIONING_PROFILE_BASE64` contains a **Mac App Store Connect** distribution profile for `pro.micorp.laterbox.macos`, associated with the same Apple Distribution certificate imported by CI. If upload fails with a missing app record, create the corresponding macOS app record in App Store Connect. An Apple notarization status 7000 applies to Developer ID distribution and is not part of this upload pipeline.
+
+## Re-enabling direct Mac downloads
+
+Restoring a direct DMG requires a separately maintained Developer ID signed and **successfully notarized** distribution pipeline. Do not publish an unnotarized installer as a replacement.
 
 ## Paused Android
 
-Android CI is retained for future development but both automated triggers and the build job are disabled. `Complete GitHub Release` no longer invokes it or carries Android APK/AAB files into new managed releases. The public Android download endpoint returns HTTP 410, and the download page labels Android Coming soon. Re-enabling Android requires explicitly restoring workflow triggers and release assets.
-
-## Apple notarization team provisioning
-
-If Apple returns `statusCode: 7000` and `statusSummary: Team is not yet configured for notarization`, the Developer Program team has not been enabled for notarization. The app can sign successfully and still be rejected. Contact [Apple Developer Support](https://developer.apple.com/contact/) under **Development and Technical → Other Development or Technical Questions** and provide the notarization submission ID. Do not weaken signing verification, bypass notarization, or keep retrying unchanged installers. Apple's log can include `issues: null` in this condition; the CI diagnostic parser handles this and prints the team-level summary.
+Android CI and Android release assets remain disabled; the public Android download endpoint returns HTTP 410, and the download page labels Android Coming soon.
