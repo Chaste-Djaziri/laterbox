@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[macOS / App Store upload error 90255]** Build with distributable file permissions and package a normalized, readable staging copy of the signed application; audit every bundled resource and reverify code signatures before submitting the Mac installer.
+
 - **[macOS / CI package signing]** Grant `productbuild` installer-key access in the CI keychain and fail with actionable diagnostics instead of hanging on an invisible signing authorization prompt.
 - **[iOS / Subscription UI tests]** Identify the actual Plans sheet by its accessible Done control rather than relying on a scroll-content text label; verify restoration and return to subscription settings.
 - **[Supabase / Preview migrations]** Match the committed macOS support-request migration version to the already-applied production migration without changing database schema or remote migration history.

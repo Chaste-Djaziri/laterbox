@@ -21,6 +21,7 @@ PROFILE_PLIST="$RUNNER_TEMP/laterbox-macos-profile.plist"
 PACKAGE="$RUNNER_TEMP/LaterBox-macOS-AppStore.pkg"
 ASC_ALTOOL_DIR="$HOME/.appstoreconnect/private_keys"
 ARCHIVE="$RUNNER_TEMP/LaterBoxMac.xcarchive"
+PACKAGE_STAGE="$RUNNER_TEMP/laterbox-macos-package-stage"
 INSTALLED_PROFILE=""
 cleanup() {
   if [[ -n "$INSTALLED_PROFILE" ]]; then rm -f "$INSTALLED_PROFILE"; fi
@@ -86,6 +87,9 @@ cp "$PROFILE_PATH" "$INSTALLED_PROFILE"
 # Every CI upload needs a new build number. The marketing version follows version.json.
 MARKETING_VERSION="$(python3 -c 'import json; print(json.load(open("laterbox-ios/version.json"))["version"])')"
 BUILD_NUMBER="${GITHUB_RUN_NUMBER:-1}"
+# Confidential credentials were created with umask 077 and explicit 0600 modes.
+# Build artifacts must instead be readable by all users when installed by macOS.
+umask 022
 echo "Archiving LaterBox macOS v$MARKETING_VERSION ($BUILD_NUMBER) for App Store Connect"
 xcodebuild -project laterbox-ios/laterbox-ios.xcodeproj -scheme LaterBoxMac \
   -configuration Release -destination 'generic/platform=macOS' \
@@ -99,6 +103,34 @@ test -d "$APP"
 codesign --verify --deep --strict --verbose=2 "$APP"
 test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP/Contents/Info.plist")" = 'pro.micorp.laterbox'
 codesign -dv --verbose=4 "$APP" 2>&1 | grep -F "TeamIdentifier=$TEAM_ID"
+
+# Do not package the signed archive in place. A restrictive umask or generated
+# assets can leave app resources inaccessible to normal users.
+# Normalize a staging copy, preserve executable bits, then verify its signature.
+mkdir -p "$PACKAGE_STAGE"
+ditto "$APP" "$PACKAGE_STAGE/Laterbox.app"
+chmod -R a+rX "$PACKAGE_STAGE/Laterbox.app"
+python3 - "$PACKAGE_STAGE/Laterbox.app" <<'PY'
+import os
+import stat
+import sys
+root = sys.argv[1]
+unreadable = []
+for directory, dirs, files in os.walk(root, followlinks=False):
+    for name in dirs + files:
+        path = os.path.join(directory, name)
+        if os.path.islink(path):
+            continue
+        mode = os.stat(path).st_mode
+        if not (mode & stat.S_IROTH) or (stat.S_ISDIR(mode) and not (mode & stat.S_IXOTH)):
+            unreadable.append(os.path.relpath(path, root))
+if unreadable:
+    print("::error::Mac app resources unreadable by standard users:", *unreadable[:25], sep="\\n")
+    raise SystemExit(1)
+print("Verified all staged Mac app resources are readable by standard users")
+PY
+codesign --verify --deep --strict --verbose=2 "$PACKAGE_STAGE/Laterbox.app"
+APP="$PACKAGE_STAGE/Laterbox.app"
 
 # Xcode's exportArchive can incorrectly compare the installer certificate to
 # the app's provisioning profile. macOS App Store submissions are signed PKGs;
