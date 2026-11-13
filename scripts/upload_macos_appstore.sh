@@ -18,14 +18,14 @@ INSTALLER_CERT_PATH="$RUNNER_TEMP/laterbox-mac-installer.p12"
 PROFILE_PATH="$RUNNER_TEMP/laterbox-macos.provisionprofile"
 ASC_KEY_PATH="$RUNNER_TEMP/AuthKey_${ASC_KEY_ID}.p8"
 PROFILE_PLIST="$RUNNER_TEMP/laterbox-macos-profile.plist"
-EXPORT_OPTIONS="$RUNNER_TEMP/MacAppStoreExportOptions.plist"
+PACKAGE="$RUNNER_TEMP/LaterBox-macOS-AppStore.pkg"
+ASC_ALTOOL_DIR="$HOME/.appstoreconnect/private_keys"
 ARCHIVE="$RUNNER_TEMP/LaterBoxMac.xcarchive"
-EXPORT="$RUNNER_TEMP/MacAppStoreExport"
 INSTALLED_PROFILE=""
 cleanup() {
   if [[ -n "$INSTALLED_PROFILE" ]]; then rm -f "$INSTALLED_PROFILE"; fi
   security delete-keychain "$KEYCHAIN" >/dev/null 2>&1 || true
-  rm -f "$CERT_PATH" "$INSTALLER_CERT_PATH" "$PROFILE_PATH" "$ASC_KEY_PATH" "$PROFILE_PLIST" "$EXPORT_OPTIONS"
+  rm -f "$CERT_PATH" "$INSTALLER_CERT_PATH" "$PROFILE_PATH" "$ASC_KEY_PATH" "$PROFILE_PLIST" "$ASC_ALTOOL_DIR/AuthKey_${ASC_KEY_ID}.p8"
 }
 trap cleanup EXIT
 
@@ -43,11 +43,13 @@ security import "$CERT_PATH" -k "$KEYCHAIN" -P "$CERTIFICATE_PASSWORD" -T /usr/b
 security import "$INSTALLER_CERT_PATH" -k "$KEYCHAIN" -P "$INSTALLER_CERTIFICATE_PASSWORD" -T /usr/bin/codesign -T /usr/bin/productsign
 security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
 security find-identity -v -p codesigning "$KEYCHAIN" | grep -F 'Apple Distribution'
+# Installer identities are not code-signing identities: do not filter with -p codesigning.
+security find-identity -v "$KEYCHAIN" | grep -F '3rd Party Mac Developer Installer:'
 security cms -D -i "$PROFILE_PATH" > "$PROFILE_PLIST"
 
 # A Mac App Store Connect profile is required. Reject development, Developer ID,
 # device-restricted and incorrect-bundle profiles before attempting an upload.
-PROFILE_NAME="$(python3 - "$PROFILE_PLIST" "$TEAM_ID" "$EXPORT_OPTIONS" <<'PY'
+PROFILE_NAME="$(python3 - "$PROFILE_PLIST" "$TEAM_ID" <<'PY'
 import datetime
 import plistlib
 import sys
@@ -72,18 +74,7 @@ if profile.get("ProvisionedDevices") or profile.get("ProvisionsAllDevices"):
 expiry = profile["ExpirationDate"]
 if expiry.replace(tzinfo=datetime.timezone.utc) <= datetime.datetime.now(datetime.timezone.utc):
     raise SystemExit("::error::macOS provisioning profile has expired")
-name = profile["Name"]
-options = {
-    "method": "app-store-connect",
-    "destination": "upload",
-    "signingStyle": "manual",
-    "signingCertificate": "Apple Distribution",
-    "teamID": team,
-    "provisioningProfiles": {bundle: name},
-    "manageAppVersionAndBuildNumber": False,
-}
-Path(sys.argv[3]).write_bytes(plistlib.dumps(options))
-print(name)
+print(profile["Name"])
 PY
 )"
 PROFILE_UUID="$(/usr/libexec/PlistBuddy -c 'Print :UUID' "$PROFILE_PLIST")"
@@ -109,9 +100,24 @@ codesign --verify --deep --strict --verbose=2 "$APP"
 test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP/Contents/Info.plist")" = 'pro.micorp.laterbox'
 codesign -dv --verbose=4 "$APP" 2>&1 | grep -F "TeamIdentifier=$TEAM_ID"
 
-echo "Uploading macOS archive to App Store Connect (not publishing to the Mac App Store)"
-xcodebuild -exportArchive -archivePath "$ARCHIVE" -exportPath "$EXPORT" \
-  -exportOptionsPlist "$EXPORT_OPTIONS" \
-  -authenticationKeyPath "$ASC_KEY_PATH" -authenticationKeyID "$ASC_KEY_ID" \
-  -authenticationKeyIssuerID "$ASC_ISSUER_ID"
-echo "App Store Connect upload completed. Apple must process the build before TestFlight/review."
+# Xcode's exportArchive can incorrectly compare the installer certificate to
+# the app's provisioning profile. macOS App Store submissions are signed PKGs;
+# package the already Apple Distribution-signed app using the *installer* identity.
+INSTALLER_ID="$(security find-identity -v "$KEYCHAIN" | sed -n 's/.*"\\(3rd Party Mac Developer Installer:[^"]*\\)".*/\\1/p' | head -n 1)"
+if [[ -z "$INSTALLER_ID" ]]; then
+  echo "::error::Mac Installer Distribution identity is missing from the signing keychain"
+  exit 1
+fi
+productbuild --component "$APP" /Applications --sign "$INSTALLER_ID" \
+  --keychain "$KEYCHAIN" "$PACKAGE"
+pkgutil --check-signature "$PACKAGE"
+test -s "$PACKAGE"
+
+# altool reads API keys from this standard directory for authenticated uploads.
+mkdir -p "$ASC_ALTOOL_DIR"
+cp "$ASC_KEY_PATH" "$ASC_ALTOOL_DIR/AuthKey_${ASC_KEY_ID}.p8"
+chmod 600 "$ASC_ALTOOL_DIR/AuthKey_${ASC_KEY_ID}.p8"
+echo "Uploading signed macOS App Store package to App Store Connect"
+xcrun altool --upload-app --type macos --file "$PACKAGE" \
+  --apiKey "$ASC_KEY_ID" --apiIssuer "$ASC_ISSUER_ID"
+echo "App Store Connect transfer completed. Apple's build processing and review are separate."

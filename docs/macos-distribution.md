@@ -21,7 +21,7 @@ The script checks the profile bundle identifier, macOS platform, team, expiratio
 ## CI workflow
 
 - `.github/workflows/macos.yml` runs independently on macOS-related pushes to main and via manual dispatch. Pull requests only compile an unsigned macOS build.
-- `scripts/upload_macos_appstore.sh` imports the Apple Distribution and installer certificates, validates and installs the Mac App Store profile, archives the universal Mac app with sandbox entitlements, and uploads through `xcodebuild -exportArchive` using the App Store Connect API key.
+- `scripts/upload_macos_appstore.sh` imports the Apple Distribution and installer certificates, validates and installs the Mac App Store profile, archives the universal Mac app with sandbox entitlements, signs a Mac App Store installer `.pkg` using the separate **3rd Party Mac Developer Installer** identity, verifies the package signature, and submits it through `xcrun altool` using the App Store Connect API key.
 - A successful upload means Apple accepted the transfer, **not** that build processing or App Review succeeded.
 - There is **no Developer ID notarization, stapling, DMG artifact, or macOS binary in GitHub Releases** while App Store distribution is selected.
 - The managed GitHub Release workflow for the web, extensions, and iOS remains independent of Mac App Store uploads.
@@ -29,7 +29,7 @@ The script checks the profile bundle identifier, macOS platform, team, expiratio
 
 ## Troubleshooting
 
-If Xcode reports a provisioning mismatch, confirm that `APPLE_MAC_PROVISIONING_PROFILE_BASE64` contains a **Mac App Store Connect** distribution profile for `pro.micorp.laterbox`, associated with the same Apple Distribution certificate imported by CI. If upload fails with a missing app record, create the corresponding macOS app record in App Store Connect. An Apple notarization status 7000 applies to Developer ID distribution and is not part of this upload pipeline.
+If `xcodebuild -exportArchive` reports that the Mac App Store profile does not include a **3rd Party Mac Developer Installer** certificate, do not add that installer certificate to the app's provisioning profile: the app and package use different signing identities. The upload script now uses `productbuild` to sign the `.pkg` separately before App Store Connect upload. If the archive reports a provisioning mismatch, confirm that `APPLE_MAC_PROVISIONING_PROFILE_BASE64` contains a **Mac App Store Connect** distribution profile for `pro.micorp.laterbox`, associated with the same Apple Distribution certificate imported by CI. If upload fails with a missing app record, create the corresponding macOS app record in App Store Connect. An Apple notarization status 7000 applies to Developer ID distribution and is not part of this upload pipeline.
 
 ## Re-enabling direct Mac downloads
 

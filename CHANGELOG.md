@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[macOS / App Store Connect delivery]** Package the successfully archived Apple Distribution-signed Mac app with its separate Mac Installer Distribution signing identity, verify the `.pkg`, and upload directly to App Store Connect without the problematic Xcode exportArchive signing comparison.
+
 - **[iOS / Subscription plans]** Present plan details directly from the subscription settings view, so the sheet opens reliably inside navigation; update the guest UI walkthrough to verify the current View plan details control.
 
 - **[macOS / App Store bundle identity]** Align the native Mac target with the existing iOS App Store Connect bundle ID `pro.micorp.laterbox` for a shared platform listing, and validate that the distribution profile is specifically for macOS rather than iOS.
