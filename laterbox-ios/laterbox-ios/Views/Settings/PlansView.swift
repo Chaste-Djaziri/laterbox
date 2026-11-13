@@ -137,6 +137,7 @@ public struct PlansView: View {
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Done") { dismiss() }
+                        .accessibilityIdentifier("plans.done")
                 }
             }
             .task {

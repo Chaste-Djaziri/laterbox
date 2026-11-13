@@ -40,7 +40,7 @@ security set-keychain-settings -lut 7200 "$KEYCHAIN"
 security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
 security list-keychains -d user -s "$KEYCHAIN" "$HOME/Library/Keychains/login.keychain-db"
 security import "$CERT_PATH" -k "$KEYCHAIN" -P "$CERTIFICATE_PASSWORD" -T /usr/bin/codesign
-security import "$INSTALLER_CERT_PATH" -k "$KEYCHAIN" -P "$INSTALLER_CERTIFICATE_PASSWORD" -T /usr/bin/codesign -T /usr/bin/productsign
+security import "$INSTALLER_CERT_PATH" -k "$KEYCHAIN" -P "$INSTALLER_CERTIFICATE_PASSWORD" -T /usr/bin/productbuild -T /usr/bin/productsign
 security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
 security find-identity -v -p codesigning "$KEYCHAIN" | grep -F 'Apple Distribution'
 # Installer identities are not code-signing identities: do not filter with -p codesigning.
@@ -108,8 +108,20 @@ if [[ -z "$INSTALLER_ID" ]]; then
   echo "::error::Mac Installer Distribution identity is missing from the signing keychain"
   exit 1
 fi
-productbuild --component "$APP" /Applications --sign "$INSTALLER_ID" \
-  --keychain "$KEYCHAIN" "$PACKAGE"
+# productbuild must be authorized to access the installer private key in CI.
+# Avoid an invisible keychain authorization dialog hanging the runner indefinitely.
+security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+python3 - "$APP" "$INSTALLER_ID" "$KEYCHAIN" "$PACKAGE" <<'PY'
+import subprocess
+import sys
+argv = ["productbuild", "--component", sys.argv[1], "/Applications",
+        "--sign", sys.argv[2], "--keychain", sys.argv[3], sys.argv[4]]
+try:
+    subprocess.run(argv, check=True, timeout=300)
+except subprocess.TimeoutExpired:
+    print("::error::productbuild timed out: check installer private-key ACL and package filesystem permissions", flush=True)
+    raise SystemExit(1)
+PY
 pkgutil --check-signature "$PACKAGE"
 test -s "$PACKAGE"
 

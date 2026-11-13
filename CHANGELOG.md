@@ -1,5 +1,9 @@
 # Free extension and local library
 
+- **[macOS / CI package signing]** Grant `productbuild` installer-key access in the CI keychain and fail with actionable diagnostics instead of hanging on an invisible signing authorization prompt.
+- **[iOS / Subscription UI tests]** Identify the actual Plans sheet by its accessible Done control rather than relying on a scroll-content text label; verify restoration and return to subscription settings.
+- **[Supabase / Preview migrations]** Match the committed macOS support-request migration version to the already-applied production migration without changing database schema or remote migration history.
+
 - **[macOS / App Store signing]** Fix installer identity extraction from the imported keychain by replacing an over-escaped `sed` expression with a quoted-field `awk` match; Apple’s installer certificate was already present.
 
 - **[macOS / App Store Connect delivery]** Package the successfully archived Apple Distribution-signed Mac app with its separate Mac Installer Distribution signing identity, verify the `.pkg`, and upload directly to App Store Connect without the problematic Xcode exportArchive signing comparison.
