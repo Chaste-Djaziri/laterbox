@@ -3,6 +3,10 @@ on:
   workflow_call:
   pull_request:
     branches: [main]
+    paths:
+      - 'laterbox-extension/**'
+      - 'safari_app/**'
+      - '.github/workflows/extensions.yml'
   workflow_dispatch:
 
 permissions:

@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[CI / Platform build routing]** Build and release only changed targets: iOS, macOS, web, and browser extensions; rebuild both native Apple apps for shared Xcode sources or version metadata. Keep web and extension pipelines independent and reuse verified release artifacts for unchanged platforms.
+
 - **[CI / iOS signing]** Limit iOS provisioning profile injection to iPhoneOS configurations in the shared Xcode project, leaving macOS signing untouched; cover mixed-platform Debug/Release configurations with regression tests.
 
 - **[iOS / Cloud collection sync]** Reconcile collections by their server-owned, normalized names before uploads, preserve canonical IDs across pull/login, and recover from concurrent-creation conflicts so pending changes no longer fail with HTTP 409.

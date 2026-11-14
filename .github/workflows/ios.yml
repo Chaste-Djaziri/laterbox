@@ -3,7 +3,22 @@ on:
   workflow_call:
   pull_request:
     branches: [main]
-    paths: ['laterbox-ios/**', '.github/workflows/ios.yml']
+    paths:
+      - 'laterbox-ios/laterbox-ios/**'
+      - 'laterbox-ios/laterbox-iosTests/**'
+      - 'laterbox-ios/laterbox-iosUITests/**'
+      - 'laterbox-ios/LaterBoxShare/**'
+      - 'laterbox-ios/LaterBoxWidgets/**'
+      - 'laterbox-ios/laterbox-ios.entitlements'
+      - 'laterbox-ios/LaterBoxShare.entitlements'
+      - 'laterbox-ios/LaterBoxWidgets.entitlements'
+      - 'laterbox-ios/ci/**'
+      - 'laterbox-ios/Shared/**'
+      - 'laterbox-ios/laterbox-ios.xcodeproj/**'
+      - 'laterbox-ios/version.json'
+      - 'ci_scripts/**'
+      - 'scripts/apple-review-metadata.py'
+      - '.github/workflows/ios.yml'
   workflow_dispatch:
 permissions:
   contents: write

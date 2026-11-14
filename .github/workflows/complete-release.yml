@@ -3,6 +3,32 @@ name: Complete GitHub Release
 on:
   push:
     branches: [main]
+    paths:
+      - 'laterbox-ios/laterbox-ios/**'
+      - 'laterbox-ios/laterbox-iosTests/**'
+      - 'laterbox-ios/laterbox-iosUITests/**'
+      - 'laterbox-ios/LaterBoxShare/**'
+      - 'laterbox-ios/LaterBoxWidgets/**'
+      - 'laterbox-ios/Shared/**'
+      - 'laterbox-ios/laterbox-ios.xcodeproj/**'
+      - 'laterbox-ios/laterbox-ios.entitlements'
+      - 'laterbox-ios/LaterBoxShare.entitlements'
+      - 'laterbox-ios/LaterBoxWidgets.entitlements'
+      - 'laterbox-ios/ci/**'
+      - 'laterbox-ios/version.json'
+      - 'ci_scripts/**'
+      - 'scripts/apple-review-metadata.py'
+      - 'laterbox-web/**'
+      - 'supabase/**'
+      - 'version.json'
+      - 'laterbox-extension/**'
+      - 'safari_app/**'
+      - '.github/workflows/ios.yml'
+      - '.github/workflows/release.yml'
+      - '.github/workflows/extensions.yml'
+      - '.github/workflows/complete-release.yml'
+      - 'scripts/platform_changes.py'
+      - 'scripts/assemble_release.py'
   workflow_dispatch:
 
 permissions:
@@ -24,10 +50,13 @@ jobs:
       build_ios: ${{ steps.plan.outputs.build_ios }}
       build_web: ${{ steps.plan.outputs.build_web }}
       build_extensions: ${{ steps.plan.outputs.build_extensions }}
+      publish: ${{ steps.plan.outputs.publish }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      - name: Validate platform routing and release packaging
+        run: python3 -m unittest discover -s scripts/tests -p 'test_*.py'
       - name: Select managed baseline and changed platforms
         id: plan
         env:
@@ -48,22 +77,16 @@ jobs:
           echo "previous_tag=$previous_tag" >> "$GITHUB_OUTPUT"
           echo "tag=release-main-${GITHUB_RUN_ID}" >> "$GITHUB_OUTPUT"
           echo "version=$version" >> "$GITHUB_OUTPUT"
-          should_build() {
-            local output_name="$1" required_asset="$2" missing=false
-            shift 2
-            IFS=, read -ra required_assets <<< "$required_asset"
-            for asset in "${required_assets[@]}"; do
-              grep -Fxq "$asset" "$RUNNER_TEMP/previous-asset-names" || missing=true
-            done
-            if [ -z "$previous_tag" ] || [ "$missing" = true ] || ! git diff --quiet "$previous_tag" HEAD -- "$@" version.json; then
-              echo "$output_name=true" >> "$GITHUB_OUTPUT"
-            else
-              echo "$output_name=false" >> "$GITHUB_OUTPUT"
-            fi
-          }
-          should_build build_ios LaterBox.ipa laterbox-ios .github/workflows/ios.yml .github/workflows/complete-release.yml scripts/assemble_release.py
-          should_build build_web laterbox-web.tar.gz laterbox-web laterbox-extension supabase .github/workflows/release.yml .github/workflows/complete-release.yml scripts/assemble_release.py
-          should_build build_extensions laterbox-chrome-extension.zip,laterbox-firefox-extension.zip,laterbox-safari-extension.zip laterbox-extension .github/workflows/extensions.yml .github/workflows/complete-release.yml scripts/assemble_release.py
+          if [ -n "$previous_tag" ]; then
+            git diff --name-only -z "$previous_tag" HEAD > "$RUNNER_TEMP/release-changed-paths"
+          else
+            : > "$RUNNER_TEMP/release-changed-paths"
+          fi
+          python3 scripts/platform_changes.py \
+            --paths "$RUNNER_TEMP/release-changed-paths" \
+            --assets "$RUNNER_TEMP/previous-asset-names" \
+            --previous-tag "$previous_tag" \
+            --github-output "$GITHUB_OUTPUT"
 
   ios:
     needs: plan
@@ -86,7 +109,7 @@ jobs:
   publish:
     needs: [plan, ios, web, extensions]
     if: >-
-      always() && needs.plan.result == 'success' &&
+      always() && needs.plan.result == 'success' && needs.plan.outputs.publish == 'true' &&
       (needs.ios.result == 'success' || needs.ios.result == 'skipped') &&
       (needs.web.result == 'success' || needs.web.result == 'skipped') &&
       (needs.extensions.result == 'success' || needs.extensions.result == 'skipped')
