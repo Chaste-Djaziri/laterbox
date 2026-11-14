@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[CI / iOS signing]** Limit iOS provisioning profile injection to iPhoneOS configurations in the shared Xcode project, leaving macOS signing untouched; cover mixed-platform Debug/Release configurations with regression tests.
+
 - **[iOS / Cloud collection sync]** Reconcile collections by their server-owned, normalized names before uploads, preserve canonical IDs across pull/login, and recover from concurrent-creation conflicts so pending changes no longer fail with HTTP 409.
 
 - **[macOS / App Review subscription compliance]** Align Mac cloud storage with the approved iOS web-managed-account approach: remove in-app checkout and external purchase actions, Whop prices, and paid-plan comparisons; show only existing account storage and usage, and remove upgrade prompts from storage messaging. Intended for review under free cloud-storage companion app guidance (3.1.3(f)); Apple determines final eligibility.

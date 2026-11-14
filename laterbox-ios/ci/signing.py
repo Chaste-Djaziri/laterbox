@@ -3,6 +3,7 @@ import datetime
 import os
 from pathlib import Path
 import plistlib
+import re
 import subprocess
 
 TEAM = "LS42X27YFY"
@@ -113,6 +114,43 @@ def validate(profile, bundle, now=None):
         raise ValueError("An App Store distribution profile is required for " + bundle)
     return profile["Name"]
 
+def configure_ios_project_signing(project_text, profiles):
+    """Configure only iOS target settings (the Mac app shares the main bundle ID).
+
+    Keep the exact two Debug/Release iOS configurations per bundle; never attach
+    an iOS .mobileprovision to a macOS target with the same bundle identifier.
+    """
+    counts = {bundle: 0 for bundle in profiles}
+
+    def configure(match):
+        block = match[0]
+        if not re.search(r"(?m)^\s*SDKROOT = iphoneos;\s*$", block):
+            return block
+        for bundle, name in profiles.items():
+            if "PRODUCT_BUNDLE_IDENTIFIER = " + bundle + ";" not in block:
+                continue
+            escaped = name.replace("\\", "\\\\").replace('"', '\\"')
+            setting = 'PROVISIONING_PROFILE_SPECIFIER = "' + escaped + '";'
+            if "PROVISIONING_PROFILE_SPECIFIER =" in block:
+                block = re.sub(r"PROVISIONING_PROFILE_SPECIFIER = [^;]*;", lambda _: setting, block)
+            else:
+                block = block.replace(
+                    "PRODUCT_BUNDLE_IDENTIFIER = " + bundle + ";",
+                    "PRODUCT_BUNDLE_IDENTIFIER = " + bundle + ";\n\t\t\t\t" + setting
+                )
+            counts[bundle] += 1
+        return block
+
+    updated = re.sub(r"buildSettings = \{.*?\n\t\t\t\};", configure, project_text, flags=re.DOTALL)
+    unexpected = {bundle: count for bundle, count in counts.items() if count != 2}
+    if unexpected:
+        raise ValueError(
+            "Expected Debug and Release iOS signing configurations (2 each); "
+            f"actual iPhoneOS configuration counts: {unexpected}"
+        )
+    return updated
+
+
 def main():
     if os.environ["APPLE_TEAM_ID"] != TEAM: raise ValueError("APPLE_TEAM_ID does not match the existing app")
     root = Path(os.environ["RUNNER_TEMP"])
@@ -127,26 +165,10 @@ def main():
         destination.parent.mkdir(parents=True, exist_ok=True)
         destination.write_bytes((root / (name + ".mobileprovision")).read_bytes())
         with (root / "installed-profiles.txt").open("a") as manifest: manifest.write(str(destination) + "\n")
-    # Per-target profile settings avoid assigning the app profile to the extension.
-    import re
+    # Per-target profile settings avoid assigning iOS profiles to macOS.
     project = Path("laterbox-ios/laterbox-ios.xcodeproj/project.pbxproj")
-    text = project.read_text()
-    counts = {bundle: 0 for bundle in profiles}
-    def configure(match):
-        block = match[0]
-        for bundle, name in profiles.items():
-            if "PRODUCT_BUNDLE_IDENTIFIER = " + bundle + ";" not in block: continue
-            escaped = name.replace("\\", "\\\\").replace('"', '\\"')
-            setting = 'PROVISIONING_PROFILE_SPECIFIER = "' + escaped + '";'
-            if "PROVISIONING_PROFILE_SPECIFIER =" in block:
-                block = re.sub(r'PROVISIONING_PROFILE_SPECIFIER = [^;]*;', lambda _: setting, block)
-            else:
-                block = block.replace("PRODUCT_BUNDLE_IDENTIFIER = " + bundle + ";", "PRODUCT_BUNDLE_IDENTIFIER = " + bundle + ";\n\t\t\t\t" + setting)
-            counts[bundle] += 1
-        return block
-    text = re.sub(r"buildSettings = \{.*?\n\t\t\t\};", configure, text, flags=re.DOTALL)
-    if any(count != 2 for count in counts.values()): raise ValueError("Expected Debug and Release signing configurations")
-    project.write_text(text)
+    project.write_text(configure_ios_project_signing(project.read_text(), profiles))
+
     options = {"method": "app-store-connect", "signingStyle": "manual", "signingCertificate": "Apple Distribution",
                "teamID": TEAM, "provisioningProfiles": profiles, "uploadSymbols": True, "manageAppVersionAndBuildNumber": False}
     (root / "ExportOptions.plist").write_bytes(plistlib.dumps(options))
