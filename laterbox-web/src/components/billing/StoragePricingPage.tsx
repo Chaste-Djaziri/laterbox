@@ -1,7 +1,7 @@
 // laterbox-web/src/components/billing/StoragePricingPage.tsx
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import {
   ArrowRight,
@@ -126,6 +126,16 @@ const sliderTiers = [
 ] as const;
 
 export function StoragePricingPage({ inApp = false }: { inApp?: boolean }) {
+  // Whop Ads optimizes view_content against this key plan-comparison page.
+  // The existing root pixel queues the event even before its external script loads.
+  const trackedView = useRef(false);
+  useEffect(() => {
+    if (trackedView.current) return;
+    const pixel = (window as Window & { whop?: { track: (name: string) => void } }).whop;
+    if (typeof pixel?.track !== 'function') return;
+    trackedView.current = true;
+    pixel.track("view_content");
+  }, []);
   const [interval, setInterval] = useState<'month' | 'year'>('year');
   const [sliderIndex, setSliderIndex] = useState<number>(1); // Default to Vault 100 GB
   const { prices, loading, error: priceError, retry } = useWhopPrices();
