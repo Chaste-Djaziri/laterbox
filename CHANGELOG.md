@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[CI / App Store version parsing]** Accept App Store Connect marketing versions annotated with a parenthesized build number (for example `1.1 (2)`), treat the parentheses as build metadata rather than a version component, and reject malformed version strings with focused regression tests.
+
 - **[iOS / Plans presentation]** Replace the unreliable nested Settings → Plans navigation link with an explicit full-screen presentation, keeping an accessible dismiss control and the existing restore-purchases workflow.
 
 - **[CI / UI failure diagnostics]** Surface XCTest assertion locations and failed case names in GitHub Actions output, even when the full simulator log exceeds the console tail limit, while retaining full log artifacts for investigation.

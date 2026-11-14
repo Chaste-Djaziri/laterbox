@@ -4,7 +4,7 @@ from pathlib import Path
 import unittest
 from unittest.mock import patch
 import urllib.error
-from app_store import release_numbers, existing_app, APP_ID, BUNDLE
+from app_store import release_numbers, existing_app, version, APP_ID, BUNDLE
 from signing import validate, TEAM, GROUP
 
 class ReleaseTests(unittest.TestCase):
@@ -23,6 +23,31 @@ class ReleaseTests(unittest.TestCase):
         self.assertEqual(release_numbers({'version':'1.0.177','buildNumber':180}, [], [{'attributes':{'versionString':'1.0.181'}}]), ('1.0.182','181'))
     def test_new_repository_version_is_preserved(self):
         self.assertEqual(release_numbers({'version':'1.1.0','buildNumber':184}, [], [{'attributes':{'versionString':'1.0.183'}}]), ('1.1.0','185'))
+    def test_app_store_connect_version_can_include_parenthesized_build_number(self):
+        self.assertEqual(version("1.1 (2)"), (1, 1, 0))
+        self.assertEqual(version("1.1.0 (184)"), (1, 1, 0))
+        self.assertEqual(version("1.0.181"), (1, 0, 181))
+        self.assertEqual(version("1"), (1, 0, 0))
+        # Parenthesized build numbers are not the patch component.
+        self.assertNotEqual(version("1.1 (2)"), (1, 1, 2))
+
+    def test_prepare_release_numbers_with_decorated_app_store_version(self):
+        # Reproduces the App Store Connect response that crashed CI.
+        self.assertEqual(
+            release_numbers(
+                {"version": "1.1.0", "buildNumber": 184},
+                [{"attributes": {"version": "185"}}],
+                [{"attributes": {"versionString": "1.1 (2)"}}],
+            ),
+            ("1.1.1", "186"),
+        )
+
+    def test_release_version_parser_rejects_unexpected_suffixes(self):
+        for malformed in ("1.1 (2) beta", "1.1.0.2", "v1.1", "1.1 (abc)", "1..1"):
+            with self.subTest(version=malformed):
+                with self.assertRaisesRegex(ValueError, "Invalid version"):
+                    version(malformed)
+
     def test_usable_ios_version_metadata_is_separate_from_shared_version(self):
         root = Path(__file__).resolve().parents[2]
         ios = json.loads((root / "laterbox-ios/version.json").read_text())

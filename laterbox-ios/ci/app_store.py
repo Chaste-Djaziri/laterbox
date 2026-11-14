@@ -2,11 +2,11 @@
 import argparse
 import json
 import os
+import re
 from pathlib import Path
 import time
 import urllib.request
 import urllib.error
-import jwt
 
 BASE = "https://api.appstoreconnect.apple.com"
 BUNDLE = "pro.micorp.laterbox"
@@ -25,6 +25,7 @@ def asc_key_content():
     raise KeyError("ASC_KEY_PATH")
 
 def request(path, method="GET", data=None):
+    import jwt  # Only API requests need PyJWT; version utilities do not.
     now = int(time.time())
     token = jwt.encode({"iss": os.environ["APP_STORE_CONNECT_ISSUER_ID"], "iat": now,
                         "exp": now + 600, "aud": "appstoreconnect-v1"},
@@ -49,8 +50,15 @@ def records(path):
     return result
 
 def version(value):
-    parts = tuple(int(p) for p in value.split("."))
-    if not 1 <= len(parts) <= 3: raise ValueError("Invalid version")
+    """Parse a marketing version, optionally annotated with an ASC build number.
+
+    App Store Connect can return "1.1 (2)": this means marketing version
+    1.1, build 2. The parenthesized number is not a semantic-version part.
+    """
+    match = re.fullmatch(r"([0-9]+(?:\.[0-9]+){0,2})(?:\s*\(\s*[0-9]+\s*\))?", value.strip())
+    if not match:
+        raise ValueError(f"Invalid version: {value!r}")
+    parts = tuple(int(part) for part in match.group(1).split("."))
     return parts + (0,) * (3 - len(parts))
 
 def release_numbers(metadata, builds, store_versions):
