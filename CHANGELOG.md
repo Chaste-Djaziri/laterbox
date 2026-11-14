@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[Web / Whop Ads view-content pixel]** Track the standard Whop `view_content` event once per pricing/plans page view (not checkout or purchases), preserving the existing pixel installation and business scope for ad-group optimization.
+
 - **[CI / App Store version parsing]** Accept App Store Connect marketing versions annotated with a parenthesized build number (for example `1.1 (2)`), treat the parentheses as build metadata rather than a version component, and reject malformed version strings with focused regression tests.
 
 - **[iOS / Plans presentation]** Replace the unreliable nested Settings → Plans navigation link with an explicit full-screen presentation, keeping an accessible dismiss control and the existing restore-purchases workflow.
