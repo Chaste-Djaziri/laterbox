@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[CI / UI failure diagnostics]** Surface XCTest assertion locations and failed case names in GitHub Actions output, even when the full simulator log exceeds the console tail limit, while retaining full log artifacts for investigation.
+
 - **[iOS / Subscription navigation CI]** Keep an accessible in-content Done control on embedded plan details even when a parent Settings navigation bar is hidden; verify entering, restoration, and returning from Plans via an isolated UI test.
 
 - **[Chrome / Direct downloads]** Add a separate direct Chrome extension ZIP download beside the Chrome Web Store button, link to the latest verified GitHub Release asset, and explain how to install an unpacked extension; avoid regenerating web assets when packaging extensions.

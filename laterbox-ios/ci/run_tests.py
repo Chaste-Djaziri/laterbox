@@ -13,6 +13,25 @@ CLEANUP_TIMEOUT = 20
 root = Path(os.environ.get('RUNNER_TEMP', '/tmp/laterbox-native-ci'))
 root.mkdir(parents=True, exist_ok=True)
 
+def extract_xcode_test_failures(output):
+    """Return actionable XCTest failure details, even if they are far from EOF."""
+    failures = []
+    in_failure_list = False
+    for raw_line in output.splitlines():
+        line = raw_line.strip()
+        if line == 'Failing tests:':
+            in_failure_list = True
+            continue
+        if in_failure_list and not line:
+            in_failure_list = False
+        if (': error: -[' in line
+                or (line.startswith("Test Case ") and "' failed" in line)
+                or (in_failure_list and '.' in line and not line.startswith('**'))):
+            if line not in failures:
+                failures.append(line)
+    return failures[:20]
+
+
 def run(name, command, timeout):
     print(f'::group::{name}', flush=True)
     log = root / (name + '.log')
@@ -25,6 +44,8 @@ def run(name, command, timeout):
                     raise TimeoutError(f'{name} exceeded {timeout} seconds; see {log.name}')
                 time.sleep(5)
             if process.returncode:
+                for failure in extract_xcode_test_failures(log.read_text(errors='replace')):
+                    print('::error::' + failure[:700], flush=True)
                 raise RuntimeError(f'{name} exited with status {process.returncode}; see {log.name}')
         finally:
             if process.poll() is None:

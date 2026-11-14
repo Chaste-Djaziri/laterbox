@@ -46,6 +46,23 @@ class SimulatorValidationTests(unittest.TestCase):
             run_tests.cleanup_simulator('ci-device')
         self.assertEqual(command.call_count, 2)
 
+    def test_xcode_failure_summary_survives_large_test_logs(self):
+        log = (
+            "Test Case '-[laterbox_iosUITests.laterbox_iosUITests "
+            "testGuestSubscriptionReviewWalkthrough]' started.\n"
+            "/repo/laterbox_iosUITests.swift:223: error: "
+            "-[laterbox_iosUITests.laterbox_iosUITests "
+            "testGuestSubscriptionReviewWalkthrough] : XCTAssertTrue failed "
+            "- Done control missing\n"
+            + "simulator output\n" * 3000
+            + "Failing tests:\n"
+            + "    laterbox_iosUITests.testGuestSubscriptionReviewWalkthrough()\n"
+        )
+        failures = run_tests.extract_xcode_test_failures(log)
+        self.assertTrue(any("swift:223" in line for line in failures))
+        self.assertTrue(any("testGuestSubscriptionReviewWalkthrough()" in line for line in failures))
+        self.assertGreater(len(log), 16000)
+
     def test_build_timeout_has_room_for_slow_xcode_runners(self):
         self.assertGreaterEqual(run_tests.BUILD_TIMEOUT, 1200)
 
