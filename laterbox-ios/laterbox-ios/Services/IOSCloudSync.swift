@@ -115,7 +115,7 @@ public enum CloudSyncError: LocalizedError, CustomStringConvertible, Sendable, E
 protocol IOSCloudTransport: Sendable {
     func downloadSnapshots(userID: String, token: String) async throws -> [CloudItemSnapshot]
     func cloudRequest(_ path: String, token: String, method: String, body: Any?) async throws -> Data
-    func uploadSnapshot(_ body: [String: Any], metadata: [String: Any], note: [String: Any], collection: [String: Any]?, token: String) async throws
+    func uploadSnapshot(_ body: [String: Any], metadata: [String: Any], note: [String: Any], collection: [String: Any]?, collectionExists: Bool, token: String) async throws
 }
 
 extension LaterBoxAPIService: IOSCloudTransport {
@@ -199,7 +199,7 @@ extension LaterBoxAPIService: IOSCloudTransport {
             offset += page.count
         }
     }
-    func uploadSnapshot(_ body: [String: Any], metadata: [String: Any], note: [String: Any], collection: [String: Any]?, token: String) async throws {
+    func uploadSnapshot(_ body: [String: Any], metadata: [String: Any], note: [String: Any], collection: [String: Any]?, collectionExists: Bool, token: String) async throws {
         _ = try await cloudRequest("items?on_conflict=id", token: token, method: "POST", body: body)
         var mergedMetadata = metadata
         if let itemID = body["id"] as? String {
@@ -214,7 +214,11 @@ extension LaterBoxAPIService: IOSCloudTransport {
         _ = try await cloudRequest("item_metadata?on_conflict=item_id", token: token, method: "POST", body: mergedMetadata)
         _ = try await cloudRequest("item_notes?on_conflict=item_id", token: token, method: "POST", body: note)
         if let collection {
-            _ = try await cloudRequest("collections?on_conflict=id", token: token, method: "POST", body: collection)
+            // Reuse the server-owned collection, never rewrite its created_at
+            // or try to create another UUID for an existing normalized name.
+            if !collectionExists {
+                _ = try await cloudRequest("collections?on_conflict=id", token: token, method: "POST", body: collection)
+            }
             let userId = (collection["user_id"] as? String) ?? (body["user_id"] as? String) ?? ""
             let stamp = (collection["updated_at"] as? String) ?? (body["updated_at"] as? String) ?? ISO8601DateFormatter().string(from: Date())
             let createdAt = (collection["created_at"] as? String) ?? (body["created_at"] as? String) ?? stamp
@@ -378,6 +382,75 @@ extension LaterBoxAPIService {
 
 @MainActor
 extension SyncCoordinator {
+    /// Mirrors the active database index: lower(btrim(name)).
+    static func cloudCollectionKey(_ name: String) -> String {
+        name.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+    }
+
+    private func fetchActiveCloudCollections(
+        userID: String, token: String, transport: any IOSCloudTransport
+    ) async throws -> [String: CloudCollection] {
+        var byName: [String: CloudCollection] = [:]
+        var offset = 0
+        while true {
+            let data = try await transport.cloudRequest(
+                "collections?user_id=eq.\(userID)&deleted_at=is.null&select=id,name&order=created_at.asc&limit=500&offset=\(offset)",
+                token: token, method: "GET", body: nil
+            )
+            let page: [CloudCollection]
+            do {
+                page = try JSONDecoder().decode([CloudCollection].self, from: data)
+            } catch {
+                throw CloudSyncError.decodingError("Unable to read cloud collections: \(error.localizedDescription)")
+            }
+            for collection in page {
+                let key = Self.cloudCollectionKey(collection.name)
+                if byName[key] == nil { byName[key] = collection }
+            }
+            if page.count < 500 { return byName }
+            offset += page.count
+        }
+    }
+
+    /// Keep one local collection and assign the canonical server UUID to all
+    /// associated items. Does not clear pending changes or alter edit timestamps.
+    private func adoptCloudCollection(
+        _ cloud: CloudCollection, userID: String, context: ModelContext
+    ) throws {
+        let key = Self.cloudCollectionKey(cloud.name)
+        let candidates = try context.fetch(FetchDescriptor<LBCollection>()).filter {
+            ($0.userId == nil || $0.userId == userID) &&
+                (Self.cloudCollectionKey($0.name) == key ||
+                 $0.id.caseInsensitiveCompare(cloud.id) == .orderedSame)
+        }
+        let oldIDs = Set(candidates.map { $0.id.lowercased() })
+        let canonical = candidates.first { $0.id.caseInsensitiveCompare(cloud.id) == .orderedSame }
+            ?? candidates.first
+
+        if let canonical {
+            canonical.id = cloud.id
+            canonical.name = cloud.name
+            canonical.userId = userID
+        } else {
+            context.insert(LBCollection(id: cloud.id, userId: userID, name: cloud.name))
+        }
+
+        for item in try context.fetch(FetchDescriptor<LBItem>()) {
+            guard item.userId == nil || item.userId == userID else { continue }
+            let matchesID = item.collectionId.map { oldIDs.contains($0.lowercased()) ||
+                $0.caseInsensitiveCompare(cloud.id) == .orderedSame } ?? false
+            let matchesName = item.collectionName.map { Self.cloudCollectionKey($0) == key } ?? false
+            if matchesID || matchesName {
+                item.collectionId = cloud.id
+                item.collectionName = cloud.name
+            }
+        }
+        for candidate in candidates where candidate !== canonical {
+            context.delete(candidate)
+        }
+        try context.save()
+    }
+
     @discardableResult
     func performCloudPull(context: ModelContext, transport: (any IOSCloudTransport)? = nil) async throws -> Int {
         guard hasCloudPro else { return 0 }
@@ -549,8 +622,15 @@ extension SyncCoordinator {
             }
             item.noteContent = snapshot.item_notes?.deleted_at == nil ? snapshot.item_notes?.content : nil
             let activeMembership = snapshot.collection_items?.first { $0.deleted_at == nil }
-            item.collectionId = activeMembership?.collection_id
-            item.collectionName = activeMembership?.collections?.name
+            if let membership = activeMembership, let cloud = membership.collections {
+                let canonical = CloudCollection(id: membership.collection_id, name: cloud.name)
+                try adoptCloudCollection(canonical, userID: uid, context: context)
+                item.collectionId = canonical.id
+                item.collectionName = canonical.name
+            } else {
+                item.collectionId = activeMembership?.collection_id
+                item.collectionName = activeMembership?.collections?.name
+            }
             if let remoteAttachments = snapshot.attachments?.filter({ $0.deleted_at == nil }),
                let attachmentAPI = api as? LaterBoxAPIService {
                 var localAttachments: [SharedAttachment] = []
@@ -572,9 +652,6 @@ extension SyncCoordinator {
                     }
                 }
                 if !localAttachments.isEmpty { item.attachmentsData = try? JSONEncoder().encode(localAttachments) }
-            }
-            if let collName = item.collectionName, !collName.isEmpty {
-                _ = ensureCollectionExists(named: collName, context: context)
             }
             item.isSyncPending = false
             appliedCount += 1
@@ -624,6 +701,16 @@ extension SyncCoordinator {
 
         let pending = try context.fetch(FetchDescriptor<LBItem>())
             .filter { $0.isSyncPending && ($0.userId == nil || $0.userId == uid) }
+        // Read the canonical collection catalog once per push. Previously each
+        // offline device inserted its own UUID with on_conflict=id, producing 409.
+        var activeCloudCollections: [String: CloudCollection] = [:]
+        if pending.contains(where: {
+            $0.status != "deleted" && !Self.cloudCollectionKey($0.collectionName ?? "").isEmpty
+        }) {
+            activeCloudCollections = try await executeWithRetry { curToken in
+                try await fetchActiveCloudCollections(userID: uid, token: curToken, transport: api)
+            }
+        }
 
         for item in pending {
             guard currentUserId == uid, authToken == token else { return pushedCount }
@@ -676,16 +763,28 @@ extension SyncCoordinator {
                 "structured_data": ["tags": item.tags, "category": item.category, "summary": item.summary, "formattedContent": item.formattedContent, "seen": item.seen]]
             let note: [String: Any] = ["item_id": item.id, "user_id": uid, "content": item.noteContent ?? "", "updated_at": stamp, "deleted_at": item.noteContent == nil ? stamp as Any : null]
             var collection: [String: Any]?
-            if let name = item.collectionName, !name.isEmpty {
-                if item.collectionId == nil {
-                    let existingColls = (try? context.fetch(FetchDescriptor<LBCollection>())) ?? []
-                    if let found = existingColls.first(where: { $0.name.localizedCaseInsensitiveCompare(name) == .orderedSame }) {
-                        item.collectionId = found.id
+            var collectionExists = false
+            if item.status != "deleted", let rawName = item.collectionName {
+                let name = rawName.trimmingCharacters(in: .whitespacesAndNewlines)
+                if !name.isEmpty {
+                    let key = Self.cloudCollectionKey(name)
+                    let canonical: CloudCollection
+                    if let remote = activeCloudCollections[key] {
+                        canonical = remote
+                        collectionExists = true
                     } else {
-                        item.collectionId = UUID().uuidString
+                        let existingColls = try context.fetch(FetchDescriptor<LBCollection>())
+                        let localID = existingColls.first(where: {
+                            ($0.userId == nil || $0.userId == uid) && Self.cloudCollectionKey($0.name) == key
+                        })?.id
+                        canonical = CloudCollection(id: localID ?? item.collectionId ?? UUID().uuidString, name: name)
                     }
+                    try adoptCloudCollection(canonical, userID: uid, context: context)
+                    item.collectionId = canonical.id
+                    item.collectionName = canonical.name
+                    collection = ["id": canonical.id, "user_id": uid, "name": canonical.name,
+                                  "created_at": item.createdAt.ISO8601Format(), "updated_at": stamp]
                 }
-                collection = ["id": item.collectionId!, "user_id": uid, "name": name, "created_at": item.createdAt.ISO8601Format(), "updated_at": stamp]
             }
             if let attachmentData = item.attachmentsData {
                 let attachments = try JSONDecoder().decode([SharedAttachment].self, from: attachmentData)
@@ -703,8 +802,41 @@ extension SyncCoordinator {
                 try context.save()
                 }
             }
-            try await executeWithRetry { curToken in
-                try await api.uploadSnapshot(body, metadata: metadata, note: note, collection: collection, token: curToken)
+            do {
+                try await executeWithRetry { curToken in
+                    try await api.uploadSnapshot(body, metadata: metadata, note: note,
+                                                 collection: collection, collectionExists: collectionExists, token: curToken)
+                }
+            } catch let error as CloudSyncError {
+                // A second device may create this name between our catalog GET
+                // and INSERT. Re-fetch once, adopt its ID, and retry membership.
+                guard case .serverError(let status, let message) = error,
+                      status == 409,
+                      message.contains("collections_active_user_normalized_name_unique"),
+                      let originalCollection = collection,
+                      let name = originalCollection["name"] as? String else {
+                    throw error
+                }
+                activeCloudCollections = try await executeWithRetry { curToken in
+                    try await fetchActiveCloudCollections(userID: uid, token: curToken, transport: api)
+                }
+                let key = Self.cloudCollectionKey(name)
+                guard let canonical = activeCloudCollections[key] else { throw error }
+                try adoptCloudCollection(canonical, userID: uid, context: context)
+                item.collectionId = canonical.id
+                item.collectionName = canonical.name
+                var retryCollection = originalCollection
+                retryCollection["id"] = canonical.id
+                retryCollection["name"] = canonical.name
+                try await executeWithRetry { curToken in
+                    try await api.uploadSnapshot(body, metadata: metadata, note: note,
+                                                 collection: retryCollection, collectionExists: true, token: curToken)
+                }
+                collection = retryCollection
+            }
+            if let collection, let name = collection["name"] as? String,
+               let id = collection["id"] as? String {
+                activeCloudCollections[Self.cloudCollectionKey(name)] = CloudCollection(id: id, name: name)
             }
             guard currentUserId == uid, authToken == token else { return pushedCount }
             item.userId = uid
@@ -864,14 +996,19 @@ extension SyncCoordinator {
                 }
                 item.noteContent = snapshot.item_notes?.deleted_at == nil ? snapshot.item_notes?.content : nil
 
-                // Auto-create and refresh collection catalog
+                // Preserve the server's collection UUID, even after guest merge.
                 let activeMembership = snapshot.collection_items?.first { $0.deleted_at == nil }
-                let rawCollName = activeMembership?.collections?.name ?? (item.category.isEmpty ? nil : item.category)
-                if let name = rawCollName, !name.isEmpty {
+                if let membership = activeMembership, let cloud = membership.collections {
+                    let canonical = CloudCollection(id: membership.collection_id, name: cloud.name)
+                    try adoptCloudCollection(canonical, userID: userId, context: context)
+                    item.collectionId = canonical.id
+                    item.collectionName = canonical.name
+                    if item.category.isEmpty { item.category = canonical.name }
+                } else if !item.category.isEmpty {
+                    let name = item.category
                     if let coll = ensureCollectionExists(named: name, context: context) {
                         item.collectionId = coll.id
                         item.collectionName = coll.name
-                        if item.category.isEmpty { item.category = coll.name }
                     }
                 }
                 item.isSyncPending = false

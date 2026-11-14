@@ -1224,6 +1224,114 @@ extension LaterAITests {
         #expect(!collections.contains { $0.name == "Archived Group" })
     }
 
+    @Test func cloudPushReusesCanonicalCollectionAndMergesLocalDuplicates() async throws {
+        let coordinator = SyncCoordinator.shared
+        let previous = (coordinator.currentUserId, coordinator.currentUserEmail, coordinator.authToken,
+                        coordinator.isProUser, coordinator.isGuestMode)
+        let uid = UUID().uuidString
+        coordinator.currentUserId = uid; coordinator.currentUserEmail = "sync@test.com"; coordinator.authToken = "token"
+        coordinator.isGuestMode = false
+        coordinator.setProForTesting(true)
+        defer {
+            coordinator.currentUserId = previous.0; coordinator.currentUserEmail = previous.1
+            coordinator.authToken = previous.2; coordinator.setProForTesting(previous.3)
+            coordinator.isGuestMode = previous.4
+        }
+
+        let context = try context()
+        let staleID = UUID().uuidString
+        let serverID = UUID().uuidString
+        context.insert(LBCollection(id: staleID, userId: uid, name: " RECIPES "))
+        let item = LBItem(title: "Local recipe", status: .inbox)
+        item.userId = uid
+        item.collectionId = staleID
+        item.collectionName = " recipes "
+        item.isSyncPending = true
+        context.insert(item)
+        try context.save()
+
+        let transport = MockCloudTransport()
+        transport.activeCollections = [CloudCollection(id: serverID, name: "Recipes")]
+        #expect(try await coordinator.performCloudPush(context: context, transport: transport) == 1)
+        #expect(item.collectionId == serverID)
+        #expect(item.collectionName == "Recipes")
+        #expect(item.isSyncPending == false)
+        #expect(transport.uploadedCollectionExistsFlags == [true])
+
+        let local = try context.fetch(FetchDescriptor<LBCollection>())
+        #expect(local.count == 1)
+        #expect(local.first?.id == serverID)
+        #expect(local.first?.name == "Recipes")
+    }
+
+    @Test func cloudPushRetriesWhenAnotherDeviceCreatesCollectionDuringUpload() async throws {
+        let coordinator = SyncCoordinator.shared
+        let previous = (coordinator.currentUserId, coordinator.currentUserEmail, coordinator.authToken,
+                        coordinator.isProUser, coordinator.isGuestMode)
+        let uid = UUID().uuidString
+        coordinator.currentUserId = uid; coordinator.currentUserEmail = "sync@test.com"; coordinator.authToken = "token"
+        coordinator.isGuestMode = false
+        coordinator.setProForTesting(true)
+        defer {
+            coordinator.currentUserId = previous.0; coordinator.currentUserEmail = previous.1
+            coordinator.authToken = previous.2; coordinator.setProForTesting(previous.3)
+            coordinator.isGuestMode = previous.4
+        }
+
+        let context = try context()
+        let item = LBItem(title: "Shared idea", status: .inbox)
+        item.userId = uid
+        item.collectionName = "Ideas"
+        item.isSyncPending = true
+        context.insert(item)
+        try context.save()
+
+        let serverID = UUID().uuidString
+        let transport = MockCloudTransport()
+        transport.raceCollection = CloudCollection(id: serverID, name: "ideas ")
+        #expect(try await coordinator.performCloudPush(context: context, transport: transport) == 1)
+        #expect(item.collectionId == serverID)
+        #expect(item.collectionName == "ideas ")
+        #expect(!item.isSyncPending)
+        #expect(transport.uploads.count == 1)
+        #expect(transport.uploadedCollectionExistsFlags == [true])
+        #expect(try context.fetch(FetchDescriptor<LBCollection>()).count == 1)
+    }
+
+    @Test func cloudPullHydratesCollectionUsingServerID() async throws {
+        let coordinator = SyncCoordinator.shared
+        let previous = (coordinator.currentUserId, coordinator.currentUserEmail, coordinator.authToken,
+                        coordinator.isProUser, coordinator.isGuestMode)
+        let uid = UUID().uuidString
+        coordinator.currentUserId = uid; coordinator.currentUserEmail = "sync@test.com"; coordinator.authToken = "token"
+        coordinator.isGuestMode = false
+        coordinator.setProForTesting(true)
+        defer {
+            coordinator.currentUserId = previous.0; coordinator.currentUserEmail = previous.1
+            coordinator.authToken = previous.2; coordinator.setProForTesting(previous.3)
+            coordinator.isGuestMode = previous.4
+        }
+
+        let context = try context()
+        let serverID = UUID().uuidString
+        let transport = MockCloudTransport()
+        transport.snapshots = [
+            CloudItemSnapshot(id: UUID().uuidString, user_id: uid, title: "Remote item",
+                              status: "inbox", created_at: "2026-10-17T00:00:00Z",
+                              updated_at: "2026-10-17T00:00:00Z",
+                              collection_items: [
+                                  CloudMembership(collection_id: serverID,
+                                      collections: CloudCollection(id: serverID, name: "Reference"))
+                              ])
+        ]
+        #expect(try await coordinator.performCloudPull(context: context, transport: transport) == 1)
+        let item = try #require(context.fetch(FetchDescriptor<LBItem>()).first)
+        let collection = try #require(context.fetch(FetchDescriptor<LBCollection>()).first)
+        #expect(item.collectionId == serverID)
+        #expect(collection.id == serverID)
+        #expect(collection.name == "Reference")
+    }
+
     @Test func syncUploadPopulatesUserIdForCollection() async throws {
         try await Task.sleep(for: .milliseconds(50))
         let coordinator = SyncCoordinator.shared
@@ -1905,6 +2013,9 @@ private final class MockCloudTransport: IOSCloudTransport {
     var downloads = 0
     var uploads: [[String: Any]] = []
     var uploadedCollections: [[String: Any]] = []
+    var uploadedCollectionExistsFlags: [Bool] = []
+    var activeCollections: [CloudCollection] = []
+    var raceCollection: CloudCollection? = nil
     var snapshots: [CloudItemSnapshot] = []
     var manifestData: Data? = nil
     var failUpload = false
@@ -1916,15 +2027,31 @@ private final class MockCloudTransport: IOSCloudTransport {
     }
     func cloudRequest(_ path: String, token: String, method: String, body: Any?) async throws -> Data {
         if let err = errorToThrow { throw err }
+        if path.hasPrefix("collections?") {
+            return try JSONEncoder().encode(activeCollections)
+        }
         if path.contains("select=id"), let data = manifestData {
             return data
         }
         return Data()
     }
-    func uploadSnapshot(_ body: [String: Any], metadata: [String: Any], note: [String: Any], collection: [String: Any]?, token: String) async throws {
+    func uploadSnapshot(_ body: [String: Any], metadata: [String: Any], note: [String: Any], collection: [String: Any]?, collectionExists: Bool, token: String) async throws {
         if let err = errorToThrow { throw err }
         if failUpload { throw URLError(.notConnectedToInternet) }
+        if collection != nil && !collectionExists, let racing = raceCollection {
+            raceCollection = nil
+            activeCollections.append(racing)
+            throw CloudSyncError.serverError(statusCode: 409,
+                message: "duplicate key value violates unique constraint \"collections_active_user_normalized_name_unique\"")
+        }
         uploads.append(body)
-        if let collection { uploadedCollections.append(collection) }
+        if let collection {
+            uploadedCollections.append(collection)
+            uploadedCollectionExistsFlags.append(collectionExists)
+            if !collectionExists, let id = collection["id"] as? String,
+               let name = collection["name"] as? String {
+                activeCollections.append(CloudCollection(id: id, name: name))
+            }
+        }
     }
 }
