@@ -16,6 +16,8 @@ import {
 
 const CHROME_STORE_URL =
   'https://chromewebstore.google.com/detail/laterbox-save-for-later/egiodciikkepjielhbnihmmchkbpeikp';
+const CHROME_ZIP_URL =
+  'https://github.com/Chaste-Djaziri/laterbox/releases/latest/download/laterbox-chrome-extension.zip';
 
 export default function DownloadPage() {
 
@@ -74,16 +76,32 @@ export default function DownloadPage() {
               </span>
             </div>
 
-            <div className="flex items-center justify-between pt-2">
-              <a
-                href={CHROME_STORE_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#181b14] hover:bg-[#30392a] text-white text-xs font-bold transition-all shadow-2xs"
-              >
-                <Download className="w-3.5 h-3.5 text-[#e6edb0]" />
-                <span>Add to Chrome</span>
-              </a>
+            <div className="space-y-3 pt-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <a
+                  href={CHROME_STORE_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#181b14] hover:bg-[#30392a] text-white text-xs font-bold transition-all shadow-2xs"
+                >
+                  <Download className="w-3.5 h-3.5 text-[#e6edb0]" />
+                  <span>Add from Chrome Web Store</span>
+                </a>
+                <a
+                  href={CHROME_ZIP_URL}
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-[#181b14]/20 bg-white hover:bg-[#f4f7eb] text-[#181b14] text-xs font-bold transition-all"
+                  aria-label="Download LaterBox Chrome extension ZIP for manual installation"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Download Chrome ZIP</span>
+                </a>
+              </div>
+              <p className="text-xs leading-5 text-[#606458]">
+                Manual install: unzip the download, open <code className="font-semibold text-[#181b14]">chrome://extensions</code>,
+                enable Developer mode, select Load unpacked, then choose the unzipped folder.
+                Chrome cannot install the ZIP file directly.
+              </p>
               <Link
                 href="/extension/connect"
                 className="inline-flex items-center gap-1 text-xs font-bold text-[#606458] hover:text-[#181b14] transition-colors"

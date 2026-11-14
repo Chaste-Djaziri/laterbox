@@ -37,11 +37,16 @@ Open `http://localhost:8080/home`. Local builds default to **Local library**. Ca
 
 ### Chromium
 
-1. Run `npm run build:local` (or `build:hosted`).
+For the latest direct public download (no Chrome Web Store): download
+[LaterBox Chrome ZIP](https://github.com/Chaste-Djaziri/laterbox/releases/latest/download/laterbox-chrome-extension.zip),
+extract it, then choose the extracted folder using Load unpacked.
+Chrome does **not** install extension ZIP archives automatically.
+
+1. Run `npm run build:local` (or `build:hosted`) to build locally; skip this if you downloaded the ZIP.
 2. Open `chrome://extensions`.
 3. Enable Developer mode.
 4. Choose Load unpacked.
-5. Select `laterbox-extension/dist/chromium`.
+5. Select `laterbox-extension/dist/chromium` (local builds) or your extracted ZIP folder.
 
 ### Firefox
 
@@ -91,8 +96,8 @@ Apply `supabase/migrations/202610100001_free_extension_capture.sql`, then deploy
 
 ## Package command
 
-`npm run package` builds all hosted browser targets and creates ZIP archives. The ZIP script also copies downloads into `../laterbox-web/public/downloads/`; review generated output before staging repository changes.
+`npm run package` builds all hosted browser targets and creates clean ZIP archives under `dist/`. Packaging does not write into the web app. Release assets are published through the dedicated extension workflow and the managed GitHub Release.
 
 ## CI ownership
 
-The dedicated extension workflow is `.github/workflows/extensions.yml`. The web release workflow also packages extensions so web download assets accompany the Cloudflare build. See [deployment](../docs/deployment.md) for release conditions.
+The dedicated extension workflow is `.github/workflows/extensions.yml`. Web and extension builds are independent. The download page links directly to the latest managed Chrome ZIP release asset, so an extension-only update does not require rebuilding Cloudflare. See [deployment](../docs/deployment.md) for release conditions.
