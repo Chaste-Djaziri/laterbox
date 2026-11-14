@@ -8,6 +8,7 @@ public struct SubscriptionSettingsView: View {
     @Environment(\.openURL) private var openURL
     @ObservedObject private var coordinator = SyncCoordinator.shared
     @ObservedObject private var storeKit = StoreKitManager.shared
+    @State private var showingPlans = false
 
     public init() {}
 
@@ -96,13 +97,15 @@ public struct SubscriptionSettingsView: View {
                             .font(.subheadline)
                             .foregroundStyle(SettingsAppearance.textSecondary(for: colorScheme))
 
-                        NavigationLink {
-                            PlansView(isEmbeddedInNavigation: true)
+                        Button {
+                            LBHaptic.light()
+                            showingPlans = true
                         } label: {
                             Label("View plan details", systemImage: "square.stack")
                                 .font(.subheadline.weight(.semibold))
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 13)
+                                .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
                         .foregroundStyle(SettingsAppearance.textPrimary(for: colorScheme))
@@ -190,6 +193,15 @@ public struct SubscriptionSettingsView: View {
         .task {
             await storeKit.updatePurchasedProducts()
             await coordinator.refreshEntitlement()
+        }
+        // Present independently from the hidden Settings tab navigation bar.
+        // A nested NavigationLink can receive taps without activating its destination.
+        .fullScreenCover(isPresented: $showingPlans) {
+            NavigationStack {
+                PlansView(isEmbeddedInNavigation: true, onDone: {
+                    showingPlans = false
+                })
+            }
         }
         .navigationTitle("Subscription & Plans")
         .navigationBarTitleDisplayMode(.inline)

@@ -16,10 +16,24 @@ public struct PlansView: View {
 
     public let isLiquidGlass: Bool
     public let isEmbeddedInNavigation: Bool
+    private let onDone: (() -> Void)?
 
-    public init(isLiquidGlass: Bool = false, isEmbeddedInNavigation: Bool = false) {
+    public init(
+        isLiquidGlass: Bool = false,
+        isEmbeddedInNavigation: Bool = false,
+        onDone: (() -> Void)? = nil
+    ) {
         self.isLiquidGlass = isLiquidGlass
         self.isEmbeddedInNavigation = isEmbeddedInNavigation
+        self.onDone = onDone
+    }
+
+    private func closePlans() {
+        if let onDone {
+            onDone()
+        } else {
+            dismiss()
+        }
     }
 
     private var currentPlan: String {
@@ -150,7 +164,7 @@ public struct PlansView: View {
                     HStack {
                         Spacer()
                         Button {
-                            dismiss()
+                            closePlans()
                         } label: {
                             Text("Done")
                                 .font(.subheadline.weight(.semibold))
@@ -174,7 +188,7 @@ public struct PlansView: View {
             .toolbar {
                 if !isEmbeddedInNavigation {
                     ToolbarItem(placement: .topBarTrailing) {
-                        Button("Done") { dismiss() }
+                        Button("Done") { closePlans() }
                             .accessibilityIdentifier("plans.done")
                     }
                 }

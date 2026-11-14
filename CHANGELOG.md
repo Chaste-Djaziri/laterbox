@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[iOS / Plans presentation]** Replace the unreliable nested Settings → Plans navigation link with an explicit full-screen presentation, keeping an accessible dismiss control and the existing restore-purchases workflow.
+
 - **[CI / UI failure diagnostics]** Surface XCTest assertion locations and failed case names in GitHub Actions output, even when the full simulator log exceeds the console tail limit, while retaining full log artifacts for investigation.
 
 - **[iOS / Subscription navigation CI]** Keep an accessible in-content Done control on embedded plan details even when a parent Settings navigation bar is hidden; verify entering, restoration, and returning from Plans via an isolated UI test.
