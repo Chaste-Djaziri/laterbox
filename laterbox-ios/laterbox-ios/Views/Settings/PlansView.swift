@@ -143,12 +143,40 @@ public struct PlansView: View {
                     .padding(.bottom, 32)
                 }
             }
+            // Keep the embedded back/Done action pinned even after scrolling
+            // to restore purchases. Hidden parent toolbars cannot hide this button.
+            .safeAreaInset(edge: .top, spacing: 0) {
+                if isEmbeddedInNavigation {
+                    HStack {
+                        Spacer()
+                        Button {
+                            dismiss()
+                        } label: {
+                            Text("Done")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(SettingsAppearance.textPrimary(for: colorScheme))
+                                .padding(.horizontal, 18)
+                                .padding(.vertical, 11)
+                                .background(SettingsAppearance.surface(for: colorScheme),
+                                            in: Capsule())
+                                .contentShape(Capsule())
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier("plans.done")
+                    }
+                    .padding(.horizontal, 18)
+                    .padding(.vertical, 6)
+                }
+            }
             .navigationTitle("Plans")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar(.visible, for: .navigationBar)
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") { dismiss() }
-                        .accessibilityIdentifier("plans.done")
+                if !isEmbeddedInNavigation {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button("Done") { dismiss() }
+                            .accessibilityIdentifier("plans.done")
+                    }
                 }
             }
             .task {

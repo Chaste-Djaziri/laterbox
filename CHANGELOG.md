@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[iOS / Subscription navigation CI]** Keep an accessible in-content Done control on embedded plan details even when a parent Settings navigation bar is hidden; verify entering, restoration, and returning from Plans via an isolated UI test.
+
 - **[Chrome / Direct downloads]** Add a separate direct Chrome extension ZIP download beside the Chrome Web Store button, link to the latest verified GitHub Release asset, and explain how to install an unpacked extension; avoid regenerating web assets when packaging extensions.
 
 - **[CI / Platform build routing]** Build and release only changed targets: iOS, macOS, web, and browser extensions; rebuild both native Apple apps for shared Xcode sources or version metadata. Keep web and extension pipelines independent and reuse verified release artifacts for unchanged platforms.

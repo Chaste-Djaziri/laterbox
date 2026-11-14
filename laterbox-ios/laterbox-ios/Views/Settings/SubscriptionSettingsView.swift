@@ -193,5 +193,8 @@ public struct SubscriptionSettingsView: View {
         }
         .navigationTitle("Subscription & Plans")
         .navigationBarTitleDisplayMode(.inline)
+        // The Settings tab root hides its own bar; subsequent screens need
+        // their navigation bars explicitly visible for a usable back action.
+        .toolbar(.visible, for: .navigationBar)
     }
 }

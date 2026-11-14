@@ -219,9 +219,12 @@ final class laterbox_iosUITests: XCTestCase {
         XCTAssertTrue(viewPlans.waitForExistence(timeout: 8),
                       "Subscription settings should expose plan details")
         viewPlans.tap()
+        XCTAssertTrue(app.staticTexts["LaterBox Plans"].waitForExistence(timeout: 15),
+                      "View plan details must navigate to the Plans screen")
         let plansDone = app.buttons["plans.done"]
         XCTAssertTrue(plansDone.waitForExistence(timeout: 15),
-                      "Tapping View plan details must present the plans sheet with its Done control")
+                      "Plans must provide a Done control even when the Settings toolbar is hidden")
+        XCTAssertTrue(plansDone.isHittable, "The Plans Done button must be tappable")
         let restore = app.buttons.matching(identifier: "Restore Purchases").firstMatch
         XCTAssertTrue(restore.waitForExistence(timeout: 10))
         restore.tap()
