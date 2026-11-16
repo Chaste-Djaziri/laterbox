@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[Web / Mobile dashboard]** Remove the mobile-only under-development blocking overlay so authenticated visitors can use the LaterBox web dashboard on phones and tablets without page-scroll locking.
+
 - **[Web / Whop Ads view-content pixel]** Track the standard Whop `view_content` event once per pricing/plans page view (not checkout or purchases), preserving the existing pixel installation and business scope for ad-group optimization.
 
 - **[CI / App Store version parsing]** Accept App Store Connect marketing versions annotated with a parenthesized build number (for example `1.1 (2)`), treat the parentheses as build metadata rather than a version component, and reject malformed version strings with focused regression tests.
