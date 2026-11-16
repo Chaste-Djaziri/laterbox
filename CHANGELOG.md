@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[Web / Mobile extension notice]** Hide the browser-extension-disconnected dashboard notification on mobile and keep it available on desktop; preserve guest and sync warnings on both screen sizes.
+
 - **[Web / Mobile dashboard]** Remove the mobile-only under-development blocking overlay so authenticated visitors can use the LaterBox web dashboard on phones and tablets without page-scroll locking.
 
 - **[Web / Whop Ads view-content pixel]** Track the standard Whop `view_content` event once per pricing/plans page view (not checkout or purchases), preserving the existing pixel installation and business scope for ad-group optimization.

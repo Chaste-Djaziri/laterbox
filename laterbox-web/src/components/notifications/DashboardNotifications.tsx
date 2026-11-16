@@ -69,7 +69,16 @@ export function DashboardNotifications() {
           });
         }
 
-        return <DashboardNoticeBar notices={notices} />;
+        return (
+          <>
+            {/* Phones do not support the desktop browser-extension workflow. */}
+            <DashboardNoticeBar
+              notices={notices.filter(notice => notice.id !== 'browser-extension-disconnected')}
+              className="md:hidden"
+            />
+            <DashboardNoticeBar notices={notices} className="hidden md:block" />
+          </>
+        );
       }}
     </InboxExtensionGate>
   );
